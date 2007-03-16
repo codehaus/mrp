@@ -8,7 +8,7 @@
  */
 package org.binarytranslator.generic.memory;
 
-import com.ibm.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.opt.ir.OPT_RegisterOperand;
 import org.binarytranslator.generic.decoder.DecoderUtils;
 import java.io.RandomAccessFile;
 

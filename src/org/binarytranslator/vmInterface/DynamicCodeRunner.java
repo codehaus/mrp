@@ -7,10 +7,10 @@
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
 package org.binarytranslator.vmInterface;
-import com.ibm.jikesrvm.VM;
-import com.ibm.jikesrvm.VM_DynamicBridge;
-import com.ibm.jikesrvm.VM_CodeArray;
-import com.ibm.jikesrvm.VM_Magic;
+import org.jikesrvm.VM;
+import org.jikesrvm.VM_DynamicBridge;
+import org.jikesrvm.VM_CodeArray;
+import org.jikesrvm.VM_Magic;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.pragma.NoInlinePragma;
 import org.binarytranslator.DBT_Options;

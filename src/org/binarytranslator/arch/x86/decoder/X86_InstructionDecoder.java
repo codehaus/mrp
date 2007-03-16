@@ -19,29 +19,29 @@ import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
 
-import com.ibm.jikesrvm.classloader.VM_TypeReference;
+import org.jikesrvm.classloader.VM_TypeReference;
 
-import com.ibm.jikesrvm.opt.ir.Binary;
-import com.ibm.jikesrvm.opt.ir.BooleanCmp;
-import com.ibm.jikesrvm.opt.ir.BooleanCmp2;
-import com.ibm.jikesrvm.opt.ir.CondMove;
-import com.ibm.jikesrvm.opt.ir.IfCmp;
-import com.ibm.jikesrvm.opt.ir.Goto;
-import com.ibm.jikesrvm.opt.ir.Move;
-import com.ibm.jikesrvm.opt.ir.Unary;
+import org.jikesrvm.opt.ir.Binary;
+import org.jikesrvm.opt.ir.BooleanCmp;
+import org.jikesrvm.opt.ir.BooleanCmp2;
+import org.jikesrvm.opt.ir.CondMove;
+import org.jikesrvm.opt.ir.IfCmp;
+import org.jikesrvm.opt.ir.Goto;
+import org.jikesrvm.opt.ir.Move;
+import org.jikesrvm.opt.ir.Unary;
 
-import com.ibm.jikesrvm.opt.ir.OPT_Operator;
-import com.ibm.jikesrvm.opt.ir.OPT_Operators;
+import org.jikesrvm.opt.ir.OPT_Operator;
+import org.jikesrvm.opt.ir.OPT_Operators;
 
-import com.ibm.jikesrvm.opt.ir.OPT_BasicBlock;
-import com.ibm.jikesrvm.opt.ir.OPT_Instruction;
+import org.jikesrvm.opt.ir.OPT_BasicBlock;
+import org.jikesrvm.opt.ir.OPT_Instruction;
 
-import com.ibm.jikesrvm.opt.ir.OPT_Operand;
-import com.ibm.jikesrvm.opt.ir.OPT_BranchOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_BranchProfileOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_ConditionOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_IntConstantOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.opt.ir.OPT_Operand;
+import org.jikesrvm.opt.ir.OPT_BranchOperand;
+import org.jikesrvm.opt.ir.OPT_BranchProfileOperand;
+import org.jikesrvm.opt.ir.OPT_ConditionOperand;
+import org.jikesrvm.opt.ir.OPT_IntConstantOperand;
+import org.jikesrvm.opt.ir.OPT_RegisterOperand;
 
 /**
  * Decoder for X86 instructions

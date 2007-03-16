@@ -10,8 +10,8 @@ package org.binarytranslator.arch.x86.os.process;
 
 import java.io.*;
 
-import com.ibm.jikesrvm.opt.ir.OPT_GenerationContext;
-import com.ibm.jikesrvm.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;

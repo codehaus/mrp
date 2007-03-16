@@ -9,17 +9,17 @@
 package org.binarytranslator.vmInterface;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
-import com.ibm.jikesrvm.classloader.VM_BootstrapClassLoader;
-import com.ibm.jikesrvm.VM_CompiledMethod;
-import com.ibm.jikesrvm.VM_CompiledMethods;
-import com.ibm.jikesrvm.classloader.VM_NormalMethod;
-import com.ibm.jikesrvm.classloader.VM_Class;
-import com.ibm.jikesrvm.classloader.VM_TypeReference;
-import com.ibm.jikesrvm.classloader.VM_MemberReference;
-import com.ibm.jikesrvm.classloader.VM_Atom;
-import com.ibm.jikesrvm.VM_Statics;
-import com.ibm.jikesrvm.opt.ir.OPT_GenerationContext;
-import com.ibm.jikesrvm.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.classloader.VM_BootstrapClassLoader;
+import org.jikesrvm.VM_CompiledMethod;
+import org.jikesrvm.VM_CompiledMethods;
+import org.jikesrvm.classloader.VM_NormalMethod;
+import org.jikesrvm.classloader.VM_Class;
+import org.jikesrvm.classloader.VM_TypeReference;
+import org.jikesrvm.classloader.VM_MemberReference;
+import org.jikesrvm.classloader.VM_Atom;
+import org.jikesrvm.VM_Statics;
+import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 
 /**
  * A method class which can be used in place of a VM_NormalMethod but
@@ -84,7 +84,7 @@ public final class DBT_Trace extends VM_NormalMethod
   public static void configure() {
     VM_Atom clsDescriptor = VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/vmInterface/DummyDynamicCodeRunner;");
     VM_Atom memName       = VM_Atom.findOrCreateAsciiAtom("invokeCode");
-    invokeCodeDescriptor  = VM_Atom.findOrCreateAsciiAtom("(Lcom.ibm.jikesrvm/VM_CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
+    invokeCodeDescriptor  = VM_Atom.findOrCreateAsciiAtom("(Lorg/jikesrvm/VM_CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
     VM_TypeReference tRef = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
                                                           clsDescriptor);
     dummyRunnerTypeRef = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),

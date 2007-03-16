@@ -14,10 +14,10 @@ import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.decoder.InstructionDecoder;
 
-import com.ibm.jikesrvm.opt.ir.*;
-import com.ibm.jikesrvm.*;
-import com.ibm.jikesrvm.classloader.*;
-import com.ibm.jikesrvm.opt.*;
+import org.jikesrvm.opt.ir.*;
+import org.jikesrvm.*;
+import org.jikesrvm.classloader.*;
+import org.jikesrvm.opt.*;
 
 import java.util.Enumeration;
 import java.util.NoSuchElementException;

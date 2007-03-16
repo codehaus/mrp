@@ -1,7 +1,7 @@
 /*
  * (C) The University of Manchester 2003 - 2006
  */
-package com.ibm.jikesrvm.opt.ir;
+package org.jikesrvm.opt.ir;
 
 /**
  * Interface implemented by all optimizing compiler HIR generators
@@ -9,7 +9,7 @@ package com.ibm.jikesrvm.opt.ir;
  */
 public interface OPT_HIRGenerator {
   /**
-	* Method to create the HIR
-	*/
+   * Method to create the HIR
+   */
   public void generateHIR();
 }

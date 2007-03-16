@@ -10,8 +10,6 @@ package org.binarytranslator.arch.ppc.decoder;
 
 import org.binarytranslator.generic.decoder.Laziness;
 
-import com.ibm.jikesrvm.VM;
-
 /**
  * A representation of the lazy state. This and a PC address define
  * what a block of code is good for. We don't use lazy evaluation for

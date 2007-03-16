@@ -8,13 +8,13 @@
  */
 package org.binarytranslator.vmInterface;
 
-import com.ibm.jikesrvm.classloader.VM_Method;
-import com.ibm.jikesrvm.classloader.VM_TypeReference;
-import com.ibm.jikesrvm.opt.ir.OPT_BasicBlock;
-import com.ibm.jikesrvm.opt.ir.OPT_BranchProfileOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_GenerationContext;
-import com.ibm.jikesrvm.opt.ir.OPT_Instruction;
-import com.ibm.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.classloader.VM_Method;
+import org.jikesrvm.classloader.VM_TypeReference;
+import org.jikesrvm.opt.ir.OPT_BasicBlock;
+import org.jikesrvm.opt.ir.OPT_BranchProfileOperand;
+import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.opt.ir.OPT_Instruction;
+import org.jikesrvm.opt.ir.OPT_RegisterOperand;
 
 /**
  * Translation helper interface

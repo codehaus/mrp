@@ -12,13 +12,13 @@ import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
 
-import com.ibm.jikesrvm.opt.ir.OPT_Operators;
-import com.ibm.jikesrvm.opt.ir.Binary;
-import com.ibm.jikesrvm.opt.ir.Move;
+import org.jikesrvm.opt.ir.OPT_Operators;
+import org.jikesrvm.opt.ir.Binary;
+import org.jikesrvm.opt.ir.Move;
 
-import com.ibm.jikesrvm.opt.ir.OPT_Operand;
-import com.ibm.jikesrvm.opt.ir.OPT_IntConstantOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.opt.ir.OPT_Operand;
+import org.jikesrvm.opt.ir.OPT_IntConstantOperand;
+import org.jikesrvm.opt.ir.OPT_RegisterOperand;
 
 /**
  * Wrapper for X86 decoded operands that are either in memory,

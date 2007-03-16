@@ -8,26 +8,26 @@
  */
 package org.binarytranslator.generic.memory;
 
-import com.ibm.jikesrvm.VM;
-import com.ibm.jikesrvm.classloader.VM_Atom;
-import com.ibm.jikesrvm.classloader.VM_BootstrapClassLoader;
-import com.ibm.jikesrvm.classloader.VM_FieldReference;
-import com.ibm.jikesrvm.classloader.VM_MemberReference;
-import com.ibm.jikesrvm.classloader.VM_Method;
-import com.ibm.jikesrvm.classloader.VM_MethodReference;
-import com.ibm.jikesrvm.classloader.VM_TypeReference;
-import com.ibm.jikesrvm.opt.ir.Call;
-import com.ibm.jikesrvm.opt.ir.GetField;
-import com.ibm.jikesrvm.opt.ir.Unary;
-import com.ibm.jikesrvm.opt.ir.OPT_AddressConstantOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_GenerationContext;
-import com.ibm.jikesrvm.opt.ir.OPT_Instruction;
-import com.ibm.jikesrvm.opt.ir.OPT_LocationOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_MethodOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_Operators;
-import com.ibm.jikesrvm.opt.ir.OPT_Register;
-import com.ibm.jikesrvm.opt.ir.OPT_RegisterOperand;
-import com.ibm.jikesrvm.opt.ir.OPT_TrueGuardOperand;
+import org.jikesrvm.VM;
+import org.jikesrvm.classloader.VM_Atom;
+import org.jikesrvm.classloader.VM_BootstrapClassLoader;
+import org.jikesrvm.classloader.VM_FieldReference;
+import org.jikesrvm.classloader.VM_MemberReference;
+import org.jikesrvm.classloader.VM_Method;
+import org.jikesrvm.classloader.VM_MethodReference;
+import org.jikesrvm.classloader.VM_TypeReference;
+import org.jikesrvm.opt.ir.Call;
+import org.jikesrvm.opt.ir.GetField;
+import org.jikesrvm.opt.ir.Unary;
+import org.jikesrvm.opt.ir.OPT_AddressConstantOperand;
+import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.opt.ir.OPT_Instruction;
+import org.jikesrvm.opt.ir.OPT_LocationOperand;
+import org.jikesrvm.opt.ir.OPT_MethodOperand;
+import org.jikesrvm.opt.ir.OPT_Operators;
+import org.jikesrvm.opt.ir.OPT_Register;
+import org.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.opt.ir.OPT_TrueGuardOperand;
 import org.binarytranslator.generic.decoder.DecoderUtils;
 
 /**

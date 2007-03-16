@@ -8,8 +8,8 @@
  */
 package org.binarytranslator.arch.ppc.os.process;
 
-import com.ibm.jikesrvm.opt.ir.OPT_GenerationContext;
-import com.ibm.jikesrvm.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.linux.PPC_LinuxProcessSpace;
 import org.binarytranslator.arch.ppc.decoder.PPC2IR;

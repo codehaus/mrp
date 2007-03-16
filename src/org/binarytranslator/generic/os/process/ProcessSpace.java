@@ -11,10 +11,10 @@ package org.binarytranslator.generic.os.process;
 import java.util.Hashtable;
 import java.io.*;
 
-import com.ibm.jikesrvm.VM_CompiledMethod;
-import com.ibm.jikesrvm.VM_CodeArray;
-import com.ibm.jikesrvm.opt.ir.OPT_GenerationContext;
-import com.ibm.jikesrvm.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.VM_CompiledMethod;
+import org.jikesrvm.VM_CodeArray;
+import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.DynamicCodeRunner;

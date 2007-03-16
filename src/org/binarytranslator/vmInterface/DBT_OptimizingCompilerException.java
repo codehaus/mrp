@@ -8,7 +8,7 @@
  */
 package org.binarytranslator.vmInterface;
 
-import com.ibm.jikesrvm.opt.OPT_OptimizingCompilerException;
+import org.jikesrvm.opt.OPT_OptimizingCompilerException;
 
 /**
  * Use this exception if we encounter a runtime error in the binary translator
