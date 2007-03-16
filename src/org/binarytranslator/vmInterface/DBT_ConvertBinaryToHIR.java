@@ -7,7 +7,12 @@
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
 package org.binarytranslator.vmInterface;
+import org.binarytranslator.generic.decoder.DecoderUtils;
 import org.jikesrvm.opt.OPT_CompilerPhase;
+import org.jikesrvm.opt.ir.OPT_IR;
+import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.opt.ir.OPT_HIRInfo;
+import org.jikesrvm.VM_Configuration;
 
 /** 
  * The OPT_CompilerPhase which translates from PowerPC machine code
@@ -17,22 +22,21 @@ import org.jikesrvm.opt.OPT_CompilerPhase;
  * @author Richard Matley, Ian Rogers
  *
  */
-public abstract class DBT_ConvertMCtoHIR extends OPT_CompilerPhase
+public abstract class DBT_ConvertBinaryToHIR extends OPT_CompilerPhase
 {
 
-
-    public DBT_ConvertMCtoHIR() {}
+    public DBT_ConvertBinaryToHIR() {}
 
     /**
      * Return a String describing this compiler phase.
      */
     public final String getName()
     {
-	return "Generate HIR from MC machine code";
+	return "Generate HIR from machine code";
     }
 
     /** 
-     * Generate HIR from a block of MC machine code. 
+     * Generate HIR from a block of machine code. 
      */
     public final void perform(OPT_IR ir)
     {
@@ -56,11 +60,9 @@ public abstract class DBT_ConvertMCtoHIR extends OPT_CompilerPhase
 	    ir.verify("Initial HIR", true);
 	}
 
-	eliminateConditionalMoves(ir);
-
-	//-#if RVM_FOR_POWERPC
-	//	MC2IR.eliminateConditionalMoves(ir);
-	//-#endif
+	if (VM_Configuration.BuildForPowerPC) {
+	    DecoderUtils.eliminateConditionalMoves(ir);
+	}
     }
 
     protected abstract void generateHIR(OPT_GenerationContext gc);

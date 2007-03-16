@@ -12,7 +12,7 @@ import java.util.Hashtable;
 import java.io.*;
 
 import org.jikesrvm.VM_CompiledMethod;
-import org.jikesrvm.VM_CodeArray;
+import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
 import org.jikesrvm.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 

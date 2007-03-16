@@ -11,6 +11,7 @@ package org.binarytranslator.arch.ppc.decoder;
 // DBT classes
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.vmInterface.TranslationHelper;
+import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.decoder.DecoderUtils;
@@ -35,6 +36,8 @@ import org.jikesrvm.opt.ir.OPT_IR;
 import org.jikesrvm.opt.ir.OPT_Instruction;
 import org.jikesrvm.opt.ir.OPT_Operator;
 import org.jikesrvm.opt.ir.OPT_Operators;
+import org.jikesrvm.opt.ir.ALoad;
+import org.jikesrvm.opt.ir.AStore;
 import org.jikesrvm.opt.ir.Athrow;
 import org.jikesrvm.opt.ir.Binary;
 import org.jikesrvm.opt.ir.BBend;
@@ -378,7 +381,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, lt,
-						     arrayref, new OPT_IntegerConstantOperand(crf),
+						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
         VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
@@ -391,7 +394,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, gt,
-						     arrayref, new OPT_IntegerConstantOperand(crf),
+						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
         VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
@@ -404,7 +407,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, eq,
-						     arrayref, new OPT_IntegerConstantOperand(crf),
+						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
         VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
@@ -417,7 +420,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, so,
-						     arrayref, new OPT_IntegerConstantOperand(crf),
+						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
     }
@@ -448,8 +451,8 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
                                                         new OPT_LocationOperand(ref),
                                                         new OPT_TrueGuardOperand())
                                         );
-	appendInstructionToCurrentBlock(AStore.create(UBYTE_ASTORE, lt,
-						      arrayref, new OPT_IntegerConstantOperand(crf),
+	appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, lt,
+						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
         VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
@@ -461,8 +464,8 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
                                                         new OPT_LocationOperand(ref),
                                                         new OPT_TrueGuardOperand())
                                         );
-	appendInstructionToCurrentBlock(AStore.create(UBYTE_ASTORE, gt,
-						      arrayref, new OPT_IntegerConstantOperand(crf),
+	appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, gt,
+						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
         VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
@@ -474,8 +477,8 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
                                                         new OPT_LocationOperand(ref),
                                                         new OPT_TrueGuardOperand())
                                         );
-	appendInstructionToCurrentBlock(AStore.create(UBYTE_ASTORE, eq,
-						      arrayref, new OPT_IntegerConstantOperand(crf),
+	appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, eq,
+						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
         VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
@@ -487,8 +490,8 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
                                                         new OPT_LocationOperand(ref),
                                                         new OPT_TrueGuardOperand())
                                         );
-	appendInstructionToCurrentBlock(AStore.create(UBYTE_ASTORE, so,
-						      arrayref, new OPT_IntegerConstantOperand(crf),
+	appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, so,
+						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
     }
@@ -876,7 +879,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     public OPT_RegisterOperand getCR_Lt_Register(int crf) {
 	crFieldInUseMap[crf] = true;
-        return new OPT_RegisterOperand (crRegMap_Lt[crf], VM_TypeReference.Boolean);
+        return new OPT_RegisterOperand (crFieldMap_Lt[crf], VM_TypeReference.Boolean);
     }
     /**
      * Return a boolean register operand encoding the gt bit of the
@@ -886,7 +889,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     public OPT_RegisterOperand getCR_Gt_Register(int crf) {
 	crFieldInUseMap[crf] = true;
-        return new OPT_RegisterOperand (crRegMap_Gt[crf], VM_TypeReference.Boolean);
+        return new OPT_RegisterOperand (crFieldMap_Gt[crf], VM_TypeReference.Boolean);
     }
     /**
      * Return a boolean register operand encoding the eq bit of the
@@ -896,7 +899,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     public OPT_RegisterOperand getCR_Eq_Register(int crf) {
 	crFieldInUseMap[crf] = true;
-        return new OPT_RegisterOperand (crRegMap_Eq[crf], VM_TypeReference.Boolean);
+        return new OPT_RegisterOperand (crFieldMap_Eq[crf], VM_TypeReference.Boolean);
     }
     /**
      * Return a boolean register operand encoding the so bit of the
@@ -906,7 +909,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     public OPT_RegisterOperand getCR_SO_Register(int crf) {
 	crFieldInUseMap[crf] = true;
-        return new OPT_RegisterOperand (crRegMap_SO[crf], VM_TypeReference.Boolean);
+        return new OPT_RegisterOperand (crFieldMap_SO[crf], VM_TypeReference.Boolean);
     }
     public OPT_RegisterOperand getCRB_Register(int crb) {
 	int crf = crb >> 2;

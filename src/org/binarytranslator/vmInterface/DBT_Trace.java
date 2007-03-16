@@ -25,8 +25,7 @@ import org.jikesrvm.opt.ir.OPT_HIRGenerator;
  * A method class which can be used in place of a VM_NormalMethod but
  * which includes a block of PPC machine code, since this is our
  * starting point for the PPC emulator, rather than Java byte
- * codes. Note this requires redefining the class VM_NormalMethod not
- * to be final.
+ * codes.
  */
 public final class DBT_Trace extends VM_NormalMethod
 {

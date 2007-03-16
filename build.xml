@@ -1,0 +1,30 @@
+<project name="binarytranslator.org" default="compile" basedir="../..">
+  <property name="dbt.java"     location="projects/dbt/src"/>
+  <property name="dbt-ext.java" location="projects/dbt/ext"/>
+  <target name="compile" depends="compile-external">
+    <javac destdir="${build.classes}"
+           debug="true"
+           debugLevel="lines,source"
+           source="1.5"
+           target="1.5"
+           srcdir="${dbt.java}">
+      <classpath>
+        <pathelement location="${build.vmmagic-stub.classes}"/>
+        <pathelement location="${build.classes}"/>
+      </classpath>
+    </javac>
+  </target>
+  <target name="compile-external">
+    <javac destdir="${build.classes}"
+           debug="true"
+           debugLevel="lines,source"
+           source="1.5"
+           target="1.5"
+           srcdir="${dbt-ext.java}">
+      <classpath>
+        <pathelement location="${build.vmmagic-stub.classes}"/>
+        <pathelement location="${build.classes}"/>
+      </classpath>
+    </javac>
+  </target>
+</project>

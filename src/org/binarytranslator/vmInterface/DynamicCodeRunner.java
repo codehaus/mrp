@@ -8,22 +8,24 @@
  */
 package org.binarytranslator.vmInterface;
 import org.jikesrvm.VM;
-import org.jikesrvm.VM_DynamicBridge;
-import org.jikesrvm.VM_CodeArray;
+import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
 import org.jikesrvm.VM_Magic;
+import org.vmmagic.pragma.DynamicBridge;
 import org.vmmagic.pragma.Uninterruptible;
-import org.vmmagic.pragma.NoInlinePragma;
+import org.vmmagic.pragma.NoInline;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.fault.BadInstructionException;
 
 /**
  * This class provides the bridge between the Java compiled world and
- * the world compiled using the PPC emulator.  VM_Uninterruptible is
+ * the world compiled using the PPC emulator.  Uninterruptible is
  * used to prevent garbage collection errors with the dynamic bridge
  * code.
  */
-public class DynamicCodeRunner implements VM_DynamicBridge, Uninterruptible {
+@Uninterruptible
+@DynamicBridge
+public class DynamicCodeRunner {
   /**
    * The bridge into the PPC emulator code
    *
@@ -31,7 +33,8 @@ public class DynamicCodeRunner implements VM_DynamicBridge, Uninterruptible {
    * @param ps the process space the code will work upon
    * @return the code will return the PC value of the next instruction
    */
-  public static int invokeCode (VM_CodeArray code, ProcessSpace ps) throws BadInstructionException, NoInlinePragma
+  @NoInline
+  public static int invokeCode (VM_CodeArray code, ProcessSpace ps) throws BadInstructionException
   {
     // Useful when debugging in GDB:
     if(DBT_Options.debugRuntime) {
@@ -58,10 +61,11 @@ public class DynamicCodeRunner implements VM_DynamicBridge, Uninterruptible {
 /**
  * This class is a hoax used to point our VM_PPC_Trace to. We can't
  * use DynamicCodeRunner as OPT_Compiler refuses to build something
- * that implements VM_DynamicBridge. VM_Uninterruptible is used to
+ * that implements VM_DynamicBridge. Uninterruptible is used to
  * prevent garbage collection errors with the dynamic bridge code.
  */
-class DummyDynamicCodeRunner implements Uninterruptible {
+@Uninterruptible
+class DummyDynamicCodeRunner {
   /**
    * Offset of ps.doSysCall bytecode
    */
@@ -77,7 +81,8 @@ class DummyDynamicCodeRunner implements Uninterruptible {
   /**
    * The method replaced by a trace
    */
-  public static int invokeCode (VM_CodeArray code, ProcessSpace ps) throws BadInstructionException, NoInlinePragma
+  @NoInline
+  public static int invokeCode (VM_CodeArray code, ProcessSpace ps) throws BadInstructionException
   {
     // Fake out calls to PPC_ProcessSpace to forge some bytecode
     // locations

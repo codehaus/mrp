@@ -136,7 +136,7 @@ public class X86_Registers  {
    * Set if the integer result is too large a positive number or too
    * small a negative number (excluding the sign-bit) to fit in the
    * destination operand; cleared otherwise. This flag indicates an
-   * overflow condition for signed-integer (two-F¢s complement)-A
+   * overflow condition for signed-integer (twoâ€™s complement)
    * arithmetic.
    */
   private boolean flag_OF;
@@ -197,7 +197,7 @@ public class X86_Registers  {
   /*
    * X86 flag register constituants - bit 16 - RF or resume flag
    *
-   * Controls the processor-F¢s response to debug exceptions.-A
+   * Controls the processorâ€™s response to debug exceptions.
    */
 
   /*

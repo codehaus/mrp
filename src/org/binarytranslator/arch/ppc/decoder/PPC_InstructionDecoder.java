@@ -18,6 +18,7 @@ import org.jikesrvm.opt.ir.*;
 import org.jikesrvm.*;
 import org.jikesrvm.classloader.*;
 import org.jikesrvm.opt.*;
+import org.jikesrvm.ppc.PPC_Disassembler;
 
 import java.util.Enumeration;
 import java.util.NoSuchElementException;
@@ -1240,7 +1241,7 @@ final class subfic_decoder extends PPC_InstructionDecoder {
   /**
    * Translate subfic (subtract from immediate carrying):
    * <listing>
-   * rD <- ¬ (rA) + EXTS(SIMM) + 1
+   * rD <- Â¬ (rA) + EXTS(SIMM) + 1
    * </listing>
    * Also modifies XER[CA]. Equivalent to:
    * <listing>
@@ -3280,7 +3281,7 @@ final class bclr_decoder extends PPC_InstructionDecoder {
   /**
    * Translate bclr (branch conditional to link register)
    * <listing>
-   * if ¬ BO[2] then CTR <- CTR - 1
+   * if Â¬ BO[2] then CTR <- CTR - 1
    * ctr_ok <- BO[2] | ((CTR != 0) (+) BO[3])
    * cond_ok <- BO[0] | (CR[BI] == BO[1])
    * if ctr_ok & cond_ok then
@@ -3375,7 +3376,7 @@ final class crnor_decoder extends PPC_InstructionDecoder {
   /**
    * Translate crnor (condition register nor)
    * <listing>
-   * CR[crbD] <-  ¬(CR[crbA] | CR[crbB])
+   * CR[crbD] <-  Â¬(CR[crbA] | CR[crbB])
    * </listing>
    * Other simplified mnemonics: crnot
    */
@@ -3929,7 +3930,7 @@ final class bcctr_decoder extends PPC_InstructionDecoder {
   /**
    * Translate bcctr (branch conditional to count register)
    * <listing>
-   * if ¬ BO[2] then CTR <- CTR - 1
+   * if Â¬ BO[2] then CTR <- CTR - 1
    * ctr_ok <- BO[2] | ((CTR != 0) (+) BO[3])
    * cond_ok <- BO[0] | (CR[BI] == BO[1])
    * if ctr_ok & cond_ok then
@@ -4020,7 +4021,7 @@ final class subfc_decoder extends PPC_InstructionDecoder {
   /**
    * Translate subfc (subtract from carrying):
    * <listing>
-   * rD <- ¬ (rA) + (rB) + 1
+   * rD <- Â¬ (rA) + (rB) + 1
    * </listing>
    * Also modifies XER[CA]. Equivalent to:
    * <listing>
@@ -4197,7 +4198,7 @@ final class subf_decoder extends PPC_InstructionDecoder {
   /**
    * Translate subf (subtract from):
    * <listing>
-   * rD <- ¬ (rA) + (rB) + 1
+   * rD <- Â¬ (rA) + (rB) + 1
    * </listing>
    * Equivalent to:
    * <listing>
@@ -4318,7 +4319,7 @@ final class neg_decoder extends PPC_InstructionDecoder {
   /**
    * Translate neg (negate):
    * <listing>
-   * rD <- ¬ (rA) + 1
+   * rD <- Â¬ (rA) + 1
    * </listing>
    * Equivalent to:
    * <listing>
@@ -4364,7 +4365,7 @@ final class subfe_decoder extends PPC_InstructionDecoder {
   /**
    * Translate subfe (subtract from extended):
    * <listing>
-   * rD <- ¬ (rA) + (rB) + XER[CA]
+   * rD <- Â¬ (rA) + (rB) + XER[CA]
    * </listing>
    * Also modifies XER[CA].
    */
@@ -4383,7 +4384,7 @@ final class subfe_decoder extends PPC_InstructionDecoder {
 																	 OPT_ConditionOperand.EQUAL(),
 																	 new OPT_IntConstantOperand(0),
 																	 new OPT_IntConstantOperand(1)));
-	 // tempInt2 := ¬ (rA)
+	 // tempInt2 := Â¬ (rA)
     ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, tempInt2,
 																		  reg_rA));
 	 // rD := tempInt2 + (rB) + tempInt
@@ -4483,7 +4484,7 @@ final class subfze_decoder extends PPC_InstructionDecoder {
   /**
    * Translate subfze (subtract from zero extended):
    * <listing>
-   * rD <- ¬(rA) + XER[CA]
+   * rD <- Â¬(rA) + XER[CA]
    * </listing>
    * Also modifies XER[CA].
    */
@@ -4501,7 +4502,7 @@ final class subfze_decoder extends PPC_InstructionDecoder {
 																	 OPT_ConditionOperand.EQUAL(),
 																	 new OPT_IntConstantOperand(0),
 																	 new OPT_IntConstantOperand(1)));
-	 // rD := ¬ (rA)
+	 // rD := Â¬ (rA)
     ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, reg_rD,
 																		  reg_rA));
 	 // rD := rD + tempInt
@@ -5578,7 +5579,7 @@ final class mtcrf_decoder extends PPC_InstructionDecoder {
    * Translate mtcrf (move to condition register fields)
    * <listing>
    * mask <- (4)(CRM[0]) || (4)(CRM[1]) ||... (4)(CRM[7])
-   * CR <- (rS & mask) | (CR & ¬mask)
+   * CR <- (rS & mask) | (CR & Â¬mask)
    * </listing>
    */
   protected int translateXFX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc, int inst, int opcode, int rS, int CRM0, int secondaryOpcode, int zero) {
@@ -6651,7 +6652,7 @@ final class andc_decoder extends PPC_InstructionDecoder {
   /**
    * Translate andc (and with complement)
    * <listing>
-   * rA <- (rS) & ¬(rB)
+   * rA <- (rS) & Â¬(rB)
    * </listing>
    */
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc, int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
@@ -6970,7 +6971,7 @@ final class nor_decoder extends PPC_InstructionDecoder {
   /**
    * Translate nor
    * <listing>
-   * rA <- ¬((rS) | (rB))
+   * rA <- Â¬((rS) | (rB))
    * </listing>
    */
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc, int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
@@ -7974,7 +7975,7 @@ final class orc_decoder extends PPC_InstructionDecoder {
   /**
    * Translate orc (or with complement)
    * <listing>
-   * rA <- (rS) | ¬(rB)
+   * rA <- (rS) | Â¬(rB)
    * </listing>
    */
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc, int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
@@ -8176,7 +8177,7 @@ final class nand_decoder extends PPC_InstructionDecoder {
   /**
    * Translate and
    * <listing>
-   * rA <- ¬((rS) & (rB))
+   * rA <- Â¬((rS) & (rB))
    * </listing>
    */
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc, int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
@@ -8933,8 +8934,8 @@ final class sraw_decoder extends PPC_InstructionDecoder {
 	* if rB[26] = 0 then m <- MASK(n)
 	* else m <- (32)0
    * S <- rS
-   * rA <- r & m | S & ¬m
-   * XER[CA] <- S & ((r & ¬m) != 0)
+   * rA <- r & m | S & Â¬m
+   * XER[CA] <- S & ((r & Â¬m) != 0)
    * </listing>
    */
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc, int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
@@ -9063,8 +9064,8 @@ final class srawi_decoder extends PPC_InstructionDecoder {
    * r <- ROTL(rS,32-n)
    * m <- MASK(n)
    * S <- rS
-   * rA <- r & m | S & ¬m
-   * XER[CA] <- S & ((r & ¬m) != 0)
+   * rA <- r & m | S & Â¬m
+   * XER[CA] <- S & ((r & Â¬m) != 0)
    * </listing>
    */
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc, int inst, int opcode, int rS, int rA, int SH, int secondaryOpcode, int Rc) {
@@ -10089,7 +10090,7 @@ final class rlwimi_decoder extends PPC_InstructionDecoder {
 	* n <- SH
 	* r <- ROTL(rS,n)
 	* m <- MASK(MB,ME)
-	* rA <- (r & m) | (rA & ¬m)
+	* rA <- (r & m) | (rA & Â¬m)
 	* </listing>
    * Other simplified mnemonics: inslwi, inslrwi
    */
@@ -10465,7 +10466,7 @@ final class bc_decoder extends PPC_InstructionDecoder {
    * Translate bc (branch conditional)
    * <listing>
    * if LK then LR <-iea CIA + 4
-   * if ¬ BO[2] then CTR <- CTR - 1
+   * if Â¬ BO[2] then CTR <- CTR - 1
    * ctr_ok <- BO[2] | ((CTR != 0) (+) BO[3])
    * cond_ok <- BO[0] | (CR[BI] == BO[1])
    * if ctr_ok & cond_ok then

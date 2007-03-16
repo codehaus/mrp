@@ -80,7 +80,7 @@ public class LinuxStackInitializer {
 	  * system places either an entry of type AT_EXECFD or one of type
 	  * AT_PHDR in the auxiliary vector. The entry for type AT_EXECFD
 	  * uses the a_val member to contain a file descriptor open to read
-	  * the application program-F¢s object file.-A
+	  * the application programâ€™s object file.
 	  */
 	 public final static int AT_EXECFD=2;
 	 /**
@@ -109,7 +109,7 @@ public class LinuxStackInitializer {
 	  */
 	 public final static int AT_PHNUM=5;
 	 /**
-	  * If present, this entry-F¢s a_val member gives the system page-A
+	  * If present, this entryâ€™s a_val member gives the system page
 	  * size in bytes. The same information is also available through
 	  * sysconf(BA_OS).
 	  */

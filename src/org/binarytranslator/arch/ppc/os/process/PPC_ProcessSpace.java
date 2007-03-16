@@ -398,13 +398,13 @@ public abstract class PPC_ProcessSpace extends ProcessSpace
     public boolean getCR_bit(int crf, int crb) {
         switch(crb) {
         case 0:
-            return ps.crf_lt[crf];
+            return crf_lt[crf];
         case 1:
-            return ps.crf_gt[crf];
+            return crf_gt[crf];
         case 2:
-            return ps.crf_eq[crf];
+            return crf_eq[crf];
         case 3:
-            return ps.crf_so[crf];
+            return crf_so[crf];
         }
         DBT_OptimizingCompilerException.UNREACHABLE();
     }
@@ -431,16 +431,16 @@ public abstract class PPC_ProcessSpace extends ProcessSpace
         int crf = crb >> 2;
         switch(crb & 0x3) {
         case 0:
-            ps.crf_lt[crf] = val;
+            crf_lt[crf] = val;
             break;
         case 1:
-            ps.crf_gt[crf] = val;
+            crf_gt[crf] = val;
             break;
         case 2:
-            ps.crf_eq[crf] = val;
+            crf_eq[crf] = val;
             break;
         case 3:
-            ps.crf_so[crf] = val;
+            crf_so[crf] = val;
             break;
         }
     }
