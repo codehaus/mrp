@@ -284,7 +284,7 @@ public abstract class ProcessSpace {
 	* system)
 	*/
   public synchronized void replaceCompiledTrace(VM_CompiledMethod cm, DBT_Trace trace) {
-	 VM_CodeArray code = cm.getInstructions();
+	 VM_CodeArray code = cm.getEntryCodeArray();
 	 codeHash.put(new Integer(trace.pc), code);
   }
 
@@ -304,7 +304,7 @@ public abstract class ProcessSpace {
 	 trace.compile();
 	 VM_CompiledMethod cm = trace.getCurrentCompiledMethod();
 	 replaceCompiledTrace(cm, trace);
-	 return cm.getInstructions();
+	 return cm.getEntryCodeArray();
   }
 
   /**

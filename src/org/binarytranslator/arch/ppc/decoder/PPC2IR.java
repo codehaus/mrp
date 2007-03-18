@@ -363,7 +363,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
         }
 	OPT_RegisterOperand lt = new OPT_RegisterOperand(crFieldMap_Lt[crf], VM_TypeReference.Boolean);
 	OPT_RegisterOperand gt = new OPT_RegisterOperand(crFieldMap_Gt[crf], VM_TypeReference.Boolean);
-	OPT_RegisterOperand lt = new OPT_RegisterOperand(crFieldMap_Eq[crf], VM_TypeReference.Boolean);
+	OPT_RegisterOperand eq = new OPT_RegisterOperand(crFieldMap_Eq[crf], VM_TypeReference.Boolean);
 	OPT_RegisterOperand so = new OPT_RegisterOperand(crFieldMap_SO[crf], VM_TypeReference.Boolean);
 
 	OPT_RegisterOperand arrayref = gc.temps.makeTemp(VM_TypeReference.BooleanArray);
@@ -384,9 +384,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
-                                                                VM_Atom.findOrCreateAsciiAtom("[Z")
-                                                                ).asFieldReference();
+        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
+					      VM_Atom.findOrCreateAsciiAtom("[Z")
+					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
                                                         new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
@@ -397,9 +397,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
-                                                                VM_Atom.findOrCreateAsciiAtom("[Z")
-                                                                ).asFieldReference();
+        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
+					      VM_Atom.findOrCreateAsciiAtom("[Z")
+					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
                                                         new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
@@ -410,9 +410,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
-                                                                VM_Atom.findOrCreateAsciiAtom("[Z")
-                                                                ).asFieldReference();
+        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
+					      VM_Atom.findOrCreateAsciiAtom("[Z")
+					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
                                                         new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
@@ -434,7 +434,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
     {
 	OPT_RegisterOperand lt = new OPT_RegisterOperand(crFieldMap_Lt[crf], VM_TypeReference.Boolean);
 	OPT_RegisterOperand gt = new OPT_RegisterOperand(crFieldMap_Gt[crf], VM_TypeReference.Boolean);
-	OPT_RegisterOperand lt = new OPT_RegisterOperand(crFieldMap_Eq[crf], VM_TypeReference.Boolean);
+	OPT_RegisterOperand eq = new OPT_RegisterOperand(crFieldMap_Eq[crf], VM_TypeReference.Boolean);
 	OPT_RegisterOperand so = new OPT_RegisterOperand(crFieldMap_SO[crf], VM_TypeReference.Boolean);
 
 	OPT_RegisterOperand arrayref = gc.temps.makeTemp(VM_TypeReference.BooleanArray);
@@ -455,9 +455,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
-                                                                VM_Atom.findOrCreateAsciiAtom("[Z")
-                                                                ).asFieldReference();
+        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
+					      VM_Atom.findOrCreateAsciiAtom("[Z")
+					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
                                                         new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
@@ -468,9 +468,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
-                                                                VM_Atom.findOrCreateAsciiAtom("[Z")
-                                                                ).asFieldReference();
+        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
+					      VM_Atom.findOrCreateAsciiAtom("[Z")
+					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
                                                         new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
@@ -481,9 +481,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
-                                                                VM_Atom.findOrCreateAsciiAtom("[Z")
-                                                                ).asFieldReference();
+        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
+					      VM_Atom.findOrCreateAsciiAtom("[Z")
+					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
                                                         new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
@@ -915,13 +915,13 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 	int crf = crb >> 2;
 	switch(crb & 0x3) {
 	case 0:
-	    return ppc2ir.getCR_Lt_Register(crf);
+	    return getCR_Lt_Register(crf);
 	case 1:
-	    return ppc2ir.getCR_Gt_Register(crf);
+	    return getCR_Gt_Register(crf);
 	case 2:
-	    return ppc2ir.getCR_Eq_Register(crf);
+	    return getCR_Eq_Register(crf);
 	case 3:
-	    return ppc2ir.getCR_SO_Register(crf);
+	    return getCR_SO_Register(crf);
 	default:
 	    DBT_OptimizingCompilerException.UNREACHABLE();
 	}

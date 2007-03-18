@@ -67,7 +67,7 @@ public final class DBT_Trace extends VM_NormalMethod
    */
   private static VM_Class dummyRunner;
   private static VM_NormalMethod invokeCode;
-  private static int invokeCode_modifiers;
+  private static short invokeCode_modifiers;
   private static VM_TypeReference dummyRunnerTypeRef;
   private static VM_MemberReference dummyRunnerMemRef;
   private static VM_Atom invokeCodeDescriptor;
@@ -125,14 +125,14 @@ public final class DBT_Trace extends VM_NormalMethod
           invokeCode.getOperandWords(),
           invokeCode.bytecodes,
           invokeCode.getExceptionHandlerMap(),
-          new int[0], null, null, null, null, null, null, null);
+          new int[0], null, null, null, null, null);
 
-    this.offset = VM_Statics.allocateSlot(VM_Statics.METHOD) << LOG_BYTES_IN_INT;
+    this.offset = invokeCode.getOffset().toInt();
 
-    this.summary |= HAS_ALLOCATION | HAS_THROW | HAS_INVOKE |
-      HAS_FIELD_READ | HAS_FIELD_WRITE | HAS_ARRAY_READ | HAS_ARRAY_WRITE |
-      HAS_COND_BRANCH | HAS_SWITCH | HAS_BACK_BRANCH |
-      256;
+    this.summaryFlags |= HAS_ALLOCATION | HAS_THROW | HAS_INVOKE |
+	HAS_FIELD_READ | HAS_FIELD_WRITE | HAS_ARRAY_READ | HAS_ARRAY_WRITE |
+	HAS_COND_BRANCH | HAS_SWITCH | HAS_BACK_BRANCH;
+    this.summarySize = 256;
 
     this.ps = ps;
     pc = startPC;

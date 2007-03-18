@@ -589,7 +589,7 @@ public class PPC_InstructionDecoder extends InstructionDecoder implements OPT_Op
     OPT_BranchProfileOperand likelyOp = ppc2ir.getConditionalBranchProfileOperand(likely);
 
 	 // Grab the flag to compare
-	 OPT_RegisterOperand flag = getCRB_Register(BI);
+	 OPT_RegisterOperand flag = ppc2ir.getCRB_Register(BI);
 
 	 // The condition to test
 	 OPT_ConditionOperand condOp;

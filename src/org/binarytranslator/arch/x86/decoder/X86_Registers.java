@@ -8,9 +8,7 @@
  */
 package org.binarytranslator.arch.x86;
 
-import org.binarytranslator.generic.memory.Registers;
-
-public class X86_Registers extends Registers {
+public class X86_Registers {
   String[] name32 = {"eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"};
 
   private int[] GP32 = new int[8];
