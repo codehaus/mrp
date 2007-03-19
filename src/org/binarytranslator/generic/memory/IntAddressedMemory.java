@@ -11,6 +11,7 @@ package org.binarytranslator.generic.memory;
 import java.io.RandomAccessFile;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.vmInterface.TranslationHelper;
+import org.jikesrvm.VM_Configuration;
 
 /**
  * IntAddressedMemory:
@@ -83,6 +84,30 @@ public class IntAddressedMemory extends CallBasedMemory {
 	*/
   private static final int getPTE(int address) {
 	 return address >>> OFFSET_BITS;
+  }
+  /**
+	* Is the given address aligned on a page boundary?
+	* @param addr the address to check
+	* @return whether the address is aligned
+	*/
+  public boolean isPageAligned(int addr) {
+	 return (addr % PAGE_SIZE) == 0;
+  }
+  /**
+	* Make the given address page aligned to the page beneath it
+	* @param addr the address to truncate
+	* @return the truncated address
+	*/
+  public int truncateToPage(int addr) {
+	 return (addr >> OFFSET_BITS) << OFFSET_BITS;
+  }
+  /**
+	* Make the given address page aligned to the page above it
+	* @param addr the address to truncate
+	* @return the truncated address
+	*/
+  public int truncateToNextPage(int addr) {
+	 return ((addr + PAGE_SIZE - 1) >> OFFSET_BITS) << OFFSET_BITS;
   }
   /**
 	* Find free consecutive pages
@@ -163,11 +188,11 @@ public class IntAddressedMemory extends CallBasedMemory {
 	* @return native endian read int
 	*/
   protected int readInt(RandomAccessFile file) throws java.io.IOException {
-	 //-#if RVM_FOR_POWERPC
-	 return file.readInt(); // NB this will always read in big-endian format
-	 //-#else
-	 return file.readUnsignedByte() | (file.readUnsignedByte() << 8) | (file.readUnsignedByte() << 16)| (file.readByte() << 24);
-	 //-#endif
+      if(VM_Configuration.BuildForPowerPC) {
+	  return file.readInt(); // NB this will always read in big-endian format
+      } else {
+	  return file.readUnsignedByte() | (file.readUnsignedByte() << 8) | (file.readUnsignedByte() << 16)| (file.readByte() << 24);
+      }
   }
   /**
 	* Map a page of memory from file

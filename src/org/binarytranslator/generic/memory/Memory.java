@@ -9,7 +9,7 @@
 package org.binarytranslator.generic.memory;
 
 import org.jikesrvm.opt.ir.OPT_RegisterOperand;
-import org.binarytranslator.generic.decoder.DecoderUtils;
+import org.binarytranslator.vmInterface.TranslationHelper;
 import java.io.RandomAccessFile;
 
 /**
@@ -129,7 +129,7 @@ public abstract class Memory {
    * Generate memory prologue,... for the beignning of a
    * trace. e.g. Loading the page table into a register
    */
-  public abstract void initTranslate(DecoderUtils helper);
+  public abstract void initTranslate(TranslationHelper helper);
   /**
    * Generate the IR code for a byte load where the sign extended
    * result fills the register

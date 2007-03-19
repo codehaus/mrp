@@ -8,6 +8,7 @@
  */
 package org.binarytranslator.generic.memory;
 
+import org.jikesrvm.VM_Configuration;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_FieldReference;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -67,11 +68,11 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
 	* @return native endian read int
 	*/
   protected int readInt(RandomAccessFile file) throws java.io.IOException {
-	 //-#if RVM_FOR_POWERPC
+      if(VM_Configuration.BuildForPowerPC) {
 	 return file.readUnsignedByte() | (file.readUnsignedByte() << 8) | (file.readUnsignedByte() << 16)| (file.readByte() << 24);
-	 //-#else
+      } else {
 	 return file.readInt(); // NB this will always read in big-endian format
-	 //-#endif
+      }
   }
   /**
 	* Perform a byte load where the sign extended result fills the

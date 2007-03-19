@@ -138,7 +138,7 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements Lin
    */
   public void setSysCallError(int r) {
     r3 = r;
-    cr |= 0x1;
+    setCR_bit(0, true);
   }
 
   /**

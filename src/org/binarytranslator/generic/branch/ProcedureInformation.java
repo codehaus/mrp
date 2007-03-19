@@ -8,6 +8,7 @@
  */
 package org.binarytranslator.generic.branch;
 import java.util.HashSet;
+import java.util.Comparator;
 /**
  * Objects capturing information about what looks like a method
  */
@@ -25,6 +26,18 @@ class ProcedureInformation {
    */
   private HashSet returnSites;
 
+    /**
+     * Comparator for procedure information
+     */
+    private static final class ProcedureInformationComparator implements Comparator {
+	/**
+	 * Compare two procedure information objects
+	 */
+	public int compare(Object o1, Object o2) {
+	    return ((ProcedureInformation)o1).entry - ((ProcedureInformation)o2).entry;
+	}
+    }
+    
   /**
    * Constructor
    *

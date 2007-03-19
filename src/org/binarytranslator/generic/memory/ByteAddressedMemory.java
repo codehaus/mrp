@@ -307,7 +307,7 @@ public class ByteAddressedMemory extends CallBasedMemory {
 	 return (addr >> OFFSET_BITS) << OFFSET_BITS;
   }
   /**
-	* Make the given address page aligned to the page beneath it
+	* Make the given address page aligned to the page above it
 	* @param addr the address to truncate
 	* @return the truncated address
 	*/

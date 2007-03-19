@@ -28,7 +28,7 @@ import org.jikesrvm.opt.ir.OPT_Operators;
 import org.jikesrvm.opt.ir.OPT_Register;
 import org.jikesrvm.opt.ir.OPT_RegisterOperand;
 import org.jikesrvm.opt.ir.OPT_TrueGuardOperand;
-import org.binarytranslator.generic.decoder.DecoderUtils;
+import org.binarytranslator.vmInterface.TranslationHelper;
 
 /**
  * CallBasedMemory abstraction:
@@ -40,23 +40,27 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   /**
    * The name of the class we are to plant calls to
    */
-  private VM_Atom memoryClassName;
+  private final VM_Atom memoryClassName;
   /**
    * The name of the store methods
    */
-  private VM_Atom store8, store16, store32;
+  private final VM_Atom store8, store16, store32;
   /**
    * The name of the load methods
    */
-  private VM_Atom loadS8, loadU8, loadS16, loadU16, load32;
+  private final VM_Atom loadS8, loadU8, loadS16, loadU16, load32;
   /**
    * Descriptors for the methods
    */
-  private VM_Atom storeDescriptor, loadDescriptor;
+  private final VM_Atom storeDescriptor, loadDescriptor;
+  /**
+   * Type of underlying memory
+   */
+  final VM_TypeReference memoryType;
   /**
    * A translation helper for generating code
    */
-  protected DecoderUtils helper;
+  protected TranslationHelper helper;
   /**
    * The generation context we're translating within
    */
@@ -65,10 +69,6 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * Register that references the memory object
    */
   OPT_Register memory;
-  /**
-   * Type of underlying memory
-   */
-  VM_TypeReference memoryType;
 
   /**
    * Constructor
@@ -86,12 +86,14 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
     loadU16 = VM_Atom.findOrCreateAsciiAtom("loadUnsigned16");
     load32  = VM_Atom.findOrCreateAsciiAtom("load32");
     loadDescriptor = VM_Atom.findOrCreateAsciiAtom("(I)I");
+    memoryType = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
+                                               memoryClassName);
   }
   /**
    * Generate memory prologue,... for the beignning of a
    * trace. e.g. Loading the page table into a register
    */
-  public void initTranslate(DecoderUtils helper) {
+  public void initTranslate(TranslationHelper helper) {
     this.helper = helper;
     this.gc = helper.getGenerationContext();
     VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
@@ -101,8 +103,6 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
                                                             VM_Atom.findOrCreateAsciiAtom
                                                             ("Lorg/binarytranslator/generic/memory/Memory;")
                                                             ).asFieldReference();
-    memoryType = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                               memoryClassName);
     OPT_RegisterOperand memoryOp = helper.makeTemp(memoryType);
     helper.appendInstructionToCurrentBlock(GetField.create(GETFIELD, memoryOp,
                                                            gc.makeLocal(1,psTref),

@@ -108,6 +108,8 @@ public final class DBT_Trace extends VM_NormalMethod
     }
   }
 
+  /** Only create a single zero length int array object */
+  private static final int[] zeroLengthIntArray = new int[0];
   /**
    * Constructor
    *
@@ -121,11 +123,17 @@ public final class DBT_Trace extends VM_NormalMethod
                                           invokeCodeDescriptor),
           invokeCode_modifiers,
           invokeCode.getExceptionTypes(), 
-          invokeCode.getLocalWords(),
-          invokeCode.getOperandWords(),
+          (short)invokeCode.getLocalWords(),
+          (short)invokeCode.getOperandWords(),
           invokeCode.bytecodes,
           invokeCode.getExceptionHandlerMap(),
-          new int[0], null, null, null, null, null);
+          zeroLengthIntArray, // lm
+	  null, // constant pool
+	  null, // signature
+	  null, // annotations
+	  null, // parameter annotations
+	  null // annotation default
+	  );
 
     this.offset = invokeCode.getOffset().toInt();
 

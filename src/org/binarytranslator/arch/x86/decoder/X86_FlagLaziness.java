@@ -23,7 +23,7 @@ public class X86_FlagLaziness {
     }
 
     X86_FlagLaziness(byte[] flagLaziness) {
-        for (int i = 0; i < this.flagLaziness; i++) {
+        for (int i = 0; i < this.flagLaziness.length; i++) {
             this.flagLaziness[i] = flagLaziness[i];
         }
     }
@@ -70,13 +70,13 @@ public class X86_FlagLaziness {
             
             public boolean equals(Object o) {
                 if (o instanceof Key) {
+		    Key other = (Key)o;
                     for (int i = 0; i < flagLaziness.length; i++) {
                         if (this.flagLaziness[i] != other.flagLaziness[i]) {
                             return false;
                         }
                     }
-                
-                    return (((Key) o).pc == this.pc);
+                    return (other.pc == this.pc);
                 }
                 
                 return false;

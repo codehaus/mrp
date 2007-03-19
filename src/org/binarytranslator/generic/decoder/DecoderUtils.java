@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.binarytranslator.vmInterface.DBT_Trace;
+import org.binarytranslator.vmInterface.TranslationHelper;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.DBT_Options;
 
@@ -82,7 +83,7 @@ import org.jikesrvm.opt.ir.OPT_TypeOperand;
  *     </ol></dd>
  * </dl>
  */
-public abstract class DecoderUtils implements OPT_Constants, OPT_Operators {
+public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, TranslationHelper {
   // -oO Debug Oo-
   /**
    * Report some debug output

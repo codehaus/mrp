@@ -66,7 +66,8 @@ public abstract class PPC_ProcessSpace extends ProcessSpace
   /**
    * The contents of the XER register.
    */
-  public int xer;
+    public boolean xer_so, xer_ov, xer_ca;
+    public byte xer_byteCount;
 
   /**
    * The contents of the link register.
@@ -339,40 +340,36 @@ public abstract class PPC_ProcessSpace extends ProcessSpace
     default: throw new Error("Unknown register: "+register);
     }
   }
+
   /**
    * Set a condition register field of the condition register
    */
-  public void setCRfield_signedCompare(int field, int value1, int value2) {
+    public void setCRfield_signedCompare(int field, int value1, int value2) {
     System.out.println("Signed compare: field=" +field + " val1=" + value1 + " val2=" + value2);
     crf_lt[field] = value1 < value2;
     crf_gt[field] = value1 > value2;
     crf_eq[field] = value1 == value2;
-    // crf_so[field] = value1 overflow value2;
-    if ((xer & (1 << 31)) != 0) {
-      cr = cr | (0x10000000 >>> (field * 4));
-    }
+    crf_so[field] = xer_so;
   }
+
   /**
    * Set a condition register field of the condition register
    */
-  public void setCRfield_unsignedCompare(int field, int val1, int val2) {
+    public void setCRfield_unsignedCompare(int field, int val1, int val2) {
     long value1 = val1 & 0xFFFFFFFF;
     long value2 = val2 & 0xFFFFFFFF;
     System.out.println("Unsigned compare: field=" +field + " val1=" + value1 + " val2=" + value2);
     crf_lt[field] = value1 < value2;
     crf_gt[field] = value1 > value2;
-    crf_eq[field] = value1 == value2;
-    // crf_so[field] = value1 overflow value2;
-    if ((xer & (1 << 31)) != 0) {
-      cr = cr | (0x10000000 >>> (field * 4));
-    }
+    crf_eq[field] = val1 == val2;
+    crf_so[field] = xer_so;
   }
 
     /**
      * Combine CR bits into 32bit CR register
      */
     public int getCR() {
-        int cr;
+        int cr = 0;
         for(int crf=0; crf < 8; crf++) {
             cr |= crf_lt[crf] ? 1 : 0;
             cr |= crf_gt[crf] ? 2 : 0;
@@ -407,6 +404,7 @@ public abstract class PPC_ProcessSpace extends ProcessSpace
             return crf_so[crf];
         }
         DBT_OptimizingCompilerException.UNREACHABLE();
+	return false; // keep the compiler happy
     }
     /**
      * Set CR to given value
@@ -420,7 +418,6 @@ public abstract class PPC_ProcessSpace extends ProcessSpace
             crf_so[crf] = (val & 8) != 0;
             val >>= 4;
         }
-        return cr;
     }
     /**
      * Set a bit of the condition register
@@ -443,6 +440,18 @@ public abstract class PPC_ProcessSpace extends ProcessSpace
             crf_so[crf] = val;
             break;
         }
+    }
+
+    /**
+     * Combine and return the 32bit XER register
+     */
+    public int getXER() {
+	int result=0;
+	if (xer_so) result |= 1 << 31;
+	if (xer_ov) result |= 1 << 30;
+	if (xer_ca) result |= 1 << 29;
+	result |= xer_byteCount & 0x3F;
+	return result;
     }
   /**
    * Turn the process space into a string (for debug)
@@ -559,10 +568,10 @@ public abstract class PPC_ProcessSpace extends ProcessSpace
     case 63: floatValue = f31; break;
     case 64: value = pc; break;
     case 65: value = msr; break; // aka ps
-    case 66: value = cr; break;
+    case 66: value = getCR(); break;
     case 67: value = lr; break;
     case 68: value = ctr; break;
-    case 69: value = xer; break;
+    case 69: value = getXER(); break;
     case 70: value = fpscr; break;
     case 103: value = 0; break; // vscr
     case 104: value = 0; break; // vrsave

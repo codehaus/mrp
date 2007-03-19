@@ -81,6 +81,231 @@ import java.util.HashSet;
  */
 public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_Operators, OPT_Constants {
 
+    // -oO Caches of references to process space entities Oo-
+
+    /** Type reference to the PPC process space */
+    private static final VM_TypeReference psTref;
+
+    /** References to PPC process space GPR register fields */
+    private static final VM_FieldReference[] gprFieldRefs;
+
+    /** References to PPC process space FPR register fields */
+    private static final VM_FieldReference[] fprFieldRefs;
+
+    /** Reference to PPC process space condition register lt array field */
+    private static final VM_FieldReference crf_ltFieldRef;
+
+    /** Reference to PPC process space condition register gt array field */
+    private static final VM_FieldReference crf_gtFieldRef;
+
+    /** Reference to PPC process space condition register eq array field */
+    private static final VM_FieldReference crf_eqFieldRef;
+
+    /** Reference to PPC process space condition register so array field */
+    private static final VM_FieldReference crf_soFieldRef;
+
+    /** Reference to PPC process space xer_so field */
+    private static final VM_FieldReference xer_soFieldRef;
+    /** Reference to PPC process space xer_ov field */
+    private static final VM_FieldReference xer_ovFieldRef;
+    /** Reference to PPC process space xer_ca field */
+    private static final VM_FieldReference xer_caFieldRef;
+    /** Reference to PPC process space xer_byteCount field */
+    private static final VM_FieldReference xer_byteCountFieldRef;
+
+    /** Reference to PPC process space fpscr field */
+    private static final VM_FieldReference fpscrFieldRef;
+
+    /** Reference to PPC process space ctr field */
+    private static final VM_FieldReference ctrFieldRef;
+
+    /** Reference to PPC process space lr fild */
+    private static final VM_FieldReference lrFieldRef;
+
+    /** Reference to PPC process space pc field */
+    private static final VM_FieldReference pcFieldRef;
+
+    /** Reference to PPC process space recordUncaughtBclr method */
+    private static final VM_MethodReference recordUncaughtBclrMethRef;
+
+    /** Reference to PPC process space recordUncaughtBcctr method */
+    private static final VM_MethodReference recordUncaughtBcctrMethRef;
+
+    /* Static initializer */
+    static {
+	psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
+					       VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
+					       );
+	gprFieldRefs = new VM_FieldReference[32];
+	fprFieldRefs = new VM_FieldReference[32];
+	final VM_Atom intAtom = VM_Atom.findOrCreateAsciiAtom("I");
+	final VM_Atom doubleAtom = VM_Atom.findOrCreateAsciiAtom("D");
+	for (int i=0; i < 32; i++){
+	    gprFieldRefs[i] = VM_MemberReference.findOrCreate(psTref,
+							      VM_Atom.findOrCreateAsciiAtom("r"+i),
+							      intAtom
+							      ).asFieldReference();
+	    fprFieldRefs[i] = VM_MemberReference.findOrCreate(psTref,
+							      VM_Atom.findOrCreateAsciiAtom("f"+i),
+							      doubleAtom
+							      ).asFieldReference();
+	}
+	final VM_Atom boolArrayAtom = VM_Atom.findOrCreateAsciiAtom("[Z");
+	crf_ltFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_lt"),
+							 boolArrayAtom
+							 ).asFieldReference();
+	crf_gtFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
+							 boolArrayAtom
+							 ).asFieldReference();
+	crf_eqFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
+							 boolArrayAtom
+							 ).asFieldReference();
+	crf_soFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
+							 boolArrayAtom
+							 ).asFieldReference();
+	final VM_Atom boolAtom = VM_Atom.findOrCreateAsciiAtom("Z");
+        xer_soFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("xer_so"),
+							 boolAtom
+							 ).asFieldReference();
+        xer_ovFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("xer_ov"),
+							 boolAtom
+							 ).asFieldReference();
+        xer_caFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("xer_ca"),
+							 boolAtom
+							 ).asFieldReference();
+	final VM_Atom byteAtom = VM_Atom.findOrCreateAsciiAtom("B");
+        xer_byteCountFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("xer_byteCount"),
+								byteAtom
+								).asFieldReference();
+        fpscrFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("fpscr"),
+							intAtom
+							).asFieldReference();
+        ctrFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("ctr"),
+						      intAtom
+						      ).asFieldReference();
+        lrFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("lr"),
+						     intAtom
+						     ).asFieldReference();
+	pcFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("pc"),
+						     intAtom
+						     ).asFieldReference();
+	recordUncaughtBclrMethRef = (VM_MethodReference)VM_MemberReference.findOrCreate(psTref,
+											VM_Atom.findOrCreateAsciiAtom("recordUncaughtBclr"),
+											VM_Atom.findOrCreateAsciiAtom("(II)V"));
+	recordUncaughtBcctrMethRef = (VM_MethodReference)VM_MemberReference.findOrCreate(psTref,
+											 VM_Atom.findOrCreateAsciiAtom("recordUncaughtBcctr"),
+											 VM_Atom.findOrCreateAsciiAtom("(II)V"));
+    }
+
+    // -oO PPC register to HIR register mappings Oo-
+
+    /**
+     * The mapping of PPC general purpose registers to HIR
+     * registers. All GP registers are loaded into these by the preFill
+     * block. This avoids potential inconsistencies caused by using lazy
+     * allocation and backward branches.
+     */
+    private final OPT_Register intRegMap[];
+    /**
+     * Which PPC general purpose registers are in use
+     */
+    private final boolean intRegInUseMap[];
+
+    /**
+     * The mapping of PPC floating point registers to HIR registers.
+     */
+    private final OPT_Register fpRegMap[];
+    /**
+     * Which PPC floating point registers are in use
+     */
+    private final boolean fpRegInUseMap[];
+
+    /**
+     * The HIR register holding the PPC FPSCR register.
+     */
+    private OPT_Register fpscrRegMap;
+    /**
+     * Is the PPC FPSCR register in use
+     */
+    private boolean fpscrRegInUse;
+
+    /**
+     * The HIR register holding the PPC CTR register.
+     */
+    private OPT_Register ctrRegMap;
+    /**
+     * Is the PPC CTR register in use
+     */
+    private boolean ctrRegInUse;
+
+    /**
+     * The HIR register holding the PPC LR register.
+     */
+    private OPT_Register lrRegMap;
+    /**
+     * Is the PPC LR register in use
+     */
+    private boolean lrRegInUse;
+
+    /**
+     * The HIR register holding the PPC XER register's byte count (bits
+     * 25 to 31)
+     */
+    private OPT_Register xerRegMap_ByteCount;
+
+    /**
+     * The HIR boolean register holding thr PPC XER CA (carry) bit.
+     */
+    private OPT_Register xerRegMap_CA;
+
+    /**
+     * The HIR register holding thr PPC XER OV (overflow) bit. If this
+     * register is non-zero then the OV bit should be set.
+     */
+    private OPT_Register xerRegMap_OV;
+    /**
+     * The HIR register holding thr PPC XER SO (summary overflow)
+     * bit. If this register is non-zero then the SO bit should be set.
+     */
+    private OPT_Register xerRegMap_SO;
+    /**
+     * Is the PPC XER register in use
+     */
+    private boolean xerRegInUse;
+  
+    /**
+     * These 8 registers hold a zero or non-zero value depending on the
+     * value of the corresponding condition register field's SO
+     * bit.
+     */
+    private final OPT_Register crFieldMap_Lt[];
+
+    /**
+     * These 8 registers hold a zero or non-zero value depending on the
+     * value of the corresponding condition register field's SO
+     * bit.
+     */
+    private final OPT_Register crFieldMap_Gt[];
+
+    /**
+     * These 8 registers hold a zero or non-zero value depending on the
+     * value of the corresponding condition register field's SO
+     * bit.
+     */
+    private final OPT_Register crFieldMap_Eq[];
+
+    /**
+     * These 8 registers hold a zero or non-zero value depending on the
+     * value of the corresponding condition register field's SO
+     * bit.
+     */
+    private final OPT_Register crFieldMap_SO[];
+
+    /**
+     * What condition register fields are in use?
+     */
+    private final boolean crFieldInUseMap[];
+
     /** 
      * Construct the PPC2IR object for the generation context; then
      * we'll be ready to start generating the HIR.
@@ -114,123 +339,6 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
         return PPC_InstructionDecoder.translateInstruction(this, (PPC_ProcessSpace)ps, (PPC_Laziness)lazy, pc);
     }
 
-    // -oO Creations for being a PPC translator Oo-
-
-    // -oO PPC register to HIR register mappings Oo-
-
-    /**
-     * The mapping of PPC general purpose registers to HIR
-     * registers. All GP registers are loaded into these by the preFill
-     * block. This avoids potential inconsistencies caused by using lazy
-     * allocation and backward branches.
-     */
-    private OPT_Register intRegMap[];
-    /**
-     * Which PPC general purpose registers are in use
-     */
-    private boolean intRegInUseMap[];
-
-    /**
-     * The mapping of PPC floating point registers to HIR registers.
-     */
-    private OPT_Register fpRegMap[];
-    /**
-     * Which PPC floating point registers are in use
-     */
-    private boolean fpRegInUseMap[];
-
-    /**
-     * The HIR register holding the PPC FPSCR register.
-     */
-    private OPT_Register fpscrRegMap;
-    /**
-     * Is the PPC FPSCR register in use
-     */
-    private boolean fpscrRegInUse;
-
-    /**
-     * The HIR register holding the PPC CTR register.
-     */
-    private OPT_Register ctrRegMap;
-    /**
-     * Is the PPC CTR register in use
-     */
-    private boolean ctrRegInUse;
-
-    /**
-     * The HIR register holding the PPC LR register.
-     */
-    private OPT_Register lrRegMap;
-    /**
-     * Is the PPC LR register in use
-     */
-    private boolean lrRegInUse;
-
-    /**
-     * The HIR register holding the PPC XER register when it is combined
-     * in a fillAll or spillAll block
-     */
-    private OPT_Register xerRegMap;
-
-    /**
-     * The HIR register holding the PPC XER register's byte count (bits
-     * 25 to 31)
-     */
-    private OPT_Register xerRegMap_ByteCount;
-
-    /**
-     * The HIR boolean register holding thr PPC XER CA (carry) bit.
-     */
-    private OPT_Register xerRegMap_CA;
-
-    /**
-     * The HIR register holding thr PPC XER OV (overflow) bit. If this
-     * register is non-zero then the OV bit should be set.
-     */
-    private OPT_Register xerRegMap_OV;
-    /**
-     * The HIR register holding thr PPC XER SO (summary overflow)
-     * bit. If this register is non-zero then the SO bit should be set.
-     */
-    private OPT_Register xerRegMap_SO;
-    /**
-     * Is the PPC XER register in use
-     */
-    private boolean xerRegInUse;
-  
-    /**
-     * These 8 registers hold a zero or non-zero value depending on the
-     * value of the corresponding condition register field's SO
-     * bit.
-     */
-    private OPT_Register crFieldMap_Lt[];
-
-    /**
-     * These 8 registers hold a zero or non-zero value depending on the
-     * value of the corresponding condition register field's SO
-     * bit.
-     */
-    private OPT_Register crFieldMap_Gt[];
-
-    /**
-     * These 8 registers hold a zero or non-zero value depending on the
-     * value of the corresponding condition register field's SO
-     * bit.
-     */
-    private OPT_Register crFieldMap_Eq[];
-
-    /**
-     * These 8 registers hold a zero or non-zero value depending on the
-     * value of the corresponding condition register field's SO
-     * bit.
-     */
-    private OPT_Register crFieldMap_SO[];
-
-    /**
-     * What condition register fields are in use?
-     */
-    private boolean crFieldInUseMap[];
-
     // -oO Fill/spill registers between OPT_Registers and the PPC_ProcessSpace Oo-
 
     /**
@@ -249,17 +357,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
         else {
             result = new OPT_RegisterOperand(intRegMap[r], VM_TypeReference.Int);
         }
-
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("r"+r),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, result,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(gprFieldRefs[r].peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(gprFieldRefs[r]),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -276,16 +377,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 
         OPT_RegisterOperand regOp = new OPT_RegisterOperand(intRegMap[r], VM_TypeReference.Int);
 
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("r"+r),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(gprFieldRefs[r].peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(gprFieldRefs[r]),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -308,16 +403,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
             result = new OPT_RegisterOperand(fpRegMap[r], VM_TypeReference.Double);
         }
 
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("f"+r),
-                                                                VM_Atom.findOrCreateAsciiAtom("D")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, result,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(fprFieldRefs[r].peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(fprFieldRefs[r]),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -334,16 +423,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 
         OPT_RegisterOperand regOp = new OPT_RegisterOperand(fpRegMap[r], VM_TypeReference.Double);
 
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("f"+r),
-                                                                VM_Atom.findOrCreateAsciiAtom("D")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(fprFieldRefs[r].peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(fprFieldRefs[r]),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -368,55 +451,40 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 
 	OPT_RegisterOperand arrayref = gc.temps.makeTemp(VM_TypeReference.BooleanArray);
 
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_lt"),
-                                                                VM_Atom.findOrCreateAsciiAtom("[Z")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(crf_ltFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(crf_ltFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, lt,
 						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
-        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
-					      VM_Atom.findOrCreateAsciiAtom("[Z")
-					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(crf_gtFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(crf_gtFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, gt,
 						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
-        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
-					      VM_Atom.findOrCreateAsciiAtom("[Z")
-					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(crf_eqFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(crf_eqFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, eq,
 						     arrayref, new OPT_IntConstantOperand(crf),
 						     new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						     new OPT_TrueGuardOperand()));
-        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
-					      VM_Atom.findOrCreateAsciiAtom("[Z")
-					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(crf_soFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(crf_soFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, so,
@@ -439,55 +507,40 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 
 	OPT_RegisterOperand arrayref = gc.temps.makeTemp(VM_TypeReference.BooleanArray);
 
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_lt"),
-                                                                VM_Atom.findOrCreateAsciiAtom("[Z")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(crf_ltFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(crf_ltFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, lt,
 						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
-        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_gt"),
-					      VM_Atom.findOrCreateAsciiAtom("[Z")
-					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(crf_gtFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(crf_gtFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, gt,
 						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
-        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_eq"),
-					      VM_Atom.findOrCreateAsciiAtom("[Z")
-					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(crf_eqFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(crf_eqFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, eq,
 						      arrayref, new OPT_IntConstantOperand(crf),
 						      new OPT_LocationOperand(VM_TypeReference.BooleanArray),
 						      new OPT_TrueGuardOperand()));
-        ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("crf_so"),
-					      VM_Atom.findOrCreateAsciiAtom("[Z")
-					      ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(crf_soFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(crf_soFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
 	appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, so,
@@ -510,20 +563,12 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
         else {
             result = new OPT_RegisterOperand(fpscrRegMap, VM_TypeReference.Int);
         }
-
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("fpscr"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, result,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(fpscrFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(fpscrFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
-
     }
 
     /**
@@ -533,16 +578,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
     {
         OPT_RegisterOperand regOp = new OPT_RegisterOperand(fpscrRegMap, VM_TypeReference.Int);
 
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("fpscr"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(fpscrFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(fpscrFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -561,16 +600,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
         else {
             result = new OPT_RegisterOperand(ctrRegMap, VM_TypeReference.Int);
         }
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("ctr"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, result,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(ctrFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(ctrFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -583,16 +616,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
     {
         OPT_RegisterOperand regOp = new OPT_RegisterOperand(ctrRegMap, VM_TypeReference.Int);
 
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("ctr"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(ctrFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(ctrFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -604,69 +631,52 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     private void fillXERRegister()
     {
-        OPT_RegisterOperand xerRegMap_Op;
         OPT_RegisterOperand xerRegMap_SO_Op;
         OPT_RegisterOperand xerRegMap_OV_Op;
         OPT_RegisterOperand xerRegMap_ByteCountOp;
         OPT_RegisterOperand xerRegMap_CA_Op;
         if (xerRegMap_SO == null) {
-            xerRegMap_Op = gc.temps.makeTempInt();
-            xerRegMap_SO_Op = gc.temps.makeTempInt();
-            xerRegMap_OV_Op = gc.temps.makeTempInt();
-            xerRegMap_ByteCountOp = gc.temps.makeTempInt();
+            xerRegMap_SO_Op = gc.temps.makeTempBoolean();
+            xerRegMap_OV_Op = gc.temps.makeTempBoolean();
             xerRegMap_CA_Op = gc.temps.makeTempBoolean();
+            xerRegMap_ByteCountOp = gc.temps.makeTemp(VM_TypeReference.Byte);
 
-            xerRegMap = xerRegMap_Op.register;
             xerRegMap_SO = xerRegMap_SO_Op.register;
             xerRegMap_OV = xerRegMap_OV_Op.register;
-            xerRegMap_ByteCount = xerRegMap_ByteCountOp.register;
             xerRegMap_CA = xerRegMap_CA_Op.register;
+            xerRegMap_ByteCount = xerRegMap_ByteCountOp.register;
         }
         else {
-            xerRegMap_Op = new OPT_RegisterOperand(xerRegMap, VM_TypeReference.Int);
-            xerRegMap_SO_Op = new OPT_RegisterOperand(xerRegMap_SO, VM_TypeReference.Int);
-            xerRegMap_OV_Op = new OPT_RegisterOperand(xerRegMap_OV, VM_TypeReference.Int);
-            xerRegMap_ByteCountOp = new OPT_RegisterOperand(xerRegMap_ByteCount, VM_TypeReference.Int);
+            xerRegMap_SO_Op = new OPT_RegisterOperand(xerRegMap_SO, VM_TypeReference.Boolean);
+            xerRegMap_OV_Op = new OPT_RegisterOperand(xerRegMap_OV, VM_TypeReference.Boolean);
             xerRegMap_CA_Op = new OPT_RegisterOperand(xerRegMap_CA, VM_TypeReference.Boolean);
+            xerRegMap_ByteCountOp = new OPT_RegisterOperand(xerRegMap_ByteCount, VM_TypeReference.Byte);
         }
 
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("xer"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
-        appendInstructionToCurrentBlock(GetField.create(GETFIELD, xerRegMap_Op,
+        appendInstructionToCurrentBlock(GetField.create(GETFIELD, xerRegMap_SO_Op,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(xer_soFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(xer_soFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
-        // Copy SO bit into XER[SO] register
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, xerRegMap_SO_Op,
-                                                      xerRegMap_Op.copyRO(),
-                                                      new OPT_IntConstantOperand(1 << 31)));
-
-        // Copy OV bit into XER[OV] register
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, xerRegMap_OV_Op,
-                                                      xerRegMap_Op.copyRO(),
-                                                      new OPT_IntConstantOperand(1 << 30)));
-
-        // Copy CA bit into XER[CA] register    
-        OPT_RegisterOperand tempInt = getTempInt(0);
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt,
-                                                      xerRegMap_Op.copyRO(),
-                                                      new OPT_IntConstantOperand(1 << 29)));
-        appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT, xerRegMap_CA_Op,
-                                                          tempInt.copyRO(),
-                                                          new OPT_IntConstantOperand(0),
-                                                          OPT_ConditionOperand.NOT_EQUAL(),
-                                                          OPT_BranchProfileOperand.unlikely()));
-
-        // Copy byte count bits out
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, xerRegMap_ByteCountOp,
-                                                      xerRegMap_Op.copyRO(),
-                                                      new OPT_IntConstantOperand(0x3f)));
+        appendInstructionToCurrentBlock(GetField.create(GETFIELD, xerRegMap_OV_Op,
+                                                        gc.makeLocal(1,psTref),
+                                                        new OPT_AddressConstantOperand(xer_ovFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(xer_ovFieldRef),
+                                                        new OPT_TrueGuardOperand())
+                                        );
+        appendInstructionToCurrentBlock(GetField.create(GETFIELD, xerRegMap_CA_Op,
+                                                        gc.makeLocal(1,psTref),
+                                                        new OPT_AddressConstantOperand(xer_caFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(xer_caFieldRef),
+                                                        new OPT_TrueGuardOperand())
+                                        );
+        appendInstructionToCurrentBlock(GetField.create(GETFIELD, xerRegMap_ByteCountOp,
+                                                        gc.makeLocal(1,psTref),
+                                                        new OPT_AddressConstantOperand(xer_byteCountFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(xer_byteCountFieldRef),
+                                                        new OPT_TrueGuardOperand())
+                                        );
     }
 
     /**
@@ -675,60 +685,36 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     private void spillXERRegister()
     {
-        // Set up xer register with byte count
-        OPT_RegisterOperand  xer = new OPT_RegisterOperand(xerRegMap, VM_TypeReference.Int);
-        appendInstructionToCurrentBlock(Move.create(INT_MOVE, xer,
-                                                    new OPT_RegisterOperand(xerRegMap_ByteCount, VM_TypeReference.Int))
-                                        );
-        // SO bit
-        OPT_RegisterOperand tempInt = getTempInt(0);
-        appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE, 
-                                                        tempInt,
-                                                        new OPT_RegisterOperand(xerRegMap_SO, VM_TypeReference.Int),
-                                                        new OPT_IntConstantOperand(0),
-                                                        OPT_ConditionOperand.EQUAL(),
-                                                        new OPT_IntConstantOperand(0),
-                                                        new OPT_IntConstantOperand(1 << 31)));
-        appendInstructionToCurrentBlock(Binary.create(INT_OR, xer.copyRO(),
-                                                      xer.copy(),
-                                                      tempInt.copyRO())
-                                        );
-        // OV bit
-        appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE, 
-                                                        tempInt.copyRO(),
-                                                        new OPT_RegisterOperand(xerRegMap_OV, VM_TypeReference.Int),
-                                                        new OPT_IntConstantOperand(0),
-                                                        OPT_ConditionOperand.EQUAL(),
-                                                        new OPT_IntConstantOperand(0),
-                                                        new OPT_IntConstantOperand(1 << 30)));
-        appendInstructionToCurrentBlock(Binary.create(INT_OR, xer.copyRO(),
-                                                      xer.copy(),
-                                                      tempInt.copyRO())
-                                        );
-    
-        // CA bit
-        appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE, 
-                                                        tempInt.copyRO(),
-                                                        new OPT_RegisterOperand(xerRegMap_CA, VM_TypeReference.Boolean),
-                                                        new OPT_IntConstantOperand(0),
-                                                        OPT_ConditionOperand.EQUAL(),
-                                                        new OPT_IntConstantOperand(0),
-                                                        new OPT_IntConstantOperand(1 << 29)));
-        appendInstructionToCurrentBlock(Binary.create(INT_OR, xer.copyRO(),
-                                                      xer.copy(),
-                                                      tempInt.copyRO()));
-    
-        // Store to process space
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("xer"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
-        appendInstructionToCurrentBlock(PutField.create(PUTFIELD, xer.copy(),
+	OPT_RegisterOperand xerRegMap_SO_Op = new OPT_RegisterOperand(xerRegMap_SO, VM_TypeReference.Boolean);
+        appendInstructionToCurrentBlock(PutField.create(PUTFIELD, xerRegMap_SO_Op,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(xer_soFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(xer_soFieldRef),
+                                                        new OPT_TrueGuardOperand())
+                                        );
+
+
+	OPT_RegisterOperand xerRegMap_OV_Op = new OPT_RegisterOperand(xerRegMap_OV, VM_TypeReference.Boolean);
+        appendInstructionToCurrentBlock(PutField.create(PUTFIELD, xerRegMap_OV_Op,
+                                                        gc.makeLocal(1,psTref),
+                                                        new OPT_AddressConstantOperand(xer_ovFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(xer_ovFieldRef),
+                                                        new OPT_TrueGuardOperand())
+                                        );
+
+	OPT_RegisterOperand xerRegMap_CA_Op = new OPT_RegisterOperand(xerRegMap_CA, VM_TypeReference.Boolean);
+        appendInstructionToCurrentBlock(PutField.create(PUTFIELD, xerRegMap_CA_Op,
+                                                        gc.makeLocal(1,psTref),
+                                                        new OPT_AddressConstantOperand(xer_caFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(xer_caFieldRef),
+                                                        new OPT_TrueGuardOperand())
+                                        );
+
+	OPT_RegisterOperand xerRegMap_ByteCountOp = new OPT_RegisterOperand(xerRegMap_ByteCount, VM_TypeReference.Byte);
+        appendInstructionToCurrentBlock(PutField.create(PUTFIELD, xerRegMap_ByteCountOp,
+                                                        gc.makeLocal(1,psTref),
+                                                        new OPT_AddressConstantOperand(xer_byteCountFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(xer_byteCountFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -748,16 +734,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
         else {
             result = new OPT_RegisterOperand(lrRegMap, VM_TypeReference.Int);
         }
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("lr"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(GetField.create(GETFIELD, result,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(lrFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(lrFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -769,17 +749,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
     private void spillLRRegister()
     {
         OPT_RegisterOperand regOp = new OPT_RegisterOperand(lrRegMap, VM_TypeReference.Int);
-
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("lr"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp,
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(lrFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(lrFieldRef),
                                                         new OPT_TrueGuardOperand())
                                         );
     }
@@ -835,16 +808,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      * Spill a given PC value into the process space
      */
     private void spillPC(int pc) {
-        VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                                );
-        VM_FieldReference ref = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("pc"),
-                                                                VM_Atom.findOrCreateAsciiAtom("I")
-                                                                ).asFieldReference();
         appendInstructionToCurrentBlock(PutField.create(PUTFIELD, new OPT_IntConstantOperand(pc),
                                                         gc.makeLocal(1,psTref),
-                                                        new OPT_AddressConstantOperand(ref.peekResolvedField().getOffset()),
-                                                        new OPT_LocationOperand(ref),
+                                                        new OPT_AddressConstantOperand(pcFieldRef.peekResolvedField().getOffset()),
+                                                        new OPT_LocationOperand(pcFieldRef),
                                                         new OPT_TrueGuardOperand()));
     }
     // -oO Find a register Oo-
@@ -925,6 +892,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 	default:
 	    DBT_OptimizingCompilerException.UNREACHABLE();
 	}
+	return null; // stop compiler warnings
     }
 
     /**
@@ -960,7 +928,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     public OPT_RegisterOperand getXER_ByteCountRegister() {
         xerRegInUse = true;
-        return new OPT_RegisterOperand (xerRegMap_ByteCount, VM_TypeReference.Int);
+        return new OPT_RegisterOperand (xerRegMap_ByteCount, VM_TypeReference.Byte);
     }
 
     /**
@@ -969,7 +937,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     public OPT_RegisterOperand getXER_SO_Register() {
         xerRegInUse = true;
-        return new OPT_RegisterOperand (xerRegMap_SO, VM_TypeReference.Int);
+        return new OPT_RegisterOperand (xerRegMap_SO, VM_TypeReference.Boolean);
     }
 
     /**
@@ -978,7 +946,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     public OPT_RegisterOperand getXER_OV_Register() {
         xerRegInUse = true;
-        return new OPT_RegisterOperand (xerRegMap_OV, VM_TypeReference.Int);
+        return new OPT_RegisterOperand (xerRegMap_OV, VM_TypeReference.Boolean);
     }
 
     /**
@@ -1062,14 +1030,8 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
         if((gc.options.getOptLevel() > 0) && (DBT_Options.plantUncaughtBclrWatcher)) {
             // Plant call
             OPT_Instruction s = Call.create(CALL, null, null, null, null, 3);
-            VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                    VM_Atom.findOrCreateAsciiAtom
-                                                                    ("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;"));                       
-            VM_MethodReference methRef = (VM_MethodReference)VM_MemberReference.findOrCreate(psTref,
-                                                                                             VM_Atom.findOrCreateAsciiAtom("recordUncaughtBclr"),
-                                                                                             VM_Atom.findOrCreateAsciiAtom("(II)V"));
-            VM_Method method = methRef.resolve();
-            OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(methRef, method);
+            VM_Method method = recordUncaughtBclrMethRef.resolve();
+            OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(recordUncaughtBclrMethRef, method);
 
             OPT_Operand psRef = gc.makeLocal(1,psTref); 
             Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer
@@ -1077,7 +1039,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
             Call.setParam(s, 2, lr);    // Link register value
             Call.setGuard(s, new OPT_TrueGuardOperand());
             Call.setMethod(s, methOp);
-            Call.setAddress(s, new OPT_AddressConstantOperand(methRef.peekResolvedMethod().getOffset()));
+            Call.setAddress(s, new OPT_AddressConstantOperand(recordUncaughtBclrMethRef.peekResolvedMethod().getOffset()));
             s.position = gc.inlineSequence;
             s.bcIndex = 7;
             appendInstructionToCurrentBlock(s);
@@ -1093,21 +1055,15 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
         if(DBT_Options.plantUncaughtBcctrWatcher) {
             // Plant call
             OPT_Instruction s = Call.create(CALL, null, null, null, null, 3);
-            VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                                    VM_Atom.findOrCreateAsciiAtom
-                                                                    ("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;"));                       
-            VM_MethodReference methRef = (VM_MethodReference)VM_MemberReference.findOrCreate(psTref,
-                                                                                             VM_Atom.findOrCreateAsciiAtom("recordUncaughtBcctr"),
-                                                                                             VM_Atom.findOrCreateAsciiAtom("(II)V"));
-            VM_Method method = methRef.resolve();
-            OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(methRef, method);
+            VM_Method method = recordUncaughtBcctrMethRef.resolve();
+            OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(recordUncaughtBcctrMethRef, method);
             OPT_Operand psRef = gc.makeLocal(1,psTref); 
             Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer
             Call.setParam(s, 1, new OPT_IntConstantOperand(pc)); // Address of bcctr instruction
             Call.setParam(s, 2, ctr);   // Count register value
             Call.setGuard(s, new OPT_TrueGuardOperand());
             Call.setMethod(s, methOp);
-            Call.setAddress(s, new OPT_AddressConstantOperand(methRef.peekResolvedMethod().getOffset()));
+            Call.setAddress(s, new OPT_AddressConstantOperand(recordUncaughtBcctrMethRef.peekResolvedMethod().getOffset()));
             s.position = gc.inlineSequence;
             s.bcIndex = 13;
             appendInstructionToCurrentBlock(s);
@@ -1147,7 +1103,6 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
             unusedRegisterList.add(lrRegMap);
         }
         if(xerRegInUse == false) {
-            unusedRegisterList.add(xerRegMap);
             unusedRegisterList.add(xerRegMap_SO);
             unusedRegisterList.add(xerRegMap_OV);
             unusedRegisterList.add(xerRegMap_ByteCount);
