@@ -65,25 +65,17 @@ public final class DBT_Trace extends VM_NormalMethod
   /**
    * Traces appear as DynamicCodeRunner.invokeCode methods
    */
-  private static VM_Class dummyRunner;
-  private static VM_NormalMethod invokeCode;
-  private static short invokeCode_modifiers;
-  private static VM_TypeReference dummyRunnerTypeRef;
-  private static VM_MemberReference dummyRunnerMemRef;
-  private static VM_Atom invokeCodeDescriptor;
+  private static final VM_Class dummyRunner;
+  private static final VM_NormalMethod invokeCode;
+  private static final short invokeCode_modifiers;
+  private static final VM_TypeReference dummyRunnerTypeRef;
+  private static final VM_MemberReference dummyRunnerMemRef;
+  private static final VM_Atom invokeCodeDescriptor;
 
   static {
-    configure();
-  }
-
-  /**
-   * PPC traces masquerade as the method used to invoke them. Generate
-   * necessary references to it.
-   */
-  public static void configure() {
     VM_Atom clsDescriptor = VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/vmInterface/DummyDynamicCodeRunner;");
     VM_Atom memName       = VM_Atom.findOrCreateAsciiAtom("invokeCode");
-    invokeCodeDescriptor  = VM_Atom.findOrCreateAsciiAtom("(Lorg/jikesrvm/VM_CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
+    invokeCodeDescriptor  = VM_Atom.findOrCreateAsciiAtom("(Lorg/jikesrvm/ArchitectureSpecific$VM_CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
     VM_TypeReference tRef = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
                                                           clsDescriptor);
     dummyRunnerTypeRef = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
@@ -135,16 +127,18 @@ public final class DBT_Trace extends VM_NormalMethod
 	  null // annotation default
 	  );
 
-    this.offset = invokeCode.getOffset().toInt();
-
-    this.summaryFlags |= HAS_ALLOCATION | HAS_THROW | HAS_INVOKE |
-	HAS_FIELD_READ | HAS_FIELD_WRITE | HAS_ARRAY_READ | HAS_ARRAY_WRITE |
-	HAS_COND_BRANCH | HAS_SWITCH | HAS_BACK_BRANCH;
-    this.summarySize = 256;
+    this.offset = VM_Statics.allocateReferenceSlot().toInt();
 
     this.ps = ps;
     pc = startPC;
 
+  }
+
+  protected void computeSummary(int[] constantPool) {
+    this.summaryFlags |= HAS_ALLOCATION | HAS_THROW | HAS_INVOKE |
+	HAS_FIELD_READ | HAS_FIELD_WRITE | HAS_ARRAY_READ | HAS_ARRAY_WRITE |
+	HAS_COND_BRANCH | HAS_SWITCH | HAS_BACK_BRANCH;
+    this.summarySize = 256;
   }
 
   /**
