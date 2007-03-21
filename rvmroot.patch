@@ -1,0 +1,97 @@
+Index: build.xml
+===================================================================
+--- build.xml	(revision 11878)
++++ build.xml	(working copy)
+@@ -792,7 +792,7 @@
+     </condition>
+     
+     <!--
+-     FIXME: When we can capture the primordials based on reacability we will not need to delete class dir
++     FIXME: When we can capture the primordials based on reachability we will not need to delete class dir
+      here. We will also be able to compile ALL classes in one sweep.
+     -->
+     <delete dir="${build.classes}"/>
+@@ -862,7 +862,7 @@
+     </javac>
+   </target>
+ 
+-  <target name="package" depends="compile,compile-vmmagic">
++  <target name="package" depends="compile,compile-vmmagic,compile-projects">
+     <!-- create a rt.jar for the RVM -->
+     <copy file="${classpath.lib.dir}/classpath.jar" tofile="${build.rt.jar}"/>
+     <zip destfile="${build.rt.jar}" update="true" basedir="${build.classes}">
+@@ -881,7 +881,20 @@
+     </jar>
+   </target>
+ 
++  <!-- **************************************************************************** -->
++  <!-- *                                                                          * -->
++  <!-- *             Section for compiling and packaging external projects        * -->
++  <!-- *                                                                          * -->
++  <!-- **************************************************************************** -->
+ 
++  <target name="compile-projects"
++          depends="compile"
++          description="Build any projects included with the RVM">
++    <subant target="" inheritall="true">
++      <fileset dir="projects" includes="*/build.xml" />
++    </subant>
++  </target>
++
+   <!-- **************************************************************************** -->
+   <!-- *                                                                          * -->
+   <!-- *                Section for building the boot image                       * -->
+Index: rvm/src-generated/opt-ir/InstructionFormatList.dat
+===================================================================
+--- rvm/src-generated/opt-ir/InstructionFormatList.dat	(revision 11878)
++++ rvm/src-generated/opt-ir/InstructionFormatList.dat	(working copy)
+@@ -149,6 +149,14 @@
+ "U Cond OPT_ConditionOperand" "U BranchProfile OPT_BranchProfileOperand"
+ 
+ 
++BooleanCmp2
++1 0 8
++"D Result OPT_RegisterOperand" "U Val1 OPT_Operand" "U Val2 OPT_Operand" \
++"U Cond1 OPT_ConditionOperand" "U BranchProfile1 OPT_BranchProfileOperand" \
++"U Val3 OPT_Operand" "U Val4 OPT_Operand" \
++"U Cond2 OPT_ConditionOperand" "U BranchProfile2 OPT_BranchProfileOperand"
++
++
+ CondMove
+ 1 0 5
+ "D Result OPT_RegisterOperand" "U Val1 OPT_Operand" "U Val2 OPT_Operand" \
+Index: rvm/src-generated/opt-ir/OperatorList.dat
+===================================================================
+--- rvm/src-generated/opt-ir/OperatorList.dat	(revision 11878)
++++ rvm/src-generated/opt-ir/OperatorList.dat	(working copy)
+@@ -1255,6 +1255,20 @@
+ 
+ 
+ 
++# Compare two sets of two int values and put the boolean OR in the result register
++BOOLEAN_CMP2_INT_OR
++BooleanCmp2
++compare
++
++
++
++# Compare two sets of two int values and put the boolean AND in the result register
++BOOLEAN_CMP2_INT_AND
++BooleanCmp2
++compare
++
++
++
+ # Load a singed byte
+ # NOTE: Because of our strategy of using explict guard instructions, there is no
+ # way in the HIR/LIR that the actual load instruction can except.
+Index: rvm/src/OptDummy.java
+===================================================================
+--- rvm/src/OptDummy.java	(revision 11878)
++++ rvm/src/OptDummy.java	(working copy)
+@@ -20,4 +20,5 @@
+   static org.jikesrvm.opt.OPT_Compiler a;
+   static org.jikesrvm.opt.VM_OptSaveVolatile g;
+   static org.jikesrvm.opt.OPT_SpecializedMethodPool q;
++  static org.jikesrvm.opt.ir.BooleanCmp2 b;
+ }
