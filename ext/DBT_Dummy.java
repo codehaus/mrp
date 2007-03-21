@@ -22,4 +22,6 @@ class OptDummy {
    static org.jikesrvm.classloader.VM_Method j;
    static org.jikesrvm.classloader.VM_Member k;
    static org.jikesrvm.classloader.VM_NormalMethod l;
+   static org.jikesrvm.VM_RuntimeCompiler m;
+   static org.jikesrvm.opt.ir.OPT_ConvertBCtoHIR n;
 }

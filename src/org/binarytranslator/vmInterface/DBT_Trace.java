@@ -161,4 +161,10 @@ public final class DBT_Trace extends VM_NormalMethod
       VM_CompiledMethods.setCompiledMethodObsolete(oldCompiledMethod);
     }
   }
+    /**
+     * Map bytecode index to java source line number
+     */
+  public int getLineNumberForBCIndex(int bci) { 
+      return bci;
+  }
 }

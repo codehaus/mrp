@@ -18,6 +18,7 @@
     <delete verbose="true">
       <fileset dir="${build.classes}">
         <include name="org/jikesrvm/opt/ir/ia32/OPT_IA32ConditionOperand.class" />
+        <include name="org/jikesrvm/opt/ir/OPT_ConvertBCtoHIR.class" />
         <include name="org/jikesrvm/opt/ir/OPT_HIRGenerator.class" />
         <include name="org/jikesrvm/opt/ir/OPT_GenerationContext.class" />
         <include name="org/jikesrvm/opt/ir/OPT_ConditionOperand.class" />
@@ -27,6 +28,7 @@
         <include name="org/jikesrvm/ppc/PPC_Disassembler.class" />
         <include name="org/jikesrvm/ppc/opcode_tab.class" />
         <include name="org/jikesrvm/ppc/opcodeXX.class" />
+        <include name="org/jikesrvm/VM_RuntimeCompiler.class" />
         <include name="org/jikesrvm/classloader/VM_Method.class" />
         <include name="org/jikesrvm/classloader/VM_Member.class" />
         <include name="org/jikesrvm/classloader/VM_NormalMethod.class" />
