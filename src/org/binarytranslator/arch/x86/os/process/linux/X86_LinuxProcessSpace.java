@@ -32,6 +32,11 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
   private int brk;
 
   /**
+   * The top of the stack
+   */
+  private static final int STACK_TOP = 0xC0000000;
+
+  /**
    * Constructor
    */
   public X86_LinuxProcessSpace(Loader loader) {
@@ -72,34 +77,10 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
                        LinuxStackInitializer.AuxiliaryVectorType.AT_EGID, DBT_Options.GID,
 
                        LinuxStackInitializer.AuxiliaryVectorType.AT_SECURE, 0,
-                       //                       LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, LinuxStackInitializer.AuxiliaryVectorType.STACK_TOP - getPlatformString().length,
+                       //LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, LinuxStackInitializer.AuxiliaryVectorType.STACK_TOP - getPlatformString().length,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0};
 
-    /* The cache sizes and flags are as for a test program running on 
-       the iBook, softwood. AT_BASE will need to be changed for dynamically linked binaries. */
-
-    /* Environment variables, exactly as on softwood. Not that the number 8380 in SSH_* varies. */
-    String[] env = {"HOSTNAME=softwood", "PVM_RSH=/usr/bin/rsh", 
-                    "HOST_JAVA_HOME=/home/amulocal/linux/appl/j2sdk1.4.2", "SHELL=/bin/bash",
-                    "TERM=xterm", "HISTSIZE=1000", "SSH_CLIENT=130.88.194.110 8380 22",
-                    "CVSROOT=/home/simgroup/cvsroot", "QTDIR=/usr/lib/qt-3.1", "SSH_TTY=/dev/pts/0",
-                    "RVM_HOST_CONFIG=/home/matleyr/cvs/rvm/config/i686-pc-linux-gnu.ManCS",
-                    "USER=matleyr", "LS_COLORS=no=00:fi=00:di=00;34:ln=00;36:pi=40;33:so=00;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=00;32:*.cmd=00;32:*.exe=00;32:*.com=00;32:*.btm=00;32:*.bat=00;32:*.sh=00;32:*.csh=00;32:*.tar=00;31:*.tgz=00;31:*.arj=00;31:*.taz=00;31:*.lzh=00;31:*.zip=00;31:*.z=00;31:*.Z=00;31:*.gz=00;31:*.bz2=00;31:*.bz=00;31:*.tz=00;31:*.rpm=00;31:*.cpio=00;31:*.jpg=00;35:*.gif=00;35:*.bmp=00;35:*.xbm=00;35:*.xpm=00;35:*.png=00;35:*.tif=00;35:", "XENVIRONMENT=/home/matleyr/.Xdefaults",
-                    "PVM_ROOT=/usr/share/pvm3", "CLASSPATH_ROOT=/home/matleyr/cvs/classpath",
-                    "PATH=/home/matleyr/bin:/usr/kerberos/bin:/usr/local/bin:/bin:/usr/bin:/usr/X11R6/bin:/opt/lib/j2re1.3.1/bin:/home/matleyr/cvs/rvm/bin:/home/matleyr/bin", "MAIL=/var/spool/mail/matleyr",
-                    "_=/bin/bash", "PWD=/home/matleyr/dhry", "INPUTRC=/etc/inputrc",
-                    "LANG=en_GB.iso88591", "LAMHELPFILE=/etc/lam/lam-helpfile",
-                    "SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass",
-                    "CSHOME=matleyr@antigua.cs.man.ac.uk:/home/M03/cc/matleyr", "HOME=/home/matleyr",
-                    "SHLVL=1", "SIM=/home/simgroup/matleyr", "XPVM_ROOT=/usr/share/pvm3/xpvm",
-                    "RVM_ROOT=/home/matleyr/cvs", "LOGNAME=matleyr", "PRINTER=happy_duplex",
-                    "SSH_CONNECTION=130.88.194.110 2380 130.88.198.215 22",
-                    "LESSOPEN=|/usr/bin/lesspipe.sh %s", "RVM_BUILD=/tmp/RVMbuild",
-                    "DISPLAY=localhost:10.0",
-                    "RVM_TARGET_CONFIG=/home/matleyr/cvs/rvm/config/i686-pc-linux-gnu.ManCS",
-                    "G_BROKEN_FILENAMES=1"};
-
-    return LinuxStackInitializer.stackInit(memory, 0xC0000000, args, env, auxVector);
+    return LinuxStackInitializer.stackInit(memory, STACK_TOP, args, getEnvironmentVariables(), auxVector);
   }
 
   /**
