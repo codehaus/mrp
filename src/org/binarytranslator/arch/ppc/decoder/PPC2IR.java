@@ -125,17 +125,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
     /** Reference to PPC process space pc field */
     private static final VM_FieldReference pcFieldRef;
 
-    /** Reference to PPC process space recordUncaughtBclr method */
-    private static final VM_MethodReference recordUncaughtBclrMethRef;
-
-    /** Reference to PPC process space recordUncaughtBcctr method */
-    private static final VM_MethodReference recordUncaughtBcctrMethRef;
-
     /* Static initializer */
     static {
-	psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-					       VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-					       );
+	psTref = VM_TypeReference.findOrCreate(PPC_ProcessSpace.class);
 	gprFieldRefs = new VM_FieldReference[32];
 	fprFieldRefs = new VM_FieldReference[32];
 	final VM_Atom intAtom = VM_Atom.findOrCreateAsciiAtom("I");
@@ -189,12 +181,6 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
 	pcFieldRef = VM_MemberReference.findOrCreate(psTref,VM_Atom.findOrCreateAsciiAtom("pc"),
 						     intAtom
 						     ).asFieldReference();
-	recordUncaughtBclrMethRef = (VM_MethodReference)VM_MemberReference.findOrCreate(psTref,
-											VM_Atom.findOrCreateAsciiAtom("recordUncaughtBclr"),
-											VM_Atom.findOrCreateAsciiAtom("(II)V"));
-	recordUncaughtBcctrMethRef = (VM_MethodReference)VM_MemberReference.findOrCreate(psTref,
-											 VM_Atom.findOrCreateAsciiAtom("recordUncaughtBcctr"),
-											 VM_Atom.findOrCreateAsciiAtom("(II)V"));
     }
 
     // -oO PPC register to HIR register mappings Oo-
@@ -1016,58 +1002,6 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator, OPT_
      */
     public void registerBranchAndLink(int pc, int dest) {
         registerBranchAndLink(pc, pc+4, dest);
-    }
-
-    // -oO Trace helping methods Oo-
-
-    /**
-     * Plant a record bclr call. NB register state won't get resolved for call
-     * @param pc the address of the bclr instruction
-     * @param lr the link register value
-     */
-    public void plantRecordUncaughtBclr(int pc, OPT_RegisterOperand lr) {
-        // Is it sensible to record this information?
-        if((gc.options.getOptLevel() > 0) && (DBT_Options.plantUncaughtBclrWatcher)) {
-            // Plant call
-            OPT_Instruction s = Call.create(CALL, null, null, null, null, 3);
-            VM_Method method = recordUncaughtBclrMethRef.resolve();
-            OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(recordUncaughtBclrMethRef, method);
-
-            OPT_Operand psRef = gc.makeLocal(1,psTref); 
-            Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer
-            Call.setParam(s, 1, new OPT_IntConstantOperand(pc)); // Address of bclr instruction
-            Call.setParam(s, 2, lr);    // Link register value
-            Call.setGuard(s, new OPT_TrueGuardOperand());
-            Call.setMethod(s, methOp);
-            Call.setAddress(s, new OPT_AddressConstantOperand(recordUncaughtBclrMethRef.peekResolvedMethod().getOffset()));
-            s.position = gc.inlineSequence;
-            s.bcIndex = 7;
-            appendInstructionToCurrentBlock(s);
-        }
-    }
-
-    /**
-     * Plant a record bcctr call. NB register state won't get resolved for call
-     * @param pc the address of the bclr instruction
-     * @param ctr the count register value
-     */
-    public void plantRecordUncaughtBcctr(int pc, OPT_RegisterOperand ctr) {
-        if(DBT_Options.plantUncaughtBcctrWatcher) {
-            // Plant call
-            OPT_Instruction s = Call.create(CALL, null, null, null, null, 3);
-            VM_Method method = recordUncaughtBcctrMethRef.resolve();
-            OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(recordUncaughtBcctrMethRef, method);
-            OPT_Operand psRef = gc.makeLocal(1,psTref); 
-            Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer
-            Call.setParam(s, 1, new OPT_IntConstantOperand(pc)); // Address of bcctr instruction
-            Call.setParam(s, 2, ctr);   // Count register value
-            Call.setGuard(s, new OPT_TrueGuardOperand());
-            Call.setMethod(s, methOp);
-            Call.setAddress(s, new OPT_AddressConstantOperand(recordUncaughtBcctrMethRef.peekResolvedMethod().getOffset()));
-            s.position = gc.inlineSequence;
-            s.bcIndex = 13;
-            appendInstructionToCurrentBlock(s);
-        }
     }
 
     // -oO Optimisations on the generated HIR Oo-

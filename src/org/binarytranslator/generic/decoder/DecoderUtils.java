@@ -18,6 +18,7 @@ import java.util.Set;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.TranslationHelper;
 import org.binarytranslator.generic.os.process.ProcessSpace;
+import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.DBT_Options;
 
 import org.jikesrvm.VM;
@@ -84,7 +85,174 @@ import org.jikesrvm.opt.ir.OPT_TypeOperand;
  * </dl>
  */
 public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, TranslationHelper {
+    // -oO Constants Oo-
+
+    /**
+     * VM_TypeReference of
+     * org.binarytranslator.generic.os.process.ProcessSpace
+     */
+    private static final VM_TypeReference psTref;
+
+    /**
+     * Method ProcessSpace.doSysCall
+     */
+    public static final VM_Method sysCallMethod;
+
+    /**
+     * VM_TypeReference of
+     * org.binarytranslator.generic.fault.BadInstructionException
+     */
+    private static final VM_Class badInstrKlass;
+
+    /**
+     * Method BadInstructionException.<init>
+     */
+    public static final VM_Method badInstrKlassInitMethod;
+
+    /**
+     * Method ProcessSpace.recordUncaughtBranchBadInstructionException.<init>
+     */
+    public static final VM_Method recordUncaughtBranchMethod;
+
+    static {
+      psTref = java.lang.JikesRVMSupport.getTypeForClass(ProcessSpace.class).getTypeRef();
+      VM_MethodReference sysCallMethRef = (VM_MethodReference)
+	  VM_MemberReference.findOrCreate(psTref,
+					  VM_Atom.findOrCreateAsciiAtom("doSysCall"),
+					  VM_Atom.findOrCreateAsciiAtom("()V"));
+      sysCallMethod = sysCallMethRef.resolveInvokeSpecial();
+      
+      badInstrKlass = java.lang.JikesRVMSupport.getTypeForClass(BadInstructionException.class).asClass();
+      
+      VM_MethodReference badInstrKlassInitMethRef = (VM_MethodReference)
+	  VM_MemberReference.findOrCreate(badInstrKlass.getTypeRef(),
+					  VM_Atom.findOrCreateAsciiAtom("<init>"),
+					  VM_Atom.findOrCreateAsciiAtom("(I" +
+									psTref.getName() +
+									")V"));
+      badInstrKlassInitMethod = badInstrKlassInitMethRef.resolveInvokeSpecial();
+
+      VM_MethodReference recordUncaughtBranchMethRef = (VM_MethodReference)
+	  VM_MemberReference.findOrCreate(psTref,
+					  VM_Atom.findOrCreateAsciiAtom("recordUncaughtBranch"),
+					  VM_Atom.findOrCreateAsciiAtom("(III)V"));
+      recordUncaughtBranchMethod = recordUncaughtBranchMethRef.resolveInvokeSpecial();
+    }
+
+
+  // -oO Global IR Oo-
+
+  /**
+   * Number of translated instructions
+   */
+  public int numberOfInstructions;
+
+  /**
+   * The process space object used by the running PPC binary.
+   */
+  public ProcessSpace ps;
+
+  /**
+   * The generation context.
+   */
+  protected OPT_GenerationContext gc;
+
+  // -oO Global HIR basic blocks Oo-
+
+  /**
+   * The OPT_BasicBlock in which instructions are currently being
+   * inserted
+   */
+  protected OPT_BasicBlock currentBlock;
+
+  /**
+   * The pc value corresponding to the instruction currently being
+   * translated
+   */
+  protected int currentPC;
+
+  /**
+   * The OPT_BasicBlock which will contain the next translated instruction
+   */
+  protected OPT_BasicBlock nextBlock;
+
+  /** 
+   * The basic block is used by finish trace to hold all the code that
+   * must be executed before returning to the main run loop
+   */
+  protected OPT_BasicBlock finishBlock;
+
+  /**
+   * This block gets instructions to pre-fill registers inserted into
+   * it.
+   */
+  protected OPT_BasicBlock preFillBlock;
+
+  /** 
+   * Map to locate HIR basic blocks to re-use translation within a
+   * trace
+   */
+    protected final HashMap<Laziness.Key,OPT_BasicBlock> blockMap;
+
+  /**
+   * List of unresolved Goto instructions
+   */
+  protected final ArrayList<OPT_Instruction> unresolvedGoto;
+
+  /**
+   * List of where unresolved Goto instructions are trying to go
+   */
+  protected final ArrayList<Integer> unresolvedGoto_PC;
+  /**
+   * List of what the unresolved Goto instruction's target laziness should be
+   */
+  protected final ArrayList<Laziness> unresolvedGoto_Laziness;
+
+  /**
+   * List of unresolved IfCmp instructions
+   */
+  protected final ArrayList<OPT_Instruction> unresolvedIfCmp;
+  /**
+   * List of where unresolved IfCmp instructions are trying to go
+   */
+  protected final ArrayList<Integer> unresolvedIfCmp_PC;
+  /**
+   * List of what the unresolved IfCmp instruction's target laziness should be
+   */
+  protected final ArrayList<Laziness> unresolvedIfCmp_Laziness;
+
+  /**
+   * List of unresolved LookupSwitch instructions used for branching to the link register
+   */
+  protected final ArrayList<OPT_Instruction> unresolvedLookupSwitchForReturns;
+  /**
+   * List of where unresolved Goto instructions are trying to go
+   */
+  protected final ArrayList<Integer> unresolvedLookupSwitchForReturns_PC;
+  /**
+   * List of what the unresolved Goto instruction's target laziness should be
+   */
+  protected final ArrayList<Laziness> unresolvedLookupSwitchForReturns_Laziness;
+
+  /**
+   * List of unresolved LookupSwitch instructions used for branching to the count register
+   */
+  protected final ArrayList<OPT_Instruction> unresolvedLookupSwitchForSwitches;
+  /**
+   * List of where unresolved LookupSwitch instructions are branching from
+   */
+  protected final ArrayList<Integer> unresolvedLookupSwitchForSwitches_PC;
+  /**
+   * List of what the unresolved LookupSwitch instruction's target laziness should be
+   */
+  protected final ArrayList<Laziness> unresolvedLookupSwitchForSwitches_Laziness;
+  /**
+   * List of whether the unresolved LookupSwitch instruction's was a call
+   */
+  protected final ArrayList<Boolean> unresolvedLookupSwitchForSwitches_WasCall;
+
   // -oO Debug Oo-
+
   /**
    * Report some debug output
    */
@@ -117,22 +285,22 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
     finishBlock = createBlockAfterCurrent();
 
     // Fix up stores
-    unresolvedGoto = new ArrayList();
-    unresolvedGoto_PC = new ArrayList();
-    unresolvedGoto_Laziness = new ArrayList();
+    unresolvedGoto = new ArrayList<OPT_Instruction>();
+    unresolvedGoto_PC = new ArrayList<Integer>();
+    unresolvedGoto_Laziness = new ArrayList<Laziness>();
 
-    unresolvedIfCmp = new ArrayList();
-    unresolvedIfCmp_PC = new ArrayList();
-    unresolvedIfCmp_Laziness = new ArrayList();
+    unresolvedIfCmp = new ArrayList<OPT_Instruction>();
+    unresolvedIfCmp_PC = new ArrayList<Integer>();
+    unresolvedIfCmp_Laziness = new ArrayList<Laziness>();
 
-    unresolvedLookupSwitchForReturns = new ArrayList();
-    unresolvedLookupSwitchForReturns_PC = new ArrayList();
-    unresolvedLookupSwitchForReturns_Laziness = new ArrayList();
+    unresolvedLookupSwitchForReturns = new ArrayList<OPT_Instruction>();
+    unresolvedLookupSwitchForReturns_PC = new ArrayList<Integer>();
+    unresolvedLookupSwitchForReturns_Laziness = new ArrayList<Laziness>();
 
-    unresolvedLookupSwitchForSwitches = new ArrayList();
-    unresolvedLookupSwitchForSwitches_PC = new ArrayList();
-    unresolvedLookupSwitchForSwitches_Laziness = new ArrayList();
-    unresolvedLookupSwitchForSwitches_WasCall = new ArrayList();
+    unresolvedLookupSwitchForSwitches = new ArrayList<OPT_Instruction>();
+    unresolvedLookupSwitchForSwitches_PC = new ArrayList<Integer>();
+    unresolvedLookupSwitchForSwitches_Laziness = new ArrayList<Laziness>();
+    unresolvedLookupSwitchForSwitches_WasCall = new ArrayList<Boolean>();
   }
 
   /** 
@@ -253,61 +421,6 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
    */
   protected abstract int translateInstruction(Laziness lazy, int pc);
 
-  // -oO Global IR Oo-
-
-  /**
-   * Number of translated instructions
-   */
-  public int numberOfInstructions;
-
-  /**
-   * The process space object used by the running PPC binary.
-   */
-  public ProcessSpace ps;
-
-  /**
-   * The generation context.
-   */
-  protected OPT_GenerationContext gc;
-
-  /**
-   * Get the generation context.
-   */
-  public OPT_GenerationContext getGenerationContext() {
-    return gc;
-  }
-
-  // -oO Global HIR basic blocks Oo-
-
-  /**
-   * The OPT_BasicBlock in which instructions are currently being
-   * inserted
-   */
-  protected OPT_BasicBlock currentBlock;
-
-  /**
-   * The pc value corresponding to the instruction currently being
-   * translated
-   */
-  protected int currentPC;
-
-  /**
-   * The OPT_BasicBlock which will contain the next translated instruction
-   */
-  protected OPT_BasicBlock nextBlock;
-
-  /** 
-   * The basic block is used by finish trace to hold all the code that
-   * must be executed before returning to the main run loop
-   */
-  protected OPT_BasicBlock finishBlock;
-
-  /**
-   * This block gets instructions to pre-fill registers inserted into
-   * it.
-   */
-  protected OPT_BasicBlock preFillBlock;
-
   /**
    * Get the block which is currently having instructions inserted
    * into it
@@ -421,7 +534,12 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
   public void appendInstructionToCurrentBlock(OPT_Instruction i) {
     if(i.bcIndex == UNKNOWN_BCI) {
       i.position = gc.inlineSequence;
-      i.bcIndex = (currentPC >> 2) & 0xFFFF;
+      // we only have 16bits to distinguish instructions (the bcIndex
+      // is effective 16bit when stored in the machine code map),
+      // Intel can't distinguish branches within 16bytes, so neither
+      // can we, the top bit is saved for distinguished addresses we
+      // need to know to dynamically link things
+      i.bcIndex = (currentPC >> 4) & 0x7FFF;
     }
     currentBlock.appendInstruction(i);
   }
@@ -447,69 +565,14 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
     spillAllRegisters();
   }
 
+  /**
+   * Get the generation context.
+   */
+  public OPT_GenerationContext getGenerationContext() {
+    return gc;
+  }
+
   // -oO Laziness Oo-
-
-  /** 
-   * Map to locate HIR basic blocks to re-use translation within a
-   * trace
-   */
-  protected HashMap blockMap;
-
-  /**
-   * List of unresolved Goto instructions
-   */
-  protected ArrayList unresolvedGoto;
-  /**
-   * List of where unresolved Goto instructions are trying to go
-   */
-  protected ArrayList unresolvedGoto_PC;
-  /**
-   * List of what the unresolved Goto instruction's target laziness should be
-   */
-  protected ArrayList unresolvedGoto_Laziness;
-
-  /**
-   * List of unresolved IfCmp instructions
-   */
-  protected ArrayList unresolvedIfCmp;
-  /**
-   * List of where unresolved IfCmp instructions are trying to go
-   */
-  protected ArrayList unresolvedIfCmp_PC;
-  /**
-   * List of what the unresolved IfCmp instruction's target laziness should be
-   */
-  protected ArrayList unresolvedIfCmp_Laziness;
-
-  /**
-   * List of unresolved LookupSwitch instructions used for branching to the link register
-   */
-  protected ArrayList unresolvedLookupSwitchForReturns;
-  /**
-   * List of where unresolved Goto instructions are trying to go
-   */
-  protected ArrayList unresolvedLookupSwitchForReturns_PC;
-  /**
-   * List of what the unresolved Goto instruction's target laziness should be
-   */
-  protected ArrayList unresolvedLookupSwitchForReturns_Laziness;
-
-  /**
-   * List of unresolved LookupSwitch instructions used for branching to the count register
-   */
-  protected ArrayList unresolvedLookupSwitchForSwitches;
-  /**
-   * List of where unresolved LookupSwitch instructions are branching from
-   */
-  protected ArrayList unresolvedLookupSwitchForSwitches_PC;
-  /**
-   * List of what the unresolved LookupSwitch instruction's target laziness should be
-   */
-  protected ArrayList unresolvedLookupSwitchForSwitches_Laziness;
-  /**
-   * List of whether the unresolved LookupSwitch instruction's was a call
-   */
-  protected ArrayList unresolvedLookupSwitchForSwitches_WasCall;
 
   /**
    * Create the initial object for capturing lazy information
@@ -538,7 +601,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
    * @return basic block or null if no translation exists
    */
   public OPT_BasicBlock findMapping(int pc, Laziness lazy) {
-    return (OPT_BasicBlock)blockMap.get(lazy.makeKey(pc));
+    return blockMap.get(lazy.makeKey(pc));
   }
 
   /**
@@ -549,7 +612,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
    */
   public void registerIfCmpTargetUnresolved(OPT_Instruction ifcmp_instr, int targetPC, Laziness targetLaziness){
     unresolvedIfCmp.add(ifcmp_instr);
-    unresolvedIfCmp_PC.add(new Integer(targetPC));
+    unresolvedIfCmp_PC.add(targetPC);
     unresolvedIfCmp_Laziness.add(targetLaziness);
   }
 
@@ -596,7 +659,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
    */
   public void registerGotoTargetUnresolved(OPT_Instruction goto_instr, int targetPC, Laziness targetLaziness){
     unresolvedGoto.add(goto_instr);
-    unresolvedGoto_PC.add(new Integer(targetPC));
+    unresolvedGoto_PC.add(targetPC);
     unresolvedGoto_Laziness.add(targetLaziness);
   }
 
@@ -662,7 +725,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
    */
   public void registerLookupSwitchForReturnUnresolved(OPT_Instruction lookupswitch_instr, int pc, Laziness targetLaziness){
     unresolvedLookupSwitchForReturns.add(lookupswitch_instr);
-    unresolvedLookupSwitchForReturns_PC.add(new Integer(pc));
+    unresolvedLookupSwitchForReturns_PC.add(pc);
     unresolvedLookupSwitchForReturns_Laziness.add(targetLaziness);
   }
   /**
@@ -769,9 +832,9 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
    */
   public void registerLookupSwitchForSwitchUnresolved(OPT_Instruction lookupswitch_instr, int pc, Laziness targetLaziness, boolean link){
     unresolvedLookupSwitchForSwitches.add(lookupswitch_instr);
-    unresolvedLookupSwitchForSwitches_PC.add(new Integer(pc));
+    unresolvedLookupSwitchForSwitches_PC.add(pc);
     unresolvedLookupSwitchForSwitches_Laziness.add(targetLaziness);
-    unresolvedLookupSwitchForSwitches_WasCall.add(Boolean.valueOf(link));
+    unresolvedLookupSwitchForSwitches_WasCall.add(link);
   }
   /**
    * Are all LookupSwitch instructions for branches to CTR ready to be
@@ -1024,25 +1087,19 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
 
     // Plant call
     OPT_Instruction s = Call.create(CALL, null, null, null, null, 1);
-    VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                            VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                            );
-    VM_MethodReference methRef = (VM_MethodReference)VM_MemberReference.findOrCreate(psTref,
-                                                                                     VM_Atom.findOrCreateAsciiAtom("doSysCall"),
-                                                                                     VM_Atom.findOrCreateAsciiAtom("()V"));
-    VM_Method method = methRef.resolveInvokeSpecial();
 
     // VM_CompiledMethod cm = method.getCurrentCompiledMethod();
     // OPT_MethodOperand methOp = OPT_MethodOperand.COMPILED(method, cm.getOsrJTOCoffset());
-    OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(methRef, method);
+    OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(sysCallMethod.getMemberRef().asMethodReference(),
+							 sysCallMethod);
 
     OPT_Operand psRef = gc.makeLocal(1,psTref); 
     Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer for doSysCall
     Call.setGuard(s, new OPT_TrueGuardOperand());
     Call.setMethod(s, methOp);
-    Call.setAddress(s, new OPT_AddressConstantOperand(methRef.peekResolvedMethod().getOffset()));
+    Call.setAddress(s, new OPT_AddressConstantOperand(sysCallMethod.getOffset()));
     s.position = gc.inlineSequence;
-    s.bcIndex = 7;
+    s.bcIndex = DBT_Trace.DO_SYSCALL;
     appendInstructionToCurrentBlock(s);
 
     // Fill all registers again following system call
@@ -1065,52 +1122,40 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
       resolveLaziness(lazy);
       spillAllRegisters();
 
-      VM_TypeReference eTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                             VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/generic/os/fault/BadInstructionException;")
-                                                             );           
-      VM_Class badInstrKlass = (VM_Class)eTref.peekResolvedType();
       OPT_Operator newOperator;
-      OPT_TypeOperand typeOperand;
+      OPT_TypeOperand typeOperand = new OPT_TypeOperand(badInstrKlass);
+      VM_TypeReference eTref = badInstrKlass.getTypeRef();
 
-      if ((badInstrKlass != null) && (badInstrKlass.isInitialized() || badInstrKlass.isInBootImage())) {
+      if (badInstrKlass.isInitialized() || badInstrKlass.isInBootImage()) {
         newOperator = NEW;
-        typeOperand = new OPT_TypeOperand(badInstrKlass);
-      }
-      else {
+      } else {
         newOperator = NEW_UNRESOLVED;
-        typeOperand = new OPT_TypeOperand(eTref);
       }
 
       OPT_RegisterOperand eRef = gc.temps.makeTemp(eTref);
 
       OPT_Instruction n = New.create(newOperator,eRef, typeOperand);
       n.position = gc.inlineSequence;
-      n.bcIndex = 0;
-
-      VM_MemberReference methRef = VM_MemberReference.findOrCreate(eTref, VM_Atom.findOrCreateAsciiAtom("<init>"),
-                                                                   VM_Atom.findOrCreateAsciiAtom("(ILorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;)V"));
-      VM_Method method = ((VM_MethodReference)methRef).resolveInvokeSpecial();
-      OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL((VM_MethodReference)methRef, method);
-      VM_TypeReference psTref = VM_TypeReference.findOrCreate(VM_BootstrapClassLoader.getBootstrapClassLoader(),
-                                                              VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/ppc/os/process/PPC_ProcessSpace;")
-                                                              );
+      n.bcIndex = DBT_Trace.BAD_INSTRUCTION_NEW;
 
       OPT_Operand psRef = gc.makeLocal(1,psTref);
 
       OPT_Instruction c = Call.create(CALL, null, null, null, null, 3);
 
+      OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(badInstrKlassInitMethod.getMemberRef().asMethodReference(),
+							   badInstrKlassInitMethod);
       Call.setParam(c, 0, eRef.copy()); // 'this' pointer in BadInstructionException.init
       Call.setParam(c, 1, new OPT_IntConstantOperand(pc));
       Call.setParam(c, 2, psRef);
       Call.setGuard(c, new OPT_TrueGuardOperand());
       Call.setMethod(c, methOp);
-      Call.setAddress(c, new OPT_AddressConstantOperand(((VM_MethodReference)methRef).peekResolvedMethod().getOffset()));
+      Call.setAddress(c, new OPT_AddressConstantOperand(badInstrKlassInitMethod.getOffset()));
       c.position = gc.inlineSequence;
-      c.bcIndex = 21;
+      c.bcIndex = DBT_Trace.BAD_INSTRUCTION_INIT;
 
       OPT_Instruction t = Athrow.create(ATHROW, eRef.copyRO());
       t.position = gc.inlineSequence;
-      t.bcIndex = 0;
+      t.bcIndex = DBT_Trace.BAD_INSTRUCTION_THROW;
 
       appendInstructionToCurrentBlock(n);
 
@@ -1121,6 +1166,35 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
       setReturnValueResolveLazinessAndBranchToFinish(lazy, new OPT_IntConstantOperand(0xEBADC0DE));    
     }
   }
+
+    // -oO Trace helping methods Oo-
+
+    /**
+     * Plant a record uncaught branch call. NB register state won't get resolved for call
+     * @param pc the address of the branch instruction
+     * @param destination the register operand holding the destination
+     * @param code a code that can be a hint of the branch type
+     */
+    public void plantRecordUncaughtBranch(int pc, OPT_RegisterOperand destination, int code) {
+        // Is it sensible to record this information?
+        if((gc.options.getOptLevel() > 0) && (DBT_Options.plantUncaughtBranchWatcher)) {
+            // Plant call
+            OPT_Instruction s = Call.create(CALL, null, null, null, null, 4);
+            OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(recordUncaughtBranchMethod.getMemberRef().asMethodReference(),
+								 recordUncaughtBranchMethod);
+            OPT_Operand psRef = gc.makeLocal(1,psTref); 
+            Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer
+            Call.setParam(s, 1, new OPT_IntConstantOperand(pc)); // Address of branch instruction
+            Call.setParam(s, 2, destination);    // Destination of branch value
+            Call.setParam(s, 3, new OPT_IntConstantOperand(code)); // Branch code value
+            Call.setGuard(s, new OPT_TrueGuardOperand());
+            Call.setMethod(s, methOp);
+            Call.setAddress(s, new OPT_AddressConstantOperand(recordUncaughtBranchMethod.getOffset()));
+            s.position = gc.inlineSequence;
+            s.bcIndex = DBT_Trace.RECORD_BRANCH;
+            appendInstructionToCurrentBlock(s);
+        }
+    }
 
   // -oO Temporaries used during translation Oo-
 
@@ -1274,8 +1348,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
   /**
    * Get the method
    */
-  public VM_Method getMethod() {
-    return gc.method;
+  public DBT_Trace getMethod() {
+      return (DBT_Trace)gc.method;
   }
   /**
    * Make a temporary register

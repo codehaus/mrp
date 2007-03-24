@@ -33,7 +33,7 @@ final public class IntAddressedReversedMemory extends IntAddressedPreSwappedMemo
    * Constructor
    */
   public IntAddressedReversedMemory() {
-    super("org/binarytranslator/IntAddressedReversedMemory");
+    super(IntAddressedReversedMemory.class);
   }
   /**
    * Return the offset part of the address

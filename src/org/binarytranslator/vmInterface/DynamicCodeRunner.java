@@ -67,38 +67,11 @@ public class DynamicCodeRunner {
 @Uninterruptible
 class DummyDynamicCodeRunner {
   /**
-   * Offset of ps.doSysCall bytecode
-   */
-  public static final int ps_doSysCall_offset = 7;
-  /**
-   * Offset of ps.recordBranch bytecode
-   */
-  public static final int ps_recordBranch_offset = 13;
-
-  /** Don't won't the FALSE to be executed, but don't want the code to
-   * be eliminated either */
-  static boolean FALSE = false;
-  /**
    * The method replaced by a trace
    */
   @NoInline
   public static int invokeCode (VM_CodeArray code, ProcessSpace ps) throws BadInstructionException
   {
-    // Fake out calls to PPC_ProcessSpace to forge some bytecode
-    // locations
-    if(FALSE) {
-      ps.doSysCall();                      // bytecode number -- 7
-      ps.recordBranch(0,0);                // bytecode number -- 13
-      new BadInstructionException(0,null); // bytecode number -- 16 (new) 21 (init)
-      ps.memory.store8(0,0);               // bytecode number -- 30
-      ps.memory.store16(0,0);              // bytecode number -- 39
-      ps.memory.store32(0,0);              // bytecode number -- 48
-      ps.memory.loadSigned8(0);            // bytecode number -- 56
-      ps.memory.loadUnsigned8(0);          // bytecode number -- 65
-      ps.memory.loadSigned16(0);           // bytecode number -- 74
-      ps.memory.loadUnsigned16(0);         // bytecode number -- 83
-      ps.memory.load32(0);                 // bytecode number -- 92
-    }
     throw new Error("This should never be executed");
   }
 }

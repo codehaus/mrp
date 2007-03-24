@@ -54,14 +54,9 @@ public class DBT_Options {
   public final static boolean optimizeBackwardBranches = true;
 
   /**
-   * Set this to true to record uncaught bclr instructions
+   * Set this to true to record uncaught branch instructions
    */
-  public static boolean plantUncaughtBclrWatcher = false;
-
-  /**
-   * Set this to true to record uncaught bcctr instructions
-   */
-  public static boolean plantUncaughtBcctrWatcher = true;
+  public static boolean plantUncaughtBranchWatcher = false;
 
   /**
    * Should all branches (excluding to lr and ctr) be resolved in one

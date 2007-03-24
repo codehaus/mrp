@@ -9,6 +9,7 @@
 package org.binarytranslator.generic.memory;
 
 import org.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.classloader.VM_MethodReference;
 import org.binarytranslator.vmInterface.TranslationHelper;
 import java.io.RandomAccessFile;
 
@@ -182,4 +183,11 @@ public abstract class Memory {
    * @param addr the address of the value to store
    */
   public abstract void translateStore32(OPT_RegisterOperand addr, OPT_RegisterOperand src);
+  /**
+   * Get method reference if linking a call
+   * @param callAddress the address associated with this call
+   */
+  public VM_MethodReference getMethodRef(int callAddress) {
+      throw new Error("Error linking method at " + callAddress + " for memory model " + this.getClass());
+  }
 }

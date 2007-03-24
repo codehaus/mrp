@@ -14,6 +14,32 @@ import org.binarytranslator.generic.decoder.Laziness;
  * Capture lazy information for X86
  */
 public class X86_Laziness extends Laziness {
+    /**
+     * Key for when laziness is stored in a hash table along with a PC
+     */
+    static class X86_LazinessKey extends Key {
+	private final int mangledRegisterState;
+	private final int pc;
+	X86_LazinessKey(int mangledRegisterState, int pc) {
+	    this.mangledRegisterState = mangledRegisterState;
+	    this.pc = pc;
+	}
+	public boolean equals(Object o) {
+	    if (o instanceof X86_LazinessKey) {
+		X86_LazinessKey other = (X86_LazinessKey)o;
+		return (other.pc == pc) && (other.mangledRegisterState == mangledRegisterState);
+	    } else {
+		return false;
+	    }
+	}
+	public int hashCode() {
+	    return mangledRegisterState ^ pc;
+	}
+	public String toString() {
+	    return "0x" + Integer.toHexString(pc) + ".0x" + Integer.toHexString(mangledRegisterState);
+	}
+    }
+
   /**
    * In this state, is the 32bit register valid? (default)
    */
@@ -69,8 +95,8 @@ public class X86_Laziness extends Laziness {
    * Given the current program position make a key object that will
    * allow 
    */
-  public Object makeKey(int pc) {
-    return new Long(((long)mangledRegisterState << 32) | pc);
+  public Key makeKey(int pc) {
+      return new X86_LazinessKey(mangledRegisterState, pc);
   }
 
   /**

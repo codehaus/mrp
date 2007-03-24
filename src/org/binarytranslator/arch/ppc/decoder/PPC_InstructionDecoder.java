@@ -13,6 +13,7 @@ import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.decoder.InstructionDecoder;
+import org.binarytranslator.generic.branch.BranchLogic;
 
 import org.jikesrvm.opt.ir.*;
 import org.jikesrvm.*;
@@ -3338,7 +3339,7 @@ final class bclr_decoder extends PPC_InstructionDecoder {
 	ppc2ir.appendInstructionToCurrentBlock(lookupswitch_instr);
 	ppc2ir.registerLookupSwitchForReturnUnresolved(lookupswitch_instr, pc, (PPC_Laziness)lazy.clone());
 	ppc2ir.setCurrentBlock(fallThrough);
-	ppc2ir.plantRecordUncaughtBclr(pc, branchAddress.copyRO());
+	ppc2ir.plantRecordUncaughtBranch(pc, branchAddress.copyRO(), BranchLogic.RETURN);
 	ppc2ir.setReturnValueResolveLazinessAndBranchToFinish((PPC_Laziness)lazy.clone(), branchAddress.copyRO());
 
 	// stop translation on branch always
@@ -3981,7 +3982,7 @@ final class bcctr_decoder extends PPC_InstructionDecoder {
 	ppc2ir.appendInstructionToCurrentBlock(lookupswitch_instr);
 	ppc2ir.registerLookupSwitchForSwitchUnresolved(lookupswitch_instr, pc, (PPC_Laziness)lazy.clone(), lk != 0);
 	ppc2ir.setCurrentBlock(fallThrough);
-	ppc2ir.plantRecordUncaughtBcctr(pc, branchAddress.copyRO());
+	ppc2ir.plantRecordUncaughtBranch(pc, branchAddress.copyRO(), BranchLogic.INDIRECT_BRANCH);
 	ppc2ir.setReturnValueResolveLazinessAndBranchToFinish((PPC_Laziness)lazy.clone(), branchAddress.copyRO());
 
 	// stop translation on branch always

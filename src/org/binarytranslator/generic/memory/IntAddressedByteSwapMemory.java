@@ -31,7 +31,7 @@ final public class IntAddressedByteSwapMemory extends IntAddressedMemory {
 	* Constructor - used when this is the instatiated class
 	*/
   public IntAddressedByteSwapMemory() {
-	 super("org/binarytranslator/IntAddressedByteSwapMemory");
+    super(IntAddressedByteSwapMemory.class);
   }
   /**
 	* Perform a 16bit load where the sign extended result fills the

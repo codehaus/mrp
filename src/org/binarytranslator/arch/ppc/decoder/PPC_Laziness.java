@@ -17,6 +17,25 @@ import org.binarytranslator.generic.decoder.Laziness;
  */
 public final class PPC_Laziness extends Laziness {
     /**
+     * Key for when laziness is stored in a hash table along with a PC
+     */
+    class PPC_LazinessKey extends Key {
+	int pc;
+	public int hashCode() {
+	    return pc;
+	}
+	public boolean equals(Object o) {
+	    return ((o instanceof PPC_LazinessKey) && ((PPC_LazinessKey)o).pc == pc);
+	}
+	PPC_LazinessKey (int pc) {
+	    this.pc = pc;
+	}
+	public String toString() {
+	    return "0x" + Integer.toHexString(pc);
+	}
+    }
+
+    /**
      * Default constructor - nothing is lazy
      */
     PPC_Laziness() {
@@ -39,23 +58,8 @@ public final class PPC_Laziness extends Laziness {
      * Generate a key value encoding this laziness and a PC value
      * @parm pc the PC value we're trying to make a key for
      */
-    public Object makeKey(int pc) {
-        class Key {
-            int pc;
-            public int hashCode() {
-                return pc;
-            }
-            public boolean equals(Object o) {
-                return ((o instanceof Key) && ((Key)o).pc == pc);
-            }
-            Key (int pc) {
-                this.pc = pc;
-            }
-            public String toString() {
-                return "0x" + Integer.toHexString(pc);
-            }
-        }
-        return new Key(pc);
+    public Key makeKey(int pc) {
+        return new PPC_LazinessKey(pc);
     }
 
     /**

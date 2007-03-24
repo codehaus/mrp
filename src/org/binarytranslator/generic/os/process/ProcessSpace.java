@@ -41,12 +41,12 @@ public abstract class ProcessSpace {
   /**
 	* A record of branches to guide translation
 	*/
-  public BranchLogic branchInfo;
+  public final BranchLogic branchInfo;
 
   /**
 	* A hashtable containing translated traces of code
 	*/
-  protected Hashtable codeHash = new Hashtable();
+  protected final Hashtable codeHash = new Hashtable();
 
   /**
 	* Has a system call been called to terminate the process
@@ -285,12 +285,12 @@ public abstract class ProcessSpace {
 	*/
   public synchronized void replaceCompiledTrace(VM_CompiledMethod cm, DBT_Trace trace) {
 	 VM_CodeArray code = cm.getEntryCodeArray();
-	 codeHash.put(new Integer(trace.pc), code);
+	 codeHash.put(trace.pc, code);
   }
 
 
   public synchronized VM_CodeArray getCodeForPC(int pc) {
-	 VM_CodeArray code = (VM_CodeArray)codeHash.get(new Integer(pc));
+	 VM_CodeArray code = (VM_CodeArray)codeHash.get(pc);
 	 if(code == null) {
 		code = translateCode(new DBT_Trace(this, pc));
 	 }
@@ -310,8 +310,8 @@ public abstract class ProcessSpace {
   /**
    * Record a branch instruction
    */
-  public void recordBranch(int location, int destination) {
-	 branchInfo.registerBranch(location, destination);
+    public void recordUncaughtBranch(int location, int destination, int code) {
+	branchInfo.registerBranch(location, destination, code);
   }
 
   /**

@@ -20,6 +20,12 @@ package org.binarytranslator.generic.decoder;
  * elimination will suffice.
  */
 public abstract class Laziness {
+    /**
+     * A Key class used when making a key from the laziness and PC
+     * value combined
+     */
+    public static class Key {}
+
   /**
    * Constructor
    */
@@ -35,7 +41,7 @@ public abstract class Laziness {
    * Given the current program position make a key object that will
    * allow 
    */
-  public abstract Object makeKey(int pc);
+  public abstract Key makeKey(int pc);
 
   /**
    * Create a copy of this lazy state - usually to record where one

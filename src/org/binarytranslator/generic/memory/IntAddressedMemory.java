@@ -58,17 +58,17 @@ public class IntAddressedMemory extends CallBasedMemory {
 	* Constructor - used when this is the instatiated class
 	*/
   public IntAddressedMemory() {
-	 super("org/binarytranslator/IntAddressedMemory");
+	 super(IntAddressedMemory.class);
 	 readableMemory = new int[NUM_PAGES][];
 	 writableMemory = new int[NUM_PAGES][];
 	 executableMemory = new int[NUM_PAGES][];
   }
   /**
 	* Constructor - used when deriving a class
-	* @param className the name of the over-riding class
+	* @param classType the type of the over-riding class
 	*/
-  protected IntAddressedMemory(String className) {
-	 super(className);
+  protected IntAddressedMemory(Class classType) {
+	 super(classType);
 	 readableMemory = new int[NUM_PAGES][];
 	 writableMemory = new int[NUM_PAGES][];
 	 executableMemory = new int[NUM_PAGES][];

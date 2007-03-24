@@ -22,15 +22,21 @@ import java.util.Iterator;
  * terminating on branches whose destinations aren't known
  */
 public class BranchLogic {
+  /** Code to indicate branch was an indirect branch */
+  public static final int INDIRECT_BRANCH=0;
+
+  /** Code to indicate branch was a return */
+  public static final int RETURN=1;
+
   /**
    * A set of procedure information
    */
-  private SortedMap procedures;
+  private final SortedMap procedures;
 
   /**
    * A set of switch like branchs sites and their destinations
    */
-  private SortedMap branchSitesAndDestinations;
+  private final SortedMap branchSitesAndDestinations;
 
   /**
    * Global branch information
@@ -61,13 +67,13 @@ public class BranchLogic {
    * @param dest the destination of the branch instruction
    */
   public void registerCall(int pc, int ret, int dest) {
-    ProcedureInformation procedure = (ProcedureInformation)procedures.get(new Integer(dest));
+    ProcedureInformation procedure = (ProcedureInformation)procedures.get(Integer.valueOf(dest));
     if (procedure != null) {
       procedure.registerCall(pc, ret);
     }
     else {
       procedure = new ProcedureInformation(pc, ret, dest);
-      procedures.put(new Integer(dest), procedure);
+      procedures.put(Integer.valueOf(dest), procedure);
     }
   }
 
@@ -90,7 +96,7 @@ public class BranchLogic {
    */
   private ProcedureInformation getLikelyProcedure(int pc) {
     if (procedures.size() > 0) {
-      SortedMap priorProcedures = procedures.headMap(new Integer(pc));
+      SortedMap priorProcedures = procedures.headMap(Integer.valueOf(pc));
       if (priorProcedures.size() > 0) {
         Integer procedureEntry = (Integer)priorProcedures.lastKey();
         return (ProcedureInformation)procedures.get(procedureEntry);
@@ -104,19 +110,19 @@ public class BranchLogic {
    * @param pc the address of the branch instruction
    * @param lr the value of the link register
    */
-  public void registerBranch(int pc, int ctr) {
-    Set dests = (Set)branchSitesAndDestinations.get(new Integer(pc));
+    public void registerBranch(int pc, int ctr, int type) {
+    Set dests = (Set)branchSitesAndDestinations.get(Integer.valueOf(pc));
     if (dests != null) {
-      if (dests.contains(new Integer(ctr))) {
+      if (dests.contains(Integer.valueOf(ctr))) {
         // This ctr address is already registered
         return;
       }
     }
     else {
       dests = new HashSet();
-      branchSitesAndDestinations.put(new Integer(pc), dests);
+      branchSitesAndDestinations.put(Integer.valueOf(pc), dests);
     }
-    dests.add(new Integer(ctr));
+    dests.add(Integer.valueOf(ctr));
   }
 
 }

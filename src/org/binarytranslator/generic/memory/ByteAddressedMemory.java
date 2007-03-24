@@ -63,17 +63,17 @@ public class ByteAddressedMemory extends CallBasedMemory {
 	* Constructor - used when this is the instatiated class
 	*/
   public ByteAddressedMemory() {
-	 super("org/binarytranslator/generic/memory/ByteAddressedMemory");
+    super(ByteAddressedMemory.class);
 	 readableMemory = new byte[NUM_PAGES][];
 	 writableMemory = new byte[NUM_PAGES][];
 	 executableMemory = new byte[NUM_PAGES][];
   }
   /**
 	* Constructor - used when deriving a class
-	* @param className the name of the over-riding class
+	* @param classType the name of the over-riding class
 	*/
-  protected ByteAddressedMemory(String className) {
-	 super(className);
+  protected ByteAddressedMemory(Class classType) {
+	 super(classType);
 	 readableMemory = new byte[NUM_PAGES][];
 	 writableMemory = new byte[NUM_PAGES][];
 	 executableMemory = new byte[NUM_PAGES][];

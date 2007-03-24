@@ -54,13 +54,13 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
 	* Constructor
 	*/
   public IntAddressedPreSwappedMemory() {
-	 super("org/binarytranslator/IntAddressedPreSwappedMemory");
+      super(IntAddressedPreSwappedMemory.class);
   }
   /**
 	* Constructor
 	*/
-  protected IntAddressedPreSwappedMemory(String className) {
-	 super(className);
+  protected IntAddressedPreSwappedMemory(Class classType) {
+	 super(classType);
   }
   /**
 	* Read an int from RandomAccessFile ensuring that a byte swap is performed
