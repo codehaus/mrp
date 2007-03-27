@@ -1,6 +1,6 @@
 Index: build.xml
 ===================================================================
---- build.xml	(revision 11878)
+--- build.xml	(revision 11903)
 +++ build.xml	(working copy)
 @@ -792,7 +792,7 @@
      </condition>
@@ -11,6 +11,17 @@ Index: build.xml
       here. We will also be able to compile ALL classes in one sweep.
      -->
      <delete dir="${build.classes}"/>
+@@ -802,8 +802,8 @@
+            debugLevel="lines,source"
+            source="1.5"
+            target="1.5"
+-           srcdir="${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}"
+-           sourcepath="${mmtk.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:${generated.java}:${main.java}:${mmtk-rvm.java}">
++           srcdir="projects/dbt/ext:${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}"
++           sourcepath="${mmtk.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:${generated.java}:projects/dbt/ext:${main.java}:${mmtk-rvm.java}">
+       <bootclasspath>
+         <pathelement location="${classpath.lib.dir}/classpath.jar"/>
+       </bootclasspath>
 @@ -862,7 +862,7 @@
      </javac>
    </target>
@@ -43,7 +54,7 @@ Index: build.xml
    <!-- *                Section for building the boot image                       * -->
 Index: rvm/src-generated/opt-ir/InstructionFormatList.dat
 ===================================================================
---- rvm/src-generated/opt-ir/InstructionFormatList.dat	(revision 11878)
+--- rvm/src-generated/opt-ir/InstructionFormatList.dat	(revision 11903)
 +++ rvm/src-generated/opt-ir/InstructionFormatList.dat	(working copy)
 @@ -149,6 +149,14 @@
  "U Cond OPT_ConditionOperand" "U BranchProfile OPT_BranchProfileOperand"
@@ -62,7 +73,7 @@ Index: rvm/src-generated/opt-ir/InstructionFormatList.dat
  "D Result OPT_RegisterOperand" "U Val1 OPT_Operand" "U Val2 OPT_Operand" \
 Index: rvm/src-generated/opt-ir/OperatorList.dat
 ===================================================================
---- rvm/src-generated/opt-ir/OperatorList.dat	(revision 11878)
+--- rvm/src-generated/opt-ir/OperatorList.dat	(revision 11903)
 +++ rvm/src-generated/opt-ir/OperatorList.dat	(working copy)
 @@ -1255,6 +1255,20 @@
  
@@ -85,9 +96,74 @@ Index: rvm/src-generated/opt-ir/OperatorList.dat
  # Load a singed byte
  # NOTE: Because of our strategy of using explict guard instructions, there is no
  # way in the HIR/LIR that the actual load instruction can except.
+Index: rvm/src/org/jikesrvm/opt/VM_OptCompiledMethod.java
+===================================================================
+--- rvm/src/org/jikesrvm/opt/VM_OptCompiledMethod.java	(revision 11903)
++++ rvm/src/org/jikesrvm/opt/VM_OptCompiledMethod.java	(working copy)
+@@ -90,7 +90,7 @@
+     int bci = _mcMap.getBytecodeIndexForMCOffset(instructionOffset);
+     VM_NormalMethod realMethod = _mcMap.getMethodForMCOffset(instructionOffset);
+     if (bci == -1 || realMethod == null)
+-      VM.sysFail( "Mapping to source code location not available at Dynamic Linking point\n");
++	VM.sysFail( "Mapping to source code location not available at Dynamic Linking point\n" + bci + " " + realMethod + " " + instructionOffset.toInt());
+     realMethod.getDynamicLink(dynamicLink, bci);
+   }
+ 
+Index: rvm/src/org/jikesrvm/opt/VM_OptLinker.java
+===================================================================
+--- rvm/src/org/jikesrvm/opt/VM_OptLinker.java	(revision 11903)
++++ rvm/src/org/jikesrvm/opt/VM_OptLinker.java	(working copy)
+@@ -41,7 +41,7 @@
+     int bci = map.getBytecodeIndexForMCOffset(offset);
+     VM_NormalMethod realMethod = map.getMethodForMCOffset(offset);
+     if (bci == -1 || realMethod == null)
+-      VM.sysFail("Mapping to source code location not available at Dynamic Linking point\n");
++      VM.sysFail( "Mapping to source code location not available at Dynamic Linking point\n" + bci + " " + realMethod);
+     VM_BytecodeStream bcodes = realMethod.getBytecodes();
+     bcodes.reset(bci);
+     int opcode = bcodes.nextInstruction();
+Index: rvm/src/org/jikesrvm/opt/ir/OPT_CallSiteTreeNode.java
+===================================================================
+--- rvm/src/org/jikesrvm/opt/ir/OPT_CallSiteTreeNode.java	(revision 11903)
++++ rvm/src/org/jikesrvm/opt/ir/OPT_CallSiteTreeNode.java	(working copy)
+@@ -29,11 +29,11 @@
+   /**
+    * The call site represented by this tree node
+    */
+-  public OPT_InlineSequence callSite;
++  public final OPT_InlineSequence callSite;
+ 
+   /**
+    * The position of this call site in the binary encoding.  It is set
+-   * when by VM_OptEncodedCallSiteTree.getEncoding.
++   * by VM_OptEncodedCallSiteTree.getEncoding.
+    *
+    * @see VM_OptEncodedCallSiteTree#getEncoding
+    */
+Index: rvm/src/org/jikesrvm/VM_RuntimeCompiler.java
+===================================================================
+--- rvm/src/org/jikesrvm/VM_RuntimeCompiler.java	(revision 11903)
++++ rvm/src/org/jikesrvm/VM_RuntimeCompiler.java	(working copy)
+@@ -94,7 +94,7 @@
+ 
+   // Cache objects needed to cons up compilation plans
+   // TODO: cutting link to opt compiler by declaring type as object.
+-  public static Object /* OPT_Options */ options;
++  public static final Object /* OPT_Options */ options = VM.BuildForAdaptiveSystem ? new OPT_Options() : null;
+   public static Object /* OPT_OptimizationPlanElement[] */ optimizationPlan;
+ 
+   /**
+@@ -567,7 +567,6 @@
+       VM_Callbacks.addExitMonitor(new VM_RuntimeCompiler());
+     }
+     if (VM.BuildForAdaptiveSystem) {
+-      options = new OPT_Options();
+       optimizationPlan = OPT_OptimizationPlanner.createOptimizationPlan((OPT_Options)options);
+       if (VM.MeasureCompilation) {
+         OPT_OptimizationPlanner.initializeMeasureCompilation();
 Index: rvm/src/OptDummy.java
 ===================================================================
---- rvm/src/OptDummy.java	(revision 11878)
+--- rvm/src/OptDummy.java	(revision 11903)
 +++ rvm/src/OptDummy.java	(working copy)
 @@ -20,4 +20,5 @@
    static org.jikesrvm.opt.OPT_Compiler a;
