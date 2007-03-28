@@ -172,6 +172,11 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
   protected int currentPC;
 
   /**
+   * The pc value of the first instruction in the trace
+   */
+  protected int startingPC;
+
+  /**
    * The OPT_BasicBlock which will contain the next translated instruction
    */
   protected OPT_BasicBlock nextBlock;
@@ -269,7 +274,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
     gc = context;
     ps = ((DBT_Trace)(gc.method)).ps;
     currentPC = ((DBT_Trace)(gc.method)).pc;
-
+    startingPC = currentPC;
+ 
     // Number of translated instructions
     numberOfInstructions = 0;
 
@@ -539,7 +545,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
       // Intel can't distinguish branches within 16bytes, so neither
       // can we, the top bit is saved for distinguished addresses we
       // need to know to dynamically link things
-      i.bcIndex = (currentPC >> 4) & 0x7FFF;
+      i.bcIndex = ((currentPC-startingPC) >> 4) & 0x7FFF;
     }
     currentBlock.appendInstruction(i);
   }
@@ -549,7 +555,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators, Tran
    * @param likely does this branch have a likely hint
    */
   public OPT_BranchProfileOperand getConditionalBranchProfileOperand(boolean likely) {
-    return gc.getConditionalBranchProfileOperand((currentPC >> 2) & 0xFFFF, likely);
+    return gc.getConditionalBranchProfileOperand(((currentPC-startingPC) >> 4) & 0x7FFF, likely);
   }
 
 

@@ -9,7 +9,7 @@
 package org.binarytranslator.vmInterface;
 import org.jikesrvm.VM;
 import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
-import org.jikesrvm.VM_Magic;
+import org.jikesrvm.runtime.VM_Magic;
 import org.vmmagic.pragma.DynamicBridge;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.pragma.NoInline;

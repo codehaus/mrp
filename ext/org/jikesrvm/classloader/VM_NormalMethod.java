@@ -13,6 +13,7 @@ import org.vmmagic.pragma.*;
 import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 import org.jikesrvm.opt.ir.OPT_BC2IR;
 import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.runtime.VM_DynamicLink;
 
 /**
  * A method of a java class that has bytecodes.

@@ -10,6 +10,8 @@ package org.jikesrvm.opt.ir;
 
 import org.jikesrvm.*;
 import org.jikesrvm.ArchitectureSpecific.OPT_RegisterPool;
+import org.jikesrvm.runtime.VM_Entrypoints;
+import org.jikesrvm.runtime.VM_Statics;
 import org.jikesrvm.classloader.*;
 import org.jikesrvm.opt.*;
 import org.vmmagic.unboxed.Offset;

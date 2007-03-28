@@ -18,7 +18,8 @@ import org.jikesrvm.osr.*;
 import org.jikesrvm.ArchitectureSpecific.OPT_RegisterPool;
 import org.jikesrvm.adaptive.*;
 import java.util.ArrayList;
-
+import org.jikesrvm.runtime.VM_Magic;
+import org.jikesrvm.runtime.VM_Entrypoints;
 import org.vmmagic.pragma.*;
 import org.vmmagic.unboxed.*;
 
