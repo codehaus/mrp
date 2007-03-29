@@ -65,6 +65,11 @@ public abstract class Loader {
    * Is the binary for the Power PC ISA?
    */
   abstract public boolean isPPC_ISA();
+  
+  /**
+   * Is the binary for the ARM ISA?
+   */
+  abstract public boolean isARM_ISA();
 
   /**
    * Does this file support the SysV ABI?
@@ -75,6 +80,11 @@ public abstract class Loader {
    * Does this file support the Linux ABI?
    */
   abstract public boolean isLinuxABI();
+  
+  /**
+   * Does this file support the ARM ABI?
+   */
+  abstract public boolean isARM_ABI();
 
   /*
    * Static methods

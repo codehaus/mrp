@@ -192,6 +192,13 @@ public class ELF_Loader extends Loader {
   public boolean isPPC_ISA() {
     return elfHeader.isPPC_ISA();
   }
+  
+  /**
+   * Is this binary for the ARM architecture?
+   */
+  public boolean isARM_ISA() {
+    return elfHeader.isARM_ISA();
+  }
 
   /**
    * Does this file support the SysV ABI?
@@ -204,6 +211,14 @@ public class ELF_Loader extends Loader {
    */
   public boolean isLinuxABI() {
     return elfHeader.isLinuxABI();
+  }
+  
+  /**
+   * Does this file support the ARM ABI?
+   * @return
+   */
+  public boolean isARM_ABI() {
+    return elfHeader.isARM_ABI();
   }
 
   /*
@@ -341,6 +356,12 @@ public class ELF_Loader extends Loader {
        * Hewlett-Packard Non-Stop Kernel
        */
       private static final byte ELFOSABI_NSK = 14;
+      
+      /**
+       * ARM ABI, probably using the ARM AAPCS. 
+       */
+      private static final byte ELFOSABI_ARM = 97;
+      
       /**
        * Return the application binary interface (ABI) supported by this file
        */
@@ -359,6 +380,7 @@ public class ELF_Loader extends Loader {
         case ELFOSABI_OPENBSD: return "OpenBSD";
         case ELFOSABI_OPENVMS: return "OpenVMS";
         case ELFOSABI_NSK: return "Hewlett-Packard Non-Stop Kernel";
+        case ELFOSABI_ARM: return "ARM ABI";
         default:
           return "Unknown ELF ABI: " + e_ident[EI_OSABI];
         }
@@ -375,6 +397,11 @@ public class ELF_Loader extends Loader {
       boolean isLinuxABI() {
         return e_ident[EI_OSABI] == ELFOSABI_LINUX;
       }
+      
+      boolean isARM_ABI() {
+        return e_ident[EI_OSABI] == ELFOSABI_ARM;
+      }
+      
       /**
        * Location of OS ABI version data
        */
@@ -423,6 +450,13 @@ public class ELF_Loader extends Loader {
      */
     boolean isLinuxABI() {
       return identity.isLinuxABI();
+    }
+    
+    /**
+     * Does this file support the ARM ABI?
+     */
+    boolean isARM_ABI() {
+      return identity.isARM_ABI();
     }
 
     /**
@@ -534,6 +568,13 @@ public class ELF_Loader extends Loader {
      */
     boolean isPPC_ISA() {
       return e_machine == EM_PPC;
+    }
+    
+    /**
+     * Is the elf binary for an ARM architecture?
+     */
+    boolean isARM_ISA() {
+      return e_machine == EM_ARM;
     }
     
     /**

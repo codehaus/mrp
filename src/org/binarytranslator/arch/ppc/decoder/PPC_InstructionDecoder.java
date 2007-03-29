@@ -4623,6 +4623,7 @@ final class addme_decoder extends PPC_InstructionDecoder {
      * Also modifies XER[CA].
      */
     protected int translateXO_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc, int inst, int opcode, int rD, int rA, int rB, int OE, int secondaryOpcode, int Rc) {
+    	   
 	if (VM.VerifyAssertions) VM._assert(rB == 0);
 	// Get rA & rD
 	OPT_RegisterOperand reg_rA = ppc2ir.getGPRegister(rA);
