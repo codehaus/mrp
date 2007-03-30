@@ -3,6 +3,8 @@ package org.binarytranslator.arch.arm.os.process.linux;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.abi.linux.ARM_LinuxSystemCalls;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
+import org.binarytranslator.arch.arm.os.process.ARM_Registers;
+import org.binarytranslator.generic.gdbstub.GDBTarget;
 import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
@@ -16,6 +18,11 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements LinuxSyst
   private final LinuxSystemCalls sysCalls;
   
   /**
+   * A re-used iterator that allows enumerating the argument of the current system call
+   */
+  private final ARM_SyscallArgumentIterator syscallArgs;
+  
+  /**
    * The top of the stack
    */
   private static final int STACK_TOP = 0xC0000000;
@@ -27,6 +34,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements LinuxSyst
   
   public ARM_LinuxProcessSpace() {
     sysCalls = new ARM_LinuxSystemCalls(this);
+    syscallArgs = new ARM_SyscallArgumentIterator(this);
   }
 
   @Override
@@ -36,7 +44,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements LinuxSyst
 
   @Override
   public void initialise(Loader loader, int pc, int brk, String[] args) {
-    registers.setPC(pc);
+    registers.write(ARM_Registers.PC, pc);
     this.brk = brk;
    
     //initialize the stack
@@ -66,14 +74,14 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements LinuxSyst
     return brk;
   }
 
-  public int[] getSysCallArguments(int n) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
   public int getSysCallNumber() {
     // TODO Auto-generated method stub
     return 0;
+  }
+  
+  public CallArgumentIterator getSysCallArguments() {
+    syscallArgs.reset();
+    return syscallArgs;
   }
 
   public void setBrk(int address) {
@@ -86,6 +94,12 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements LinuxSyst
 
   public void setSysCallReturn(int r) {
     // TODO Auto-generated method stub
+  }
+
+  @Override
+  public GDBTarget getGDBTarget() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

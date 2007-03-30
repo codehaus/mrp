@@ -19,6 +19,7 @@ import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.fault.BadInstructionException;
+import org.binarytranslator.generic.gdbstub.GDBTarget;
 import org.binarytranslator.vmInterface.*;
 import java.util.*;
 import java.io.*;
@@ -26,7 +27,7 @@ import java.io.*;
 /** 
  * Capture the running of a PowerPC process
  */
-public abstract class PPC_ProcessSpace extends ProcessSpace
+public abstract class PPC_ProcessSpace extends ProcessSpace implements GDBTarget
 {
   /* Here's what would be in the PowerPC's registers if the binary
      were running on a real PowerPC.  For speed I am using individual

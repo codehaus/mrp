@@ -40,7 +40,7 @@ public final class GDBStub {
   /**
    * The process being debugged
    */
-  private final ProcessSpace ps;
+  private final GDBTarget target;
   /**
    * Thread to continue or step, a value of -1 means all threads, 0
    * means any thread.
@@ -93,7 +93,7 @@ public final class GDBStub {
   /**
    * Constructor
    */
-  public GDBStub(int port, ProcessSpace ps) {
+  public GDBStub(int port, GDBTarget target) {
     try {
       ServerSocket connectionSocket = new ServerSocket(port);
       socket = connectionSocket.accept();
@@ -105,7 +105,7 @@ public final class GDBStub {
       throw new Error("Error opening socket", e);
     }
     breakpoints = new int[0];
-    this.ps = ps;
+    this.target = target;
   }
 
   /**
@@ -228,14 +228,14 @@ public final class GDBStub {
     // byte command[] = {'S','0','5'}; <- a command to just say stopped by SIGTRAP
     byte command[];
     int index;
-    if (ps.hasFrameBaseRegister()) {
+    if (target.hasFrameBaseRegister()) {
       // Add base pointer to packet
       command = new byte[39];
-      int bpReg = ps.getGDBFrameBaseRegister();
+      int bpReg = target.getGDBFrameBaseRegister();
       command[3] = intToHex(bpReg >> 4);
       command[4] = intToHex(bpReg);
       command[5] = ':';
-      byte bpVal[] = ps.readRegisterGDB(bpReg);
+      byte bpVal[] = target.readRegisterGDB(bpReg);
       command[6] = intToHex(bpVal[0] >> 4);
       command[7] = intToHex(bpVal[0]);
       command[8] = intToHex(bpVal[1] >> 4);
@@ -254,11 +254,11 @@ public final class GDBStub {
     command[1] = '0';
     command[2] = '5'; // stopped by trap
     { // Add stack pointer to packet
-      int spReg = ps.getGDBStackPointerRegister();
+      int spReg = target.getGDBStackPointerRegister();
       command[index] = intToHex(spReg >> 4); index++;
       command[index] = intToHex(spReg); index++;
       command[index] = ':'; index++;
-      byte spVal[] = ps.readRegisterGDB(spReg);
+      byte spVal[] = target.readRegisterGDB(spReg);
       command[index] = intToHex(spVal[0] >> 4); index++;
       command[index] = intToHex(spVal[0]); index++;
       command[index] = intToHex(spVal[1] >> 4); index++;
@@ -270,11 +270,11 @@ public final class GDBStub {
       command[index] = ';'; index++;
     }
     { // Add program counter to packet
-      int pcReg = ps.getGDBProgramCountRegister();
+      int pcReg = target.getGDBProgramCountRegister();
       command[index] = intToHex(pcReg >> 4); index++;
       command[index] = intToHex(pcReg); index++;
       command[index] = ':'; index++;
-      byte pcVal[] = ps.readRegisterGDB(pcReg);
+      byte pcVal[] = target.readRegisterGDB(pcReg);
       command[index] = intToHex(pcVal[0] >> 4); index++;
       command[index] = intToHex(pcVal[0]); index++;
       command[index] = intToHex(pcVal[1] >> 4); index++;
@@ -357,7 +357,7 @@ public final class GDBStub {
     } else {
       regNum = hexToInt(buffer[2]);
     }
-    byte value[] = ps.readRegisterGDB(regNum);
+    byte value[] = target.readRegisterGDB(regNum);
     byte hexValue[] = new byte[value.length * 2];
     for(int i=0; i < value.length; i++) {
       hexValue[i*2]     = intToHex(value[i] >> 4);
@@ -378,7 +378,7 @@ public final class GDBStub {
     try {
       byte value[] = new byte[count*2];
       for(int i=0; i < count; i++) {
-        byte byteVal = ps.memoryLoad8(address+i);
+        byte byteVal = target.memoryLoad8(address+i);
         value[i*2] = intToHex(byteVal >> 4);      
         value[(i*2)+1] = intToHex(byteVal);      
       }
@@ -401,7 +401,7 @@ public final class GDBStub {
       byte value[] = new byte[2];
       for(int i=0; i < count; i++) {        
         byte byteVal = (byte)((hexToInt(buffer[start+(i*2)]) << 4) | (hexToInt(buffer[start+(i*2)+1])));
-        ps.memoryStore8(address+i, byteVal);
+        target.memoryStore8(address+i, byteVal);
       }
       replyOK();
     } catch (NullPointerException e) {
@@ -444,7 +444,7 @@ public final class GDBStub {
               // the next two optional characters specify the thread
               // to step, we have one thread so we ignore them
               try {
-                ps.runOneInstruction();
+                target.runOneInstruction();
                 index = dataEnd;              
                 // report that a SIGTRAP halted the debugger
                 sendStoppedByTrap();
@@ -461,9 +461,9 @@ public final class GDBStub {
               try {
                 boolean hitBreakpoint;
                 do {
-                  ps.runOneInstruction();
+                  target.runOneInstruction();
                   hitBreakpoint = false;
-                  int pc = ps.getCurrentInstructionAddress();
+                  int pc = target.getCurrentInstructionAddress();
                   for(int i=0; i < breakpoints.length; i++) {
                     if(pc == breakpoints[i]) {
                       hitBreakpoint = true;

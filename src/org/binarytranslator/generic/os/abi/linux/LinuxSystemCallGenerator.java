@@ -15,6 +15,22 @@ import org.binarytranslator.generic.memory.MemoryMapException;
  * the memory and registers of various architectures.
  */
 public interface LinuxSystemCallGenerator {
+  
+  /**
+   * This interface allows you to iteratively grab all arguments to a system call.
+   */
+  public interface CallArgumentIterator {
+    /**
+     * Interpret the next system call argument as an integer and return it.
+     */
+    int nextInt();
+    
+    /**
+     * Interpret the next system call argument as a long and return it.
+     */
+    long nextLong();
+  }
+  
   /**
 	* Return the system call number from the generator
 	*/
@@ -24,7 +40,7 @@ public interface LinuxSystemCallGenerator {
 	* @param n number of system call arguments to read
 	* @return array of system call argument values
 	*/
-  public int[] getSysCallArguments(int n);
+  public CallArgumentIterator getSysCallArguments();
   /**
 	* Set the return value for a system call
 	* @param r the return value

@@ -24,6 +24,7 @@ import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.gdbstub.GDBStub;
+import org.binarytranslator.generic.gdbstub.GDBTarget;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
@@ -191,8 +192,10 @@ public abstract class ProcessSpace {
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
+  
   public abstract OPT_HIRGenerator createHIRGenerator(
-      OPT_GenerationContext context);
+     OPT_GenerationContext context);
+      
 
   /**
    * Given an ELF binary loader, create the appropriate process space
@@ -316,7 +319,7 @@ public abstract class ProcessSpace {
     VM_CodeArray code = cm.getEntryCodeArray();
     codeHash.put(trace.pc, code);
   }
-
+  
   public synchronized VM_CodeArray getCodeForPC(int pc) {
     VM_CodeArray code = (VM_CodeArray) codeHash.get(pc);
     if (code == null) {
@@ -324,7 +327,7 @@ public abstract class ProcessSpace {
     }
     return code;
   }
-
+  
   private VM_CodeArray translateCode(DBT_Trace trace) {
     if (DBT_Options.debugRuntime) {
       report("Translating code for 0x" + Integer.toHexString(trace.pc));
@@ -334,6 +337,8 @@ public abstract class ProcessSpace {
     replaceCompiledTrace(cm, trace);
     return cm.getEntryCodeArray();
   }
+  
+  /*
 
   /**
    * Record a branch instruction
@@ -415,7 +420,7 @@ public abstract class ProcessSpace {
         System.out.println(e.toString());
       }
     } else {
-      GDBStub gdbStub = new GDBStub(DBT_Options.gdbStubPort, this);
+      GDBStub gdbStub = new GDBStub(DBT_Options.gdbStubPort, getGDBTarget());
       gdbStub.run();
     }
   }
@@ -474,40 +479,9 @@ public abstract class ProcessSpace {
      * DataInputStream(printenv.getInputStream()); variables.readUTF(); }
      */
   }
-
-  /* GDB stub interface */
+  
   /**
-   * Read a register and turn into a byte array conforming to the endianness of
-   * the architecture
+   * Return an interface that allows GDB to read from this process
    */
-  public abstract byte[] readRegisterGDB(int regNum);
-
-  /**
-   * Run a single instruction
-   */
-  public abstract void runOneInstruction() throws BadInstructionException;
-
-  /**
-   * Has frame base register?
-   */
-  public boolean hasFrameBaseRegister() {
-    return false;
-  }
-
-  /**
-   * Get the value of the frame base register
-   */
-  public int getGDBFrameBaseRegister() {
-    return -1;
-  }
-
-  /**
-   * Get the value of the frame base register
-   */
-  public abstract int getGDBStackPointerRegister();
-
-  /**
-   * Get the value of the frame base register
-   */
-  public abstract int getGDBProgramCountRegister();
+  public abstract GDBTarget getGDBTarget();
 }

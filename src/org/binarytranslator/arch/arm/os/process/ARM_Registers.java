@@ -1,6 +1,11 @@
 package org.binarytranslator.arch.arm.os.process;
 
+import org.jikesrvm.VM;
+
 public final class ARM_Registers {
+  
+  public final static int SP = 14;
+  public final static int PC = 15;
   
   /**
    * The currently visible ARM general purpose registers. Register 15 also serves as the PC.
@@ -58,7 +63,7 @@ public final class ARM_Registers {
   /**
    * Definition of symbolic constants for all valid operating modes
    */
-  public final static byte OPERATING_MODE_USER = 0x10;
+  public final static byte OPERATING_MODE_USR = 0x10;
   public final static byte OPERATING_MODE_FIQ = 0x11;
   public final static byte OPERATING_MODE_IRQ = 0x12;
   public final static byte OPERATING_MODE_SVC = 0x13;
@@ -68,18 +73,16 @@ public final class ARM_Registers {
   public ARM_Registers() {
   }
   
-  /**
-   * Sets the pc to a new value
-   */
-  public void setPC(int pc) {
-    regs[15] = pc;
+  public int read(int reg) {
+    if (VM.VerifyAssertions) VM._assert(reg < 16);
+    
+    return regs[reg];
   }
   
-  /**
-   * Sets the pc to a new value
-   */
-  public int getPC() {
-    return regs[15];
+  public void write(int reg, int value) {
+    if (VM.VerifyAssertions) VM._assert(reg < 16);
+    
+    regs[reg] = value;
   }
   
   /**

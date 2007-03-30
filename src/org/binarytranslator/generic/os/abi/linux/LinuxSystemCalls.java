@@ -445,6 +445,14 @@ abstract public class LinuxSystemCalls {
      */
     public abstract void doSysCall();
   }
+  
+  abstract class ParameterizedSystemCall extends SystemCall {
+    protected LinuxSystemCallGenerator.CallArgumentIterator arguments;
+    
+    public ParameterizedSystemCall() {
+      arguments = src.getSysCallArguments();
+    }
+  }
 
   /**
    * Unknown System Call
@@ -466,11 +474,9 @@ abstract public class LinuxSystemCalls {
   /**
    * Exit system call
    */
-  public class SysExit extends SystemCall {
+  public class SysExit extends ParameterizedSystemCall {
     public void doSysCall() {
-      int[] args = src.getSysCallArguments(1);
-      int status = args[0];
-
+      int status = arguments.nextInt();
       System.exit(status);
     }
   }
@@ -478,12 +484,11 @@ abstract public class LinuxSystemCalls {
   /**
    * Read from a file
    */
-  public class SysRead extends SystemCall {
+  public class SysRead extends ParameterizedSystemCall {
     public void doSysCall() {
-      int[] args = src.getSysCallArguments(3);
-      int fd = args[0];
-      int buf = args[1];
-      int count = args[2];
+      int fd = arguments.nextInt();
+      int buf = arguments.nextInt();
+      int count = arguments.nextInt();
 
       if(fd == 0) { // read from stdin
         byte[] b = new byte[256];
@@ -528,12 +533,11 @@ abstract public class LinuxSystemCalls {
   /**
    * Write to a file
    */
-  public class SysWrite extends SystemCall {
+  public class SysWrite extends ParameterizedSystemCall {
     public void doSysCall() {
-      int[] args = src.getSysCallArguments(3);
-      int fd = args[0];
-      int buf = args[1];
-      int count = args[2];
+      int fd = arguments.nextInt();
+      int buf = arguments.nextInt();
+      int count = arguments.nextInt();
 
       if(fd == 1) { // stdout       
         for(int c = 0 ; c < count; c++) {
@@ -579,12 +583,11 @@ abstract public class LinuxSystemCalls {
   /**
    * Write data into multiple buffers
    */
-  public class SysWriteV extends SystemCall {
-    public void doSysCall() {
-      int[] args = src.getSysCallArguments(3);
-      int fd = args[0];
-      int vector = args[1];
-      int count = args[2];
+  public class SysWriteV extends ParameterizedSystemCall {
+    public void doSysCall() {     
+      int fd = arguments.nextInt();
+      int vector = arguments.nextInt();
+      int count = arguments.nextInt();
 
       if((fd == 1)||(fd == 2)) { // stdout || stderr
         PrintStream out = (fd == 1) ? System.out : System.err;
@@ -609,11 +612,10 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysOpen extends SystemCall {
+  public class SysOpen extends ParameterizedSystemCall {
     public void doSysCall() {
-      int[] args = src.getSysCallArguments(2);
-      int pathname = args[0];
-      int flags = args[1];
+      int pathname = arguments.nextInt();
+      int flags = arguments.nextInt();
 
       // Examine the flags argument and open read or read-write
       // accordingly. args[0] points to the file name.   
@@ -660,10 +662,9 @@ abstract public class LinuxSystemCalls {
     }
   }
     
-  public class SysClose extends SystemCall {
+  public class SysClose extends ParameterizedSystemCall {
     public void doSysCall() {
-      int[] args = src.getSysCallArguments(1);
-      int fd = args[0];
+      int fd = arguments.nextInt();
       RandomAccessFile raFile = getRAFile(fd);
       // Check that fd is a valid file descriptor
       if(raFile == null) {
@@ -705,16 +706,17 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysBrk extends SystemCall {
+  public class SysBrk extends ParameterizedSystemCall {
     public void doSysCall() {
-      int args[] = src.getSysCallArguments(1);
-      if(args[0] == 0)  {          
+      int brk = arguments.nextInt();
+      
+      if(brk == 0)  {          
         // Request for the current top of bss.
         src.setSysCallReturn(src.getBrk());          
       }
       else {
         // Changing the value.
-        src.setBrk(args[0]);
+        src.setBrk(brk);
       }
     }
   }
@@ -724,13 +726,11 @@ abstract public class LinuxSystemCalls {
     }
   }
     
-  public class SysFcntl64 extends SystemCall {
+  public class SysFcntl64 extends ParameterizedSystemCall {
     public void doSysCall() {
       // This is complicated so fudge it for now.
-      int[] args = src.getSysCallArguments(2);
-
-      int fd = args[0];
-      int cmd = args[1];
+      int fd = arguments.nextInt();
+      int cmd = arguments.nextInt();
                               
       if( ((fd == 0) | (fd == 1) | (fd == 2)) & (cmd == 1) )
         src.setSysCallReturn(0);
@@ -739,11 +739,12 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysUname extends SystemCall {
+  public class SysUname extends ParameterizedSystemCall {
     public void doSysCall() {
       // Simple uname support
-      int[] args = src.getSysCallArguments(1);
-      if (args[0] != 0) {
+      int addr = arguments.nextInt();
+      
+      if (addr != 0) {
         String localhostString, domainName, hostName;
         try {
           InetAddress localhost = InetAddress.getLocalHost();
@@ -762,12 +763,12 @@ abstract public class LinuxSystemCalls {
           hostName = localhostString.substring(0,index);
         }
         // Fill in utsname struct - see /usr/include/sys/utsname.h
-        src.memoryWriteString (args[0],     getSysName()); // sysname
-        src.memoryWriteString (args[0]+65,  hostName);     // nodename
-        src.memoryWriteString (args[0]+130, getRelease()); // release
-        src.memoryWriteString (args[0]+195, getVersion()); // version
-        src.memoryWriteString (args[0]+260, getMachine()); // machine
-        src.memoryWriteString (args[0]+325, domainName);   // __domainname
+        src.memoryWriteString (addr,     getSysName()); // sysname
+        src.memoryWriteString (addr+65,  hostName);     // nodename
+        src.memoryWriteString (addr+130, getRelease()); // release
+        src.memoryWriteString (addr+195, getVersion()); // version
+        src.memoryWriteString (addr+260, getMachine()); // machine
+        src.memoryWriteString (addr+325, domainName);   // __domainname
         src.setSysCallReturn(0);
       }
       else {
@@ -777,15 +778,15 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysMmap extends SystemCall {
+  public class SysMmap extends ParameterizedSystemCall {
     public void doSysCall() {
-      int[] args = src.getSysCallArguments(6);
-      int start = args[0];
-      int length = args[1];
-      int prot = args[2];
-      int flags = args[3];
-      int fd = args[4];
-      int offset = args[5];
+
+      int start = arguments.nextInt();
+      int length = arguments.nextInt();
+      int prot = arguments.nextInt();
+      int flags = arguments.nextInt();
+      int fd = arguments.nextInt();
+      int offset = arguments.nextInt();
       if((flags & mman.MAP_ANONYMOUS) != 0 ) {
         try {
           src.setSysCallReturn(src.memoryMap(start, length,
@@ -802,20 +803,20 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysMunmap extends SystemCall {
+  public class SysMunmap extends ParameterizedSystemCall {
     public void doSysCall() {
-      int[] args = src.getSysCallArguments(2);
-      int start = args[0];
-      int length = args[1];
+
+      int start = arguments.nextInt();
+      int length = arguments.nextInt();
       throw new Error("TODO!");
       //src.setSysCallReturn(src.munmap(start, length));
     }
   }
 
-  public class SysExitGroup extends SystemCall {
+  public class SysExitGroup extends ParameterizedSystemCall {
     public void doSysCall() {
       // For now, equivalent to SysExit
-      System.exit(src.getSysCallArguments(1)[0]);
+      System.exit(arguments.nextInt());
     }
   }
 }

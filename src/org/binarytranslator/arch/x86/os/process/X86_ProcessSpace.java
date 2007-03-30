@@ -17,6 +17,7 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.fault.BadInstructionException;
+import org.binarytranslator.generic.gdbstub.GDBTarget;
 import org.binarytranslator.arch.x86.os.process.linux.X86_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
 import org.binarytranslator.generic.os.loader.Loader;
@@ -24,7 +25,7 @@ import org.binarytranslator.generic.os.loader.Loader;
 /**
  * Encapsulate the parts of an X86 process that are common across operating systems
  */
-public abstract class X86_ProcessSpace extends ProcessSpace {
+public abstract class X86_ProcessSpace extends ProcessSpace implements GDBTarget {
 
   /*
    * Process defaults
@@ -104,6 +105,10 @@ public abstract class X86_ProcessSpace extends ProcessSpace {
   public int getGDBProgramCountRegister() {
     return 8;
   }
+  
+  public GDBTarget getGDBTarget() {
+    return this;
+  }
 
   /*
    * Utility functions
@@ -161,7 +166,7 @@ public abstract class X86_ProcessSpace extends ProcessSpace {
    * Run a single instruction
    */
   public void runOneInstruction() throws BadInstructionException {
-    // TODO
+    throw new UnsupportedOperationException("To be implemented");
   }
 
   /**

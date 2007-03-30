@@ -4,6 +4,7 @@ import java.io.IOException;
 import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 import org.jikesrvm.opt.ir.OPT_GenerationContext;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.arch.arm.os.process.image.ARM_SimpleProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
@@ -23,43 +24,6 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    * Registers used by this process
    */
   public ARM_Registers registers;
-
-  /* GDB Interface */
-  /**
-   * Read a register and turn into a byte array conforming to the endianness of
-   * the architecture
-   */
-  public byte[] readRegisterGDB(int regNum) {
-    throw new RuntimeException("Not yet implemented");
-  }
-
-  /**
-   * Has frame base register?
-   */
-  public boolean hasFrameBaseRegister() {
-    throw new RuntimeException("Not yet implemented");
-  }
-
-  /**
-   * Get the value of the frame base register
-   */
-  public int getGDBFrameBaseRegister() {
-    throw new RuntimeException("Not yet implemented");
-  }
-
-  /**
-   * Get the value of the frame base register
-   */
-  public int getGDBStackPointerRegister() {
-    throw new RuntimeException("Not yet implemented");
-  }
-
-  /**
-   * Get the value of the frame base register
-   */
-  public int getGDBProgramCountRegister() {
-    throw new RuntimeException("Not yet implemented");
-  }
 
   /*
    * Utility functions
@@ -99,6 +63,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    * @return a HIR generator
    */
   public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
+    System.out.println("Executing instr: " + memory.load32(0));
     throw new RuntimeException("Not yet implemented");
   }
 
@@ -111,12 +76,12 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    */
   public static ProcessSpace createProcessSpaceFromBinary(Loader loader)
       throws IOException {
-    if (loader.isARM_ABI()) {
+    if (loader.isARM_ABI() || loader.isSysV_ABI()) {
       report("ARM ABI");
       return new ARM_LinuxProcessSpace();
     } else {
-      throw new UnsupportedOperationException("Binary of " + loader.getABIString()
-          + " ABI is unsupported for the ARM architecture");
+      report("Creating simple ARM process space.");
+      return new ARM_SimpleProcessSpace();
     }
   }
 
@@ -132,21 +97,21 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    * Return as an integer the current instruction's address
    */
   public int getCurrentInstructionAddress() {
-    return registers.getPC();
+    return registers.read(ARM_Registers.PC);
   }
 
   /**
    * Sets the current instruction's address
    */
   public void setCurrentInstructionAddress(int pc) {
-    registers.setPC(pc);
+    registers.write(ARM_Registers.PC, pc);
   }
 
   /**
    * Return as an integer the current instruction's address
    */
   public int getCurrentStackAddress() {
-    throw new RuntimeException("Not yet implemented");
+    return registers.read(14);
   }
 
   /**

@@ -121,9 +121,8 @@ public class ELF_Loader extends Loader {
    */
   public ProcessSpace readBinary(String[] args) throws IOException 
   {
-    File elfFile = new File(args[0]);
-    RandomAccessFile rFile = new RandomAccessFile(elfFile, "r");
-    report("Opened File: " + elfFile);
+    report("Opening File: " + args[0]);
+    RandomAccessFile rFile = new RandomAccessFile(args[0], "r");
 
     elfHeader = new ELF_Header(rFile); //NB also sets up reader
     report("ELF header read successfully");
@@ -153,6 +152,35 @@ public class ELF_Loader extends Loader {
     ps.initialise(this, elfHeader.getEntryPoint(), brk, args);
 
     return ps;
+  }
+  
+  /**
+   * Determine if the id array corresponds with the initial part of an
+   * ELF binary
+   * @param filename Name of the file to check
+   * @return whether this is an ELF binary
+   */
+  public static boolean conforms(String filename) {
+    
+    RandomAccessFile rFile = null;
+    report("Testing is file is ELF: " + filename);
+        
+    try {
+      rFile = new RandomAccessFile(filename, "r");
+      byte[] id = new byte[4];
+      rFile.read(id);
+      
+      return (id[0] == 0x7f) && (id[1] == 'E') && (id[2] == 'L') && (id[3] == 'F');
+    }
+    catch (Exception e) {
+      return false;
+    }
+    finally {
+      try {
+        rFile.close();
+      }
+      catch(Exception e) {}
+    }
   }
 
   /**

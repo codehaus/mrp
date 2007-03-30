@@ -10,6 +10,7 @@ package org.binarytranslator.generic.os.loader;
 
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
+import org.binarytranslator.generic.os.loader.image.ImageLoader;
 import org.binarytranslator.DBT_Options;
 import java.io.*;
 
@@ -97,30 +98,19 @@ public abstract class Loader {
    * @return a binaryloader to create a process
    */
   public static Loader getLoader(String filename) throws IOException
-  {
-    File file = new File(filename);
-    RandomAccessFile rFile = new RandomAccessFile(file, "r");
-    report("Opened file: " + filename);
-   
-    byte[] id = new byte[4];
-    rFile.read(id);
-    report("Read ID");
-   
-    if (isELF_Binary(id)) {
+  {    
+    if (ELF_Loader.conforms(filename)) {
       report("ELF object file found");
       return new ELF_Loader();
-    } else {
+    } 
+    else if (ImageLoader.conforms(filename)) {
+      report("Image Loader file found.");
+      return new ImageLoader();
+    }
+    else {
       throw new Error("File " + filename + " has an unrecognized binary format");
     }
   }
     
-  /**
-   * Determine if the id array corresponds with the initial part of an
-   * ELF binary
-   * @param id start of binary
-   * @return whether this is an ELF binary
-   */
-  private static boolean isELF_Binary(byte[] id) {
-    return (id[0] == 0x7f) && (id[1] == 'E') && (id[2] == 'L') && (id[3] == 'F');
-  }
+
 }
