@@ -1,7 +1,6 @@
 package org.binarytranslator.generic.os.loader.image;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
 
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.memory.MemoryMapException;

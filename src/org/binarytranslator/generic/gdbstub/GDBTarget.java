@@ -6,8 +6,8 @@ public interface GDBTarget {
   /**
    * Read a register from the target machine.
    * 
-   * @param regNum 
-   *    A register number, starting from 0.
+   * @param regNum
+   *          A register number, starting from 0.
    */
   byte[] readRegisterGDB(int regNum);
 
@@ -35,17 +35,17 @@ public interface GDBTarget {
    * Get the value of the frame base register
    */
   int getGDBProgramCountRegister();
-  
+
   /**
    * Return the address of the current instruction.
    */
   int getCurrentInstructionAddress();
-  
+
   /**
    * Store the given bye of data at the given address within the process.
    */
   void memoryStore8(int address, byte data);
-  
+
   /**
    * Load a byte from the given address within the process.
    */

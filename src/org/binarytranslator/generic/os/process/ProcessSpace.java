@@ -47,7 +47,7 @@ public abstract class ProcessSpace {
   /**
    * A hashtable containing translated traces of code
    */
-  protected final Hashtable codeHash = new Hashtable();
+  protected final Hashtable<Integer, VM_CodeArray> codeHash = new Hashtable<Integer, VM_CodeArray>();
 
   /**
    * Has a system call been called to terminate the process

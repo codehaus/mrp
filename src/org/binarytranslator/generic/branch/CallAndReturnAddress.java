@@ -16,35 +16,43 @@ class CallAndReturnAddress {
    * Call site address
    */
   private int callSite;
+
   /**
    * Return address
    */
   private int returnAddress;
+
   /**
    * Constructor
-   * @param callSite address of call site
-   * @param returnAddress address of return
+   * 
+   * @param callSite
+   *          address of call site
+   * @param returnAddress
+   *          address of return
    */
   CallAndReturnAddress(int callSite, int returnAddress) {
     this.callSite = callSite;
     this.returnAddress = returnAddress;
   }
+
   /**
    * Get call site address
    */
   int getCallSite() {
     return callSite;
   }
+
   /**
    * Get return address
    */
   int getReturnAddress() {
     return returnAddress;
   }
-  /** 
+
+  /**
    * Are two call sites the same?
    */
   public boolean equals(Object obj) {
-    return ((CallAndReturnAddress)obj).callSite == callSite;
+    return ((CallAndReturnAddress) obj).callSite == callSite;
   }
 }

@@ -7,6 +7,7 @@
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
 package org.binarytranslator.vmInterface;
+
 import org.jikesrvm.VM;
 import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
 import org.jikesrvm.runtime.VM_Magic;
@@ -18,31 +19,32 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.fault.BadInstructionException;
 
 /**
- * This class provides the bridge between the Java compiled world and
- * the world compiled using the PPC emulator.  Uninterruptible is
- * used to prevent garbage collection errors with the dynamic bridge
- * code.
+ * This class provides the bridge between the Java compiled world and the world
+ * compiled using the PPC emulator. Uninterruptible is used to prevent garbage
+ * collection errors with the dynamic bridge code.
  */
 @Uninterruptible
 @DynamicBridge
 public class DynamicCodeRunner {
   /**
    * The bridge into the PPC emulator code
-   *
-   * @param code the code to be executed
-   * @param ps the process space the code will work upon
+   * 
+   * @param code
+   *          the code to be executed
+   * @param ps
+   *          the process space the code will work upon
    * @return the code will return the PC value of the next instruction
    */
   @NoInline
-  public static int invokeCode (VM_CodeArray code, ProcessSpace ps) throws BadInstructionException
-  {
+  public static int invokeCode(VM_CodeArray code, ProcessSpace ps)
+      throws BadInstructionException {
     // Useful when debugging in GDB:
-    if(DBT_Options.debugRuntime) {
+    if (DBT_Options.debugRuntime) {
       VM.sysWrite("Running PC=");
       VM.sysWriteHex(ps.getCurrentInstructionAddress());
       VM.sysWriteln();
       VM.sysWriteln(ps.toString());
-      //ps.dumpStack(20);
+      // ps.dumpStack(20);
       VM.sysWrite("About to bridge to ");
       VM.sysWriteHex(VM_Magic.objectAsAddress(code).toInt());
       VM.sysWriteln();
@@ -59,10 +61,10 @@ public class DynamicCodeRunner {
 }
 
 /**
- * This class is a hoax used to point our VM_PPC_Trace to. We can't
- * use DynamicCodeRunner as OPT_Compiler refuses to build something
- * that implements VM_DynamicBridge. Uninterruptible is used to
- * prevent garbage collection errors with the dynamic bridge code.
+ * This class is a hoax used to point our VM_PPC_Trace to. We can't use
+ * DynamicCodeRunner as OPT_Compiler refuses to build something that implements
+ * VM_DynamicBridge. Uninterruptible is used to prevent garbage collection
+ * errors with the dynamic bridge code.
  */
 @Uninterruptible
 class DummyDynamicCodeRunner {
@@ -70,8 +72,8 @@ class DummyDynamicCodeRunner {
    * The method replaced by a trace
    */
   @NoInline
-  public static int invokeCode (VM_CodeArray code, ProcessSpace ps) throws BadInstructionException
-  {
+  public static int invokeCode(VM_CodeArray code, ProcessSpace ps)
+      throws BadInstructionException {
     throw new Error("This should never be executed");
   }
 }

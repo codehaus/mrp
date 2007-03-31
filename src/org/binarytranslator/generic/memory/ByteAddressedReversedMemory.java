@@ -6,20 +6,18 @@
  *
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
-package org.binarytranslator.memory;
-
-import java.io.RandomAccessFile;
+package org.binarytranslator.generic.memory;
 
 /**
  * ByteAddressedReversedMemory:
- *
+ * 
  * Memory is arrays of bytes, endian conversion is performed.
- *
+ * 
  * The string helo followed by the int of 0xcafebabe appear as:
- *
+ * 
  * <pre>
  * Byte Address|    
- *------------------
+ * -----------------
  * .........ff |'H'|
  * .........fe |'e'|
  * .........fd |'l'|
@@ -30,5 +28,5 @@ import java.io.RandomAccessFile;
  * .........f8 | be|
  * </pre>
  */
-//public final class ByteAddressedReversedMemory extends CallBasedMemory {
-//}
+// public final class ByteAddressedReversedMemory extends CallBasedMemory {
+// }

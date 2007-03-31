@@ -7,36 +7,32 @@
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
 package org.binarytranslator.generic.branch;
-import org.binarytranslator.DBT_Options;
-import java.util.Comparator;
-import java.util.TreeSet;
-import java.util.SortedSet;
+
+import java.util.HashSet;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Iterator;
 
 /**
- * Object capturing branches and jumps so that traces can avoid
- * terminating on branches whose destinations aren't known
+ * Object capturing branches and jumps so that traces can avoid terminating on
+ * branches whose destinations aren't known
  */
 public class BranchLogic {
   /** Code to indicate branch was an indirect branch */
-  public static final int INDIRECT_BRANCH=0;
+  public static final int INDIRECT_BRANCH = 0;
 
   /** Code to indicate branch was a return */
-  public static final int RETURN=1;
+  public static final int RETURN = 1;
 
   /**
    * A set of procedure information
    */
-  private final SortedMap procedures;
+  private final SortedMap<Integer, ProcedureInformation> procedures;
 
   /**
    * A set of switch like branchs sites and their destinations
    */
-  private final SortedMap branchSitesAndDestinations;
+  private final SortedMap<Integer, Set<Integer>> branchSitesAndDestinations;
 
   /**
    * Global branch information
@@ -44,34 +40,36 @@ public class BranchLogic {
   private static BranchLogic global;
 
   /**
-   * Constructor has 2 functions:
-   * (1) when making a local trace we don't want to consider as many
-   * procedure return points as may be known for the full program.
-   * (2) making sure switch like branches are all recorded globally
+   * Constructor has 2 functions: (1) when making a local trace we don't want to
+   * consider as many procedure return points as may be known for the full
+   * program. (2) making sure switch like branches are all recorded globally
    */
   public BranchLogic() {
     if (global == null) {
       global = this;
-      branchSitesAndDestinations = new TreeMap();
-    }
-    else {
+      branchSitesAndDestinations = new TreeMap<Integer, Set<Integer>>();
+    } else {
       branchSitesAndDestinations = global.branchSitesAndDestinations;
     }
-    procedures = new TreeMap();
+    procedures = new TreeMap<Integer, ProcedureInformation>();
   }
 
   /**
    * Register a call (branch and link) instruction
-   * @param pc the address of the branch instruction
-   * @param ret the address that will be returned to
-   * @param dest the destination of the branch instruction
+   * 
+   * @param pc
+   *          the address of the branch instruction
+   * @param ret
+   *          the address that will be returned to
+   * @param dest
+   *          the destination of the branch instruction
    */
   public void registerCall(int pc, int ret, int dest) {
-    ProcedureInformation procedure = (ProcedureInformation)procedures.get(Integer.valueOf(dest));
+    ProcedureInformation procedure = (ProcedureInformation) procedures
+        .get(Integer.valueOf(dest));
     if (procedure != null) {
       procedure.registerCall(pc, ret);
-    }
-    else {
+    } else {
       procedure = new ProcedureInformation(pc, ret, dest);
       procedures.put(Integer.valueOf(dest), procedure);
     }
@@ -79,8 +77,11 @@ public class BranchLogic {
 
   /**
    * Register a branch to the link register
-   * @param pc the address of the branch instruction
-   * @param lr the return address (value of the link register)
+   * 
+   * @param pc
+   *          the address of the branch instruction
+   * @param lr
+   *          the return address (value of the link register)
    */
   public void registerReturn(int pc, int lr) {
     ProcedureInformation procedure = getLikelyProcedure(pc);
@@ -90,16 +91,18 @@ public class BranchLogic {
   }
 
   /**
-   * Given an address within a procedure, returns the (most likely) procedure 
-   * @param pc a location within the procedure
+   * Given an address within a procedure, returns the (most likely) procedure
+   * 
+   * @param pc
+   *          a location within the procedure
    * @return corressponding procedure information
    */
   private ProcedureInformation getLikelyProcedure(int pc) {
     if (procedures.size() > 0) {
       SortedMap priorProcedures = procedures.headMap(Integer.valueOf(pc));
       if (priorProcedures.size() > 0) {
-        Integer procedureEntry = (Integer)priorProcedures.lastKey();
-        return (ProcedureInformation)procedures.get(procedureEntry);
+        Integer procedureEntry = (Integer) priorProcedures.lastKey();
+        return (ProcedureInformation) procedures.get(procedureEntry);
       }
     }
     return null;
@@ -107,19 +110,21 @@ public class BranchLogic {
 
   /**
    * Register a branch to the count register
-   * @param pc the address of the branch instruction
-   * @param lr the value of the link register
+   * 
+   * @param pc
+   *          the address of the branch instruction
+   * @param lr
+   *          the value of the link register
    */
-    public void registerBranch(int pc, int ctr, int type) {
-    Set dests = (Set)branchSitesAndDestinations.get(Integer.valueOf(pc));
+  public void registerBranch(int pc, int ctr, int type) {
+    Set<Integer> dests = branchSitesAndDestinations.get(Integer.valueOf(pc));
     if (dests != null) {
       if (dests.contains(Integer.valueOf(ctr))) {
         // This ctr address is already registered
         return;
       }
-    }
-    else {
-      dests = new HashSet();
+    } else {
+      dests = new HashSet<Integer>();
       branchSitesAndDestinations.put(Integer.valueOf(pc), dests);
     }
     dests.add(Integer.valueOf(ctr));

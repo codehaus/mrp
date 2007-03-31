@@ -590,7 +590,6 @@ abstract public class LinuxSystemCalls {
       int count = arguments.nextInt();
 
       if((fd == 1)||(fd == 2)) { // stdout || stderr
-        PrintStream out = (fd == 1) ? System.out : System.err;
         int base = src.memoryLoad32(vector);
         int len  = src.memoryLoad32(vector+4);
         int currentVector = 0;
@@ -638,8 +637,6 @@ abstract public class LinuxSystemCalls {
       }
       else {
         // we have not found an error, so we go ahead and try to open the file  
-        int fileDesc;
-       
         try {
           RandomAccessFile raFile;
           if((flags & 0x3) == fcntl.O_RDONLY) {

@@ -22,47 +22,63 @@ import org.jikesrvm.opt.ir.OPT_RegisterOperand;
 public interface TranslationHelper {
   /**
    * Append a HIR instruction to the current basic block
-   * @param i the HIR instruction
+   * 
+   * @param i
+   *          the HIR instruction
    */
   public void appendInstructionToCurrentBlock(OPT_Instruction i);
+
   /**
    * Get the generation context.
    */
   public OPT_GenerationContext getGenerationContext();
+
   /**
    * Get the method being translated
    */
   public VM_Method getMethod();
+
   /**
    * Make a temporary register
    */
   public OPT_RegisterOperand makeTemp(VM_TypeReference type);
+
   /**
-   * Get the block which is currently having instructions inserted
-   * into it
+   * Get the block which is currently having instructions inserted into it
+   * 
    * @return the current block
    */
   public OPT_BasicBlock getCurrentBlock();
+
   /**
    * Set the block which is currently having instructions inserted into it
-   * @param newCurrentBlock the new current basic block
+   * 
+   * @param newCurrentBlock
+   *          the new current basic block
    */
   public void setCurrentBlock(OPT_BasicBlock newCurrentBlock);
+
   /**
-   * Get the block which will contain the translation of the next
-   * instruction
+   * Get the block which will contain the translation of the next instruction
+   * 
    * @return the next block
    */
   public OPT_BasicBlock getNextBlock();
+
   /**
-   * Create a basic block immediately after the current block and link
-   * its edges into the CFG and code ordering
+   * Create a basic block immediately after the current block and link its edges
+   * into the CFG and code ordering
+   * 
    * @return the new basic block
    */
   public OPT_BasicBlock createBlockAfterCurrent();
+
   /**
-	* Generate a branch profile operand for the current instruction
-	* @param likely does this branch have a likely hint
-	*/
-  public OPT_BranchProfileOperand getConditionalBranchProfileOperand(boolean likely);
+   * Generate a branch profile operand for the current instruction
+   * 
+   * @param likely
+   *          does this branch have a likely hint
+   */
+  public OPT_BranchProfileOperand getConditionalBranchProfileOperand(
+      boolean likely);
 }

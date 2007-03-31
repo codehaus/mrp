@@ -7,16 +7,13 @@
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
 package org.binarytranslator.vmInterface;
-import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.decoder.DecoderUtils;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DummyDynamicCodeRunner;
-import org.jikesrvm.classloader.VM_BootstrapClassLoader;
 import org.jikesrvm.VM_CompiledMethod;
 import org.jikesrvm.VM_CompiledMethods;
 import org.jikesrvm.classloader.VM_NormalMethod;
 import org.jikesrvm.classloader.VM_Class;
-import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.classloader.VM_MemberReference;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_BytecodeStream;

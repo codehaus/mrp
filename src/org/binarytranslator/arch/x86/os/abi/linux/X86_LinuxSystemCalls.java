@@ -8,9 +8,8 @@
  */
 package org.binarytranslator.arch.x86.os.abi.linux;
 
-import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
-import org.binarytranslator.generic.os.process.ProcessSpace;
+import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 
 /**
  * Linux system call handling class

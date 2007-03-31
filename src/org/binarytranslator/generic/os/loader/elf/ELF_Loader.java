@@ -256,10 +256,12 @@ public class ELF_Loader extends Loader {
   /**
    * Class to read and hold ELF header information
    */
+  @SuppressWarnings("unused")
   class ELF_Header {
     /**
      * Class to read and hold ELF header indentity information
      */
+    @SuppressWarnings("unused")
     private class ELF_Identity {
       /**
        * Size of ELF identity structure
@@ -748,6 +750,7 @@ public class ELF_Loader extends Loader {
    * header's in the ELF literature, but they don't represent
    * programs, rather separate segments.
    */
+  @SuppressWarnings("unused")
   class ELF_ProgramSegmentHeader {
     /**
      * Type of the segment

@@ -9,14 +9,15 @@
 package org.jikesrvm.ppc;
 
 /**
- * Structure for the D and XL forms, PowerPC instruction set 
- *
+ * Structure for the D and XL forms, PowerPC instruction set
+ * 
  * @author John Waley
- * @see PPC_Disassembler 
+ * @see PPC_Disassembler
  */
-class opcode_tab {  
+class opcode_tab {
 
   int format;
+
   String mnemonic;
 
   opcode_tab(int format, String mnemonic) {

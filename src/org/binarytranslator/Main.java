@@ -11,14 +11,13 @@ package org.binarytranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.os.loader.Loader;
 
-/** 
+/**
  * The runtime system for the emulator.
  * 
  * @author Ian Rogers, Richard Matley, Jon Burcham
  * 
  */
-public class Main
-{
+public class Main {
   /*
    * Variables required for an instance of the emulator
    */
@@ -34,9 +33,11 @@ public class Main
 
   /**
    * Debug information
-   * @param s string of debug information
+   * 
+   * @param s
+   *          string of debug information
    */
-  private static void report(String s){
+  private static void report(String s) {
     if (DBT_Options.debugRuntime) {
       System.out.print("Main:");
       System.out.println(s);
@@ -46,59 +47,59 @@ public class Main
   /**
    * Usage
    */
-  public static void usage ()
-  {
-    System.out.println("org.binarytranslator.Main [-X:dbt:...] <program> <args...>");
+  public static void usage() {
+    System.out
+        .println("org.binarytranslator.Main [-X:dbt:...] <program> <args...>");
   }
 
   /**
    * Constructor - should only be run from main
-   * @param args command line arguments. args[0] is the program to load.
+   * 
+   * @param args
+   *          command line arguments. args[0] is the program to load.
    */
   private Main(String[] args) {
     // Check we have a file to load
-    if(args.length < 1) {
+    if (args.length < 1) {
       usage();
-    }
-    else {
+    } else {
       // Set up and load the process space
       try {
         report("Loading " + args[0]);
         Loader loader = Loader.getLoader(args[0]);
         ps = loader.readBinary(args);
-      }
-      catch(java.io.IOException e) {
+      } catch (java.io.IOException e) {
         usage();
         throw new Error("Error accessing file: " + args[0], e);
-      }    
-      report ("Sucessfully created process");
+      }
+      report("Sucessfully created process");
     }
   }
 
   /**
    * Main method
-   *
-   * @param args command line arguments (see usage())
+   * 
+   * @param args
+   *          command line arguments (see usage())
    */
   public static void main(String[] args) {
     // Process any arguments for the emulator
-    for (int i=0; i < args.length; i++) {
-      if(args[i].startsWith("-X:dbt:")) {
+    for (int i = 0; i < args.length; i++) {
+      if (args[i].startsWith("-X:dbt:")) {
         DBT_Options.processArgument(args[i]);
-      }
-      else {
+      } else {
         if (i != 0) {
-          String new_args[] = new String[args.length-i];
-          for (int j=0; j < (args.length-i); j++) {
-            new_args[j]=args[i+j];
+          String new_args[] = new String[args.length - i];
+          for (int j = 0; j < (args.length - i); j++) {
+            new_args[j] = args[i + j];
           }
           args = new_args;
         }
         break;
       }
-    }    
+    }
     Main runtime = new Main(args);
-    for (int i=0; i < args.length; i++) {
+    for (int i = 0; i < args.length; i++) {
       report("Argument " + i + ": " + args[i]);
     }
     runtime.ps.run();

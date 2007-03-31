@@ -1,18 +1,16 @@
 package org.binarytranslator.arch.arm.os.process;
 
 import java.io.IOException;
-import org.jikesrvm.opt.ir.OPT_HIRGenerator;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
+
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
-import org.binarytranslator.arch.x86.decoder.X862IR;
-import org.binarytranslator.arch.x86.os.process.X86_Registers;
-import org.binarytranslator.arch.x86.os.process.linux.X86_LinuxProcessSpace;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
+import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 
 public abstract class ARM_ProcessSpace extends ProcessSpace {
 

@@ -7,7 +7,6 @@
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
 package org.binarytranslator.vmInterface;
-import org.binarytranslator.generic.decoder.DecoderUtils;
 import org.jikesrvm.opt.OPT_CompilerPhase;
 import org.jikesrvm.VM_Configuration;
 

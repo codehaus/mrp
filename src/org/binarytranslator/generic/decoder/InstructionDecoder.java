@@ -12,38 +12,47 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.fault.BadInstructionException;
 
 /**
- * A decoder is a class capable of translating, interpretting or
- * disassembling an instruction
+ * A decoder is a class capable of translating, interpretting or disassembling
+ * an instruction
  */
 public abstract class InstructionDecoder {
   /**
    * Translate a single instruction
-   * @param translationHelper the object containing the translation sequence
-   * @param ps the process space of the translation
-   * @param pc the address of the instruction to translate
-   * @return the address of the next instruction or -1 if this
-   * instruction has branched to the end of the trace
+   * 
+   * @param translationHelper
+   *          the object containing the translation sequence
+   * @param ps
+   *          the process space of the translation
+   * @param pc
+   *          the address of the instruction to translate
+   * @return the address of the next instruction or -1 if this instruction has
+   *         branched to the end of the trace
    */
-  public int translate(DecoderUtils translationHelper, ProcessSpace ps, Object lazy, int pc) {
-	 throw new Error ("TODO");
+  public int translate(DecoderUtils translationHelper, ProcessSpace ps,
+      Object lazy, int pc) {
+    throw new Error("TODO");
   }
 
   /**
    * Interpret a single instruction
-   * @param ps the process space of the interpretation, contains the
-   * fetched instruction and instruction address
+   * 
+   * @param ps
+   *          the process space of the interpretation, contains the fetched
+   *          instruction and instruction address
    * @return the next instruction interpreter
    */
-  public InstructionDecoder interpret(ProcessSpace ps) throws BadInstructionException {
-	 throw new Error ("TODO");
+  public InstructionDecoder interpret(ProcessSpace ps)
+      throws BadInstructionException {
+    throw new Error("TODO");
   }
 
   /**
-	* Disassemble an instruction
-	* @param ps
-	*/
+   * Disassemble an instruction
+   * 
+   * @param ps
+   */
   public String disassemble(ProcessSpace ps) {
-	 // In general this isn't complete
-	 throw new Error("Disassembly not yet complete");
+    // In general this isn't complete
+    throw new Error("Disassembly not yet complete");
   }
 }
