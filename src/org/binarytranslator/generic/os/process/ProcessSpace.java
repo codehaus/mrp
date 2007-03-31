@@ -208,13 +208,13 @@ public abstract class ProcessSpace {
       throws IOException {
     ProcessSpace result;
     if (loader.isX86_ISA()) {
-      report("X86 ELF Binary");
+      report("X86 Binary");
       result = X86_ProcessSpace.createProcessSpaceFromBinary(loader);
     } else if (loader.isPPC_ISA()) {
-      report("PPC ELF Binary");
+      report("PPC Binary");
       result = PPC_ProcessSpace.createProcessSpaceFromBinary(loader);
     } else if (loader.isARM_ISA()) {
-      report("ARM ELF Binary");
+      report("ARM Binary");
       result = ARM_ProcessSpace.createProcessSpaceFromBinary(loader);
     } else {
       throw new UnsupportedOperationException("Binary of " + loader.getArchitectureString()

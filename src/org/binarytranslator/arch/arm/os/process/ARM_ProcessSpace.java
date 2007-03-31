@@ -4,7 +4,7 @@ import java.io.IOException;
 import org.jikesrvm.opt.ir.OPT_HIRGenerator;
 import org.jikesrvm.opt.ir.OPT_GenerationContext;
 import org.binarytranslator.DBT_Options;
-import org.binarytranslator.arch.arm.os.process.image.ARM_SimpleProcessSpace;
+import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
@@ -77,11 +77,11 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   public static ProcessSpace createProcessSpaceFromBinary(Loader loader)
       throws IOException {
     if (loader.isARM_ABI() || loader.isSysV_ABI()) {
-      report("ARM ABI");
+      report("Creating ARM Linux ABI [rocess space");
       return new ARM_LinuxProcessSpace();
     } else {
-      report("Creating simple ARM process space.");
-      return new ARM_SimpleProcessSpace();
+      report("Creating ARM image process space.");
+      return new ARM_ImageProcessSpace();
     }
   }
 
