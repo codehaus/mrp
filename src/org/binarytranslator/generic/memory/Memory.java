@@ -8,6 +8,7 @@
  */
 package org.binarytranslator.generic.memory;
 
+import org.jikesrvm.opt.ir.OPT_Operand;
 import org.jikesrvm.opt.ir.OPT_RegisterOperand;
 import org.jikesrvm.classloader.VM_MethodReference;
 import org.binarytranslator.vmInterface.TranslationHelper;
@@ -201,7 +202,7 @@ public abstract class Memory {
    * @param addr
    *          the address of the value to load
    */
-  public abstract void translateLoadSigned8(OPT_RegisterOperand addr,
+  public abstract void translateLoadSigned8(OPT_Operand addr,
       OPT_RegisterOperand dest);
 
   /**
@@ -213,7 +214,7 @@ public abstract class Memory {
    * @param addr
    *          the address of the value to load
    */
-  public abstract void translateLoadUnsigned8(OPT_RegisterOperand addr,
+  public abstract void translateLoadUnsigned8(OPT_Operand addr,
       OPT_RegisterOperand dest);
 
   /**
@@ -225,7 +226,7 @@ public abstract class Memory {
    * @param addr
    *          the address of the value to load
    */
-  public abstract void translateLoadSigned16(OPT_RegisterOperand addr,
+  public abstract void translateLoadSigned16(OPT_Operand addr,
       OPT_RegisterOperand dest);
 
   /**
@@ -237,7 +238,7 @@ public abstract class Memory {
    * @param addr
    *          the address of the value to load
    */
-  public abstract void translateLoadUnsigned16(OPT_RegisterOperand addr,
+  public abstract void translateLoadUnsigned16(OPT_Operand addr,
       OPT_RegisterOperand dest);
 
   /**
@@ -248,7 +249,7 @@ public abstract class Memory {
    * @param addr
    *          the address of the value to load
    */
-  public abstract void translateLoad32(OPT_RegisterOperand addr,
+  public abstract void translateLoad32(OPT_Operand addr,
       OPT_RegisterOperand dest);
 
   /**
@@ -259,7 +260,7 @@ public abstract class Memory {
    * @param addr
    *          the address of the value to store
    */
-  public abstract void translateStore8(OPT_RegisterOperand addr,
+  public abstract void translateStore8(OPT_Operand addr,
       OPT_RegisterOperand src);
 
   /**
@@ -270,7 +271,7 @@ public abstract class Memory {
    * @param addr
    *          the address of the value to store
    */
-  public abstract void translateStore16(OPT_RegisterOperand addr,
+  public abstract void translateStore16(OPT_Operand addr,
       OPT_RegisterOperand src);
 
   /**
@@ -281,7 +282,7 @@ public abstract class Memory {
    * @param addr
    *          the address of the value to store
    */
-  public abstract void translateStore32(OPT_RegisterOperand addr,
+  public abstract void translateStore32(OPT_Operand addr,
       OPT_RegisterOperand src);
 
   /**

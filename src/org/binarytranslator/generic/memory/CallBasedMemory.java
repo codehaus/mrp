@@ -24,6 +24,7 @@ import org.jikesrvm.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.opt.ir.OPT_Instruction;
 import org.jikesrvm.opt.ir.OPT_LocationOperand;
 import org.jikesrvm.opt.ir.OPT_MethodOperand;
+import org.jikesrvm.opt.ir.OPT_Operand;
 import org.jikesrvm.opt.ir.OPT_Operators;
 import org.jikesrvm.opt.ir.OPT_Register;
 import org.jikesrvm.opt.ir.OPT_RegisterOperand;
@@ -185,7 +186,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    *          the address of the value to load
    */
   private void translateLoad(VM_Method loadMethod, int bcIndex,
-      OPT_RegisterOperand addr, OPT_RegisterOperand dest) {
+      OPT_Operand addr, OPT_RegisterOperand dest) {
     OPT_Instruction s = Call.create(CALL, dest, null, null, null, 2);
     VM_MethodReference loadMethRef = loadMethod.getMemberRef()
         .asMethodReference();
@@ -212,7 +213,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoadSigned8(OPT_RegisterOperand addr,
+  public void translateLoadSigned8(OPT_Operand addr,
       OPT_RegisterOperand dest) {
     translateLoad(loadS8, DBT_Trace.MEMORY_LOAD8, addr, dest);
   }
@@ -226,7 +227,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoadUnsigned8(OPT_RegisterOperand addr,
+  public void translateLoadUnsigned8(OPT_Operand addr,
       OPT_RegisterOperand dest) {
     translateLoad(loadU8, DBT_Trace.MEMORY_ULOAD8, addr, dest);
   }
@@ -240,7 +241,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoadSigned16(OPT_RegisterOperand addr,
+  public void translateLoadSigned16(OPT_Operand addr,
       OPT_RegisterOperand dest) {
     translateLoad(loadS16, DBT_Trace.MEMORY_LOAD16, addr, dest);
   }
@@ -254,7 +255,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoadUnsigned16(OPT_RegisterOperand addr,
+  public void translateLoadUnsigned16(OPT_Operand addr,
       OPT_RegisterOperand dest) {
     translateLoad(loadU16, DBT_Trace.MEMORY_ULOAD16, addr, dest);
   }
@@ -267,7 +268,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoad32(OPT_RegisterOperand addr, OPT_RegisterOperand dest) {
+  public void translateLoad32(OPT_Operand addr, OPT_RegisterOperand dest) {
     translateLoad(load32, DBT_Trace.MEMORY_LOAD32, addr, dest);
   }
 
@@ -280,7 +281,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  protected void translateCallBasedLoadSigned16(OPT_RegisterOperand addr,
+  protected void translateCallBasedLoadSigned16(OPT_Operand addr,
       OPT_RegisterOperand dest) {
     translateLoad(loadS16, DBT_Trace.MEMORY_LOAD16, addr, dest);
   }
@@ -294,7 +295,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  protected void translateCallBasedLoadUnsigned16(OPT_RegisterOperand addr,
+  protected void translateCallBasedLoadUnsigned16(OPT_Operand addr,
       OPT_RegisterOperand dest) {
     translateLoad(loadU16, DBT_Trace.MEMORY_ULOAD16, addr, dest);
   }
@@ -307,7 +308,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  protected void translateCallBasedLoad32(OPT_RegisterOperand addr,
+  protected void translateCallBasedLoad32(OPT_Operand addr,
       OPT_RegisterOperand dest) {
     translateLoad(load32, DBT_Trace.MEMORY_LOAD32, addr, dest);
   }
@@ -326,7 +327,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    *          the address of the value to store
    */
   private void translateStore(VM_Method storeMethod, int bcIndex,
-      OPT_RegisterOperand addr, OPT_RegisterOperand src) {
+      OPT_Operand addr, OPT_RegisterOperand src) {
     OPT_Instruction s = Call.create(CALL, null, null, null, null, 3);
     VM_MethodReference storeMethRef = storeMethod.getMemberRef()
         .asMethodReference();
@@ -352,7 +353,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore8(OPT_RegisterOperand addr, OPT_RegisterOperand src) {
+  public void translateStore8(OPT_Operand addr, OPT_RegisterOperand src) {
     translateStore(store8, DBT_Trace.MEMORY_STORE8, addr, src);
   }
 
@@ -364,7 +365,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore16(OPT_RegisterOperand addr, OPT_RegisterOperand src) {
+  public void translateStore16(OPT_Operand addr, OPT_RegisterOperand src) {
     translateStore(store16, DBT_Trace.MEMORY_STORE16, addr, src);
   }
 
@@ -376,7 +377,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore32(OPT_RegisterOperand addr, OPT_RegisterOperand src) {
+  public void translateStore32(OPT_Operand addr, OPT_RegisterOperand src) {
     translateStore(store32, DBT_Trace.MEMORY_STORE32, addr, src);
   }
 
@@ -388,7 +389,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateCallBasedStore8(OPT_RegisterOperand addr,
+  public void translateCallBasedStore8(OPT_Operand addr,
       OPT_RegisterOperand src) {
     translateStore(store8, DBT_Trace.MEMORY_STORE8, addr, src);
   }
@@ -401,7 +402,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateCallBasedStore16(OPT_RegisterOperand addr,
+  public void translateCallBasedStore16(OPT_Operand addr,
       OPT_RegisterOperand src) {
     translateStore(store16, DBT_Trace.MEMORY_STORE16, addr, src);
   }
@@ -414,7 +415,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateCallBasedStore32(OPT_RegisterOperand addr,
+  public void translateCallBasedStore32(OPT_Operand addr,
       OPT_RegisterOperand src) {
     translateStore(store32, DBT_Trace.MEMORY_STORE32, addr, src);
   }
