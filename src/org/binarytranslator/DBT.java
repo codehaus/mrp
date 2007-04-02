@@ -15,7 +15,7 @@ public final class DBT {
     else
     {
       if (!cond) {
-        //assertion failed, see if we can get some info on where the assertion occured
+        //assertion failed, see if we can get some info on where the assertion occurred
         StackTraceElement[] trace = Thread.currentThread().getStackTrace();
         
         if (trace.length > 0) {
