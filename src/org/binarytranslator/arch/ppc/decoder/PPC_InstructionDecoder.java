@@ -8,13 +8,13 @@
  */
 package org.binarytranslator.arch.ppc.decoder;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.generic.branch.BranchLogic;
 import org.binarytranslator.generic.decoder.InstructionDecoder;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
-import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.ir.Binary;
 import org.jikesrvm.compilers.opt.ir.BooleanCmp;
 import org.jikesrvm.compilers.opt.ir.BooleanCmp2;
@@ -685,8 +685,8 @@ public class PPC_InstructionDecoder extends InstructionDecoder implements
   protected static void plantBranchToBlockDependentOnCondition(PPC2IR ppc2ir,
       OPT_BasicBlock targetBlock, PPC_Laziness lazy, int BI, boolean cond_true,
       boolean likely) {
-    if (VM.VerifyAssertions)
-      VM._assert((BI >= 0) && (BI < 32));
+    if (DBT.VerifyAssertions)
+      DBT._assert((BI >= 0) && (BI < 32));
 
     // Calculate the condition register field being tested
     int crf = BI >> 2;
@@ -3898,8 +3898,8 @@ final class mcrf_decoder extends PPC_InstructionDecoder {
   protected int translateXL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int crfD00, int crfS00, int zero,
       int secondaryOpcode, int zero2) {
-    if (VM.VerifyAssertions)
-      VM._assert((secondaryOpcode == 0) && (zero == 0) && (zero2 == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((secondaryOpcode == 0) && (zero == 0) && (zero2 == 0));
     int crfD = crfD00 >> 2;
     int crfS = crfS00 >> 2;
 
@@ -3986,8 +3986,8 @@ final class bclr_decoder extends PPC_InstructionDecoder {
   protected int translateXL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int BO, int BI, int zero, int secondaryOpcode,
       int lk) {
-    if (VM.VerifyAssertions)
-      VM._assert((secondaryOpcode == 16) && (zero == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((secondaryOpcode == 16) && (zero == 0));
 
     // Translation process:
     // decode BO and optionally plant any of:
@@ -4082,8 +4082,8 @@ final class crnor_decoder extends PPC_InstructionDecoder {
   protected int translateXL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int crbD, int crbA, int crbB, int secondaryOpcode,
       int zero) {
-    if (VM.VerifyAssertions)
-      VM._assert((secondaryOpcode == 33) && (zero == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((secondaryOpcode == 33) && (zero == 0));
 
     // Resolve laziness as this instruction encodes lots of
     // nonsensical states for the condition register :-(
@@ -4262,8 +4262,8 @@ final class crxor_decoder extends PPC_InstructionDecoder {
   protected int translateXL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int crbD, int crbA, int crbB, int secondaryOpcode,
       int zero) {
-    if (VM.VerifyAssertions)
-      VM._assert((secondaryOpcode == 193) && (zero == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((secondaryOpcode == 193) && (zero == 0));
 
     // Resolve laziness as this instruction encodes lots of
     // nonsensical states for the condition register :-(
@@ -4371,8 +4371,8 @@ final class creqv_decoder extends PPC_InstructionDecoder {
   protected int translateXL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int crbD, int crbA, int crbB, int secondaryOpcode,
       int zero) {
-    if (VM.VerifyAssertions)
-      VM._assert((secondaryOpcode == 289) && (zero == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((secondaryOpcode == 289) && (zero == 0));
 
     // Resolve laziness as this instruction encodes lots of
     // nonsensical states for the condition register :-(
@@ -4494,8 +4494,8 @@ final class cror_traslator extends PPC_InstructionDecoder {
   protected int translateXL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int crbD, int crbA, int crbB, int secondaryOpcode,
       int zero) {
-    if (VM.VerifyAssertions)
-      VM._assert((secondaryOpcode == 449) && (zero == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((secondaryOpcode == 449) && (zero == 0));
 
     // Resolve laziness as this instruction encodes lots of
     // nonsensical states for the condition register :-(
@@ -4647,8 +4647,8 @@ final class bcctr_decoder extends PPC_InstructionDecoder {
   protected int translateXL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int BO, int BI, int zero, int secondaryOpcode,
       int lk) {
-    if (VM.VerifyAssertions)
-      VM._assert((secondaryOpcode == 528) && (zero == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((secondaryOpcode == 528) && (zero == 0));
 
     // Translation process:
     // decode BO and optionally plant any of:
@@ -5045,8 +5045,8 @@ final class neg_decoder extends PPC_InstructionDecoder {
   protected int translateXO_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rD, int rA, int rB, int OE,
       int secondaryOpcode, int Rc) {
-    if (VM.VerifyAssertions)
-      VM._assert(rB == 0);
+    if (DBT.VerifyAssertions)
+      DBT._assert(rB == 0);
 
     // Perform negation
     ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NEG, ppc2ir
@@ -5214,8 +5214,8 @@ final class subfze_decoder extends PPC_InstructionDecoder {
   protected int translateXO_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rD, int rA, int rB, int OE,
       int secondaryOpcode, int Rc) {
-    if (VM.VerifyAssertions)
-      VM._assert(rB == 0);
+    if (DBT.VerifyAssertions)
+      DBT._assert(rB == 0);
     // Get rA
     OPT_RegisterOperand reg_rA = ppc2ir.getGPRegister(rA);
     OPT_RegisterOperand reg_rD = ppc2ir.getGPRegister(rD);
@@ -5274,8 +5274,8 @@ final class addze_decoder extends PPC_InstructionDecoder {
   protected int translateXO_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rD, int rA, int rB, int OE,
       int secondaryOpcode, int Rc) {
-    if (VM.VerifyAssertions)
-      VM._assert(rB == 0);
+    if (DBT.VerifyAssertions)
+      DBT._assert(rB == 0);
     // Get rA & rD
     OPT_RegisterOperand reg_rA = ppc2ir.getGPRegister(rA);
     OPT_RegisterOperand reg_rD = ppc2ir.getGPRegister(rD);
@@ -5359,8 +5359,8 @@ final class addme_decoder extends PPC_InstructionDecoder {
       int inst, int opcode, int rD, int rA, int rB, int OE,
       int secondaryOpcode, int Rc) {
 
-    if (VM.VerifyAssertions)
-      VM._assert(rB == 0);
+    if (DBT.VerifyAssertions)
+      DBT._assert(rB == 0);
     // Get rA & rD
     OPT_RegisterOperand reg_rA = ppc2ir.getGPRegister(rA);
     OPT_RegisterOperand reg_rD = ppc2ir.getGPRegister(rD);
@@ -6646,8 +6646,8 @@ final class cmp_decoder extends PPC_InstructionDecoder {
    */
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int crfD0L, int rA, int rB, int zero, int zero2) {
-    if (VM.VerifyAssertions)
-      VM._assert((zero == zero2) && (zero2 == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((zero == zero2) && (zero2 == 0));
     int crfD = crfD0L >>> 2;
 
     setCRfield(ppc2ir, lazy, crfD, ppc2ir.getGPRegister(rA), ppc2ir
@@ -6805,8 +6805,8 @@ final class mfcr_decoder extends PPC_InstructionDecoder {
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rD, int zero1, int zero2, int secodaryOpcode,
       int zero3) {
-    if (VM.VerifyAssertions)
-      VM._assert((zero1 == zero2) && (zero2 == zero3) && (zero3 == 0));
+    if (DBT.VerifyAssertions)
+      DBT._assert((zero1 == zero2) && (zero2 == zero3) && (zero3 == 0));
 
     ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rD), ppc2ir.getCRRegister()));
@@ -11228,8 +11228,8 @@ final class sc_decoder extends PPC_InstructionDecoder {
    */
   protected int translateSC_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int zero1, int zero2, int zero3, int one, int zero4) {
-    if (VM.VerifyAssertions)
-      VM._assert((zero1 == zero2) && (zero2 == zero3) && (zero3 == zero4)
+    if (DBT.VerifyAssertions)
+      DBT._assert((zero1 == zero2) && (zero2 == zero3) && (zero3 == zero4)
           && (zero4 == 0) && (one == 1));
     ppc2ir.plantSystemCall(lazy, pc);
     return pc + 4;
@@ -11733,8 +11733,8 @@ final class bc_decoder extends PPC_InstructionDecoder {
             .makeJumpTarget()));
         ppc2ir.getCurrentBlock().deleteNormalOut();
         ppc2ir.getCurrentBlock().insertOut(targetBlock);
-        if (VM.VerifyAssertions)
-          VM._assert(ppc2ir.getCurrentBlock().getNumberOfNormalOut() == 1);
+        if (DBT.VerifyAssertions)
+          DBT._assert(ppc2ir.getCurrentBlock().getNumberOfNormalOut() == 1);
       } else {
         OPT_Instruction gotoInstr = Goto.create(GOTO, null);
         ppc2ir.appendInstructionToCurrentBlock(gotoInstr);

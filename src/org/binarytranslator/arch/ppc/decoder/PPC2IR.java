@@ -11,12 +11,12 @@ package org.binarytranslator.arch.ppc.decoder;
 // DBT classes
 import java.util.ArrayList;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.generic.decoder.DecoderUtils;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
-import org.jikesrvm.VM;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_FieldReference;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -296,8 +296,8 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
    *          the number of the register to fill.
    */
   private void fillGPRegister(int r) {
-    if (VM.VerifyAssertions)
-      VM._assert(r < 32);
+    if (DBT.VerifyAssertions)
+      DBT._assert(r < 32);
 
     OPT_RegisterOperand result;
     if (intRegMap[r] == null) {
@@ -320,10 +320,10 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
    *          the number of the register to spill.
    */
   private void spillGPRegister(int r) {
-    if (VM.VerifyAssertions)
-      VM._assert(r < 32);
-    if (VM.VerifyAssertions)
-      VM._assert(intRegMap[r] != null);
+    if (DBT.VerifyAssertions)
+      DBT._assert(r < 32);
+    if (DBT.VerifyAssertions)
+      DBT._assert(intRegMap[r] != null);
 
     OPT_RegisterOperand regOp = new OPT_RegisterOperand(intRegMap[r],
         VM_TypeReference.Int);
@@ -342,8 +342,8 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
    *          the number of the register to fill.
    */
   private void fillFPRegister(int r) {
-    if (VM.VerifyAssertions)
-      VM._assert(r < 32);
+    if (DBT.VerifyAssertions)
+      DBT._assert(r < 32);
 
     OPT_RegisterOperand result;
     if (fpRegMap[r] == null) {
@@ -367,11 +367,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
    *          the number of the register to spill.
    */
   private void spillFPRegister(int r) {
-    if (VM.VerifyAssertions)
-      VM._assert(r < 32);
-    if (VM.VerifyAssertions)
-      VM._assert(fpRegMap[r] != null);
-
+    if (DBT.VerifyAssertions)
+      DBT._assert(r < 32 && fpRegMap[r] != null);
+    
     OPT_RegisterOperand regOp = new OPT_RegisterOperand(fpRegMap[r],
         VM_TypeReference.Double);
 
@@ -735,8 +733,9 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
    *          the number of the PPC GP register
    */
   public OPT_RegisterOperand getGPRegister(int r) {
-    if (VM.VerifyAssertions)
-      VM._assert(r < 32);
+    if (DBT.VerifyAssertions)
+      DBT._assert(r < 32);
+    
     intRegInUseMap[r] = true;
     return new OPT_RegisterOperand(intRegMap[r], VM_TypeReference.Int);
   }
@@ -749,8 +748,8 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
    *          the number of the PPC FP register
    */
   public OPT_RegisterOperand getFPRegister(int r) {
-    if (VM.VerifyAssertions)
-      VM._assert(r < 32);
+    if (DBT.VerifyAssertions)
+      DBT._assert(r < 32);
     fpRegInUseMap[r] = true;
     return new OPT_RegisterOperand(fpRegMap[r], VM_TypeReference.Double);
   }

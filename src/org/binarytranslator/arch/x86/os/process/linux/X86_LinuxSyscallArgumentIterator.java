@@ -1,8 +1,8 @@
 package org.binarytranslator.arch.x86.os.process.linux;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
-import org.jikesrvm.VM;
 
 public class X86_LinuxSyscallArgumentIterator implements LinuxSystemCallGenerator.CallArgumentIterator {
   
@@ -17,7 +17,7 @@ public class X86_LinuxSyscallArgumentIterator implements LinuxSystemCallGenerato
   }
 
   public int nextInt() {
-    if (VM.VerifyAssertions) VM._assert(nextParameter <= 6);
+    if (DBT.VerifyAssertions) DBT._assert(nextParameter <= 6);
     
     return ps.registers.readGP32(order[nextParameter++]);
   }

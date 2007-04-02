@@ -15,13 +15,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.decoder.Laziness.Key;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.TranslationHelper;
-import org.jikesrvm.VM;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_Class;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -351,8 +351,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
       currentBlock = nextBlock;
     } else {
       do {
-        if (VM.VerifyAssertions)
-          VM._assert(currentBlock.getNumberOfRealInstructions() == 0);
+        if (DBT.VerifyAssertions)
+          DBT._assert(currentBlock.getNumberOfRealInstructions() == 0);
         // Record mapping of this pc value and laziness to this block
         registerMapping(pc, lazy, currentBlock);
 
@@ -366,8 +366,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
         // Move currentBlock along
         currentBlock = nextBlock;
         currentPC = pc;
-        if (VM.VerifyAssertions)
-          VM._assert(currentBlock.getNumberOfRealInstructions() == 0);
+        if (DBT.VerifyAssertions)
+          DBT._assert(currentBlock.getNumberOfRealInstructions() == 0);
 
         // Are we translating in single instruction mode
         if (DBT_Options.singleInstrTranslation == true) {
@@ -388,8 +388,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
           currentBlock = createBlockAfterCurrent();
           gotoBlock.deleteNormalOut();
           gotoBlock.insertOut(possibleNextBlock);
-          if (VM.VerifyAssertions)
-            VM._assert(gotoBlock.getNumberOfNormalOut() == 1);
+          if (DBT.VerifyAssertions)
+            DBT._assert(gotoBlock.getNumberOfNormalOut() == 1);
           break;
         }
       } while (pc != -1);
@@ -461,8 +461,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     gc.cfg.linkInCodeOrder(currentBlock, newBlock);
     gc.cfg.linkInCodeOrder(newBlock, nxtBlock);
 
-    if (VM.VerifyAssertions)
-      VM._assert(currentBlock.isOut(nxtBlock));
+    if (DBT.VerifyAssertions)
+      DBT._assert(currentBlock.isOut(nxtBlock));
     currentBlock.deleteOut(nxtBlock);
     currentBlock.insertOut(newBlock);
     newBlock.insertOut(nxtBlock);
@@ -511,8 +511,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     gc.cfg.linkInCodeOrder(afterBlock, newBlock);
     gc.cfg.linkInCodeOrder(newBlock, nxtBlock);
 
-    if (VM.VerifyAssertions)
-      VM._assert(afterBlock.isOut(nxtBlock));
+    if (DBT.VerifyAssertions)
+      DBT._assert(afterBlock.isOut(nxtBlock));
     afterBlock.deleteOut(nxtBlock);
     afterBlock.insertOut(newBlock);
     newBlock.insertOut(nxtBlock);
@@ -705,7 +705,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
             new OPT_IntConstantOperand(pc));
       }
       if (DBT_Options.debugLazy) {
-        VM.sysWriteln("Resolving goto " + lazy.makeKey(pc) + " " + targetBB);
+        report("Resolving goto " + lazy.makeKey(pc) + " " + targetBB);
       }
       if (targetBB == null) {
         // Block not translated so translate
@@ -717,14 +717,14 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
           .get(toRemove);
       Goto.setTarget(goto_inst, targetBB.makeJumpTarget());
       if (DBT_Options.debugLazy) {
-        VM.sysWriteln("Properly resolving goto in block "
+        report("Properly resolving goto in block "
             + goto_inst.getBasicBlock() + " to " + lazy.makeKey(pc) + " "
             + targetBB);
       }
       goto_inst.getBasicBlock().deleteNormalOut();
       goto_inst.getBasicBlock().insertOut(targetBB);
-      if (VM.VerifyAssertions)
-        VM._assert(goto_inst.getBasicBlock().getNumberOfNormalOut() == 1);
+      if (DBT.VerifyAssertions)
+        DBT._assert(goto_inst.getBasicBlock().getNumberOfNormalOut() == 1);
       // Remove from unresolved list
       unresolvedGoto.remove(toRemove);
       unresolvedGoto_PC.remove(toRemove);
@@ -1009,8 +1009,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
         .makeJumpTarget()));
     currentBlock.deleteNormalOut();
     currentBlock.insertOut(finishBlock);
-    if (VM.VerifyAssertions)
-      VM._assert(currentBlock.getNumberOfNormalOut() == 1);
+    if (DBT.VerifyAssertions)
+      DBT._assert(currentBlock.getNumberOfNormalOut() == 1);
     currentBlock = nextBlock;
   }
 
@@ -1357,8 +1357,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    *          a hint to allow for reuse of temps across instructions
    */
   public OPT_RegisterOperand getTempIntArray(int num) {
-    if (VM.VerifyAssertions)
-      VM._assert(num == 0);
+    if (DBT.VerifyAssertions)
+      DBT._assert(num == 0);
 
     OPT_Register result = intArrayTemp;
     if (result == null) {
@@ -1383,8 +1383,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    *          a hint to allow for reuse of temps across instructions
    */
   public OPT_RegisterOperand getTempFloat(int num) {
-    if (VM.VerifyAssertions)
-      VM._assert((num == 0) || (num == 1));
+    if (DBT.VerifyAssertions)
+      DBT._assert((num == 0) || (num == 1));
     if (floatTemps == null) {
       floatTemps = new OPT_Register[2];
     }
@@ -1411,8 +1411,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    *          a hint to allow for reuse of temps across instructions
    */
   public OPT_RegisterOperand getTempDouble(int num) {
-    if (VM.VerifyAssertions)
-      VM._assert(num == 0);
+    if (DBT.VerifyAssertions)
+      DBT._assert(num == 0);
     OPT_Register result = doubleTemp;
     if (result == null) {
       OPT_RegisterOperand regOp = gc.temps.makeTempDouble();
@@ -1436,8 +1436,8 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    *          a hint to allow for reuse of temps across instructions
    */
   public OPT_RegisterOperand getTempValidation(int num) {
-    if (VM.VerifyAssertions)
-      VM._assert(num == 0);
+    if (DBT.VerifyAssertions)
+      DBT._assert(num == 0);
 
     OPT_Register result = validationTemp;
     if (result == null) {
