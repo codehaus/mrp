@@ -9,22 +9,32 @@
 package org.binarytranslator.arch.ppc.decoder;
 
 import org.binarytranslator.DBT_Options;
-import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
-import org.binarytranslator.generic.fault.BadInstructionException;
-import org.binarytranslator.generic.decoder.InstructionDecoder;
 import org.binarytranslator.generic.branch.BranchLogic;
-
-import org.jikesrvm.opt.ir.*;
-import org.jikesrvm.*;
-import org.jikesrvm.classloader.*;
-import org.jikesrvm.opt.*;
+import org.binarytranslator.generic.decoder.InstructionDecoder;
+import org.binarytranslator.generic.fault.BadInstructionException;
+import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
+import org.jikesrvm.VM;
+import org.jikesrvm.compilers.opt.ir.Binary;
+import org.jikesrvm.compilers.opt.ir.BooleanCmp;
+import org.jikesrvm.compilers.opt.ir.BooleanCmp2;
+import org.jikesrvm.compilers.opt.ir.CondMove;
+import org.jikesrvm.compilers.opt.ir.Goto;
+import org.jikesrvm.compilers.opt.ir.IfCmp;
+import org.jikesrvm.compilers.opt.ir.LookupSwitch;
+import org.jikesrvm.compilers.opt.ir.Move;
+import org.jikesrvm.compilers.opt.ir.OPT_BasicBlock;
+import org.jikesrvm.compilers.opt.ir.OPT_BranchProfileOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_DoubleConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_Instruction;
+import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_LongConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operators;
+import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.Unary;
 import org.jikesrvm.ppc.PPC_Disassembler;
-
-import java.util.Enumeration;
-import java.util.NoSuchElementException;
-
-import java.util.*;
 
 /**
  * This class is the super class of all instruction translators, it implements

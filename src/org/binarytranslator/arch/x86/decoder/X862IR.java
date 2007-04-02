@@ -20,21 +20,8 @@ import org.jikesrvm.classloader.VM_BootstrapClassLoader;
 import org.jikesrvm.classloader.VM_FieldReference;
 import org.jikesrvm.classloader.VM_MemberReference;
 import org.jikesrvm.classloader.VM_TypeReference;
-import org.jikesrvm.opt.OPT_Constants;
-import org.jikesrvm.opt.ir.ALoad;
-import org.jikesrvm.opt.ir.AStore;
-import org.jikesrvm.opt.ir.Binary;
-import org.jikesrvm.opt.ir.GetField;
-import org.jikesrvm.opt.ir.Move;
-import org.jikesrvm.opt.ir.OPT_AddressConstantOperand;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.opt.ir.OPT_HIRGenerator;
-import org.jikesrvm.opt.ir.OPT_IntConstantOperand;
-import org.jikesrvm.opt.ir.OPT_LocationOperand;
-import org.jikesrvm.opt.ir.OPT_Operators;
-import org.jikesrvm.opt.ir.OPT_Register;
-import org.jikesrvm.opt.ir.OPT_RegisterOperand;
-import org.jikesrvm.opt.ir.OPT_TrueGuardOperand;
+import org.jikesrvm.compilers.opt.OPT_Constants;
+import org.jikesrvm.compilers.opt.ir.*;
 
 public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_Operators, OPT_Constants {

@@ -13,7 +13,7 @@ package org.binarytranslator;
  */
 public class DBT_Options {
   // -oO Runtime settings Oo-
-
+  
   /**
    * Debug binary loading
    */

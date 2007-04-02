@@ -1,7 +1,7 @@
 /*
  * (C) The University of Manchester 2003 - 2006
  */
-package org.jikesrvm.opt.ir;
+package org.jikesrvm.compilers.opt.ir;
 
 /**
  * Interface implemented by all optimizing compiler HIR generators

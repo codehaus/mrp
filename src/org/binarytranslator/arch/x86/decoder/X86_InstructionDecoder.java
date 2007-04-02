@@ -15,24 +15,7 @@ import org.binarytranslator.generic.decoder.InstructionDecoder;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
-import org.jikesrvm.opt.ir.Binary;
-import org.jikesrvm.opt.ir.BooleanCmp;
-import org.jikesrvm.opt.ir.BooleanCmp2;
-import org.jikesrvm.opt.ir.CondMove;
-import org.jikesrvm.opt.ir.Goto;
-import org.jikesrvm.opt.ir.IfCmp;
-import org.jikesrvm.opt.ir.Move;
-import org.jikesrvm.opt.ir.OPT_BasicBlock;
-import org.jikesrvm.opt.ir.OPT_BranchOperand;
-import org.jikesrvm.opt.ir.OPT_BranchProfileOperand;
-import org.jikesrvm.opt.ir.OPT_ConditionOperand;
-import org.jikesrvm.opt.ir.OPT_Instruction;
-import org.jikesrvm.opt.ir.OPT_IntConstantOperand;
-import org.jikesrvm.opt.ir.OPT_Operand;
-import org.jikesrvm.opt.ir.OPT_Operator;
-import org.jikesrvm.opt.ir.OPT_Operators;
-import org.jikesrvm.opt.ir.OPT_RegisterOperand;
-import org.jikesrvm.opt.ir.Unary;
+import org.jikesrvm.compilers.opt.ir.*;
 
 /**
  * Decoder for X86 instructions

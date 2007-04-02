@@ -8,8 +8,8 @@
  */
 package org.binarytranslator.generic.memory;
 
-import org.jikesrvm.opt.ir.OPT_Operand;
-import org.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operand;
+import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
 import org.jikesrvm.classloader.VM_MethodReference;
 import org.binarytranslator.vmInterface.TranslationHelper;
 import java.io.RandomAccessFile;

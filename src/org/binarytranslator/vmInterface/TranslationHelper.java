@@ -10,11 +10,7 @@ package org.binarytranslator.vmInterface;
 
 import org.jikesrvm.classloader.VM_Method;
 import org.jikesrvm.classloader.VM_TypeReference;
-import org.jikesrvm.opt.ir.OPT_BasicBlock;
-import org.jikesrvm.opt.ir.OPT_BranchProfileOperand;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.opt.ir.OPT_Instruction;
-import org.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.*;
 
 /**
  * Translation helper interface

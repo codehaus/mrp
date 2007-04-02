@@ -1,3 +1,4 @@
+
 /*
  * This file is part of binarytranslator.org. The binarytranslator.org
  * project is distributed under the Common Public License (CPL).
@@ -12,16 +13,16 @@
  * to find every class comprising the chnages to the opt compiler for DBT
  */
 class OptDummy {
-   static org.jikesrvm.opt.ir.ia32.OPT_IA32ConditionOperand a;
-   static org.jikesrvm.opt.ir.OPT_HIRGenerator b;
-   static org.jikesrvm.opt.ir.OPT_GenerationContext c;
-   static org.jikesrvm.opt.ir.OPT_ConditionOperand d;
-   static org.jikesrvm.opt.ir.OPT_HIRInfo e;
-   static org.jikesrvm.opt.OPT_Simplifier f;
+   static org.jikesrvm.compilers.opt.ir.ia32.OPT_IA32ConditionOperand a;
+   static org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator b;
+   static org.jikesrvm.compilers.opt.ir.OPT_GenerationContext c;
+   static org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand d;
+   static org.jikesrvm.compilers.opt.ir.OPT_HIRInfo e;
+   static org.jikesrvm.compilers.opt.OPT_Simplifier f;
    static org.jikesrvm.ppc.PPC_Disassembler g;
    static org.jikesrvm.classloader.VM_Method j;
    static org.jikesrvm.classloader.VM_Member k;
    static org.jikesrvm.classloader.VM_NormalMethod l;
-   static org.jikesrvm.VM_RuntimeCompiler m;
-   static org.jikesrvm.opt.ir.OPT_ConvertBCtoHIR n;
+   static org.jikesrvm.compilers.common.VM_RuntimeCompiler m;
+   static org.jikesrvm.compilers.opt.ir.OPT_ConvertBCtoHIR n;
 }

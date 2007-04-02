@@ -8,8 +8,8 @@
  */
 package org.binarytranslator;
 
-import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
  * The runtime system for the emulator.

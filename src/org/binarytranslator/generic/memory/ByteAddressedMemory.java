@@ -210,9 +210,12 @@ public class ByteAddressedMemory extends CallBasedMemory {
       MemoryMapException.unalignedAddress(addr);
     }
     // Check file offset is page aligned
+    /*
     if ((offset % PAGE_SIZE) != 0) {
       MemoryMapException.unalignedFileOffset(offset);
     }
+    */
+    
     // Calculate number of pages
     int num_pages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
     // Find address if not specified

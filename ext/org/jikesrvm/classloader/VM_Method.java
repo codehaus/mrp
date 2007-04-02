@@ -11,6 +11,8 @@ package org.jikesrvm.classloader;
 import org.jikesrvm.*;
 import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
 import org.jikesrvm.ArchitectureSpecific.VM_LazyCompilationTrampolineGenerator;
+import org.jikesrvm.compilers.common.VM_CompiledMethod;
+import org.jikesrvm.compilers.common.VM_CompiledMethods;
 import org.jikesrvm.runtime.VM_Statics;
 import org.jikesrvm.runtime.VM_Entrypoints;
 

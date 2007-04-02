@@ -34,6 +34,7 @@ class ProcedureInformation {
   /**
    * Comparator for procedure information
    */
+  @SuppressWarnings("unused")
   private static final class ProcedureInformationComparator implements
       Comparator {
     /**

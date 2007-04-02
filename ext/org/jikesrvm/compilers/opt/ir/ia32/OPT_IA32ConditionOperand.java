@@ -6,12 +6,12 @@
  *
  * (C) Copyright IBM Corp. 2001
  */
-package org.jikesrvm.opt.ir.ia32;
+package org.jikesrvm.compilers.opt.ir.ia32;
 
-import org.jikesrvm.ia32.*;
-import org.jikesrvm.opt.OPT_OptimizingCompilerException;
-import org.jikesrvm.opt.ir.OPT_ConditionOperand;
-import org.jikesrvm.opt.ir.OPT_Operand;
+import org.jikesrvm.compilers.common.assembler.ia32.VM_AssemblerConstants;
+import org.jikesrvm.compilers.opt.OPT_OptimizingCompilerException;
+import org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operand;
 
 /**
  * An IA32 condition operand

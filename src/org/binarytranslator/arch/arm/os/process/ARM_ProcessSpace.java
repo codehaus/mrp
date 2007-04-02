@@ -9,8 +9,8 @@ import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 
 public abstract class ARM_ProcessSpace extends ProcessSpace {
 

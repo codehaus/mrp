@@ -28,31 +28,8 @@ import org.jikesrvm.classloader.VM_MemberReference;
 import org.jikesrvm.classloader.VM_Method;
 import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_TypeReference;
-import org.jikesrvm.opt.OPT_Constants;
-import org.jikesrvm.opt.ir.Athrow;
-import org.jikesrvm.opt.ir.BBend;
-import org.jikesrvm.opt.ir.Call;
-import org.jikesrvm.opt.ir.Goto;
-import org.jikesrvm.opt.ir.IfCmp;
-import org.jikesrvm.opt.ir.LookupSwitch;
-import org.jikesrvm.opt.ir.Move;
-import org.jikesrvm.opt.ir.New;
-import org.jikesrvm.opt.ir.OPT_AddressConstantOperand;
-import org.jikesrvm.opt.ir.OPT_BasicBlock;
-import org.jikesrvm.opt.ir.OPT_BranchOperand;
-import org.jikesrvm.opt.ir.OPT_BranchProfileOperand;
-import org.jikesrvm.opt.ir.OPT_ConditionOperand;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.opt.ir.OPT_Instruction;
-import org.jikesrvm.opt.ir.OPT_IntConstantOperand;
-import org.jikesrvm.opt.ir.OPT_MethodOperand;
-import org.jikesrvm.opt.ir.OPT_Operand;
-import org.jikesrvm.opt.ir.OPT_Operator;
-import org.jikesrvm.opt.ir.OPT_Operators;
-import org.jikesrvm.opt.ir.OPT_Register;
-import org.jikesrvm.opt.ir.OPT_RegisterOperand;
-import org.jikesrvm.opt.ir.OPT_TrueGuardOperand;
-import org.jikesrvm.opt.ir.OPT_TypeOperand;
+import org.jikesrvm.compilers.opt.OPT_Constants;
+import org.jikesrvm.compilers.opt.ir.*;
 
 /**
  * A collection of common tools used by decoders. The public entry point for the
@@ -1022,6 +999,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    */
   public void setReturnValueResolveLazinessAndBranchToFinish(Laziness laziness,
       OPT_Operand value) {
+       
     nextBlock = createBlockAfterCurrent();
     // Copy the value into the register specified by gc.resultReg.
     appendInstructionToCurrentBlock(Move.create(INT_MOVE,

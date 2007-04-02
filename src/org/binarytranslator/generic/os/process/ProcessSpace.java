@@ -11,10 +11,10 @@ package org.binarytranslator.generic.os.process;
 import java.util.Hashtable;
 import java.io.*;
 
-import org.jikesrvm.VM_CompiledMethod;
+import org.jikesrvm.compilers.common.VM_CompiledMethod;
 import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.DynamicCodeRunner;
@@ -192,10 +192,9 @@ public abstract class ProcessSpace {
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
-  
+
   public abstract OPT_HIRGenerator createHIRGenerator(
-     OPT_GenerationContext context);
-      
+      OPT_GenerationContext context);
 
   /**
    * Given an ELF binary loader, create the appropriate process space
@@ -217,8 +216,8 @@ public abstract class ProcessSpace {
       report("ARM Binary");
       result = ARM_ProcessSpace.createProcessSpaceFromBinary(loader);
     } else {
-      throw new UnsupportedOperationException("Binary of " + loader.getArchitectureString()
-          + " architecture is unsupported");
+      throw new UnsupportedOperationException("Binary of "
+          + loader.getArchitectureString() + " architecture is unsupported");
     }
     return result;
   }
@@ -319,7 +318,7 @@ public abstract class ProcessSpace {
     VM_CodeArray code = cm.getEntryCodeArray();
     codeHash.put(trace.pc, code);
   }
-  
+
   public synchronized VM_CodeArray getCodeForPC(int pc) {
     VM_CodeArray code = (VM_CodeArray) codeHash.get(pc);
     if (code == null) {
@@ -327,7 +326,7 @@ public abstract class ProcessSpace {
     }
     return code;
   }
-  
+
   private VM_CodeArray translateCode(DBT_Trace trace) {
     if (DBT_Options.debugRuntime) {
       report("Translating code for 0x" + Integer.toHexString(trace.pc));
@@ -337,11 +336,10 @@ public abstract class ProcessSpace {
     replaceCompiledTrace(cm, trace);
     return cm.getEntryCodeArray();
   }
-  
-  /*
 
-  /**
-   * Record a branch instruction
+  /*
+   * 
+   * /** Record a branch instruction
    */
   public void recordUncaughtBranch(int location, int destination, int code) {
     branchInfo.registerBranch(location, destination, code);
@@ -479,7 +477,7 @@ public abstract class ProcessSpace {
      * DataInputStream(printenv.getInputStream()); variables.readUTF(); }
      */
   }
-  
+
   /**
    * Return an interface that allows GDB to read from this process
    */

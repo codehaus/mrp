@@ -10,9 +10,12 @@ package org.jikesrvm.classloader;
 
 import org.jikesrvm.*;
 import org.vmmagic.pragma.*;
-import org.jikesrvm.opt.ir.OPT_HIRGenerator;
-import org.jikesrvm.opt.ir.OPT_BC2IR;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.common.VM_BootImageCompiler;
+import org.jikesrvm.compilers.common.VM_CompiledMethod;
+import org.jikesrvm.compilers.common.VM_RuntimeCompiler;
+import org.jikesrvm.compilers.opt.ir.OPT_BC2IR;
+import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.jikesrvm.runtime.VM_DynamicLink;
 
 /**

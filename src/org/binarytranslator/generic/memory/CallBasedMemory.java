@@ -17,18 +17,7 @@ import org.jikesrvm.classloader.VM_MemberReference;
 import org.jikesrvm.classloader.VM_Method;
 import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_TypeReference;
-import org.jikesrvm.opt.ir.Call;
-import org.jikesrvm.opt.ir.GetField;
-import org.jikesrvm.opt.ir.OPT_AddressConstantOperand;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.opt.ir.OPT_Instruction;
-import org.jikesrvm.opt.ir.OPT_LocationOperand;
-import org.jikesrvm.opt.ir.OPT_MethodOperand;
-import org.jikesrvm.opt.ir.OPT_Operand;
-import org.jikesrvm.opt.ir.OPT_Operators;
-import org.jikesrvm.opt.ir.OPT_Register;
-import org.jikesrvm.opt.ir.OPT_RegisterOperand;
-import org.jikesrvm.opt.ir.OPT_TrueGuardOperand;
+import org.jikesrvm.compilers.opt.ir.*;
 
 /**
  * CallBasedMemory abstraction:

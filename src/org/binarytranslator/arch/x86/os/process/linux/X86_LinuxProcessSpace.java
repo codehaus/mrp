@@ -9,13 +9,12 @@
 package org.binarytranslator.arch.x86.os.process.linux;
 
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.arch.x86.os.abi.linux.X86_LinuxSystemCalls;
+import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
+import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
-import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator.CallArgumentIterator;
-import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
-import org.binarytranslator.arch.x86.os.process.X86_Registers;
-import org.binarytranslator.arch.x86.os.abi.linux.X86_LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
 
 /**

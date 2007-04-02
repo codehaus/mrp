@@ -15,10 +15,9 @@ import org.binarytranslator.DBT_Options;
 import java.io.*;
 
 /**
- * The Loader creates a process for a binary and then loads the binary
- * into it. This class is a superclass for different executable file
- * formats. The appropriate sub-class loader is chosen to actually
- * load the binary.
+ * The Loader creates a process for a binary and then loads the binary into it.
+ * This class is a superclass for different executable file formats. The
+ * appropriate sub-class loader is chosen to actually load the binary.
  */
 public abstract class Loader {
   /*
@@ -27,9 +26,11 @@ public abstract class Loader {
 
   /**
    * Debug information
-   * @param s string of debug information
+   * 
+   * @param s
+   *          string of debug information
    */
-  private static void report(String s){
+  private static void report(String s) {
     if (DBT_Options.debugLoader) {
       System.out.print("Loader:");
       System.out.println(s);
@@ -41,22 +42,25 @@ public abstract class Loader {
    */
 
   /**
-   * Create a process space, load the binary into it and initialise
-   * the stack, etc.
-   * @param args command line arguments
+   * Create a process space, load the binary into it and initialise the stack,
+   * etc.
+   * 
+   * @param args
+   *          command line arguments
    * @return the process space to start executing
    */
   abstract public ProcessSpace readBinary(String[] args) throws IOException;
 
   /**
-   * Return the application binary interface (ABI) supported by this
-   * file
+   * Return the application binary interface (ABI) supported by this file
    */
   abstract public String getABIString();
+
   /**
    * Return the architecture (ISA) supported by this file
    */
   abstract public String getArchitectureString();
+
   /**
    * Is the binary for the X86 ISA?
    */
@@ -66,7 +70,7 @@ public abstract class Loader {
    * Is the binary for the Power PC ISA?
    */
   abstract public boolean isPPC_ISA();
-  
+
   /**
    * Is the binary for the ARM ISA?
    */
@@ -81,7 +85,7 @@ public abstract class Loader {
    * Does this file support the Linux ABI?
    */
   abstract public boolean isLinuxABI();
-  
+
   /**
    * Does this file support the ARM ABI?
    */
@@ -92,25 +96,23 @@ public abstract class Loader {
    */
 
   /**
-   * Open and read the start of the file to determine the appropriate
-   * file loader to use
-   * @param filename Name of file to load
+   * Open and read the start of the file to determine the appropriate file
+   * loader to use
+   * 
+   * @param filename
+   *          Name of file to load
    * @return a binaryloader to create a process
    */
-  public static Loader getLoader(String filename) throws IOException
-  {    
+  public static Loader getLoader(String filename) throws IOException {
     if (ELF_Loader.conforms(filename)) {
       report("ELF object file found");
       return new ELF_Loader();
-    } 
-    else if (ImageLoader.conforms(filename)) {
+    } else if (ImageLoader.conforms(filename)) {
       report("Image Loader file found.");
       return new ImageLoader();
-    }
-    else {
+    } else {
       throw new Error("File " + filename + " has an unrecognized binary format");
     }
   }
-    
 
 }

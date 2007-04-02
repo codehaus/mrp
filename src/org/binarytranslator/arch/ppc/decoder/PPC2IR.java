@@ -9,70 +9,32 @@
 package org.binarytranslator.arch.ppc.decoder;
 
 // DBT classes
-import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
-import org.binarytranslator.vmInterface.TranslationHelper;
-import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
-import org.binarytranslator.vmInterface.DBT_Trace;
+import java.util.ArrayList;
+
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.generic.decoder.DecoderUtils;
 import org.binarytranslator.generic.decoder.Laziness;
-// General VM class
+import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.VM;
-// Classes to get at class types
-import org.jikesrvm.classloader.VM_Class;
-import org.jikesrvm.classloader.VM_Method;
-import org.jikesrvm.classloader.VM_TypeReference;
-import org.jikesrvm.classloader.VM_MethodReference;
-import org.jikesrvm.classloader.VM_MemberReference;
-import org.jikesrvm.classloader.VM_FieldReference;
-import org.jikesrvm.classloader.VM_BootstrapClassLoader;
 import org.jikesrvm.classloader.VM_Atom;
-// OPT interface
-import org.jikesrvm.opt.OPT_Constants;
-import org.jikesrvm.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.opt.ir.OPT_HIRGenerator;
-import org.jikesrvm.opt.ir.OPT_IR;
-// Instructions
-import org.jikesrvm.opt.ir.OPT_Instruction;
-import org.jikesrvm.opt.ir.OPT_Operator;
-import org.jikesrvm.opt.ir.OPT_Operators;
-import org.jikesrvm.opt.ir.ALoad;
-import org.jikesrvm.opt.ir.AStore;
-import org.jikesrvm.opt.ir.Athrow;
-import org.jikesrvm.opt.ir.Binary;
-import org.jikesrvm.opt.ir.BBend;
-import org.jikesrvm.opt.ir.BooleanCmp;
-import org.jikesrvm.opt.ir.Call;
-import org.jikesrvm.opt.ir.CondMove;
-import org.jikesrvm.opt.ir.GetField;
-import org.jikesrvm.opt.ir.Goto;
-import org.jikesrvm.opt.ir.IfCmp;
-import org.jikesrvm.opt.ir.Move;
-import org.jikesrvm.opt.ir.New;
-import org.jikesrvm.opt.ir.LookupSwitch;
-import org.jikesrvm.opt.ir.PutField;
-import org.jikesrvm.opt.ir.Unary;
-// Operands
-import org.jikesrvm.opt.ir.OPT_AddressConstantOperand;
-import org.jikesrvm.opt.ir.OPT_BasicBlock;
-import org.jikesrvm.opt.ir.OPT_BranchOperand;
-import org.jikesrvm.opt.ir.OPT_BranchProfileOperand;
-import org.jikesrvm.opt.ir.OPT_ConditionOperand;
-import org.jikesrvm.opt.ir.OPT_IntConstantOperand;
-import org.jikesrvm.opt.ir.OPT_LocationOperand;
-import org.jikesrvm.opt.ir.OPT_MethodOperand;
-import org.jikesrvm.opt.ir.OPT_Operand;
-import org.jikesrvm.opt.ir.OPT_Register;
-import org.jikesrvm.opt.ir.OPT_RegisterOperand;
-import org.jikesrvm.opt.ir.OPT_TrueGuardOperand;
-import org.jikesrvm.opt.ir.OPT_TypeOperand;
-// Java utilities
-import java.util.Enumeration;
-import java.util.NoSuchElementException;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.Iterator;
-import java.util.HashSet;
+import org.jikesrvm.classloader.VM_FieldReference;
+import org.jikesrvm.classloader.VM_MemberReference;
+import org.jikesrvm.classloader.VM_TypeReference;
+import org.jikesrvm.compilers.opt.OPT_Constants;
+import org.jikesrvm.compilers.opt.ir.ALoad;
+import org.jikesrvm.compilers.opt.ir.AStore;
+import org.jikesrvm.compilers.opt.ir.GetField;
+import org.jikesrvm.compilers.opt.ir.OPT_AddressConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_LocationOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operators;
+import org.jikesrvm.compilers.opt.ir.OPT_Register;
+import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_TrueGuardOperand;
+import org.jikesrvm.compilers.opt.ir.PutField;
 
 /**
  * Translation from PPC machine code to HIR.

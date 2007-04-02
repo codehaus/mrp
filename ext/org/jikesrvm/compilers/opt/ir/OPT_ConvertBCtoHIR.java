@@ -6,9 +6,9 @@
  *
  * (C) Copyright IBM Corp. 2001
  */
-package org.jikesrvm.opt.ir;
+package org.jikesrvm.compilers.opt.ir;
 
-import org.jikesrvm.opt.*;
+import org.jikesrvm.compilers.opt.*;
 
 /**
  * Translate from bytecodes to HIR

@@ -7,10 +7,11 @@
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
 package org.binarytranslator.generic.fault;
+
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
 public class BadInstructionException extends Exception {
   public BadInstructionException(int pc, ProcessSpace ps) {
-	 super("Bad instruction encountered at 0x" + Integer.toHexString(pc));
+    super("Bad instruction encountered at 0x" + Integer.toHexString(pc));
   }
 }

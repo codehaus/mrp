@@ -9,11 +9,7 @@
 package org.binarytranslator.arch.x86.decoder;
 
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
-import org.jikesrvm.opt.ir.Binary;
-import org.jikesrvm.opt.ir.Move;
-import org.jikesrvm.opt.ir.OPT_IntConstantOperand;
-import org.jikesrvm.opt.ir.OPT_Operators;
-import org.jikesrvm.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.*;
 
 /**
  * Wrapper for X86 decoded operands that are either in memory, registers or
