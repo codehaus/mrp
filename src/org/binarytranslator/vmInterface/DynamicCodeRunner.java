@@ -23,7 +23,7 @@ import org.binarytranslator.generic.fault.BadInstructionException;
  * compiled using the PPC emulator. Uninterruptible is used to prevent garbage
  * collection errors with the dynamic bridge code.
  */
-@Uninterruptible
+//@Uninterruptible
 @DynamicBridge
 public class DynamicCodeRunner {
   /**

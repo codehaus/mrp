@@ -29,6 +29,8 @@ import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
+import org.vmmagic.pragma.Uninterruptible;
+
 
 /**
  * A process space encapsulates a running process. This superclass contains non
@@ -348,6 +350,7 @@ public abstract class ProcessSpace {
   /**
    * Return as an integer the current instruction's address
    */
+  @Uninterruptible
   public abstract int getCurrentInstructionAddress();
 
   /**

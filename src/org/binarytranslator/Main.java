@@ -62,6 +62,7 @@ public class Main {
     // Check we have a file to load
     if (args.length < 1) {
       usage();
+      throw new Error("Error program ran without arguments");
     } else {
       // Set up and load the process space
       try {

@@ -21,6 +21,7 @@ import org.binarytranslator.generic.gdbstub.GDBTarget;
 import org.binarytranslator.arch.x86.os.process.linux.X86_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.vmmagic.pragma.Uninterruptible;
 
 /**
  * Encapsulate the parts of an X86 process that are common across operating systems
@@ -172,6 +173,7 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GDBTarget
   /**
    * Return as an integer the current instruction's address
    */
+  @Uninterruptible
   public int getCurrentInstructionAddress() {
     return registers.eip;
   }

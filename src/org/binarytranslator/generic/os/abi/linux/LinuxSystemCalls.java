@@ -61,7 +61,7 @@ abstract public class LinuxSystemCalls {
   /**
    * List of (RandomAccessFile(s)) files currently open
    */
-  private ArrayList files;
+  private ArrayList<Object> files;
   /**
    * Convert integer file descriptor into Java RandomAccessFile
    */
@@ -109,7 +109,7 @@ abstract public class LinuxSystemCalls {
     for(int i=0; i < MAX_SYSCALLS; i++) {
       systemCallTable[i] = USC;
     }
-    files = new ArrayList();
+    files = new ArrayList<Object>();
     files.add(System.in);
     files.add(System.out);
     files.add(System.err);
@@ -447,7 +447,7 @@ abstract public class LinuxSystemCalls {
   }
   
   abstract class ParameterizedSystemCall extends SystemCall {
-    protected LinuxSystemCallGenerator.CallArgumentIterator arguments;
+    protected final LinuxSystemCallGenerator.CallArgumentIterator arguments;
     
     public ParameterizedSystemCall() {
       arguments = src.getSysCallArguments();

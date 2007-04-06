@@ -205,6 +205,7 @@ public final class DBT_Trace extends VM_NormalMethod {
   /**
    * Map bytecode index to java source line number
    */
+  @Uninterruptible
   public int getLineNumberForBCIndex(int bci) {
     return bci;
   }

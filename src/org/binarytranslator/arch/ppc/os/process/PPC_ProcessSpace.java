@@ -22,6 +22,7 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
+import org.vmmagic.pragma.Uninterruptible;
 
 /**
  * Capture the running of a PowerPC process
@@ -162,6 +163,7 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
   /**
    * Return as an integer the current instruction's address
    */
+  @Uninterruptible
   public int getCurrentInstructionAddress() {
     return pc;
   }

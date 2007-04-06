@@ -1,7 +1,6 @@
 package org.binarytranslator.arch.arm.os.process;
 
 import java.io.IOException;
-
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
@@ -11,6 +10,7 @@ import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
+import org.vmmagic.pragma.Uninterruptible;
 
 public abstract class ARM_ProcessSpace extends ProcessSpace {
 
@@ -94,6 +94,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   /**
    * Return as an integer the current instruction's address
    */
+  @Uninterruptible
   public int getCurrentInstructionAddress() {
     return registers.read(ARM_Registers.PC);
   }
