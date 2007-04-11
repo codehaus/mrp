@@ -66,20 +66,6 @@ public abstract class ProcessSpace {
    */
   public Memory memory;
 
-  /**
-   * Load a 8bit value from memory
-   */
-  public byte memoryLoad8(int address) {
-    return (byte) memory.loadSigned8(address);
-  }
-
-  /**
-   * Store a 8bit value to memory
-   */
-  public void memoryStore8(int address, byte data) {
-    memory.store8(address, data);
-  }
-
   /*
    * Utility functions
    */
@@ -334,7 +320,7 @@ public abstract class ProcessSpace {
         System.out.println(e.toString());
       }
     } else {
-      GDBStub gdbStub = new GDBStub(DBT_Options.gdbStubPort, getGDBTarget());
+      GDBStub gdbStub = new GDBStub(DBT_Options.gdbStubPort, this);
       gdbStub.run();
     }
   }

@@ -15,6 +15,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import org.binarytranslator.generic.fault.BadInstructionException;
+import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
  * Interface to GDB
@@ -45,6 +46,11 @@ public final class GDBStub {
    * The process being debugged
    */
   private final GDBTarget target;
+  
+  /**
+   * The currently processed Process Space
+   */
+  private final ProcessSpace ps;
 
   /**
    * Thread to continue or step, a value of -1 means all threads, 0 means any
@@ -117,7 +123,7 @@ public final class GDBStub {
   /**
    * Constructor
    */
-  public GDBStub(int port, GDBTarget target) {
+  public GDBStub(int port, ProcessSpace process) {
     try {
       ServerSocket connectionSocket = new ServerSocket(port);
       socket = connectionSocket.accept();
@@ -129,7 +135,8 @@ public final class GDBStub {
       throw new Error("Error opening socket", e);
     }
     breakpoints = new int[0];
-    this.target = target;
+    this.ps = process;
+    this.target = process.getGDBTarget();
   }
 
   /**
@@ -464,7 +471,7 @@ public final class GDBStub {
     try {
       byte value[] = new byte[count * 2];
       for (int i = 0; i < count; i++) {
-        byte byteVal = target.memoryLoad8(address + i);
+        byte byteVal = (byte)ps.memory.loadUnsigned8(address + i);
         value[i * 2] = intToHex(byteVal >> 4);
         value[(i * 2) + 1] = intToHex(byteVal);
       }
@@ -489,7 +496,7 @@ public final class GDBStub {
       for (int i = 0; i < count; i++) {
         byte byteVal = (byte) ((hexToInt(buffer[start + (i * 2)]) << 4) | (hexToInt(buffer[start
             + (i * 2) + 1])));
-        target.memoryStore8(address + i, byteVal);
+        ps.memory.store8(address + i, byteVal);
       }
       replyOK();
     } catch (NullPointerException e) {

@@ -40,14 +40,4 @@ public interface GDBTarget {
    * Return the address of the current instruction.
    */
   int getCurrentInstructionAddress();
-
-  /**
-   * Store the given bye of data at the given address within the process.
-   */
-  void memoryStore8(int address, byte data);
-
-  /**
-   * Load a byte from the given address within the process.
-   */
-  byte memoryLoad8(int address);
 }
