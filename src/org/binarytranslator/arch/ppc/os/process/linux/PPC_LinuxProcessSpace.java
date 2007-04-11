@@ -16,6 +16,7 @@ import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
  * Simulate the process address space for our PowerPC ELF binary. Also keep
@@ -201,6 +202,10 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
 
   public boolean hasFrameBaseRegister() {
     return false;
+  }
+
+  public ProcessSpace getProcessSpace() {
+    return this;
   }
 
 }

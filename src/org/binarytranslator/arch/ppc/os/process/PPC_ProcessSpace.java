@@ -992,7 +992,7 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
    * Run a single instruction
    */
   public void runOneInstruction() throws BadInstructionException {
-    currentInstruction = memoryLoad32(pc);
+    currentInstruction = memory.load32(pc);
     try {
       PPC_InstructionDecoder.findDecoder(currentInstruction)
           .interpretInstruction(this);

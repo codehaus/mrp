@@ -67,34 +67,6 @@ public abstract class ProcessSpace {
   public Memory memory;
 
   /**
-   * Load a 32bit value from memory
-   */
-  public int memoryLoad32(int wordAddr) {
-    return memory.load32(wordAddr);
-  }
-
-  /**
-   * Store a 32bit value to memory
-   */
-  public void memoryStore32(int address, int data) {
-    memory.store32(address, data);
-  }
-
-  /**
-   * Load a 16bit value from memory
-   */
-  public int memoryLoad16(int hwAddr) {
-    return memory.loadSigned16(hwAddr);
-  }
-
-  /**
-   * Store a 16bit value to memory
-   */
-  public void memoryStore16(int hwAddr, int iValue) {
-    memory.store16(hwAddr, iValue);
-  }
-
-  /**
    * Load a 8bit value from memory
    */
   public byte memoryLoad8(int address) {
@@ -106,63 +78,6 @@ public abstract class ProcessSpace {
    */
   public void memoryStore8(int address, byte data) {
     memory.store8(address, data);
-  }
-
-  /**
-   * Read an ASCIIZ string from the process' memory into a Java String
-   */
-  public String memoryReadString(int address) {
-    StringBuffer str = new StringBuffer();
-    char c;
-
-    while ((c = (char) memoryLoad8(address++)) != 0)
-      str.append(c);
-
-    return str.toString();
-  }
-
-  /**
-   * Write a Java string (crudely) to an ASCIIZ string in the process' memory
-   */
-  public void memoryWriteString(int byteAddr, String value) {
-    if (value != null) {
-      for (int i = 0; i < value.length(); i++) {
-        memoryStore8(byteAddr + i, (byte) value.charAt(i));
-      }
-      memoryStore8(byteAddr + value.length(), (byte) 0);
-    }
-  }
-
-  /**
-   * Map an anonymous page of memory
-   * 
-   * @param addr
-   *          the address to map or NULL if don't care
-   * @param len
-   *          the amount of memory to map
-   * @param read
-   *          is the page readable
-   * @param write
-   *          is the page writable
-   * @param exec
-   *          is the page executable
-   */
-  public int memoryMap(int addr, int len, boolean read, boolean write,
-      boolean exec) throws MemoryMapException {
-    return memory.map(addr, len, read, write, exec);
-  }
-
-  /**
-   * Simulate an munmap system call.
-   * 
-   * @param start
-   *          start of memory area to unmap.
-   * @param length
-   *          length of area.
-   */
-  public int munmap(int start, int length) {
-    memory.unmap(start, length);
-    return 0;
   }
 
   /*

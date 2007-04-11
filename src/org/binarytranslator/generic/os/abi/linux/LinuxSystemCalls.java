@@ -10,6 +10,7 @@ package org.binarytranslator.generic.os.abi.linux;
 
 import java.io.*;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
 import java.util.ArrayList;
 import java.net.InetAddress;
@@ -62,6 +63,43 @@ abstract public class LinuxSystemCalls {
    * List of (RandomAccessFile(s)) files currently open
    */
   private ArrayList<Object> files;
+  
+  
+  /**
+  * Load an ASCIIZ string from the memory of the system call
+  * generator and return it as a Java String.
+  * @param address where to read
+  * @return the String read
+  */
+  private String memoryReadString(int address) {
+    Memory m = src.getProcessSpace().memory;
+    
+    StringBuffer str = new StringBuffer();
+    char c;
+
+    while ((c = (char) m.loadUnsigned8(address++)) != 0)
+      str.append(c);
+
+    return str.toString();
+  }
+  
+  /**
+  * Store an ASCIIZ string to the memory of the system call generator
+  * @param address where to read
+  * @param data the String to write
+  */
+  public void memoryWriteString(int address, String data) {
+    Memory m = src.getProcessSpace().memory;
+    
+    if (data != null) {
+      for (int i = 0; i < data.length(); i++) {
+         m.store8(address + i, (byte) data.charAt(i));
+      }
+      
+      m.store8(address + data.length(), (byte) 0);
+    }
+  }
+  
   /**
    * Convert integer file descriptor into Java RandomAccessFile
    */
@@ -489,13 +527,15 @@ abstract public class LinuxSystemCalls {
       int fd = arguments.nextInt();
       int buf = arguments.nextInt();
       int count = arguments.nextInt();
+      
+      Memory mem = src.getProcessSpace().memory;
 
       if(fd == 0) { // read from stdin
         byte[] b = new byte[256];
         try {
           int len = System.in.read(b);
           for (int i=0; i < len; i++) {
-            src.memoryStore32(buf + i, b[i]);
+            mem.store32(buf + i, b[i]);
           }
           src.setSysCallReturn(len);
         }
@@ -518,7 +558,7 @@ abstract public class LinuxSystemCalls {
             while((b < count) && ((i = raFile.read()) != -1)) {
               byte by = (byte)i;              
               b++;
-              src.memoryStore8(addr++, by);
+              mem.store8(addr++, by);
             }
             src.setSysCallReturn(b); // Return number of bytes read.
           }
@@ -538,15 +578,17 @@ abstract public class LinuxSystemCalls {
       int fd = arguments.nextInt();
       int buf = arguments.nextInt();
       int count = arguments.nextInt();
+      
+      Memory mem = src.getProcessSpace().memory;
 
       if(fd == 1) { // stdout       
         for(int c = 0 ; c < count; c++) {
-          System.out.print((char) src.memoryLoad8(buf + c));
+          System.out.print((char) mem.loadUnsigned8(buf + c));
         }
         src.setSysCallReturn(count);       
       } else if(fd == 2) { // sterr
         for(int c = 0 ; c < count ; c++) {
-          System.err.print((char) src.memoryLoad8(buf + c));
+          System.err.print((char) mem.loadUnsigned8(buf + c));
         }
         src.setSysCallReturn(count);
       } else {
@@ -564,7 +606,7 @@ abstract public class LinuxSystemCalls {
       
           try {
             for(b = 1 ; b <= count ; b++) {
-              by = src.memoryLoad8(addr++);
+              by = (byte) mem.loadUnsigned8(addr++);
               raFile.write(by);
             }         
             // Return number of bytes written, having accounted for b
@@ -588,20 +630,21 @@ abstract public class LinuxSystemCalls {
       int fd = arguments.nextInt();
       int vector = arguments.nextInt();
       int count = arguments.nextInt();
+      Memory mem = src.getProcessSpace().memory;
 
       if((fd == 1)||(fd == 2)) { // stdout || stderr
-        int base = src.memoryLoad32(vector);
-        int len  = src.memoryLoad32(vector+4);
+        int base = mem.load32(vector);
+        int len  = mem.load32(vector+4);
         int currentVector = 0;
         int curVectorPos = 0;
         for(int c = 0 ; c < count; c++) {
           if(curVectorPos == len) {
             currentVector++;
-            base = src.memoryLoad32(vector+(currentVector*8));
-            len  = src.memoryLoad32(vector+(currentVector*8)+4);
+            base = mem.load32(vector+(currentVector*8));
+            len  = mem.load32(vector+(currentVector*8)+4);
             curVectorPos = 0;
           }
-          System.out.print((char) src.memoryLoad8(base + curVectorPos));
+          System.out.print((char) mem.loadUnsigned8(base + curVectorPos));
           curVectorPos++;
         }
         src.setSysCallReturn(count);       
@@ -618,7 +661,7 @@ abstract public class LinuxSystemCalls {
 
       // Examine the flags argument and open read or read-write
       // accordingly. args[0] points to the file name.   
-      String fileName = src.memoryReadString(pathname);
+      String fileName = memoryReadString(pathname);
    
       // Create a File object so we can test for the existance and
       // properties of the file.
@@ -760,12 +803,12 @@ abstract public class LinuxSystemCalls {
           hostName = localhostString.substring(0,index);
         }
         // Fill in utsname struct - see /usr/include/sys/utsname.h
-        src.memoryWriteString (addr,     getSysName()); // sysname
-        src.memoryWriteString (addr+65,  hostName);     // nodename
-        src.memoryWriteString (addr+130, getRelease()); // release
-        src.memoryWriteString (addr+195, getVersion()); // version
-        src.memoryWriteString (addr+260, getMachine()); // machine
-        src.memoryWriteString (addr+325, domainName);   // __domainname
+        memoryWriteString (addr,     getSysName()); // sysname
+        memoryWriteString (addr+65,  hostName);     // nodename
+        memoryWriteString (addr+130, getRelease()); // release
+        memoryWriteString (addr+195, getVersion()); // version
+        memoryWriteString (addr+260, getMachine()); // machine
+        memoryWriteString (addr+325, domainName);   // __domainname
         src.setSysCallReturn(0);
       }
       else {
@@ -786,7 +829,9 @@ abstract public class LinuxSystemCalls {
       int offset = arguments.nextInt();
       if((flags & mman.MAP_ANONYMOUS) != 0 ) {
         try {
-          src.setSysCallReturn(src.memoryMap(start, length,
+          Memory mem = src.getProcessSpace().memory;
+   
+          src.setSysCallReturn(       mem.map(start, length,
                                              (prot & mman.PROT_READ) != 0,
                                              (prot & mman.PROT_WRITE) != 0,
                                              (prot & mman.PROT_EXEC) != 0));

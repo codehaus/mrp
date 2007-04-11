@@ -231,7 +231,7 @@ public class PPC_InstructionDecoder extends InstructionDecoder implements
    */
   public PPC_InstructionDecoder interpretInstruction(PPC_ProcessSpace ps)
       throws BadInstructionException {
-    ps.currentInstruction = ps.memoryLoad32(ps.getCurrentInstructionAddress());
+    ps.currentInstruction = ps.memory.load32(ps.getCurrentInstructionAddress());
     try {
       return getDecoder(ps.currentInstruction).interpretInstruction(ps);
     } catch (NullPointerException e) {
@@ -246,7 +246,7 @@ public class PPC_InstructionDecoder extends InstructionDecoder implements
   protected static PPC_InstructionDecoder moveInstructionOnAndReturnDecoder(
       PPC_ProcessSpace ps) {
     ps.setCurrentInstructionAddress(ps.getCurrentInstructionAddress() + 4);
-    ps.currentInstruction = ps.memoryLoad32(ps.getCurrentInstructionAddress());
+    ps.currentInstruction = ps.memory.load32(ps.getCurrentInstructionAddress());
     return findDecoder(ps.currentInstruction);
   }
 
@@ -264,7 +264,7 @@ public class PPC_InstructionDecoder extends InstructionDecoder implements
    */
   public static int translateInstruction(PPC2IR ppc2ir, PPC_ProcessSpace ps,
       PPC_Laziness lazy, int pc) {
-    int instr = ps.memoryLoad32(pc);
+    int instr = ps.memory.load32(pc);
 
     if (DBT_Options.debugInstr) {
       System.out.println(lazy.makeKey(pc) + PPC_Disassembler.disasm(instr, pc)
@@ -3593,7 +3593,7 @@ final class stfs_decoder extends PPC_InstructionDecoder {
     int d = EXTS(bits(ps.currentInstruction, 16, 31), 16);
     int EA = (rA == 0) ? d : (ps.getRegister(rA) + d);
     int value = Float.floatToIntBits((float) ps.getFPregister(frS));
-    ps.memoryStore32(EA, value);
+    ps.memory.store32(EA, value);
     return moveInstructionOnAndReturnDecoder(ps);
   }
 
@@ -3654,7 +3654,7 @@ final class stfsu_decoder extends PPC_InstructionDecoder {
     int d = EXTS(bits(ps.currentInstruction, 16, 31), 16);
     int EA = (rA == 0) ? d : (ps.getRegister(rA) + d);
     int value = Float.floatToIntBits((float) ps.getFPregister(frS));
-    ps.memoryStore32(EA, value);
+    ps.memory.store32(EA, value);
     ps.setRegister(rA, EA);
     return moveInstructionOnAndReturnDecoder(ps);
   }
@@ -3965,7 +3965,7 @@ final class bclr_decoder extends PPC_InstructionDecoder {
       }
     }
     ps.setCurrentInstructionAddress(target_address);
-    ps.currentInstruction = ps.memoryLoad32(target_address);
+    ps.currentInstruction = ps.memory.load32(target_address);
     return findDecoder(ps.currentInstruction);
   }
 
@@ -4626,7 +4626,7 @@ final class bcctr_decoder extends PPC_InstructionDecoder {
       }
     }
     ps.setCurrentInstructionAddress(target_address);
-    ps.currentInstruction = ps.memoryLoad32(target_address);
+    ps.currentInstruction = ps.memory.load32(target_address);
     return findDecoder(ps.currentInstruction);
   }
 
@@ -11662,7 +11662,7 @@ final class bc_decoder extends PPC_InstructionDecoder {
       }
     }
     ps.setCurrentInstructionAddress(target_address);
-    ps.currentInstruction = ps.memoryLoad32(target_address);
+    ps.currentInstruction = ps.memory.load32(target_address);
     return findDecoder(ps.currentInstruction);
   }
 
@@ -11806,7 +11806,7 @@ final class b_decoder extends PPC_InstructionDecoder {
           .getCurrentInstructionAddress() + 4, target_address);
     }
     ps.setCurrentInstructionAddress(target_address);
-    ps.currentInstruction = ps.memoryLoad32(target_address);
+    ps.currentInstruction = ps.memory.load32(target_address);
     return findDecoder(ps.currentInstruction);
   }
 

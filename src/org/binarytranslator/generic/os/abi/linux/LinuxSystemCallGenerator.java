@@ -9,6 +9,7 @@
 package org.binarytranslator.generic.os.abi.linux;
 
 import org.binarytranslator.generic.memory.MemoryMapException;
+import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
  * Class encapsulating the interface between Linux system calls and
@@ -56,38 +57,12 @@ public interface LinuxSystemCallGenerator {
 	* @param address where to write
 	* @param data value to store
 	*/
-  public void memoryStore32(int address, int data);
+  
   /**
-	* Write to the memory of the system call generator an 8bit value
-	* @param address where to write
-	* @param data value to store
-	*/
-  public void memoryStore8(int address, byte data);
-  /**
-	* Load from memory of the system call generator an 8bit value
-	* @param address where to read
-	* @return value read
-	*/
-  public byte memoryLoad8(int address);
-  /**
-	* Load from memory of the system call generator a 32bit value
-	* @param address where to read
-	* @return value read
-	*/
-  public int memoryLoad32(int address);
-  /**
-	* Load an ASCIIZ string from the memory of the system call
-	* generator and return it as a Java String.
-	* @param address where to read
-	* @return the String read
-	*/
-  public String memoryReadString(int address);
-  /**
-	* Store an ASCIIZ string to the memory of the system call generator
-	* @param address where to read
-	* @param data the String to write
-	*/
-  public void memoryWriteString(int address, String data);
+   * Returns the process space that this call originated from.
+   */
+  public ProcessSpace getProcessSpace();
+  
   /**
 	* Get the top of the BSS segment (the heap that reside below the
 	* stack in memory)
@@ -100,13 +75,4 @@ public interface LinuxSystemCallGenerator {
 	* @param address new top of BSS segment
 	*/
   public void setBrk(int address);
-  /**
-   * Map an anonymous page of memory
-   * @param addr the address to map or NULL if don't care
-   * @param len  the amount of memory to map
-   * @param read is the page readable
-   * @param write is the page writable
-   * @param exec is the page executable
-   */
-  public int memoryMap(int addr, int len, boolean read, boolean write, boolean exec) throws MemoryMapException;
  }

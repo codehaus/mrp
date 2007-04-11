@@ -16,6 +16,7 @@ import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
  * Linux specific parts of the process
@@ -165,5 +166,9 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
 
   public byte[] getPlatformString() {
     return new byte[] {'\0', '6', '8', '6', 'i'};
+  }
+
+  public ProcessSpace getProcessSpace() {
+    return this;
   }
 }
