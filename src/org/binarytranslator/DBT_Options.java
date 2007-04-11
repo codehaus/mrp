@@ -8,6 +8,9 @@
  */
 package org.binarytranslator;
 
+import java.util.HashMap;
+import java.util.Map.Entry;
+
 /**
  * Options for controlling the emulator
  */
@@ -25,6 +28,12 @@ public class DBT_Options {
   public final static boolean unimplementedSystemCallsFatal = true;
 
   // -oO Translation settings Oo-
+  
+  /** The file that is currently being executed. */
+  public static String executableFile;
+  
+  /** Arguments given to the executable.*/
+  public static String[] executableArguments = null;
 
   /**
    * The initial optimisation level
@@ -154,47 +163,132 @@ public class DBT_Options {
    * The group ID for the user running the command
    */
   public final static int GID = 100;
-
+  
+  /** Stores the arguments given to the DBT by the user. These are NOT the arguments given to the executable. */
+  private final static HashMap<String, String> dbtArguments = new HashMap<String, String>();
+  
   /**
-   * Process a command line option
-   * 
-   * @arg the command line argument starting "-X:dbt:"
+   * Read and parse the command line arguments. 
    */
-  public static void processArgument(String arg) {
-    if (arg.startsWith("-X:dbt:debugInstr=true")) {
-      debugInstr = true;
-    } else if (arg.startsWith("-X:dbt:debugRuntime=true")) {
-      debugRuntime = true;
-    } else if (arg.startsWith("-X:dbt:debugSyscall=true")) {
-      debugSyscall = true;
-    } else if (arg.startsWith("-X:dbt:debugSyscallMore=true")) {
-      debugSyscallMore = true;
-    } else if (arg.startsWith("-X:dbt:globalBranchLevel=")) {
-      globalBranchLevel = Integer.parseInt(arg.substring(25));
-    } else if (arg.startsWith("-X:dbt:initialOptLevel=")) {
-      initialOptLevel = Integer.parseInt(arg.substring(23));
-    } else if (arg.startsWith("-X:dbt:instrOpt0=")) {
-      instrOpt0 = Integer.parseInt(arg.substring(17));
-    } else if (arg.startsWith("-X:dbt:instrOpt1=")) {
-      instrOpt1 = Integer.parseInt(arg.substring(17));
-    } else if (arg.startsWith("-X:dbt:instrOpt2=")) {
-      instrOpt2 = Integer.parseInt(arg.substring(17));
-    } else if (arg.startsWith("-X:dbt:singleInstrTranslation=true")) {
-      singleInstrTranslation = true;
-    } else if (arg.startsWith("-X:dbt:resolveBranchesAtOnce=true")) {
-      resolveBranchesAtOnce = true;
-    } else if (arg.startsWith("-X:dbt:resolveBranchesAtOnce=false")) {
-      resolveBranchesAtOnce = false;
-    } else if (arg.startsWith("-X:dbt:resolveProceduresBeforeBranches=true")) {
-      resolveProceduresBeforeBranches = true;
-    } else if (arg.startsWith("-X:dbt:resolveProceduresBeforeBranches=false")) {
-      resolveProceduresBeforeBranches = false;
-    } else if (arg.startsWith("-X:dbt:gdbStub=true")) {
-      gdbStub = true;
-    } else if (arg.startsWith("-X:dbt:gdbStubPort=")) {
-      gdbStubPort = Integer.parseInt(arg.substring(19));
+  public static void parseArguments(String[] args) {
+    parseArgumentsToHashmap(args);
+    
+    for (Entry<String, String> argument : dbtArguments.entrySet()) {
+      String arg = argument.getKey();
+      String value = argument.getValue();
+      
+      try {
+        parseSingleArgument(arg, value);
+      }
+      catch (NumberFormatException e) {
+        throw new Error("Argument " + arg + " is not a valid integer.");
+      }
+    }
+  }
+  
+  /**
+   * Parses a single argument into the options class.
+   */
+  private static void parseSingleArgument(String arg, String value) {
+
+    if (arg.equalsIgnoreCase("-X:dbt:debugInstr")) {
+      debugInstr = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:debugRuntime")) {
+      debugRuntime = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscall")) {
+      debugSyscall = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscallMore")) {
+      debugSyscallMore = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:globalBranchLevel")) {
+      globalBranchLevel = Integer.parseInt(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:initialOptLevel")) {
+      initialOptLevel = Integer.parseInt(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:instrOpt0")) {
+      instrOpt0 = Integer.parseInt(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:instrOpt1")) {
+      instrOpt1 = Integer.parseInt(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:instrOpt2")) {
+      instrOpt2 = Integer.parseInt(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:singleInstrTranslation")) {
+      singleInstrTranslation = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:resolveBranchesAtOnce")) {
+      resolveBranchesAtOnce = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:resolveBranchesAtOnce")) {
+      resolveBranchesAtOnce = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:resolveProceduresBeforeBranches")) {
+      resolveProceduresBeforeBranches = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:resolveProceduresBeforeBranches")) {
+      resolveProceduresBeforeBranches = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:gdbStub")) {
+      gdbStub = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:gdbStubPort")) {
+      gdbStubPort = Integer.parseInt(value);
     } else {
-      throw new Error("DBT Options: Unrecongised emulator option " + arg);
+      throw new Error("DBT Options: Unknown emulator option " + arg);
+    }
+  }
+  
+  /**
+   * Takes an array of arguments and parses them as key=value pairs into the hashmap arguments.
+   */
+  private static void parseArgumentsToHashmap(String[] args) {
+    
+    String key = null;
+    String value;
+    int next = 0;
+    
+    try {
+      //are there further arguments?
+      if (next == args.length) {
+        return;
+      }
+      
+      key = args[next++].trim();
+      
+      if (!key.startsWith("-")) {
+        //this is not an argument to the DBT, so it must the file we're trying to execute.
+        executableFile = key;
+        
+        //the remaining arguments may be passed to the executable
+        executableArguments = new String[args.length - next];
+        for (int i = next; i < args.length; i++)
+          executableArguments[i] = args[next + i];
+        
+        return;
+      }
+
+      //did the user give an argument without spaces in it?
+      int pos = key.indexOf('=');
+      if (pos != -1) {
+        value = key.substring(pos + 1);
+        key = key.substring(0, pos);
+      }
+      else {
+        
+        //extract the argument's value
+        do {
+          value = args[next++].trim();
+          
+          if (value.startsWith("="))
+          {
+            if (value.length() > 1)
+              value = value.substring(1);
+            else
+              value = "";
+          }
+        }
+        while ( value.length() == 0 );
+      }
+      
+      //store the argument's key and value
+      if (dbtArguments.containsKey(key)) {
+        throw new Error(String.format("Parameter %s already defined", key));
+      }
+      
+      dbtArguments.put(key, value); 
+    }
+    catch (Exception e) {
+      throw new Error("Invalid argument format for argument " + key);
     }
   }
 }

@@ -82,10 +82,12 @@ public class ImageLoader extends Loader {
     }
   }
 
-  public ProcessSpace readBinary(String[] args) throws IOException {
+  /**
+   */
+  public ProcessSpace readBinary(String filename) throws IOException {
     
-    report("Reading: " + args[0]);
-    RandomAccessFile file = new RandomAccessFile(args[0], "r");
+    report("Reading: " + filename);
+    RandomAccessFile file = new RandomAccessFile(filename, "r");
     
     if (!readAndCheckID(file))
       throw new IOException("File does not contain the expected EXT_IMG ID string.");
@@ -118,7 +120,7 @@ public class ImageLoader extends Loader {
       return null;
     }
     
-    ps.initialise(this, 0, -1, args);
+    ps.initialise(this, 0, -1);
     return ps;
   }
   

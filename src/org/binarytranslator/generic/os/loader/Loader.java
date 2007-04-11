@@ -20,9 +20,6 @@ import java.io.*;
  * appropriate sub-class loader is chosen to actually load the binary.
  */
 public abstract class Loader {
-  /*
-   * Utility functions
-   */
 
   /**
    * Debug information
@@ -45,11 +42,11 @@ public abstract class Loader {
    * Create a process space, load the binary into it and initialise the stack,
    * etc.
    * 
-   * @param args
-   *          command line arguments
+   * @param filename
+   *          The file, which is to be loaded and executed.
    * @return the process space to start executing
    */
-  abstract public ProcessSpace readBinary(String[] args) throws IOException;
+  abstract public ProcessSpace readBinary(String filename) throws IOException;
 
   /**
    * Return the application binary interface (ABI) supported by this file

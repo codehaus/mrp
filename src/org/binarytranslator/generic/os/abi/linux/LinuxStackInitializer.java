@@ -10,6 +10,7 @@ package org.binarytranslator.generic.os.abi.linux;
 
 import java.io.UnsupportedEncodingException;
 
+import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
 
@@ -274,7 +275,11 @@ public class LinuxStackInitializer {
 	* @param the auxiliary vector, including the terminating AT_NULL (two zeroes).
 	* @return the bottom of the stack in memory
 	*/
-  public static int stackInit(Memory memory, int stackTop, String[] argv, String[]  env, int[] auxVector)  {
+  public static int stackInit(Memory memory, int stackTop, String[]  env, int[] auxVector)  {
+    
+    //grab the vector of command line options that are to be delivered to the linux program
+    String[] argv = DBT_Options.executableArguments;
+    
 	 // ---
 	 // First create the information block by concatenating all strings
 	 // together, then compute pointers to values in the information

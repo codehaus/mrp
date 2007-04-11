@@ -56,16 +56,16 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
    * @param brk the initial value for the top of BSS
    * @param args command line arguments
    */
-  public void initialise(Loader loader, int pc, int brk, String args[]) {
+  public void initialise(Loader loader, int pc, int brk) {
     registers.eip = pc;
     this.brk = brk;
-    registers.writeGP32(X86_Registers.ESP, initialiseStack(loader, pc, args));
+    registers.writeGP32(X86_Registers.ESP, initialiseStack(loader, pc));
   }
 
   /**
    * Initialise the stack
    */
-  private int initialiseStack(Loader loader, int pc, String args[]) {
+  private int initialiseStack(Loader loader, int pc) {
     int[] auxVector = {LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR, 0xffffe000,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x78bfbff,
@@ -86,7 +86,7 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
                        //LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, LinuxStackInitializer.AuxiliaryVectorType.STACK_TOP - getPlatformString().length,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0};
 
-    return LinuxStackInitializer.stackInit(memory, STACK_TOP, args, getEnvironmentVariables(), auxVector);
+    return LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector);
   }
 
   /**

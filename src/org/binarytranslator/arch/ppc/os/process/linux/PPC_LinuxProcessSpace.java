@@ -65,16 +65,16 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
    * @param args
    *          command line arguments
    */
-  public void initialise(Loader loader, int pc, int brk, String args[]) {
+  public void initialise(Loader loader, int pc, int brk) {
     this.pc = pc;
     this.brk = brk;
-    this.r1 = initialiseStack(loader, pc, args);
+    this.r1 = initialiseStack(loader, pc);
   }
 
   /**
    * Initialise the stack
    */
-  private int initialiseStack(Loader loader, int pc, String args[]) {
+  private int initialiseStack(Loader loader, int pc) {
     int[] auxVector = {
         LinuxStackInitializer.AuxiliaryVectorType.AT_IGNOREPPC,
         LinuxStackInitializer.AuxiliaryVectorType.AT_IGNOREPPC,
@@ -118,7 +118,7 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
      * binaries.
      */
 
-    return LinuxStackInitializer.stackInit(memory, STACK_TOP, args,
+    return LinuxStackInitializer.stackInit(memory, STACK_TOP, 
         getEnvironmentVariables(), auxVector);
   }
 

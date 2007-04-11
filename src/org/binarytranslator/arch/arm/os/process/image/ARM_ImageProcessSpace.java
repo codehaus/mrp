@@ -28,7 +28,7 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   }
 
   @Override
-  public void initialise(Loader loader, int pc, int brk, String[] args) {
+  public void initialise(Loader loader, int pc, int brk) {
     registers.write(ARM_Registers.PC, pc);
   }
 

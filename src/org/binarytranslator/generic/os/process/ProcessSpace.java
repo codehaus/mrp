@@ -293,10 +293,8 @@ public abstract class ProcessSpace {
    *          the entry point
    * @param brk
    *          the initial value for the top of BSS
-   * @param args
-   *          command line arguments
    */
-  public abstract void initialise(Loader loader, int pc, int brk, String args[]);
+  public abstract void initialise(Loader loader, int pc, int brk);
 
   /**
    * Constructor

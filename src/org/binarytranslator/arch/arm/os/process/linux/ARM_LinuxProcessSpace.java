@@ -45,7 +45,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
   }
 
   @Override
-  public void initialise(Loader loader, int pc, int brk, String[] args) {
+  public void initialise(Loader loader, int pc, int brk) {
     registers.write(ARM_Registers.PC, pc);
     this.brk = brk;
 
@@ -69,8 +69,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
         LinuxStackInitializer.AuxiliaryVectorType.AT_SECURE, 0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0 };
 
-    LinuxStackInitializer.stackInit(memory, STACK_TOP, args,
-        getEnvironmentVariables(), auxVector);
+    LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector);
   }
 
   public int getBrk() {

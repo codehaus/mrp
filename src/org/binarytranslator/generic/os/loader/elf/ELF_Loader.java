@@ -116,13 +116,13 @@ public class ELF_Loader extends Loader {
 
   /**
    * Main entry point that loads the binary
-   * @param args command line arguments including the program file name
+   * @param filename the program file name
    * @return process space containing loaded binary
    */
-  public ProcessSpace readBinary(String[] args) throws IOException 
+  public ProcessSpace readBinary(String filename) throws IOException 
   {
-    report("Opening File: " + args[0]);
-    RandomAccessFile rFile = new RandomAccessFile(args[0], "r");
+    report("Opening File: " + filename);
+    RandomAccessFile rFile = new RandomAccessFile(filename, "r");
 
     elfHeader = new ELF_Header(rFile); //NB also sets up reader
     report("ELF header read successfully");
@@ -149,7 +149,7 @@ public class ELF_Loader extends Loader {
            "entry = 0x" + Integer.toHexString(elfHeader.getEntryPoint()) +
            " brk = 0x" + Integer.toHexString(brk)
            );
-    ps.initialise(this, elfHeader.getEntryPoint(), brk, args);
+    ps.initialise(this, elfHeader.getEntryPoint(), brk);
 
     return ps;
   }
