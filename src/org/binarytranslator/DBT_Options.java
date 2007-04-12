@@ -9,6 +9,7 @@
 package org.binarytranslator;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
@@ -245,25 +246,59 @@ public class DBT_Options {
     }
   }
   
+  /** A helper class that uses a state pattern to parse arguments, as given by a Java Main() function.
+   * The class distinguishes two argument types: Key-Value-Pairs and Remaining arguments.
+   * Key Value pairs take the form KEY = VALUE and must appear as the first arguments. Remaining arguments
+   * take the form ARGUMENT1 ARGUMENT2 ARGUMENT3.*/
   private static class ArgumentParser {
     
+    /** The current parsing state. The class is using a state pattern. */
     protected State state;
-    protected final HashMap<String, String> arguments;
+    
+    /** A Key-Value mapping of key to arguments. */
+    protected final Map<String, String> arguments;
+    
+    /** A list of remaining arguments. See the class documentation to learn about the difference
+     * between Key-Value and remaining arguments. */
     protected final Vector<String> remainingArguments;
     
-    public static ArgumentParser parse(String[] args, HashMap<String, String> keyValueArguments, Vector<String> remainingArguments) 
+    /**
+     * Parses command line arguments.
+     * @param args
+     *  An array of arguments to parse. This array is usually supplied by a Java Main() method.
+     * @param keyValueArguments
+     *  Parsed Key-Value argument pairs are stored within this map. 
+     * @param remainingArguments
+     *  Remaining arguments are being stored into this vector.
+     * @throws ParseException
+     *  A ArgumentParser.ParseException is thrown in case arguments are not properly formatted and could not be parsed. 
+     */
+    public static void parse(String[] args, Map<String, String> keyValueArguments, Vector<String> remainingArguments) 
       throws ParseException {
       
       ArgumentParser parser = new ArgumentParser(keyValueArguments, remainingArguments);
       parser.parseArguments(args);
-      return parser;
     }
     
-    private ArgumentParser(HashMap<String, String> arguments, Vector<String> remainingArguments) {
+    /**
+     * Creates a new ArgumentParser instance
+     * @param arguments
+     *  Parsed Key-Value argument pairs are stored within this map.
+     * @param remainingArguments
+     *  Remaining arguments are being stored into this vector.
+     */
+    private ArgumentParser(Map<String, String> arguments, Vector<String> remainingArguments) {
       this.arguments = arguments;
       this.remainingArguments = remainingArguments;
     }
     
+    /**
+     * Parses the given arguments into {@link #arguments} and {@link #remainingArguments}.
+     * @param args
+     *  The arguments that are to be parsed. This array is usually supplied by a Java Main() method.
+     * @throws ParseException
+     *  A ArgumentParser.ParseException is thrown in case arguments are not properly formatted and could not be parsed.
+     */
     private void parseArguments(String[] args) 
       throws ParseException {  
       switchState(new AwaitingKeyState());
@@ -300,10 +335,12 @@ public class DBT_Options {
       state.onEnd();
     }
     
+    /** Switches the parser state to a new state. */
     protected void switchState(State s) {
       state = s;
     }
     
+    /** An exception that is being thrown if parsing fails. */
     public static class ParseException extends Exception {
       
       protected ParseException(String msg) {
@@ -311,12 +348,20 @@ public class DBT_Options {
       }
     }
     
+    /** Every parser state must implement this interface. Its methods denote the possible inputs
+     * that might occur during argument parsing. */
     private interface State {
+      /** A text input token has been recognized by the parser. */
       void onText(String text) throws ParseException;
+      
+      /** An assignment input token (usually the equality symbol) has been recognized by the parser. */
       void onAssignment() throws ParseException;
+      
+      /** No more input tokens are available. */
       void onEnd() throws ParseException;
     }
     
+    /** In this state, key-value arguments are being parsed and the parser awaits a new key. */
     private final class AwaitingKeyState implements State {
 
       public void onAssignment() throws ParseException {
@@ -332,8 +377,10 @@ public class DBT_Options {
       }
     }
     
+    /** In this state, key-value arguments are being parsed and the parser awaits an assignment operator. */
     private final class AwaitingAssignmentState implements State {
       
+      /** The previously input key. */
       private final String previousInput;
       
       public AwaitingAssignmentState(String previousInput) {
@@ -358,8 +405,10 @@ public class DBT_Options {
       }
     }
     
+    /** In this state, key-value arguments are being parsed and the parser awaits a value for a key-value pair. */
     private final class ParseValueArgumentState implements State {
       
+      /** The previously input key. */
       private final String previousInput;
       
       public ParseValueArgumentState(String previousInput) {
@@ -384,6 +433,7 @@ public class DBT_Options {
       }
     }
     
+    /** In this state, no more key-value arguments are parsed. All further text nodes are treated as remaining arguments.*/
     private final class ParseRemainingArgumentsState implements State {
 
       public void onAssignment() throws ParseException {
