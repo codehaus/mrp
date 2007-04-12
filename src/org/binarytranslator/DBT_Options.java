@@ -9,6 +9,7 @@
 package org.binarytranslator;
 
 import java.util.HashMap;
+import java.util.Vector;
 import java.util.Map.Entry;
 
 /**
@@ -171,7 +172,23 @@ public class DBT_Options {
    * Read and parse the command line arguments. 
    */
   public static void parseArguments(String[] args) {
-    parseArgumentsToHashmap(args);
+
+    try {
+      Vector<String> remainingArguments = new Vector<String>();
+      ArgumentParser.parse(args, dbtArguments, remainingArguments);
+      
+      //did the user give an executable to execute?
+      if (remainingArguments.size() > 0) {
+        executableFile = remainingArguments.get(0);
+        remainingArguments.remove(0);
+        
+        executableArguments = new String[remainingArguments.size()];
+        remainingArguments.toArray(executableArguments);
+      }
+    }
+    catch (ArgumentParser.ParseException e) {
+      throw new Error(e.getMessage());
+    }
     
     for (Entry<String, String> argument : dbtArguments.entrySet()) {
       String arg = argument.getKey();
@@ -228,67 +245,158 @@ public class DBT_Options {
     }
   }
   
-  /**
-   * Takes an array of arguments and parses them as key=value pairs into the hashmap arguments.
-   */
-  private static void parseArgumentsToHashmap(String[] args) {
+  private static class ArgumentParser {
     
-    String key = null;
-    String value;
-    int next = 0;
+    protected State state;
+    protected final HashMap<String, String> arguments;
+    protected final Vector<String> remainingArguments;
     
-    try {
-      //are there further arguments?
-      if (next == args.length) {
-        return;
+    public static ArgumentParser parse(String[] args, HashMap<String, String> keyValueArguments, Vector<String> remainingArguments) 
+      throws ParseException {
+      
+      ArgumentParser parser = new ArgumentParser(keyValueArguments, remainingArguments);
+      parser.parseArguments(args);
+      return parser;
+    }
+    
+    private ArgumentParser(HashMap<String, String> arguments, Vector<String> remainingArguments) {
+      this.arguments = arguments;
+      this.remainingArguments = remainingArguments;
+    }
+    
+    private void parseArguments(String[] args) 
+      throws ParseException {  
+      switchState(new AwaitingKeyState());
+      
+      int next = 0;
+      
+      while (next < args.length) {
+        String input = args[next++].trim();
+        
+        int pos = input.indexOf("=");
+        
+        if (pos == 0) {
+          //this token has the form "=TEXT"
+          do {
+            state.onAssignment();
+            input = input.substring(1);
+          }
+          while (input.startsWith("="));
+        }
+        else if (pos > 0) {
+          //the token has the form "TEXT="
+          state.onText(input.substring(0, pos));
+          state.onAssignment();
+          
+          //handle remaining text (form TEXT=TEXT)
+          input = input.substring(pos + 1);
+        }
+        
+        if (input.length() > 1) {
+          state.onText(input);
+        }
       }
       
-      key = args[next++].trim();
+      state.onEnd();
+    }
+    
+    protected void switchState(State s) {
+      state = s;
+    }
+    
+    public static class ParseException extends Exception {
       
-      if (!key.startsWith("-")) {
-        //this is not an argument to the DBT, so it must the file we're trying to execute.
-        executableFile = key;
-        
-        //the remaining arguments may be passed to the executable
-        executableArguments = new String[args.length - next];
-        for (int i = next; i < args.length; i++)
-          executableArguments[i] = args[next + i];
-        
-        return;
+      protected ParseException(String msg) {
+        super(msg);
+      }
+    }
+    
+    private interface State {
+      void onText(String text) throws ParseException;
+      void onAssignment() throws ParseException;
+      void onEnd() throws ParseException;
+    }
+    
+    private final class AwaitingKeyState implements State {
+
+      public void onAssignment() throws ParseException {
+        throw new ParseException("Unexpected token '=' while parsing arguments.");
       }
 
-      //did the user give an argument without spaces in it?
-      int pos = key.indexOf('=');
-      if (pos != -1) {
-        value = key.substring(pos + 1);
-        key = key.substring(0, pos);
+      public void onEnd() throws ParseException {
+        //no further arguments, stop parsing
       }
-      else {
-        
-        //extract the argument's value
-        do {
-          value = args[next++].trim();
-          
-          if (value.startsWith("="))
-          {
-            if (value.length() > 1)
-              value = value.substring(1);
-            else
-              value = "";
-          }
-        }
-        while ( value.length() == 0 );
+
+      public void onText(String text) throws ParseException {
+        switchState(new AwaitingAssignmentState(text));
       }
-      
-      //store the argument's key and value
-      if (dbtArguments.containsKey(key)) {
-        throw new Error(String.format("Parameter %s already defined", key));
-      }
-      
-      dbtArguments.put(key, value); 
     }
-    catch (Exception e) {
-      throw new Error("Invalid argument format for argument " + key);
+    
+    private final class AwaitingAssignmentState implements State {
+      
+      private final String previousInput;
+      
+      public AwaitingAssignmentState(String previousInput) {
+        this.previousInput = previousInput;
+      }
+
+      public void onAssignment() throws ParseException {
+        switchState(new ParseValueArgumentState(previousInput));
+      }
+
+      public void onEnd() throws ParseException {
+        //the key has obviously been a single remaining argument
+        remainingArguments.add(previousInput);
+      }
+
+      public void onText(String text) throws ParseException {
+        //the key has obviously been a single remaining argument and now we received the next one
+        remainingArguments.add(previousInput);
+        remainingArguments.add(text);
+        
+        switchState(new ParseRemainingArgumentsState());
+      }
+    }
+    
+    private final class ParseValueArgumentState implements State {
+      
+      private final String previousInput;
+      
+      public ParseValueArgumentState(String previousInput) {
+        this.previousInput = previousInput;
+      }
+
+      public void onAssignment() throws ParseException {
+        throw new ParseException("Invalid value for argument '" + previousInput + "'.");
+      }
+
+      public void onEnd() throws ParseException {
+        throw new ParseException("Missing value for argument '" + previousInput + "'.");
+      }
+
+      public void onText(String text) throws ParseException {
+        if (arguments.containsKey(text)) {
+          throw new ParseException("Duplicate argument '" + previousInput + "' while parsing arguments.");
+        }
+        
+        arguments.put(previousInput, text);
+        switchState(new AwaitingKeyState());
+      }
+    }
+    
+    private final class ParseRemainingArgumentsState implements State {
+
+      public void onAssignment() throws ParseException {
+        remainingArguments.add("=");
+      }
+
+      public void onEnd() throws ParseException {
+        //no-op
+      }
+
+      public void onText(String text) throws ParseException {
+        remainingArguments.add(text);
+      }
     }
   }
 }

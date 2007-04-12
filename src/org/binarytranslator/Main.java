@@ -47,17 +47,20 @@ public class Main {
    */
   public static void main(String[] args) {
 
-    if (args.length < 1) {
-      showUsage();
-      return;
-    }
-
     // Process any arguments for the emulator
     try {
       DBT_Options.parseArguments(args);
     } catch (Exception e) {
       System.err.println("Error while parsing command line arguments.");
       System.err.println(e.getMessage());
+      showUsage();
+      return;
+    }
+    
+    if (DBT_Options.executableFile == null) {
+      System.err.println("Missing executable file name");
+      showUsage();
+      return;
     }
 
     ProcessSpace ps;
