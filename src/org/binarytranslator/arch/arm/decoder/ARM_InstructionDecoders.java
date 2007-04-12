@@ -50,6 +50,7 @@ public class ARM_InstructionDecoders  {
     return (value << (32 - bitsUsed)) >> (32 - bitsUsed);
   }
 
+  /** A base class for all (conditional) ARM instructions. */
   private abstract static class Basic {
     /** @see #getCondition() */
     protected final byte condition;
@@ -62,6 +63,9 @@ public class ARM_InstructionDecoders  {
     public final byte getCondition() {
       return condition;
     }
+    
+    /** All instruction classes are meant to implement the visitor pattern. This is the pattern's visit method. */
+    public abstract void visit(ARM_InstructionVisitor visitor);
   }
 
   /** Base class for most instructions that use two registers. */
@@ -386,6 +390,11 @@ public class ARM_InstructionDecoders  {
     public static boolean conforms(int instr) {
       return getBits(instr, 26, 27) == 0;
     }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
+    }
   }
 
   /** Represents a LDR/SDR instruction. */
@@ -459,6 +468,11 @@ public class ARM_InstructionDecoders  {
     public static boolean conforms(int instr) {
       return getBits(instr, 26, 27) == 1;
     }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
+    }
   }
   
   /** Represents a normal (not long) multiply instruction. */
@@ -471,6 +485,11 @@ public class ARM_InstructionDecoders  {
     /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
     public static boolean conforms(int instr) {
       return getBits(instr, 22, 27) == 0 && getBits(instr, 4, 7) == 9;
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
     }
   }
   
@@ -505,6 +524,11 @@ public class ARM_InstructionDecoders  {
     public static boolean conforms(int instr) {
       return getBits(instr, 23, 27) == 1 && getBits(instr, 4, 7) == 9;
     }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
+    }
   }
 
   /** Represents a SWP/SWPB instruction. */
@@ -527,6 +551,11 @@ public class ARM_InstructionDecoders  {
     public static boolean conforms(int instr) {
       return getBits(instr, 23, 27) == 2 && getBits(instr, 20, 21) == 0
           && getBits(instr, 4, 11) == 9;
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
     }
   }
 
@@ -608,6 +637,11 @@ public class ARM_InstructionDecoders  {
     public byte getBaseRegister() {
       return baseRegister;
     }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
+    }
   }
 
   /** Represents a SWI instruction*/
@@ -629,6 +663,11 @@ public class ARM_InstructionDecoders  {
     /** Checks if <code>instr</code> is a valid bit representation of this instruction. */
     public static boolean conforms(int instr) {
       return getBits(instr, 24, 27) == 15;
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
     }
   }
 
@@ -660,6 +699,11 @@ public class ARM_InstructionDecoders  {
     /** Checks if <code>instr</code> is a valid bit representation of this instruction. */
     public static boolean conforms(int instr) {
       return getBits(instr, 25, 27) == 5;
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
     }
   }
   
@@ -703,6 +747,11 @@ public class ARM_InstructionDecoders  {
     public static boolean conforms(int instr) {
       return getBits(instr, 25, 31) == 0x7D // BLX(1)
              || (getBits(instr, 20, 27) == 0x12 && getBits(instr, 6, 7) == 0); //BLX(2) && BX
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
     }
   }
   
@@ -777,6 +826,11 @@ public class ARM_InstructionDecoders  {
     public static boolean conforms(int instr) {
       return getBits(instr, 25, 27) == 6;
     }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
+    }
   }
   
   /** Represents a CDP instruction. */
@@ -827,6 +881,11 @@ public class ARM_InstructionDecoders  {
     /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
     public static boolean conforms(int instr) {
       return getBits(instr, 24, 27) == 14 && !getBit(instr, 4);
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
     }
   }
   
@@ -888,6 +947,11 @@ public class ARM_InstructionDecoders  {
     public static boolean conforms(int instr) {
       return getBits(instr, 24, 27) == 14 && getBit(instr, 4);
     }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
+    }
   }
   
   /** Represents a MRS instruction. */
@@ -919,6 +983,11 @@ public class ARM_InstructionDecoders  {
     /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
     public static boolean conforms(int instr) {
       return getBits(instr, 23, 27) == 2 && getBits(instr, 16, 21) == 0 && (instr & 0xFFF) == 0;
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
     }
   }
   
@@ -992,6 +1061,48 @@ public class ARM_InstructionDecoders  {
     /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
     public static boolean conforms(int instr) {
       return getBits(instr, 26, 27) == 0 && getBits(instr, 23, 24) == 2 && getBits(instr, 12, 15) == 0;
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
+    }
+  }
+  
+  /** Represents a CLZ instruction. */
+  public final static class CountLeadingZeros extends Basic {
+    
+    /** @see #getRm() */
+    protected final byte Rm;
+    
+    /** @see #getRd() */
+    protected final byte Rd;
+
+    public CountLeadingZeros(int instr) {
+      super(instr);
+      
+      Rm = (byte) (instr & 0xF);
+      Rd = (byte) getBits(instr, 12, 15);
+    }
+    
+    /** Returns the source register for this operation. */
+    public byte getRm() {
+      return Rm;
+    }
+    
+    /** Returns the destination register for this operation. */
+    public byte getRd() {
+      return Rd;
+    }
+    
+    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
+    public static boolean conforms(int instr) {
+      return getBits(instr, 16, 27) == 0x16F && getBits(instr, 4, 11) == 0xF1;
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
     }
   }
 }
