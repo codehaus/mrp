@@ -8,27 +8,24 @@
  */
 package org.binarytranslator.generic.os.process;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.Hashtable;
-import java.io.*;
 
-import org.jikesrvm.compilers.common.VM_CompiledMethod;
-import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
-import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
-
-import org.binarytranslator.vmInterface.DBT_Trace;
-import org.binarytranslator.vmInterface.DynamicCodeRunner;
 import org.binarytranslator.DBT_Options;
-import org.binarytranslator.generic.branch.BranchLogic;
-import org.binarytranslator.generic.memory.Memory;
-import org.binarytranslator.generic.memory.MemoryMapException;
-import org.binarytranslator.generic.fault.BadInstructionException;
-import org.binarytranslator.generic.gdbstub.GDBStub;
-import org.binarytranslator.generic.gdbstub.GDBTarget;
-import org.binarytranslator.generic.os.loader.Loader;
-import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
+import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
+import org.binarytranslator.generic.branch.BranchLogic;
+import org.binarytranslator.generic.execution.GdbController.GdbTarget;
+import org.binarytranslator.generic.memory.Memory;
+import org.binarytranslator.generic.memory.MemoryMapException;
+import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.vmInterface.DBT_Trace;
+import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
+import org.jikesrvm.compilers.common.VM_CompiledMethod;
+import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.vmmagic.pragma.Uninterruptible;
 
 
@@ -289,43 +286,6 @@ public abstract class ProcessSpace {
   }
 
   /**
-   * Runtime loop, goes through the binary and looks in the Hashtable codeHash
-   * to see if we have already translated/compiled this piece of code, if not it
-   * is compiled. The compiled code is then run.
-   */
-  public void run() {
-    if (DBT_Options.debugRuntime) {
-      System.out.println("Main: run");
-    }
-
-    // The current block of compiled code.
-    VM_CodeArray code;
-
-    if (DBT_Options.debugPS) {
-      System.out.println("***** INITIAL PROCESS SPACE *****\n" + this);
-      System.out.println(this);
-      // dumpStack(20);
-    }
-
-    if (DBT_Options.gdbStub == false) {
-      try {
-        // interpretFrom(); // Interpreter - experimental
-        while (finished == false) {
-          // Get the compiled code
-          code = getCodeForPC(getCurrentInstructionAddress());
-          // Run the compiled code.
-          setCurrentInstructionAddress(DynamicCodeRunner.invokeCode(code, this));
-        }
-      } catch (BadInstructionException e) {
-        System.out.println(e.toString());
-      }
-    } else {
-      GDBStub gdbStub = new GDBStub(DBT_Options.gdbStubPort, this);
-      gdbStub.run();
-    }
-  }
-
-  /**
    * Entry point for system calls
    */
   public abstract void doSysCall();
@@ -383,5 +343,5 @@ public abstract class ProcessSpace {
   /**
    * Return an interface that allows GDB to read from this process
    */
-  public abstract GDBTarget getGDBTarget();
+  public abstract GdbTarget getGdbTarget();
 }

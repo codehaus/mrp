@@ -11,7 +11,7 @@ package org.binarytranslator.arch.ppc.os.process.linux;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.arch.ppc.os.abi.linux.PPC_LinuxSystemCalls;
-import org.binarytranslator.generic.gdbstub.GDBTarget;
+import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
@@ -192,7 +192,7 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
     brk = address;
   }
 
-  public GDBTarget getGDBTarget() {
+  public GdbTarget getGdbTarget() {
     return this;
   }
 

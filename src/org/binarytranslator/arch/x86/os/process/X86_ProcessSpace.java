@@ -16,8 +16,8 @@ import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
+import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.BadInstructionException;
-import org.binarytranslator.generic.gdbstub.GDBTarget;
 import org.binarytranslator.arch.x86.os.process.linux.X86_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
 import org.binarytranslator.generic.os.loader.Loader;
@@ -26,7 +26,7 @@ import org.vmmagic.pragma.Uninterruptible;
 /**
  * Encapsulate the parts of an X86 process that are common across operating systems
  */
-public abstract class X86_ProcessSpace extends ProcessSpace implements GDBTarget {
+public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget {
 
   /*
    * Process defaults
@@ -107,7 +107,7 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GDBTarget
     return 8;
   }
   
-  public GDBTarget getGDBTarget() {
+  public GdbTarget getGdbTarget() {
     return this;
   }
 

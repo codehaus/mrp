@@ -8,6 +8,9 @@
  */
 package org.binarytranslator;
 
+import org.binarytranslator.generic.execution.DynamicTranslationController;
+import org.binarytranslator.generic.execution.ExecutionController;
+import org.binarytranslator.generic.execution.GdbController;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -75,6 +78,21 @@ public class Main {
     }
 
     report("Sucessfully created process.");
-    ps.run();
+    
+    if (DBT_Options.debugPS) {
+      System.out.println("***** INITIAL PROCESS SPACE *****\n");
+      System.out.println(ps);
+    }
+    
+    //Create an execution controller and pass execution on to it
+    ExecutionController controller;
+    
+    if (DBT_Options.gdbStub == false) {
+      controller = new GdbController(DBT_Options.gdbStubPort, ps);
+    }
+    else
+      controller = new DynamicTranslationController(ps);
+    
+    controller.run();
   }
 }

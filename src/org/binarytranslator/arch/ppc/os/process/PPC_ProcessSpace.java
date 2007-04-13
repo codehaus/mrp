@@ -14,8 +14,8 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.decoder.PPC2IR;
 import org.binarytranslator.arch.ppc.decoder.PPC_InstructionDecoder;
 import org.binarytranslator.arch.ppc.os.process.linux.PPC_LinuxProcessSpace;
+import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.BadInstructionException;
-import org.binarytranslator.generic.gdbstub.GDBTarget;
 import org.binarytranslator.generic.memory.ByteAddressedByteSwapMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
@@ -28,7 +28,7 @@ import org.vmmagic.pragma.Uninterruptible;
  * Capture the running of a PowerPC process
  */
 public abstract class PPC_ProcessSpace extends ProcessSpace implements
-    GDBTarget {
+    GdbTarget {
   /*
    * Here's what would be in the PowerPC's registers if the binary were running
    * on a real PowerPC. For speed I am using individual variables, not arrays

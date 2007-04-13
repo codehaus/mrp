@@ -4,7 +4,7 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.abi.linux.ARM_LinuxSystemCalls;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
-import org.binarytranslator.generic.gdbstub.GDBTarget;
+import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
@@ -100,8 +100,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
   }
 
   @Override
-  public GDBTarget getGDBTarget() {
-    // TODO Auto-generated method stub
+  public GdbTarget getGdbTarget() {
     return null;
   }
 
