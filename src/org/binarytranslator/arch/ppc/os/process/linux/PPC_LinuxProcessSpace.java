@@ -52,8 +52,8 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
    * Constructor
    */
   public PPC_LinuxProcessSpace(Loader loader) {
-    syscalls = new PPC_LinuxSystemCalls(this);
     syscallArgs = new PPC_LinuxSyscallArgumentIterator(this);
+    syscalls = new PPC_LinuxSystemCalls(this);
   }
 
   /**
