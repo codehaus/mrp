@@ -10,7 +10,6 @@ package org.binarytranslator.generic.os.process;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Hashtable;
 
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
@@ -21,22 +20,15 @@ import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.os.loader.Loader;
-import org.binarytranslator.vmInterface.DBT_Trace;
-import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
-import org.jikesrvm.compilers.common.VM_CompiledMethod;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.vmmagic.pragma.Uninterruptible;
-
 
 /**
  * A process space encapsulates a running process. This superclass contains non
  * operating and architecture specific details of the process.
  */
 public abstract class ProcessSpace {
-  /*
-   * Runtime information
-   */
 
   /**
    * A record of branches to guide translation
@@ -44,28 +36,15 @@ public abstract class ProcessSpace {
   public final BranchLogic branchInfo;
 
   /**
-   * A hashtable containing translated traces of code
-   */
-  protected final Hashtable<Integer, VM_CodeArray> codeHash = new Hashtable<Integer, VM_CodeArray>();
-
-  /**
    * Has a system call been called to terminate the process
    */
   public boolean finished = false;
-
-  /*
-   * Interface to memory
-   */
 
   /**
    * The memory for the process. As this is user mode code, it is a virtual
    * address space
    */
   public Memory memory;
-
-  /*
-   * Utility functions
-   */
 
   /**
    * Debug information
@@ -79,10 +58,6 @@ public abstract class ProcessSpace {
       System.out.println(s);
     }
   }
-
-  /*
-   * Methods
-   */
 
   /**
    * Create an optimizing compiler HIR code generator suitable for a particular
@@ -121,7 +96,7 @@ public abstract class ProcessSpace {
     }
     return result;
   }
-
+ 
   /**
    * Create a segment
    * 
@@ -202,42 +177,7 @@ public abstract class ProcessSpace {
   }
 
   /**
-   * Constructor
-   */
-  public ProcessSpace(String[] args) throws IOException {
-    branchInfo = new BranchLogic();
-  }
-
-  /**
-   * Replace the compiled code for a trace (called by the adaptive system)
-   */
-  public synchronized void replaceCompiledTrace(VM_CompiledMethod cm,
-      DBT_Trace trace) {
-    VM_CodeArray code = cm.getEntryCodeArray();
-    codeHash.put(trace.pc, code);
-  }
-
-  public synchronized VM_CodeArray getCodeForPC(int pc) {
-    VM_CodeArray code = (VM_CodeArray) codeHash.get(pc);
-    if (code == null) {
-      code = translateCode(new DBT_Trace(this, pc));
-    }
-    return code;
-  }
-
-  private VM_CodeArray translateCode(DBT_Trace trace) {
-    if (DBT_Options.debugRuntime) {
-      report("Translating code for 0x" + Integer.toHexString(trace.pc));
-    }
-    trace.compile();
-    VM_CompiledMethod cm = trace.getCurrentCompiledMethod();
-    replaceCompiledTrace(cm, trace);
-    return cm.getEntryCodeArray();
-  }
-
-  /*
-   * 
-   * /** Record a branch instruction
+   * Record a branch instruction
    */
   public void recordUncaughtBranch(int location, int destination, int code) {
     branchInfo.registerBranch(location, destination, code);

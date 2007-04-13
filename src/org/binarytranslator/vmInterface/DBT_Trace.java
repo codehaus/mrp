@@ -18,6 +18,7 @@ import org.jikesrvm.classloader.VM_Class;
 import org.jikesrvm.classloader.VM_MemberReference;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_BytecodeStream;
+import org.jikesrvm.runtime.VM_Magic;
 import org.jikesrvm.runtime.VM_Statics;
 import org.jikesrvm.runtime.VM_DynamicLink;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
@@ -190,7 +191,6 @@ public final class DBT_Trace extends VM_NormalMethod {
    */
   public final synchronized void replaceCompiledMethod(
       VM_CompiledMethod compiledMethod) {
-    ps.replaceCompiledTrace(compiledMethod, this);
 
     // Grab version that is being replaced
     VM_CompiledMethod oldCompiledMethod = currentCompiledMethod;

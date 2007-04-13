@@ -181,6 +181,7 @@ public class GdbController extends
   /**
    * Main run loop
    */
+  @Override
   public void run() {
     try {
       while (socket.isConnected()) {
