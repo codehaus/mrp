@@ -376,7 +376,7 @@ public class ARM_InstructionDecoders  {
       return opcode;
     }
     
-    /** Returns true if the condition codes shall be set by this operation, false otherwise. €*/
+    /** Returns true if the condition codes shall be set by this operation, false otherwise. */
     public boolean updateConditionCodes() {
       return updateConditionCodes;
     }
