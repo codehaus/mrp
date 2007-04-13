@@ -2,6 +2,19 @@ package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.DBT;
 
+/**
+ * In the ARM decoder model, the decoding and usage (translating/interpreting/disassembling) of instructions
+ * is strictly separated. This class provides a namespace for all decoder classes. A decoder works like a
+ * mask than can be put upon a binary instruction to look at the different fields within that instruction.
+ * 
+ * Application might derive from these decoders to implement instruction-specific functionality.
+ * Then, implement a version of the generic {@link ARM_InstructionFactory} interface, which returns 
+ * your derived classes and pass it to the {@link ARM_InstructionDecoder} to let it create instances of
+ * your class from binary instructions. 
+ * 
+ * @author Michael Baer
+ *
+ */
 public class ARM_InstructionDecoders  {
 
   /**
@@ -13,7 +26,7 @@ public class ARM_InstructionDecoders  {
    * @return
    *  True, if the given bit is set within the word, false otherwise.
    */
-  public static final boolean getBit(int word, int bit) {
+  private static final boolean getBit(int word, int bit) {
     if (DBT.VerifyAssertions)
       DBT._assert(bit >= 0 && bit <= 31);
     return (word & (1 << bit)) != 0;
@@ -31,7 +44,7 @@ public class ARM_InstructionDecoders  {
    * @return
    *  A zero-based version of the bit sequence.
    */
-  public static final int getBits(int word, int from, int to) {
+  private static final int getBits(int word, int from, int to) {
     if (DBT.VerifyAssertions)
       DBT._assert(from < to && from >= 0 && to <= 31);
     return (word & ((1 << (to + 1)) - 1)) >> from;
@@ -136,17 +149,17 @@ public class ARM_InstructionDecoders  {
     }
 
     /** Returns true, if the condition codes shall be updated by the result of this operation. */
-    public boolean updateConditionCodes() {
+    public final boolean updateConditionCodes() {
       return updateConditionCodes;
     }
 
     /** Returns true, if this is the accumulate version of the instruction. */
-    public boolean accumulate() {
+    public final boolean accumulate() {
       return accumulate;
     }
     
     /** Returns the register number of the Rs operand register. */
-    public byte getRs() {
+    public final byte getRs() {
       return Rs;
     }
   }
@@ -172,7 +185,7 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Returns the coprocessor that shall process this instruction */
-    public byte getCoprocessorNumber() {
+    public final byte getCoprocessorNumber() {
       return cpNum;
     }
   }
@@ -180,6 +193,7 @@ public class ARM_InstructionDecoders  {
   /** Represents an operand, which might either be an immediate value, a register (shifted by an immediate) or a  register shifted by a register. */
   public abstract static class OperandWrapper {
     
+    /** Describes the type of the operand. */
     public enum Type {
       Immediate,
       Register,
@@ -187,6 +201,7 @@ public class ARM_InstructionDecoders  {
       RegisterShiftedRegister,
     }
     
+    /** Describes a type of shift, in case the operand is supposed to be shifted. */
     public enum ShiftType {
       LogicalLeft,
       LogicalRight,
@@ -236,6 +251,7 @@ public class ARM_InstructionDecoders  {
       }
     }
     
+    /** Returns the type of the operand that this class is actually representing. */
     public abstract Type getType();
     
     /** Returns the immediate, which is the 2nd operand of this instruction. Make sure that hasImmediate is true before calling this. */
@@ -263,8 +279,10 @@ public class ARM_InstructionDecoders  {
       throw new RuntimeException("Invalid call on an operand wrapper.");
     }
     
+    /** Represents an immediate value operand. */
     protected static class ImmediateOperand extends OperandWrapper {
       
+      /** @see #getImmediate() */
       protected final int immediate;
       
       protected ImmediateOperand(int immediate) {
@@ -282,8 +300,10 @@ public class ARM_InstructionDecoders  {
       }
     }
     
+    /** Represents a register operand. */
     protected static class RegisterOperand extends OperandWrapper {
       
+      /** @see #getRegister() */
       protected final byte register;
       
       protected RegisterOperand(byte register) {
@@ -301,9 +321,13 @@ public class ARM_InstructionDecoders  {
       }
     }
     
+    /** Represents an operand, which is a register shifted by an immediate value. */
     protected static class RegisterShiftImmediateOperand extends RegisterOperand {
       
+      /** @see #getShiftType() */
       protected final ShiftType shiftType;
+      
+      /** @see #getShiftAmount() */
       protected final byte shiftAmount;
       
       protected RegisterShiftImmediateOperand(byte register, ShiftType shift, byte shiftAmount) {
@@ -321,11 +345,20 @@ public class ARM_InstructionDecoders  {
       public byte getShiftAmount() {
         return shiftAmount;
       }
+      
+      @Override
+      public ShiftType getShiftType() {
+        return shiftType;
+      }
     }
     
+    /** Returns an operand, which is a register shifted by a register. */
     protected static class RegisterShiftRegisterOperand extends RegisterOperand {
       
+      /** @see #getShiftType() */
       protected final ShiftType shiftType;
+      
+      /** @see #getShiftingRegister() */
       protected final byte shiftingRegister;
       
       protected RegisterShiftRegisterOperand(byte shiftedRegister, ShiftType shift, byte shiftingRegister) {
@@ -343,11 +376,16 @@ public class ARM_InstructionDecoders  {
       public byte getShiftingRegister() {
         return shiftingRegister;
       }
+      
+      @Override
+      public ShiftType getShiftType() {
+        return shiftType;
+      }
     }
   }
 
   /** Represents a Data Processing instruction. */
-  public final static class DataProcessing extends
+  public static class DataProcessing extends
       TwoRegistersTemplate {
 
     /** @see #hasSetConditionCodes() */
@@ -372,25 +410,20 @@ public class ARM_InstructionDecoders  {
     }
 
     /** Returns the opcode, that specifies the data processing operation, which is to be performed. */
-    public byte getOpcode() {
+    public final byte getOpcode() {
       return opcode;
     }
     
     /** Returns true if the condition codes shall be set by this operation, false otherwise. */
-    public boolean updateConditionCodes() {
+    public final boolean updateConditionCodes() {
       return updateConditionCodes;
     }
     
     /** Returns the 2nd operand of this data processing instruction. */
-    public OperandWrapper getOperand2() {
+    public final OperandWrapper getOperand2() {
       return operand2;
     }
     
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 26, 27) == 0;
-    }
-
     @Override
     public void visit(ARM_InstructionVisitor visitor) {
       visitor.visit(this);
@@ -398,17 +431,26 @@ public class ARM_InstructionDecoders  {
   }
 
   /** Represents a LDR/SDR instruction. */
-  public final static class SingleDataTransfer extends
+  public static class SingleDataTransfer extends
       TwoRegistersTemplate {
+    
+    public enum TransferSize {
+      Byte,
+      HalfWord,
+      Word
+    }
 
     /** @see #preIndexing() */
     protected final boolean preIndexing;
 
     /** @see #positiveOffset() */
     protected final boolean positiveOffset;
+    
+    /** @see #signExtend() */
+    protected final boolean signExtend;
 
-    /** @see #byteTransfer() */
-    protected final boolean byteTransfer;
+    /** @see #getSize() */
+    protected final TransferSize size;
 
     /** @see #writeBack() */
     protected final boolean writeBack;
@@ -416,57 +458,87 @@ public class ARM_InstructionDecoders  {
     /** @see #isLoad() */
     protected final boolean isLoad;
     
-    /** @see #getOperand2() */
-    protected final OperandWrapper operand2;
+    /** @see #getOffset() */
+    protected final OperandWrapper offset;
     
     public SingleDataTransfer(int instr) {
       super(instr);
 
       preIndexing = getBit(instr, 24);
       positiveOffset = getBit(instr, 23);
-      byteTransfer = getBit(instr, 22);
       writeBack = getBit(instr, 21);
       isLoad = getBit(instr, 20);
       
-      if (getBit(instr, 25))
-        operand2 = OperandWrapper.createImmediate(instr & 0xFF);
-      else
-        operand2 = OperandWrapper.decodeShiftedRegister(instr);
+      if (getBit(instr, 26)) {
+        //this is an unsigned byte or word transfer
+        signExtend = false;
+        
+        if (getBit(instr, 22))
+          size = TransferSize.Byte;
+        else
+          size = TransferSize.Word;
+        
+        if (getBit(instr, 25))
+          offset = OperandWrapper.createImmediate(instr & 0xFF);
+        else
+          offset = OperandWrapper.decodeShiftedRegister(instr);
+      }
+      else {
+        //this is a byte or half-word transfer
+        if (getBit(instr, 5))
+          size = TransferSize.HalfWord;
+        else
+          size = TransferSize.Byte;
+        
+        signExtend = getBit(instr, 6);
+        
+        if (getBit(instr, 22)) {
+          //immediate offset
+          offset = OperandWrapper.createImmediate((getBits(instr, 8, 11) << 4) | (instr & 0xF));
+        }
+        else {
+          //register offset
+          offset = OperandWrapper.createRegister((byte)(instr & 0xF));
+        }
+        
+        //The decoder should make sure that we're never being called with this combination
+        if (DBT.VerifyAssertions) DBT._assert(!signExtend || isLoad);
+      }
+    }
+    
+    /** Returns true, if the loaded/stored value shall be signed-extended.*/
+    public final boolean signExtend() {
+      return signExtend;
     }
 
-    /** Returns true, if a single byte is to be transfered or false if an int shall be transfered. */
-    public boolean isByteTransfer() {
-      return byteTransfer;
+    /** Returns the number of bytes that have to be transferred. */
+    public final TransferSize getSize() {
+      return size;
     }
 
     /** True if this is a LDM instruction, false if it is a STM instruction. */
-    public boolean isLoad() {
+    public final boolean isLoad() {
       return isLoad;
     }
 
     /** Returns true, if the offset from the base register (see {@link #getRn()} is positive, false if it is negative. */
-    public boolean positiveOffset() {
+    public final boolean positiveOffset() {
       return positiveOffset;
     }
 
     /** True if the base register shall be changed before the transfer, otherwise changed it after the transfer. */
-    public boolean preIndexing() {
+    public final boolean preIndexing() {
       return preIndexing;
     }
 
     /** True if the incremented base register shall be persisted after this instruction. */
-    public boolean writeBack() {
+    public final boolean writeBack() {
       return writeBack;
     }
     
-    /** Returns the 2nd operand of this data processing instruction. */
-    public OperandWrapper getOperand2() {
-      return operand2;
-    }
-    
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 26, 27) == 1;
+    /** Returns the offset operand for this data processing instruction. */
+    public final OperandWrapper getOffset() {
+      return offset;
     }
 
     @Override
@@ -476,15 +548,10 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a normal (not long) multiply instruction. */
-  public final static class Multiply extends MultiplyTemplate {
+  public static class IntMultiply extends MultiplyTemplate {
    
-    protected Multiply(int instr) {
+    protected IntMultiply(int instr) {
       super(instr);
-    }
-
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 22, 27) == 0 && getBits(instr, 4, 7) == 9;
     }
 
     @Override
@@ -494,7 +561,7 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a long multiply instruction. */
-  public final static class LongMultiply extends MultiplyTemplate {
+  public static class LongMultiply extends MultiplyTemplate {
     
     /** @see #isUnsigned() */
     protected final boolean unsigned;
@@ -506,23 +573,18 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Long multiplication stores its result in two registers. This function gets the register which receives the high int. */
-    public byte getRdHigh() {
+    public final byte getRdHigh() {
       return Rd;
     }
 
     /** Long multiplication stores its result in two registers. This function gets the register which receives the low int. */
-    public byte getRdLow() {
+    public final byte getRdLow() {
       return Rn;
     }
     
     /** Returns true, if this is an unsigned multiplication or false if it is a signed multiplication. */
-    public boolean isUnsigned() {
+    public final boolean isUnsigned() {
       return unsigned;
-    }
-
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 23, 27) == 1 && getBits(instr, 4, 7) == 9;
     }
 
     @Override
@@ -532,7 +594,7 @@ public class ARM_InstructionDecoders  {
   }
 
   /** Represents a SWP/SWPB instruction. */
-  public final static class Swap extends ThreeRegistersTemplate {
+  public static class Swap extends ThreeRegistersTemplate {
 
     /** @see #swapByte() */
     protected final boolean swapByte;
@@ -543,14 +605,8 @@ public class ARM_InstructionDecoders  {
     }
 
     /** Returns true, if a byte shall be swapped or false, if an int (32 bit) shall be swapped. */
-    public boolean swapByte() {
+    public final boolean swapByte() {
       return swapByte;
-    }
-
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 23, 27) == 2 && getBits(instr, 20, 21) == 0
-          && getBits(instr, 4, 11) == 9;
     }
 
     @Override
@@ -560,7 +616,7 @@ public class ARM_InstructionDecoders  {
   }
 
   /** Represents a LDM/STM instruction. */
-  public final static class BlockDataTransfer extends Basic {
+  public static class BlockDataTransfer extends Basic {
 
     /** @see #preIndexing() */
     protected final boolean preIndexing;
@@ -595,13 +651,8 @@ public class ARM_InstructionDecoders  {
       registerList = instr;
     }
 
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 25, 27) == 4;
-    }
-
     /** @return True if register r should be transferred using this instruction. */
-    public boolean transferRegister(int r) {
+    public final boolean transferRegister(int r) {
       if (DBT.VerifyAssertions)
         DBT._assert(r >= 0 && r < 16);
 
@@ -609,32 +660,32 @@ public class ARM_InstructionDecoders  {
     }
     
     /** True if the base register shall be changed before each single transfer, otherwise changed it after each transfer. */
-    public boolean preIndexing() {
+    public final boolean preIndexing() {
       return preIndexing;
     }
 
     /** True if the base register shall be incremented, false if it should be decremented. */
-    public boolean incrementBase() {
+    public final boolean incrementBase() {
       return incrementBase;
     }
 
     /** Force user mode during this instruction? */
-    public boolean forceUser() {
+    public final boolean forceUser() {
       return forceUser;
     }
 
     /** True if the incremented base register shall be persisted after this instruction. */
-    public boolean writeBack() {
+    public final boolean writeBack() {
       return writeBack;
     }
 
     /** True if this is a LDM instruction, false if it is a STM instruction. */
-    public boolean isLoad() {
+    public final boolean isLoad() {
       return isLoad;
     }
 
     /** The number of the register which will provides the base address for this LDM/STM instruction. */
-    public byte getBaseRegister() {
+    public final byte getBaseRegister() {
       return baseRegister;
     }
 
@@ -645,7 +696,7 @@ public class ARM_InstructionDecoders  {
   }
 
   /** Represents a SWI instruction*/
-  public final static class SoftwareInterrupt extends Basic {
+  public static class SoftwareInterrupt extends Basic {
 
     /** @see #getInterruptNumber() */
     protected final int interruptNumber;
@@ -656,13 +707,8 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Returns the interrupt that is being called. The value is taken from the instruction's comment field. */
-    public int getInterruptNumber() {
+    public final int getInterruptNumber() {
       return interruptNumber;
-    }
-
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 24, 27) == 15;
     }
 
     @Override
@@ -672,7 +718,7 @@ public class ARM_InstructionDecoders  {
   }
 
   /** Represents a branch instruction. */
-  public final static class Branch extends Basic {
+  public static class Branch extends Basic {
 
     /** @see #isBranchAndLink() */
     protected final boolean link;
@@ -687,18 +733,13 @@ public class ARM_InstructionDecoders  {
     }
 
     /** Should the current PC be put into the lr? */
-    public boolean isBranchAndLink() {
+    public final boolean isBranchAndLink() {
       return link;
     }
 
     /** The offset of the target address to the PC */
-    public int getOffset() {
+    public final int getOffset() {
       return offset;
-    }
-
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 25, 27) == 5;
     }
 
     @Override
@@ -708,7 +749,7 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a BX instruction set */
-  public final static class BranchExchange extends Basic {
+  public static class BranchExchange extends Basic {
 
     /** @see #getRn() */
     protected final OperandWrapper target;
@@ -739,14 +780,8 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Returns, whether the return address for this jump shall be put into the lr. */
-    public boolean link() {
+    public final boolean link() {
       return link;
-    }
-
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 25, 31) == 0x7D // BLX(1)
-             || (getBits(instr, 20, 27) == 0x12 && getBits(instr, 6, 7) == 0); //BLX(2) && BX
     }
 
     @Override
@@ -756,7 +791,7 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a LDC/STC instruction. */
-  public static final class CoprocessorDataTransfer extends CoprocessorTemplate {
+  public static class CoprocessorDataTransfer extends CoprocessorTemplate {
     
     /** @see #getOffset() */
     protected final int offset;
@@ -788,43 +823,38 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Returns the number of the register, which contains the base address for this data transfer.*/
-    public byte getBaseRegister() {
+    public final byte getBaseRegister() {
       return Rn;
     }
     
     /** Returns the transfer register on the coprocessor. */
-    public byte getCoprocessorRegister() {
+    public final byte getCoprocessorRegister() {
       return Rd;
     }
     
     /** True if this is a LDC instruction, false if it is a STC instruction. */
-    public boolean isLoad() {
+    public final boolean isLoad() {
       return isLoad;
     }
     
     /** Returns the offset that should be added to the base register. Note that the offset may be negative. */
-    public int getOffset() {
+    public final int getOffset() {
       return offset;
     }
     
     /** True if the changed base register shall be persisted after this instruction. */
-    public boolean writeBack() {
+    public final boolean writeBack() {
       return writeBack;
     }
 
     /** True if the base register shall be changed before the transfer, otherwise changed it after the transfer. */
-    public boolean preIndexing() {
+    public final boolean preIndexing() {
       return preIndexing;
     }
     
     /** Returns true, if the flag which indicates a large transfer is set. The meaning of "large transfer" is dependend on the coprocessor.*/
-    public boolean largeTransfer() {
+    public final boolean largeTransfer() {
       return largeTransfer;
-    }
-    
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 25, 27) == 6;
     }
 
     @Override
@@ -834,7 +864,7 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a CDP instruction. */
-  public final static class CoprocessorDataProcessing extends CoprocessorTemplate {
+  public static class CoprocessorDataProcessing extends CoprocessorTemplate {
     
     /** @see #getOpcode() */
     protected final byte opcode;
@@ -854,33 +884,28 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Returns the destination register of this operation. This register is a coprocessor register. */
-    public byte getCoprocessorRd() {
+    public final byte getCoprocessorRd() {
       return Rd; 
     }
     
     /** Returns the first operand register of this operation. This register is a coprocessor register. */
-    public byte getCoprocessorRn() {
+    public final byte getCoprocessorRn() {
       return Rn; 
     }
     
     /** Returns the second operand register of this operation. This register is a coprocessor register. */
-    public byte getCoprocessorRm() {
+    public final byte getCoprocessorRm() {
       return cpRm; 
     }
     
     /** The instruction contains three bits that may be used to control the details of the operation. This info is only of significance to the coprocessor. */
-    public byte getCoprocessorInfo() {
+    public final byte getCoprocessorInfo() {
       return cpInfo;
     }
     
     /** Returns the opcode, that identifies the operation that shall be performed on the coprocessor. This vlaue is only of significance to the coprocessor. */
-    public byte getOpcode() {
+    public final byte getOpcode() {
       return opcode;
-    }
-    
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 24, 27) == 14 && !getBit(instr, 4);
     }
 
     @Override
@@ -890,7 +915,7 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a MRC/MCR instruction. */
-  public final static class CoprocessorRegisterTransfer extends CoprocessorTemplate {
+  public static class CoprocessorRegisterTransfer extends CoprocessorTemplate {
     
     /** @see #getOpcode() */
     protected final byte opcode;
@@ -914,38 +939,33 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Returns true if this operation is a load from a coprocessor or false if it is a store to coprocessor. */
-    public boolean isLoadFromCP() {
+    public final boolean isLoadFromCP() {
       return isLoad;
     }
     
     /** Returns the destination register of this operation.*/
-    public byte getRd() {
+    public final byte getRd() {
       return Rd; 
     }
     
     /** Returns the first operand register of this operation. This register is a coprocessor register. */
-    public byte getCoprocessorRn() {
+    public final byte getCoprocessorRn() {
       return Rn; 
     }
     
     /** Returns the second operand register of this operation. This register is a coprocessor register. */
-    public byte getCoprocessorRm() {
+    public final byte getCoprocessorRm() {
       return cpRm; 
     }
     
     /** The instruction contains three bits that may be used to control the details of the operation. This info is only of significance to the coprocessor. */
-    public byte getCoprocessorInfo() {
+    public final byte getCoprocessorInfo() {
       return cpInfo;
     }
     
     /** Returns the opcode, that identifies the operation that shall be performed on the coprocessor. This vlaue is only of significance to the coprocessor. */
-    public byte getOpcode() {
+    public final byte getOpcode() {
       return opcode;
-    }
-    
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 24, 27) == 14 && getBit(instr, 4);
     }
 
     @Override
@@ -955,7 +975,7 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a MRS instruction. */
-  public final static class TransferFromStatusRegister extends Basic {
+  public static class MoveFromStatusRegister extends Basic {
     
     /** @see #getRd() */
     protected final byte Rd;
@@ -963,7 +983,7 @@ public class ARM_InstructionDecoders  {
     /** @see #transferSavedPSR() */
     protected final boolean transferSavedPSR;
 
-    public TransferFromStatusRegister(int instr) {
+    public MoveFromStatusRegister(int instr) {
       super(instr);
       
       Rd = (byte) getBits(instr, 12, 15);
@@ -971,18 +991,13 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Returns the number of the destination register. */
-    public byte getRd() {
+    public final byte getRd() {
       return Rd;
     }
     
     /** Identifies the PSR that is to be transferred: true for the SPSR, false for the CPSR. */
-    public boolean transferSavedPSR() {
+    public final boolean transferSavedPSR() {
       return transferSavedPSR;
-    }
-    
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 23, 27) == 2 && getBits(instr, 16, 21) == 0 && (instr & 0xFFF) == 0;
     }
 
     @Override
@@ -992,7 +1007,7 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a MSR instruction. */
-  public final static class TransferToStatusRegister extends Basic {
+  public static class MoveToStatusRegister extends Basic {
     
     /** @see #transferControlField() */
     protected final boolean transferControl;
@@ -1012,7 +1027,7 @@ public class ARM_InstructionDecoders  {
     /** @see #getSourceOperand() */
     protected final OperandWrapper sourceOperand;
 
-    public TransferToStatusRegister(int instr) {
+    public MoveToStatusRegister(int instr) {
       super(instr);
       
       transferControl = getBit(instr, 16);
@@ -1029,38 +1044,33 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Identifies the PSR that is to be transferred: true for the SPSR, false for the CPSR. */
-    public boolean transferSavedPSR() {
+    public final boolean transferSavedPSR() {
       return transferSavedPSR;
     }
     
     /** Returns true if the control field of the PSR shall be overwritten. */
-    public boolean transferControlField() {
+    public final boolean transferControlField() {
       return transferControl;
     }
     
     /** Returns true if the extension field of the PSR shall be overwritten. */
-    public boolean transferExtensionField() {
+    public final boolean transferExtensionField() {
       return transferExtension;
     }
     
     /** Returns true if the status field of the PSR shall be overwritten. */
-    public boolean transferStatusField() {
+    public final boolean transferStatusField() {
       return transferStatus;
     }
     
     /** Returns true if the flag field of the PSR shall be overwritten. */
-    public boolean transferFlagField() {
+    public final boolean transferFlagField() {
       return transferFlags;
     }
     
     /** Returns the operand, which is to be transfered into the status register. */
-    public OperandWrapper getSourceOperand() {
+    public final OperandWrapper getSourceOperand() {
       return sourceOperand;
-    }
-    
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 26, 27) == 0 && getBits(instr, 23, 24) == 2 && getBits(instr, 12, 15) == 0;
     }
 
     @Override
@@ -1070,7 +1080,7 @@ public class ARM_InstructionDecoders  {
   }
   
   /** Represents a CLZ instruction. */
-  public final static class CountLeadingZeros extends Basic {
+  public static class CountLeadingZeros extends Basic {
     
     /** @see #getRm() */
     protected final byte Rm;
@@ -1086,18 +1096,13 @@ public class ARM_InstructionDecoders  {
     }
     
     /** Returns the source register for this operation. */
-    public byte getRm() {
+    public final byte getRm() {
       return Rm;
     }
     
     /** Returns the destination register for this operation. */
-    public byte getRd() {
+    public final byte getRd() {
       return Rd;
-    }
-    
-    /** Checks if <code>instr</code> is a valid bit representation of this instruction type. */
-    public static boolean conforms(int instr) {
-      return getBits(instr, 16, 27) == 0x16F && getBits(instr, 4, 11) == 0xF1;
     }
 
     @Override
