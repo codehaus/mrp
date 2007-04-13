@@ -8,9 +8,9 @@
  */
 package org.binarytranslator;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Vector;
 import java.util.Map.Entry;
 
 /**
@@ -175,7 +175,7 @@ public class DBT_Options {
   public static void parseArguments(String[] args) {
 
     try {
-      Vector<String> remainingArguments = new Vector<String>();
+      ArrayList<String> remainingArguments = new ArrayList<String>();
       ArgumentParser.parse(args, dbtArguments, remainingArguments);
       
       //did the user give an executable to execute?
@@ -260,7 +260,7 @@ public class DBT_Options {
     
     /** A list of remaining arguments. See the class documentation to learn about the difference
      * between Key-Value and remaining arguments. */
-    protected final Vector<String> remainingArguments;
+    protected final ArrayList<String> remainingArguments;
     
     /**
      * Parses command line arguments.
@@ -269,11 +269,11 @@ public class DBT_Options {
      * @param keyValueArguments
      *  Parsed Key-Value argument pairs are stored within this map. 
      * @param remainingArguments
-     *  Remaining arguments are being stored into this vector.
+     *  Remaining arguments are being stored into this array list.
      * @throws ParseException
      *  A ArgumentParser.ParseException is thrown in case arguments are not properly formatted and could not be parsed. 
      */
-    public static void parse(String[] args, Map<String, String> keyValueArguments, Vector<String> remainingArguments) 
+    public static void parse(String[] args, Map<String, String> keyValueArguments, ArrayList<String> remainingArguments) 
       throws ParseException {
       
       ArgumentParser parser = new ArgumentParser(keyValueArguments, remainingArguments);
@@ -285,9 +285,9 @@ public class DBT_Options {
      * @param arguments
      *  Parsed Key-Value argument pairs are stored within this map.
      * @param remainingArguments
-     *  Remaining arguments are being stored into this vector.
+     *  Remaining arguments are being stored into this array list.
      */
-    private ArgumentParser(Map<String, String> arguments, Vector<String> remainingArguments) {
+    private ArgumentParser(Map<String, String> arguments, ArrayList<String> remainingArguments) {
       this.arguments = arguments;
       this.remainingArguments = remainingArguments;
     }
