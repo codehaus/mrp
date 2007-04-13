@@ -87,11 +87,12 @@ public class Main {
     //Create an execution controller and pass execution on to it
     ExecutionController controller;
     
-    if (DBT_Options.gdbStub == false) {
+    if (DBT_Options.gdbStub) {
       controller = new GdbController(DBT_Options.gdbStubPort, ps);
     }
-    else
+    else {
       controller = new DynamicTranslationController(ps);
+    }
     
     controller.run();
   }
