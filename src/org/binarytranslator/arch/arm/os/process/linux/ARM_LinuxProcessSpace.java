@@ -9,6 +9,7 @@ import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.process.ProcessSpace;
 
 public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
     LinuxSystemCallGenerator {
@@ -104,4 +105,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
     return null;
   }
 
+  public ProcessSpace getProcessSpace() {
+    return this;
+  }
 }

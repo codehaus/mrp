@@ -179,7 +179,8 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
 
   @Override
   protected int translateInstruction(Laziness lazy, int pc) {
-    return ARM_InstructionDecoder.translateInstruction(this,
-        (ARM_ProcessSpace) ps, (ARM_Laziness) lazy, pc);
+    return 0xEBADC0DE;
+    //ARM_InstructionDecoder.translateInstruction(this,
+    //    (ARM_ProcessSpace) ps, (ARM_Laziness) lazy, pc);
   }
 }
