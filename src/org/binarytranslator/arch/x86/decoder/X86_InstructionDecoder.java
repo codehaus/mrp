@@ -4,7 +4,7 @@
  * A copy of the license is included in the distribution, and is also
  * available at http://www.opensource.org/licenses/cpl1.0.php
  *
- * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
+ * (C) Copyright Ian Rogers, The University of Manchester 2003-2007
  */
 package org.binarytranslator.arch.x86.decoder;
 
@@ -82,52 +82,52 @@ class X86_InstructionDecoder extends InstructionDecoder {
   private static final X86_InstructionDecoder[] primaryOpcodes = {
       /* OPCD Decoder */
       /* 0x00 */new X86_Add_OpcodeDecoder(8, true, 0, true), // 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is dest
+      // ModRM, no imm,
+      // rm is dest
       /* 0x01 */new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // dest
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // dest
       /* 0x02 */new X86_Add_OpcodeDecoder(8, true, 0, false),// 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is src
+      // ModRM, no imm,
+      // rm is src
       /* 0x03 */new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // src
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // src
       /* 0x04 */new X86_Add_OpcodeDecoder(8, false, 8, false),// 8bit, no ModRM,
-                                                              // 8bit imm
+      // 8bit imm
       /* 0x05 */new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT ? 16
           : 32, false),// 16/32bit, no ModRM, 16/32bit imm
       /* 0x06 */null,
       /* 0x07 */null,
       /* 0x08 */new X86_Or_OpcodeDecoder(8, true, 0, true), // 8bit, has ModRM,
-                                                            // no imm, rm is
-                                                            // dest
+      // no imm, rm is
+      // dest
       /* 0x09 */new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // dest
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // dest
       /* 0x0A */new X86_Or_OpcodeDecoder(8, true, 0, false),// 8bit, has ModRM,
-                                                            // no imm, rm is src
+      // no imm, rm is src
       /* 0x0B */new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // src
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // src
       /* 0x0C */new X86_Or_OpcodeDecoder(8, false, 8, false),// 8bit, no ModRM,
-                                                              // 8bit imm
+      // 8bit imm
       /* 0x0D */new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT ? 16
           : 32, false),// 16/32bit, no ModRM, 16/32bit imm
       /* 0x0E */null,
@@ -151,106 +151,106 @@ class X86_InstructionDecoder extends InstructionDecoder {
       /* 0x1F */null,
 
       /* 0x20 */new X86_And_OpcodeDecoder(8, true, 0, true), // 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is dest
+      // ModRM, no imm,
+      // rm is dest
       /* 0x21 */new X86_And_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // dest
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // dest
       /* 0x22 */new X86_And_OpcodeDecoder(8, true, 0, false),// 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is src
+      // ModRM, no imm,
+      // rm is src
       /* 0x23 */new X86_And_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // src
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // src
       /* 0x24 */new X86_And_OpcodeDecoder(8, false, 8, false),// 8bit, no ModRM,
-                                                              // 8bit imm
+      // 8bit imm
       /* 0x25 */new X86_And_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT ? 16
           : 32, false),// 16/32bit, no ModRM, 16/32bit imm
       /* 0x26 */new X86_ES_SegmentOverride_PrefixDecoder(),
       /* 0x27 */null,
       /* 0x28 */new X86_Sub_OpcodeDecoder(8, true, 0, true), // 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is dest
+      // ModRM, no imm,
+      // rm is dest
       /* 0x29 */new X86_Sub_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // dest
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // dest
       /* 0x2A */new X86_Sub_OpcodeDecoder(8, true, 0, false),// 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is src
+      // ModRM, no imm,
+      // rm is src
       /* 0x2B */new X86_Sub_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // src
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // src
       /* 0x2C */new X86_Sub_OpcodeDecoder(8, false, 8, false),// 8bit, no ModRM,
-                                                              // 8bit imm
+      // 8bit imm
       /* 0x2D */new X86_Sub_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT ? 16
           : 32, false),// 16/32bit, no ModRM, 16/32bit imm
       /* 0x2E */new X86_CS_SegmentOverride_PrefixDecoder(),
       /* 0x2F */null,
 
       /* 0x30 */new X86_Xor_OpcodeDecoder(8, true, 0, true), // 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is dest
+      // ModRM, no imm,
+      // rm is dest
       /* 0x31 */new X86_Xor_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // dest
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // dest
       /* 0x32 */new X86_Xor_OpcodeDecoder(8, true, 0, false),// 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is src
+      // ModRM, no imm,
+      // rm is src
       /* 0x33 */new X86_Xor_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // src
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // src
       /* 0x34 */new X86_Xor_OpcodeDecoder(8, false, 8, false),// 8bit, no ModRM,
-                                                              // 8bit imm
+      // 8bit imm
       /* 0x35 */new X86_Xor_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT ? 16
           : 32, false),// 16/32bit, no ModRM, 16/32bit imm
       /* 0x36 */new X86_SS_SegmentOverride_PrefixDecoder(),
       /* 0x37 */null,
       /* 0x38 */new X86_Cmp_OpcodeDecoder(8, true, 0, true), // 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is dest
+      // ModRM, no imm,
+      // rm is dest
       /* 0x39 */new X86_Cmp_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // dest
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // dest
       /* 0x3A */new X86_Cmp_OpcodeDecoder(8, true, 0, false),// 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is src
+      // ModRM, no imm,
+      // rm is src
       /* 0x3B */new X86_Cmp_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // src
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // src
       /* 0x3C */new X86_Cmp_OpcodeDecoder(8, false, 8, false),// 8bit, no ModRM,
-                                                              // 8bit imm
+      // 8bit imm
       /* 0x3D */new X86_Cmp_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT ? 16
           : 32, false),// 16/32bit, no ModRM, 16/32bit imm
       /* 0x3E */new X86_DS_SegmentOverride_PrefixDecoder(),
@@ -316,7 +316,7 @@ class X86_InstructionDecoder extends InstructionDecoder {
       /* 0x66 */new X86_OperandSizeOverride_PrefixDecoder(),
       /* 0x67 */new X86_AddressSizeOverride_PrefixDecoder(),
       /* 0x68 */new X86_Push_OpcodeDecoder(_16BIT ? -16 : -32), // Push 16/32bit
-                                                                // immediate
+      // immediate
       /* 0x69 */null,
       /* 0x6A */new X86_Push_OpcodeDecoder(-8), // Push 8bit immediate
       /* 0x6B */null,
@@ -343,13 +343,13 @@ class X86_InstructionDecoder extends InstructionDecoder {
       /* 0x7F */new X86_Jcc_OpcodeDecoder(GREATER, 8),
 
       /* 0x80 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 8bit,
-                                                                          // ModRM,
-                                                                          // 8bit
-                                                                          // imm,
-                                                                          // rm
-                                                                          // is
-                                                                          // dest
-          new X86_Add_OpcodeDecoder(8, true, 8, true),// 0
+          // ModRM,
+              // 8bit
+              // imm,
+              // rm
+              // is
+              // dest
+              new X86_Add_OpcodeDecoder(8, true, 8, true),// 0
               new X86_Or_OpcodeDecoder(8, true, 8, true),// 1
               new X86_Adc_OpcodeDecoder(8, true, 8, true),// 2
               new X86_Sbb_OpcodeDecoder(8, true, 8, true),// 3
@@ -359,12 +359,12 @@ class X86_InstructionDecoder extends InstructionDecoder {
               new X86_Cmp_OpcodeDecoder(8, true, 8, true) // 7
           }),
       /* 0x81 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 16/32bit,
-                                                                          // ModRM,
-                                                                          // 16/32bit
-                                                                          // imm,
-                                                                          // rm
-                                                                          // is
-                                                                          // dest
+              // ModRM,
+              // 16/32bit
+              // imm,
+              // rm
+              // is
+              // dest
               new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
                   : 32, true),// 0
               new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true,
@@ -384,13 +384,13 @@ class X86_InstructionDecoder extends InstructionDecoder {
           }),
       /* 0x82 */null,
       /* 0x83 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 16/32bit,
-                                                                          // ModRM,
-                                                                          // 8bit
-                                                                          // imm,
-                                                                          // rm
-                                                                          // is
-                                                                          // dest
-          new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 0
+          // ModRM,
+              // 8bit
+              // imm,
+              // rm
+              // is
+              // dest
+              new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 0
               new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 1
               new X86_Adc_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 2
               new X86_Sbb_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 3
@@ -400,33 +400,33 @@ class X86_InstructionDecoder extends InstructionDecoder {
               new X86_Cmp_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true) // 7
           }),
       /* 0x84 */new X86_Test_OpcodeDecoder(8, true, 0), // 8bit, has ModRM, no
-                                                        // imm
+      // imm
       /* 0x85 */new X86_Test_OpcodeDecoder(_16BIT ? 16 : 32, true, 0), // 16/32bit,has
-                                                                        // ModRM,
-                                                                        // no
-                                                                        // imm
+      // ModRM,
+      // no
+      // imm
       /* 0x86 */null,
       /* 0x87 */null,
       /* 0x88 */new X86_Mov_OpcodeDecoder(8, true, 0, true), // 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is dest
+      // ModRM, no imm,
+      // rm is dest
       /* 0x89 */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // dest
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // dest
       /* 0x8A */new X86_Mov_OpcodeDecoder(8, true, 0, false),// 8bit, has
-                                                              // ModRM, no imm,
-                                                              // rm is src
+      // ModRM, no imm,
+      // rm is src
       /* 0x8B */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-                                                                            // ModRM,
-                                                                            // no
-                                                                            // imm,
-                                                                            // rm
-                                                                            // is
-                                                                            // src
+      // ModRM,
+      // no
+      // imm,
+      // rm
+      // is
+      // src
       /* 0x8C */null,
       /* 0x8D */new X86_Lea_OpcodeDecoder(),
       /* 0x8E */null,
@@ -460,12 +460,12 @@ class X86_InstructionDecoder extends InstructionDecoder {
 
       /* 0xA0 */new X86_Mov_OpcodeDecoder(8, true), // mov al, [disp8]
       /* 0xA1 */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, false),// mov
-                                                                    // [e]ax,
-                                                                    // [disp(16|32)]
+      // [e]ax,
+      // [disp(16|32)]
       /* 0xA2 */new X86_Mov_OpcodeDecoder(8, false), // mov [disp8], al
       /* 0xA3 */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true), // mov
-                                                                    // [disp(16|32)],
-                                                                    // eax
+      // [disp(16|32)],
+      // eax
       /* 0xA4 */null,
       /* 0xA5 */null,
       /* 0xA6 */null,
@@ -488,21 +488,21 @@ class X86_InstructionDecoder extends InstructionDecoder {
       /* 0xB6 */new X86_Mov_OpcodeDecoder(6, 8), // reg, 8bit immediate
       /* 0xB7 */new X86_Mov_OpcodeDecoder(7, 8), // reg, 8bit immediate
       /* 0xB8 */new X86_Mov_OpcodeDecoder(0, _16BIT ? 16 : 32), // reg, 16/32bit
-                                                                // immediate
+      // immediate
       /* 0xB9 */new X86_Mov_OpcodeDecoder(1, _16BIT ? 16 : 32), // reg, 16/32bit
-                                                                // immediate
+      // immediate
       /* 0xBA */new X86_Mov_OpcodeDecoder(2, _16BIT ? 16 : 32), // reg, 16/32bit
-                                                                // immediate
+      // immediate
       /* 0xBB */new X86_Mov_OpcodeDecoder(3, _16BIT ? 16 : 32), // reg, 16/32bit
-                                                                // immediate
+      // immediate
       /* 0xBC */new X86_Mov_OpcodeDecoder(4, _16BIT ? 16 : 32), // reg, 16/32bit
-                                                                // immediate
+      // immediate
       /* 0xBD */new X86_Mov_OpcodeDecoder(5, _16BIT ? 16 : 32), // reg, 16/32bit
-                                                                // immediate
+      // immediate
       /* 0xBE */new X86_Mov_OpcodeDecoder(6, _16BIT ? 16 : 32), // reg, 16/32bit
-                                                                // immediate
+      // immediate
       /* 0xBF */new X86_Mov_OpcodeDecoder(7, _16BIT ? 16 : 32), // reg, 16/32bit
-                                                                // immediate
+      // immediate
 
       /* 0xC0 */null,
       /* 0xC1 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
@@ -511,43 +511,43 @@ class X86_InstructionDecoder extends InstructionDecoder {
           null, // 2
           null, // 3
           new X86_Shl_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true), // 4 -
-                                                                      // 16/32bit,
-                                                                      // has
-                                                                      // ModRM,
-                                                                      // 8bit
-                                                                      // imm, rm
-                                                                      // is dest
+          // 16/32bit,
+          // has
+          // ModRM,
+          // 8bit
+          // imm, rm
+          // is dest
           new X86_Ushr_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 5 -
-                                                                      // 16/32bit,
-                                                                      // has
-                                                                      // ModRM,
-                                                                      // 8bit
-                                                                      // imm, rm
-                                                                      // is dest
+          // 16/32bit,
+          // has
+          // ModRM,
+          // 8bit
+          // imm, rm
+          // is dest
           null, // 6
           new X86_Shr_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true) // 7 -
-                                                                      // 16/32bit,
-                                                                      // has
-                                                                      // ModRM,
-                                                                      // 8bit
-                                                                      // imm, rm
-                                                                      // is dest
+          // 16/32bit,
+          // has
+          // ModRM,
+          // 8bit
+          // imm, rm
+          // is dest
           }),
       /* 0xC2 */new X86_Ret_OpcodeDecoder(false, 16), // near return, 16bit
-                                                      // immediate
+      // immediate
       /* 0xC3 */new X86_Ret_OpcodeDecoder(false, 0), // near return, no
-                                                      // immediate
+      // immediate
       /* 0xC4 */null,
       /* 0xC5 */null,
       /* 0xC6 */new X86_Mov_OpcodeDecoder(8, true, 8, true), // 8bit, has
-                                                              // ModRM, 8bit
-                                                              // imm, rm is dest
+      // ModRM, 8bit
+      // imm, rm is dest
       /* 0xC7 */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
           : 32, true), // 16/32bit, has ModRM, 16/32bit imm, rm is dest
       /* 0xC8 */null,
       /* 0xC9 */new X86_Leave_OpcodeDecoder(),
       /* 0xCA */new X86_Ret_OpcodeDecoder(true, 16), // far return, 16bit
-                                                      // immediate
+      // immediate
       /* 0xCB */new X86_Ret_OpcodeDecoder(true, 0), // far return, no immediate
       /* 0xCC */null,
       /* 0xCD */new X86_Int_OpcodeDecoder(),
@@ -563,27 +563,27 @@ class X86_InstructionDecoder extends InstructionDecoder {
           null, // 2
           null, // 3
           new X86_Shl_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 4 -
-                                                                      // 16/32bit,
-                                                                      // has
-                                                                      // ModRM,
-                                                                      // no imm,
-                                                                      // rm is
-                                                                      // dest
+          // 16/32bit,
+          // has
+          // ModRM,
+          // no imm,
+          // rm is
+          // dest
           new X86_Ushr_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true),// 5 -
-                                                                      // 16/32bit,
-                                                                      // has
-                                                                      // ModRM,
-                                                                      // no imm,
-                                                                      // rm is
-                                                                      // dest
+          // 16/32bit,
+          // has
+          // ModRM,
+          // no imm,
+          // rm is
+          // dest
           null, // 6
           new X86_Shr_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true) // 7 -
-                                                                      // 16/32bit,
-                                                                      // has
-                                                                      // ModRM,
-                                                                      // no imm,
-                                                                      // rm is
-                                                                      // dest
+          // 16/32bit,
+          // has
+          // ModRM,
+          // no imm,
+          // rm is
+          // dest
           }),
       /* 0xD4 */null,
       /* 0xD5 */null,
@@ -618,12 +618,12 @@ class X86_InstructionDecoder extends InstructionDecoder {
       /* 0xE8 */new X86_Call_OpcodeDecoder(_16BIT ? 16 : 32, false,
           _16BIT ? 16 : 32, false), // 16/32bit, no ModRM, 16/32bit imm
       /* 0xE9 */new X86_Jmp_OpcodeDecoder(false, _16BIT ? 16 : 32), // relative
-                                                                    // jump +
-                                                                    // 16/32bit
-                                                                    // immediate
+      // jump +
+      // 16/32bit
+      // immediate
       /* 0xEA */null,
       /* 0xEB */new X86_Jmp_OpcodeDecoder(false, 8), // relative jump + 8bit
-                                                      // immediate
+      // immediate
       /* 0xEC */null,
       /* 0xED */null,
       /* 0xEE */null,
@@ -636,13 +636,13 @@ class X86_InstructionDecoder extends InstructionDecoder {
       /* 0xF4 */null,
       /* 0xF5 */null,
       /* 0xF6 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 8bit,
-                                                                          // ModRM,
-                                                                          // 8bit
-                                                                          // imm,
-                                                                          // rm
-                                                                          // is
-                                                                          // dest
-          new X86_Test_OpcodeDecoder(8, true, 8), // 0
+          // ModRM,
+              // 8bit
+              // imm,
+              // rm
+              // is
+              // dest
+              new X86_Test_OpcodeDecoder(8, true, 8), // 0
               null, // 1
               new X86_Not_OpcodeDecoder(8), // 2 - 8bit
               new X86_Neg_OpcodeDecoder(8), // 3 - 8bit
@@ -652,13 +652,14 @@ class X86_InstructionDecoder extends InstructionDecoder {
               null // 7
           }),
       /* 0xF7 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 16/32bit,
-                                                                          // ModRM,
-                                                                          // 16/32bit
-                                                                          // imm,
-                                                                          // rm
-                                                                          // is
-                                                                          // dest
-          new X86_Test_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16 : 32),// 0
+          // ModRM,
+              // 16/32bit
+              // imm,
+              // rm
+              // is
+              // dest
+              new X86_Test_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
+                  : 32),// 0
               null, // 1
               new X86_Not_OpcodeDecoder(_16BIT ? 16 : 32), // 2 - 16/32bit
               new X86_Neg_OpcodeDecoder(_16BIT ? 16 : 32), // 3 - 16/32bit
@@ -678,10 +679,10 @@ class X86_InstructionDecoder extends InstructionDecoder {
           new X86_Inc_OpcodeDecoder(-1), // 0 - Inc of memory operand
           null, // 1
           new X86_Call_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false), // 2 -
-                                                                        // 16/32bit,
-                                                                        // ModRM,
-                                                                        // no
-                                                                        // imm
+          // 16/32bit,
+          // ModRM,
+          // no
+          // imm
           null, // 3
           new X86_Jmp_OpcodeDecoder(true, 0), // 4 - near absolute jump to ModRM
           null, // 5
@@ -730,11 +731,8 @@ class X86_InstructionDecoder extends InstructionDecoder {
 
   /**
    * Disassemble a single instruction
-   * 
-   * @param ps
-   *          the process space of the translation
-   * @param pc
-   *          the address of the instruction to translate
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
    * @return the string for this instruction
    */
   public String disassemble(ProcessSpace ps, int pc) {
@@ -743,13 +741,9 @@ class X86_InstructionDecoder extends InstructionDecoder {
 
   /**
    * Translate a single instruction
-   * 
-   * @param translationHelper
-   *          the object containing the translation sequence
-   * @param ps
-   *          the process space of the translation
-   * @param pc
-   *          the address of the instruction to translate
+   * @param translationHelper the object containing the translation sequence
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
    * @return the address of the next instruction or -1 if this instruction has
    *         branched to the end of the trace
    */
@@ -761,13 +755,9 @@ class X86_InstructionDecoder extends InstructionDecoder {
 
   /**
    * Translate a single instruction which doesn't already have a decoder
-   * 
-   * @param translationHelper
-   *          the object containing the translation sequence
-   * @param ps
-   *          the process space of the translation
-   * @param pc
-   *          the address of the instruction to translate
+   * @param translationHelper the object containing the translation sequence
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
    * @return the address of the next instruction or -1 if this instruction has
    *         branched to the end of the trace
    */
@@ -782,9 +772,7 @@ class X86_InstructionDecoder extends InstructionDecoder {
 
   /**
    * Interpret a single instruction
-   * 
-   * @param ps
-   *          the process space of the interpretation, contains the fetched
+   * @param ps the process space of the interpretation, contains the fetched
    *          instruction and instruction address
    * @return the next instruction interpreter
    */
@@ -899,13 +887,9 @@ class X86_GenericDecoder extends X86_InstructionDecoder {
 
   /**
    * Translate a single instruction
-   * 
-   * @param translationHelper
-   *          the object containing the translation sequence
-   * @param ps
-   *          the process space of the translation
-   * @param pc
-   *          the address of the instruction to translate
+   * @param translationHelper the object containing the translation sequence
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
    * @return the address of the next instruction or -1 if this instruction has
    *         branched to the end of the trace
    */
@@ -926,11 +910,8 @@ class X86_GenericDecoder extends X86_InstructionDecoder {
 
   /**
    * Disassemble a single instruction
-   * 
-   * @param ps
-   *          the process space of the translation
-   * @param pc
-   *          the address of the instruction to translate
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
    * @return the string for this instruction
    */
   public String disassemble(ProcessSpace ps, int pc) {
@@ -1350,18 +1331,15 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
 
   /**
    * Constructor
-   * 
-   * @param operandSize
-   *          size of register/mem/immediate operands
-   * @param hasModRM
-   *          does a ModRM byte follow the opcode possibly giving more
+   * @param operandSize size of register/mem/immediate operands
+   * @param hasModRM does a ModRM byte follow the opcode possibly giving more
    *          information on the opcode as well as defining register and memory
    *          operands?
-   * @param immediateSize
-   *          the size in bits of any immediate or 0 if no immediate value
-   * @param isMemoryOperandDestination
-   *          is the destination/result of this instruction a memory or register
-   *          in the case that there's a ModRM byte
+   * @param immediateSize the size in bits of any immediate or 0 if no immediate
+   *          value
+   * @param isMemoryOperandDestination is the destination/result of this
+   *          instruction a memory or register in the case that there's a ModRM
+   *          byte
    */
   X86_OpcodeDecoder(int operandSize, boolean hasModRM, int immediateSize,
       boolean isMemoryOperandDestination) {
@@ -1377,28 +1355,24 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
 
   /**
    * Constructor
-   * 
-   * @param operandSize
-   *          size of register/mem/immediate operands
-   * @param hasModRM
-   *          does a ModRM byte follow the opcode possibly giving more
+   * @param operandSize size of register/mem/immediate operands
+   * @param hasModRM does a ModRM byte follow the opcode possibly giving more
    *          information on the opcode as well as defining register and memory
    *          operands?
-   * @param immediateSize
-   *          the size in bits of any immediate or 0 if no immediate value
-   * @param isMemoryOperandDestination
-   *          is the destination/result of this instruction a memory or register
-   *          in the case that there's a ModRM byte
-   * @param register
-   *          override EAX as the implicit register for an instruction not
-   *          specifying modrm
+   * @param immediateSize the size in bits of any immediate or 0 if no immediate
+   *          value
+   * @param isMemoryOperandDestination is the destination/result of this
+   *          instruction a memory or register in the case that there's a ModRM
+   *          byte
+   * @param register override EAX as the implicit register for an instruction
+   *          not specifying modrm
    */
   X86_OpcodeDecoder(int operandSize, boolean hasModRM, int immediateSize,
       boolean isMemoryOperandDestination, int register) {
     this.operandSize = operandSize;
     this.hasModRM = hasModRM;
     this.modRMhasOpcode = true; // override the register to show that the reg of
-                                // the modrm is invalid
+    // the modrm is invalid
     this.immediateSize = immediateSize;
     this.isMemoryOperandDestination = isMemoryOperandDestination;
     this.register = register;
@@ -1408,21 +1382,17 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
 
   /**
    * Constructor
-   * 
-   * @param operandSize
-   *          size of register/mem/immediate operands
-   * @param hasModRM
-   *          does a ModRM byte follow the opcode possibly giving more
+   * @param operandSize size of register/mem/immediate operands
+   * @param hasModRM does a ModRM byte follow the opcode possibly giving more
    *          information on the opcode as well as defining register and memory
    *          operands?
-   * @param immediateSize
-   *          the size in bits of any immediate or 0 if no immediate value
-   * @param isMemoryOperandDestination
-   *          is the destination/result of this instruction a memory or register
-   *          in the case that there's a ModRM byte
-   * @param discardResult
-   *          should the result of the operation be written to the destination
-   *          or just the flags modified?
+   * @param immediateSize the size in bits of any immediate or 0 if no immediate
+   *          value
+   * @param isMemoryOperandDestination is the destination/result of this
+   *          instruction a memory or register in the case that there's a ModRM
+   *          byte
+   * @param discardResult should the result of the operation be written to the
+   *          destination or just the flags modified?
    */
   X86_OpcodeDecoder(int operandSize, boolean hasModRM, int immediateSize,
       boolean isMemoryOperandDestination, boolean discardResult) {
@@ -1438,14 +1408,12 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
 
   /**
    * Constructor
-   * 
-   * @param operandSize
-   *          size of register/mem/immediate operands
-   * @param isMemoryOperandDestination
-   *          is the destination/result of this instruction a memory or register
-   *          in the case that there's a ModRM byte
-   * @param displacementSize
-   *          a size for a displacement always present regardless of modrm
+   * @param operandSize size of register/mem/immediate operands
+   * @param isMemoryOperandDestination is the destination/result of this
+   *          instruction a memory or register in the case that there's a ModRM
+   *          byte
+   * @param displacementSize a size for a displacement always present regardless
+   *          of modrm
    */
   X86_OpcodeDecoder(int operandSize, boolean isMemoryOperandDestination,
       int displacementSize) {
@@ -1627,32 +1595,20 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -1808,30 +1764,18 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -2111,7 +2055,7 @@ final class X86_Escape_OpcodeDecoder extends X86_InstructionDecoder implements
   /* 0xB4 */null,
   /* 0xB5 */null,
   /* 0xB6 */new X86_MovZX_OpcodeDecoder(_16BIT ? 16 : 32, 8), // dest 16/32bit,
-                                                              // src 8bit
+      // src 8bit
       /* 0xB7 */new X86_MovZX_OpcodeDecoder(32, 16), // dest 32bit, src 16bit
       /* 0xB8 */null,
       /* 0xB9 */null,
@@ -2120,8 +2064,8 @@ final class X86_Escape_OpcodeDecoder extends X86_InstructionDecoder implements
       /* 0xBC */null,
       /* 0xBD */null,
       /* 0xBE */new X86_MovSX_OpcodeDecoder(_16BIT ? 16 : 32, 8), // dest
-                                                                  // 16/32bit,
-                                                                  // src 8bit
+      // 16/32bit,
+      // src 8bit
       /* 0xBF */new X86_MovSX_OpcodeDecoder(32, 16), // dest 32bit, src 16bit
 
       /* 0xC0 */null,
@@ -2195,10 +2139,11 @@ final class X86_Escape_OpcodeDecoder extends X86_InstructionDecoder implements
   /**
    * Utility to get a decoder for a particular opcode
    */
-  protected static X86_OpcodeDecoder secondaryOpcodeLookup(int opcode) {
+  protected static X86_InstructionDecoder secondaryOpcodeLookup(int opcode) {
     if (secondaryOpcodes[opcode] == null) {
-      throw new Error("Secondary Opcode 0x" + Integer.toHexString(opcode)
+      System.out.println("Secondary Opcode 0x" + Integer.toHexString(opcode)
           + " not found");
+      return badInstructionDecoder;
     } else {
       return secondaryOpcodes[opcode];
     }
@@ -2764,9 +2709,7 @@ class X86_Xor_OpcodeDecoder extends X86_OpcodeDecoder {
 class X86_Pop_OpcodeDecoder extends X86_OpcodeDecoder {
   /**
    * Constructor, {@see X86_OpcodeDecoder}
-   * 
-   * @param reg
-   *          the register to pop into or -1 to show that the destination is a
+   * @param reg the register to pop into or -1 to show that the destination is a
    *          memory operand
    */
   X86_Pop_OpcodeDecoder(int reg) {
@@ -2780,32 +2723,20 @@ class X86_Pop_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -2853,30 +2784,18 @@ class X86_Pop_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -2913,10 +2832,8 @@ class X86_Pop_OpcodeDecoder extends X86_OpcodeDecoder {
 class X86_Push_OpcodeDecoder extends X86_OpcodeDecoder {
   /**
    * Constructor, {@see X86_OpcodeDecoder}
-   * 
-   * @param reg
-   *          the register to push into, or -1 to show that the destination is a
-   *          memory operand, or -8/-16/-32 to show that this is an immediate
+   * @param reg the register to push into, or -1 to show that the destination is
+   *          a memory operand, or -8/-16/-32 to show that this is an immediate
    *          push of the appropriate size
    */
   X86_Push_OpcodeDecoder(int reg) {
@@ -2930,32 +2847,20 @@ class X86_Push_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -3007,30 +2912,18 @@ class X86_Push_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -3085,32 +2978,20 @@ class X86_Leave_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -3148,30 +3029,18 @@ class X86_Leave_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -3196,32 +3065,20 @@ class X86_Call_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -3282,30 +3139,18 @@ class X86_Call_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -3366,32 +3211,20 @@ class X86_Ret_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -3428,30 +3261,18 @@ class X86_Ret_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -3478,32 +3299,20 @@ class X86_Int_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -3523,30 +3332,18 @@ class X86_Int_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -3576,32 +3373,20 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -3738,30 +3523,18 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -3844,32 +3617,20 @@ class X86_Jmp_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -3948,30 +3709,18 @@ class X86_Jmp_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -4032,32 +3781,20 @@ class X86_Set_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -4145,30 +3882,18 @@ class X86_Set_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -4213,32 +3938,20 @@ class X86_Cmov_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -4363,30 +4076,18 @@ class X86_Cmov_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -4436,32 +4137,20 @@ class X86_Lea_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -4507,30 +4196,18 @@ class X86_Lea_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -4589,32 +4266,20 @@ class X86_MovSX_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -4662,30 +4327,18 @@ class X86_MovSX_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -4742,32 +4395,20 @@ class X86_MovZX_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -4813,30 +4454,18 @@ class X86_MovZX_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -4887,32 +4516,20 @@ class X86_Nop_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -4931,30 +4548,18 @@ class X86_Nop_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -4978,32 +4583,20 @@ class X86_Rdtsc_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -5031,30 +4624,18 @@ class X86_Rdtsc_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -5078,32 +4659,20 @@ final class X86_Fstcw_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -5135,30 +4704,18 @@ final class X86_Fstcw_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -5192,32 +4749,20 @@ final class X86_Fldcw_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -5249,30 +4794,18 @@ final class X86_Fldcw_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -5298,10 +4831,8 @@ final class X86_Fldcw_OpcodeDecoder extends X86_OpcodeDecoder {
 class X86_Inc_OpcodeDecoder extends X86_OpcodeDecoder {
   /**
    * Constructor, {@see X86_OpcodeDecoder}
-   * 
-   * @param reg
-   *          the register to inc into, or -1 to show that the destination is a
-   *          memory operand, or -8/-16/-32 to show that this is an immediate
+   * @param reg the register to inc into, or -1 to show that the destination is
+   *          a memory operand, or -8/-16/-32 to show that this is an immediate
    *          inc of the appropriate size
    */
   X86_Inc_OpcodeDecoder(int reg) {
@@ -5315,32 +4846,20 @@ class X86_Inc_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -5382,30 +4901,18 @@ class X86_Inc_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -5444,10 +4951,8 @@ class X86_Inc_OpcodeDecoder extends X86_OpcodeDecoder {
 class X86_Dec_OpcodeDecoder extends X86_OpcodeDecoder {
   /**
    * Constructor, {@see X86_OpcodeDecoder}
-   * 
-   * @param reg
-   *          the register to dec into, or -1 to show that the destination is a
-   *          memory operand, or -8/-16/-32 to show that this is an immediate
+   * @param reg the register to dec into, or -1 to show that the destination is
+   *          a memory operand, or -8/-16/-32 to show that this is an immediate
    *          dec of the appropriate size
    */
   X86_Dec_OpcodeDecoder(int reg) {
@@ -5461,32 +4966,20 @@ class X86_Dec_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -5528,30 +5021,18 @@ class X86_Dec_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -5590,7 +5071,6 @@ class X86_Dec_OpcodeDecoder extends X86_OpcodeDecoder {
 class X86_Not_OpcodeDecoder extends X86_OpcodeDecoder {
   /**
    * Constructor, {@see X86_OpcodeDecoder}
-   * 
    * @param operandSize
    */
   X86_Not_OpcodeDecoder(int operandSize) {
@@ -5603,32 +5083,20 @@ class X86_Not_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -5666,30 +5134,18 @@ class X86_Not_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -5724,7 +5180,6 @@ class X86_Not_OpcodeDecoder extends X86_OpcodeDecoder {
 class X86_Neg_OpcodeDecoder extends X86_OpcodeDecoder {
   /**
    * Constructor, {@see X86_OpcodeDecoder}
-   * 
    * @param operandSize
    */
   X86_Neg_OpcodeDecoder(int operandSize) {
@@ -5737,32 +5192,20 @@ class X86_Neg_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -5800,30 +5243,18 @@ class X86_Neg_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -5858,7 +5289,6 @@ class X86_Neg_OpcodeDecoder extends X86_OpcodeDecoder {
 class X86_Mul_OpcodeDecoder extends X86_OpcodeDecoder {
   /**
    * Constructor, {@see X86_OpcodeDecoder}
-   * 
    * @param operandSize
    */
   X86_Mul_OpcodeDecoder(int operandSize) {
@@ -5871,32 +5301,20 @@ class X86_Mul_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -5952,30 +5370,18 @@ class X86_Mul_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -6026,32 +5432,20 @@ class X86_PushA_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -6104,30 +5498,18 @@ class X86_PushA_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
@@ -6172,32 +5554,20 @@ class X86_PopA_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Perform the actual translation
-   * 
    * @param translationHelper
    * @param ps
    * @param lazy
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immediate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
@@ -6246,30 +5616,18 @@ class X86_PopA_OpcodeDecoder extends X86_OpcodeDecoder {
 
   /**
    * Disassemble the opcode
-   * 
    * @param ps
-   * @param pc
-   *          the address of the instruction being translated
-   * @param modrm
-   *          the decoder for any modrm part of the instruction
-   * @param sib
-   *          the sib decoder for any sib part of the instruction
-   * @param displacement
-   *          any displacement to be added to the modrm
-   * @param immediateSize
-   *          what size is the immediate value
-   * @param immedate
-   *          if immediateSize &gt; 0 then this is the immediate value
-   * @param length
-   *          the length of the instruction
-   * @param prefix2
-   *          a group2 prefix decoder or null
-   * @param prefix3
-   *          a group3 prefix decoder or null
-   * @param prefix4
-   *          a group4 prefix decoder or null
-   * @param prefix5
-   *          a group5 prefix decoder or null
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
    */
   protected String disassemble(ProcessSpace ps, int pc,
       X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
