@@ -268,7 +268,7 @@ public class PPC_InstructionDecoder extends InstructionDecoder implements
 
     if (DBT_Options.debugInstr) {
       System.out.println(lazy.makeKey(pc) + PPC_Disassembler.disasm(instr, pc)
-          + " " + ppc2ir.getCurrentBlock() + " " + ppc2ir.numberOfInstructions);
+          + " " + ppc2ir.getCurrentBlock() + " " + ppc2ir.getNumInstructions());
     }
 
     int primaryOpcode = bits(instr, 0, 5);

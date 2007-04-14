@@ -962,7 +962,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
    * Return an array of unused registers
    */
   protected OPT_Register[] getUnusedRegisters() {
-    ArrayList unusedRegisterList = new ArrayList();
+    ArrayList<OPT_Register> unusedRegisterList = new ArrayList<OPT_Register>();
     for (int i = 0; i < 32; i++) {
       if (intRegInUseMap[i] == false) {
         unusedRegisterList.add(intRegMap[i]);

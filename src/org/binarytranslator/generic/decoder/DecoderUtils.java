@@ -29,7 +29,30 @@ import org.jikesrvm.classloader.VM_Method;
 import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.OPT_Constants;
-import org.jikesrvm.compilers.opt.ir.*;
+import org.jikesrvm.compilers.opt.ir.Athrow;
+import org.jikesrvm.compilers.opt.ir.BBend;
+import org.jikesrvm.compilers.opt.ir.Call;
+import org.jikesrvm.compilers.opt.ir.Goto;
+import org.jikesrvm.compilers.opt.ir.IfCmp;
+import org.jikesrvm.compilers.opt.ir.LookupSwitch;
+import org.jikesrvm.compilers.opt.ir.Move;
+import org.jikesrvm.compilers.opt.ir.New;
+import org.jikesrvm.compilers.opt.ir.OPT_AddressConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_BasicBlock;
+import org.jikesrvm.compilers.opt.ir.OPT_BranchOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_BranchProfileOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.ir.OPT_Instruction;
+import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_MethodOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operator;
+import org.jikesrvm.compilers.opt.ir.OPT_Operators;
+import org.jikesrvm.compilers.opt.ir.OPT_Register;
+import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_TrueGuardOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_TypeOperand;
 
 /**
  * A collection of common tools used by decoders. The public entry point for the
@@ -107,12 +130,10 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
         .resolveInvokeSpecial();
   }
 
-  // -oO Global IR Oo-
-
   /**
    * Number of translated instructions
    */
-  public int numberOfInstructions;
+  private int numberOfInstructions;
 
   /**
    * The process space object used by the running PPC binary.
@@ -237,8 +258,6 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    */
   protected abstract void report(String str);
 
-  // -oO Important entry points Oo-
-
   /**
    * Constructor
    * 
@@ -283,6 +302,11 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     unresolvedLookupSwitchForSwitches_PC = new ArrayList<Integer>();
     unresolvedLookupSwitchForSwitches_Laziness = new ArrayList<Laziness>();
     unresolvedLookupSwitchForSwitches_WasCall = new ArrayList<Boolean>();
+  }
+  
+  /** Returns the number of previously translated instructions within this trace. */
+  public int getNumInstructions() {
+    return numberOfInstructions;
   }
 
   /**
