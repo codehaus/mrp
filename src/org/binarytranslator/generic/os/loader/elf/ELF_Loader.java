@@ -10,6 +10,7 @@ package org.binarytranslator.generic.os.loader.elf;
 
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
+import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.DBT_Options;
 
@@ -935,11 +936,11 @@ public class ELF_Loader extends Loader {
         break;
       case PT_LOAD: // A loadable segment
         try {
-          ps.createSegment(reader.rFile,
-                           p_offset, p_vaddr,
-                           p_filesz, p_memsz,
-                           (p_flags & PF_R) != 0, (p_flags & PF_W) != 0, (p_flags & PF_X) != 0
-                           );
+          createSegment(ps.memory,
+                        reader.rFile,
+                        p_offset, p_vaddr,
+                        p_filesz, p_memsz,
+                        (p_flags & PF_R) != 0, (p_flags & PF_W) != 0, (p_flags & PF_X) != 0);
         }
         catch(MemoryMapException e) {
           throw new Error("Error in creating: " + this, e);
@@ -957,6 +958,68 @@ public class ELF_Loader extends Loader {
       case PT_PHDR: // A segment describing the ELF's header; present once before any loadable segments
       default:
         throw new Error("Segment type " + toString() + " not yet supported");
+      }
+    }
+    
+    /**
+     * Create a segment
+     * 
+     * @param memory
+     *  The memory into which the segment is to be mapped.
+     * @param file
+     *          file to read segment data from if file size != 0
+     * @param offset
+     *          file offset
+     * @param address
+     *          location of segment
+     * @param filesize
+     *          size of segment in file
+     * @param memsize
+     *          size of segment in memory
+     * @param read
+     *          is segment readable
+     * @param write
+     *          is segment writable
+     * @param exec
+     *          is segment executable
+     */
+    public void createSegment(Memory memory, RandomAccessFile file, long offset, int address,
+        int filesize, int memsize, boolean read, boolean write, boolean exec)
+        throws MemoryMapException {
+      // Sanity check
+      if (memsize < filesize) {
+        throw new Error("Segment memory size (" + memsize
+            + ")less than file size (" + filesize + ")");
+      }
+      // Are we mapping anything from a file?
+      if (filesize == 0) {
+        // No: map anonymously
+        memory.map(address, memsize, read, write, exec);
+      } else {
+        // align offset and address
+        int alignedAddress;
+        long alignedOffset;
+        int alignedFilesize;
+        if (memory.isPageAligned(address)) {
+          // memory and therefore offset should be aligned
+          alignedAddress = address;
+          alignedOffset = offset;
+          alignedFilesize = filesize;
+        } else {
+          // Address not aligned
+          alignedAddress = memory.truncateToPage(address);
+          int delta = address - alignedAddress;
+          // adjust offset and length too
+          alignedOffset = offset - delta;
+          alignedFilesize = filesize + delta;
+        }
+        memory.map(file, alignedOffset, alignedAddress, alignedFilesize, read,
+            write, exec);
+        // Do we need to map in some blank pages at the end of the segment?
+        if (filesize < memsize) {
+          alignedAddress = memory.truncateToNextPage(address + filesize);
+          memory.map(alignedAddress, memsize - filesize, read, write, exec);
+        }
       }
     }
 

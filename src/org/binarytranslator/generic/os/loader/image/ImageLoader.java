@@ -113,7 +113,7 @@ public class ImageLoader extends Loader {
     
     int fileAndMemSize = (int)file.length() - 16;
     try {
-      ps.createSegment(file, 16, 0, fileAndMemSize, fileAndMemSize, true, true, true);
+      ps.memory.map(file, 16, 0, fileAndMemSize, true, true, true);
     }
     catch (MemoryMapException e) {
       e.printStackTrace();

@@ -9,7 +9,6 @@
 package org.binarytranslator.generic.os.process;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
@@ -18,7 +17,6 @@ import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.generic.branch.BranchLogic;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.memory.Memory;
-import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
@@ -97,66 +95,6 @@ public abstract class ProcessSpace {
     return result;
   }
  
-  /**
-   * Create a segment
-   * 
-   * @param RandomAccessFile
-   *          file to read segment data from if file size != 0
-   * @param offset
-   *          file offset
-   * @param address
-   *          location of segment
-   * @param filesize
-   *          size of segment in file
-   * @param memsize
-   *          size of segment in memory
-   * @param read
-   *          is segment readable
-   * @param write
-   *          is segment writable
-   * @param exec
-   *          is segment executable
-   */
-  public void createSegment(RandomAccessFile file, long offset, int address,
-      int filesize, int memsize, boolean read, boolean write, boolean exec)
-      throws MemoryMapException {
-    // Sanity check
-    if (memsize < filesize) {
-      throw new Error("Segment memory size (" + memsize
-          + ")less than file size (" + filesize + ")");
-    }
-    // Are we mapping anything from a file?
-    if (filesize == 0) {
-      // No: map anonymously
-      memory.map(address, memsize, read, write, exec);
-    } else {
-      // align offset and address
-      int alignedAddress;
-      long alignedOffset;
-      int alignedFilesize;
-      if (memory.isPageAligned(address)) {
-        // memory and therefore offset should be aligned
-        alignedAddress = address;
-        alignedOffset = offset;
-        alignedFilesize = filesize;
-      } else {
-        // Address not aligned
-        alignedAddress = memory.truncateToPage(address);
-        int delta = address - alignedAddress;
-        // adjust offset and length too
-        alignedOffset = offset - delta;
-        alignedFilesize = filesize + delta;
-      }
-      memory.map(file, alignedOffset, alignedAddress, alignedFilesize, read,
-          write, exec);
-      // Do we need to map in some blank pages at the end of the segment?
-      if (filesize < memsize) {
-        alignedAddress = memory.truncateToNextPage(address + filesize);
-        memory.map(alignedAddress, memsize - filesize, read, write, exec);
-      }
-    }
-  }
-
   /**
    * Initialise the process space
    * 
