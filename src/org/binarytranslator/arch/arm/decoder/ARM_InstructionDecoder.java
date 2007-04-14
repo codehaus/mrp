@@ -1,6 +1,7 @@
 package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.DBT;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.*;
 
 /**
  * This class decodes an ARM instruction and uses a user-supplied ARM_InstructionFactory to create a class
@@ -17,6 +18,47 @@ import org.binarytranslator.DBT;
  */
 public class ARM_InstructionDecoder {
   
+  /** This static field caches the default {@link ARM_InstructionFactory} implementation, which is used by {@link #decode(int)}.
+   * It is being lazily initialized once it is used for the first time. */
+  private static DefaultFactory _defaultFactory;
+  
+  /**
+   * Decodes a given ARM instruction and returns an object representation of it.
+   * @param instruction
+   *  A binary ARM instruction, that is to be decoded.
+   * @return
+   *  A version of the instruction, which has been decoded into an instance of {@link Instruction}.
+   *  Use the {@link Instruction#visit(ARM_InstructionVisitor)} method to further interact with the
+   *  returned instance.
+   */
+  public static Instruction decode(int instruction) {
+    if (_defaultFactory == null)
+      _defaultFactory = new DefaultFactory();
+    
+    return decode(instruction, _defaultFactory);
+  }
+
+  /**
+   * Decodes a binary ARM instruction. This method will use the supplied {@link ARM_InstructionFactory}
+   * to create an object representation of the decoded instruction.
+   * @param <T>
+   *  The return type depends on whatever the {@link ARM_InstructionFactory} actually creates.
+   * @param instruction
+   *  A binary representation of the instruction that is to be decoded.
+   * @param factory
+   *  A factory, that will create object instances of the instruction.
+   * @return
+   *  An object representation of the decoded instruction.
+   */
+  static <T> T decode(int instruction, ARM_InstructionFactory<T> factory) {
+    if (getBit(instruction, 27)) {
+      return decode_1xx(instruction, factory);
+    }
+    else {
+      return decode_0xx(instruction, factory);
+    }
+  }
+  
   /**
    * Checks if a bit is set within a word.
    * @param word
@@ -30,15 +72,6 @@ public class ARM_InstructionDecoder {
     if (DBT.VerifyAssertions)
       DBT._assert(bit >= 0 && bit <= 31);
     return (word & (1 << bit)) != 0;
-  }
-
-  public static <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
-    if (getBit(instr, 27)) {
-      return decode_1xx(instr, factory);
-    }
-    else {
-      return decode_0xx(instr, factory);
-    }
   }
   
   private static <T> T decode_0xx(int instr, ARM_InstructionFactory<T> factory) {
@@ -207,5 +240,77 @@ public class ARM_InstructionDecoder {
         }
       }
     }
+  }
+  
+  /**
+   * A default implementation of the ARM instruction factory, which will create the 
+   * appropriate classes from the {@link ARM_Instructions} namespace.
+   */
+  static class DefaultFactory implements ARM_InstructionFactory<ARM_Instructions.Instruction> {
+
+    public Instruction createBlockDataTransfer(int instr) {
+      return new BlockDataTransfer(instr);
+    }
+
+    public Instruction createBranch(int instr) {
+      return new Branch(instr);
+    }
+
+    public Instruction createBranchExchange(int instr) {
+      return new BranchExchange(instr);
+    }
+
+    public Instruction createCoprocessorDataProcessing(int instr) {
+      return new CoprocessorDataProcessing(instr);
+    }
+
+    public Instruction createCoprocessorDataTransfer(int instr) {
+      return new CoprocessorDataTransfer(instr);
+    }
+
+    public Instruction createCoprocessorRegisterTransfer(int instr) {
+      return new CoprocessorRegisterTransfer(instr);
+    }
+
+    public Instruction createCountLeadingZeros(int instr) {
+      return new CountLeadingZeros(instr);
+    }
+
+    public Instruction createDataProcessing(int instr) {
+      return new DataProcessing(instr);
+    }
+
+    public Instruction createIntMultiply(int instr) {
+      return new IntMultiply(instr);
+    }
+
+    public Instruction createLongMultiply(int instr) {
+      return new LongMultiply(instr);
+    }
+
+    public Instruction createMoveFromStatusRegister(int instr) {
+      return new MoveFromStatusRegister(instr);
+    }
+
+    public Instruction createMoveToStatusRegister(int instr) {
+      return new MoveToStatusRegister(instr);
+    }
+
+    public Instruction createSingleDataTransfer(int instr) {
+      return new SingleDataTransfer(instr);
+    }
+
+    public Instruction createSoftwareInterrupt(int instr) {
+      return new SoftwareInterrupt(instr);
+    }
+
+    public Instruction createSwap(int instr) {
+      return new Swap(instr);
+    }
+
+    public Instruction createUndefinedInstruction(int instr) {
+      return null;
+    }
+    
   }
 }

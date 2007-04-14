@@ -1,6 +1,6 @@
 package org.binarytranslator.arch.arm.decoder;
 
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.*;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.*;
 
 /** An interface that supports iterating over ARM instructions using the visitor pattern. */
 public interface ARM_InstructionVisitor {

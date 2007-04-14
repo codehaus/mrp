@@ -15,7 +15,7 @@ import org.binarytranslator.DBT;
  * @author Michael Baer
  *
  */
-public class ARM_InstructionDecoders  {
+public class ARM_Instructions  {
 
   /**
    * Checks if a bit is set within a word.

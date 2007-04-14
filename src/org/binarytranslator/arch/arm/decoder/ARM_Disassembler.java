@@ -1,23 +1,23 @@
 package org.binarytranslator.arch.arm.decoder;
 
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.Instruction;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.BlockDataTransfer;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.Branch;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.BranchExchange;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.CoprocessorDataProcessing;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.CoprocessorDataTransfer;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.CoprocessorRegisterTransfer;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.CountLeadingZeros;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.DataProcessing;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.IntMultiply;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.LongMultiply;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.MoveFromStatusRegister;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.MoveToStatusRegister;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.OperandWrapper;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.SingleDataTransfer;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.SoftwareInterrupt;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.Swap;
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoders.Instruction.Condition;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.BlockDataTransfer;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Branch;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.BranchExchange;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CoprocessorDataProcessing;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CoprocessorDataTransfer;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CoprocessorRegisterTransfer;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CountLeadingZeros;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.DataProcessing;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.IntMultiply;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.LongMultiply;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.MoveFromStatusRegister;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.MoveToStatusRegister;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.OperandWrapper;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.SingleDataTransfer;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.SoftwareInterrupt;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Swap;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
 import org.binarytranslator.generic.decoder.DisassembledInstruction;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -43,8 +43,11 @@ public final class ARM_Disassembler {
   public final static DisassembledInstruction disassemble(int address,
       ProcessSpace ps) {
 
-    int instr = ps.memory.loadInstruction32(address);
+    int binaryInstruction = ps.memory.loadInstruction32(address);
+    Instruction decodedInstruction = ARM_InstructionDecoder.decode(binaryInstruction);
+    
     DisassemblingVisitor disassembler = new DisassemblingVisitor(address);
+    decodedInstruction.visit(disassembler);
 
     return disassembler.result;
   }
@@ -59,7 +62,7 @@ public final class ARM_Disassembler {
    * @return A human-readable version of the given instruction.
    */
   final static DisassembledInstruction disassemble(
-      ARM_InstructionDecoders.Instruction instruction) {
+      ARM_Instructions.Instruction instruction) {
 
     DisassemblingVisitor disassembler = new DisassemblingVisitor();
     instruction.visit(disassembler);
