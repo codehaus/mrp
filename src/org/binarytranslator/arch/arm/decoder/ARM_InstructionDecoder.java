@@ -243,6 +243,32 @@ public class ARM_InstructionDecoder {
   }
   
   /**
+   * An interface to a factory class, which will create the actual object representations of the
+   * instruction classes decoded by {@link ARM_InstructionDecoder}.
+   *
+   * @param <T>
+   *  The type of the object representations, that shall be created when an ARM instruction is decoded.
+   */
+  interface ARM_InstructionFactory<T> {
+    T createDataProcessing(int instr);
+    T createSingleDataTransfer(int instr);
+    T createBlockDataTransfer(int instr);
+    T createIntMultiply(int instr);
+    T createLongMultiply(int instr);
+    T createSwap(int instr);
+    T createSoftwareInterrupt(int instr);
+    T createBranch(int instr);
+    T createBranchExchange(int instr);
+    T createCoprocessorDataTransfer(int instr);
+    T createCoprocessorDataProcessing(int instr);
+    T createCoprocessorRegisterTransfer(int instr);
+    T createMoveFromStatusRegister(int instr);
+    T createMoveToStatusRegister(int instr);
+    T createCountLeadingZeros(int instr);
+    T createUndefinedInstruction(int instr);
+  }
+  
+  /**
    * A default implementation of the ARM instruction factory, which will create the 
    * appropriate classes from the {@link ARM_Instructions} namespace.
    */
