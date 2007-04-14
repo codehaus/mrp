@@ -12,7 +12,6 @@ import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.generic.branch.BranchLogic;
-import org.binarytranslator.generic.decoder.InstructionDecoder;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.Binary;
@@ -40,7 +39,7 @@ import org.jikesrvm.ppc.PPC_Disassembler;
  * This class is the super class of all instruction translators, it implements
  * default methods that just throw errors
  */
-public class PPC_InstructionDecoder extends InstructionDecoder implements
+public class PPC_InstructionDecoder implements
     OPT_Operators {
   /* Different instruction formats */
 
