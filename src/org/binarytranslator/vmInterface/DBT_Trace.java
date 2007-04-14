@@ -11,6 +11,7 @@ package org.binarytranslator.vmInterface;
 import org.binarytranslator.generic.decoder.DecoderUtils;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DummyDynamicCodeRunner;
+import org.binarytranslator.DBT;
 import org.jikesrvm.compilers.common.VM_CompiledMethod;
 import org.jikesrvm.compilers.common.VM_CompiledMethods;
 import org.jikesrvm.classloader.VM_NormalMethod;
@@ -230,7 +231,8 @@ public final class DBT_Trace extends VM_NormalMethod {
           .asMethodReference(), JBC_invokevirtual);
       break;
     case BAD_INSTRUCTION_NEW:
-      throw new Error("Todo: dynamic linking for new bad instruction exception");
+      DBT.fail("Todo: dynamic linking for new bad instruction exception");
+      break;
     case BAD_INSTRUCTION_INIT:
       dynamicLink.set(DecoderUtils.badInstrKlassInitMethod.getMemberRef()
           .asMethodReference(), JBC_invokevirtual);
@@ -246,9 +248,8 @@ public final class DBT_Trace extends VM_NormalMethod {
       dynamicLink.set(ps.memory.getMethodRef(bcIndex), JBC_invokevirtual);
       break;
     default:
-      throw new Error(
-          "Trying to dynamic link inside a DBT trace for an unknown dynamic link location: 0x"
-              + Integer.toHexString(bcIndex));
+      DBT.write(bcIndex);
+      DBT.fail("Trying to dynamic link inside a DBT trace for an unknown dynamic link location");
     }
   }
 

@@ -12,6 +12,7 @@ import org.jikesrvm.compilers.opt.ir.OPT_Operand;
 import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
 import org.jikesrvm.classloader.VM_MethodReference;
 import org.binarytranslator.vmInterface.TranslationHelper;
+import org.vmmagic.pragma.Uninterruptible;
 import java.io.RandomAccessFile;
 
 /**
@@ -291,6 +292,7 @@ public abstract class Memory {
    * @param callAddress
    *          the address associated with this call
    */
+  @Uninterruptible
   public VM_MethodReference getMethodRef(int callAddress) {
     throw new Error("Error linking method at " + callAddress
         + " for memory model " + this.getClass());

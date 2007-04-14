@@ -18,6 +18,7 @@ import org.jikesrvm.classloader.VM_Method;
 import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.ir.*;
+import org.vmmagic.pragma.Uninterruptible;
 
 /**
  * CallBasedMemory abstraction:
@@ -415,6 +416,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param callAddress
    *          the address associated with this call
    */
+  @Uninterruptible
   public VM_MethodReference getMethodRef(int callAddress) {
     switch (callAddress) {
     case DBT_Trace.MEMORY_STORE8:
