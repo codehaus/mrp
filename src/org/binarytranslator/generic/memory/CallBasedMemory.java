@@ -8,6 +8,7 @@
  */
 package org.binarytranslator.generic.memory;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.TranslationHelper;
@@ -436,8 +437,9 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
     case DBT_Trace.MEMORY_LOAD32:
       return load32.getMemberRef().asMethodReference();
     default:
-      throw new Error("Error linking method at " + callAddress
-          + " for memory model " + this.getClass());
+      DBT.write(callAddress);
+      DBT.fail("Trying to dynamic link inside a DBT trace for an unknown dynamic link location");
+      return null;
     }
   }
 }

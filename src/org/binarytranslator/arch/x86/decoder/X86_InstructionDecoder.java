@@ -12,6 +12,7 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.binarytranslator.generic.decoder.InstructionDecoder;
+import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
@@ -750,7 +751,7 @@ class X86_InstructionDecoder extends InstructionDecoder {
   public int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc) {
     TODO();
-    return -1;
+    return 0xEBADC0DE;
   }
 
   /**
@@ -763,9 +764,12 @@ class X86_InstructionDecoder extends InstructionDecoder {
    */
   public static int translateInstruction(X862IR translationHelper,
       ProcessSpace ps, X86_Laziness lazy, int pc) {
+    System.err.println("Translating "+pc);
     X86_InstructionDecoder decoder = getDecoder(ps, pc);
     if (DBT_Options.debugInstr) {
+      System.err.println("Disassembling "+pc);
       System.err.println(decoder.disassemble(ps, pc));
+      System.err.println("After disassembling "+pc);
     }
     return decoder.translate(translationHelper, ps, lazy, pc);
   }
@@ -796,6 +800,29 @@ class X86_InstructionDecoder extends InstructionDecoder {
  * A decoder that faults with a bad instruction exception
  */
 class X86_BadInstructionDecoder extends X86_InstructionDecoder {
+  /**
+   * Get the decoder with upto four or five(X86_64) prefix decoders but
+   * currently no opcode or operands
+   */
+  protected X86_InstructionDecoder getDecoder(ProcessSpace ps, int pc,
+      int offset, X86_Group1PrefixDecoder prefix1,
+      X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
+      X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
+    return this;
+  }
+  /**
+   * Translate a single instruction
+   * @param translationHelper the object containing the translation sequence
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
+   * @return the address of the next instruction or -1 if this instruction has
+   *         branched to the end of the trace
+   */
+  public int translate(X862IR translationHelper, ProcessSpace ps,
+      X86_Laziness lazy, int pc) {
+    translationHelper.plantThrowBadInstruction(lazy, pc);
+    return -1;
+  }
 }
 
 /**

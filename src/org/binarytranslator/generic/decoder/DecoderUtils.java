@@ -117,9 +117,9 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
         BadInstructionException.class).asClass();
 
     VM_MethodReference badInstrKlassInitMethRef = (VM_MethodReference) VM_MemberReference
-        .findOrCreate(badInstrKlass.getTypeRef(), VM_Atom
-            .findOrCreateAsciiAtom("<init>"), VM_Atom
-            .findOrCreateAsciiAtom("(I" + psTref.getName() + ")V"));
+        .findOrCreate(badInstrKlass.getTypeRef(),
+            VM_Atom.findOrCreateAsciiAtom("<init>"),
+            VM_Atom.findOrCreateAsciiAtom("(ILorg/binarytranslator/generic/os/process/ProcessSpace;)V"));
     badInstrKlassInitMethod = badInstrKlassInitMethRef.resolveInvokeSpecial();
 
     VM_MethodReference recordUncaughtBranchMethRef = (VM_MethodReference) VM_MemberReference
@@ -1218,62 +1218,57 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    *          the program counter of the bad instruction
    */
   public void plantThrowBadInstruction(Laziness lazy, int pc) {
-    // There's a bug with this, so for now I'm just commenting it out :-( -- IAR
+    // Need to make sure that the PPC_ProcessSpace registers have
+    // the correct values before call to doSysCall().
+    resolveLaziness(lazy);
+    spillAllRegisters();
+
+    OPT_Operator newOperator;
+    OPT_TypeOperand typeOperand = new OPT_TypeOperand(badInstrKlass);
+    VM_TypeReference eTref = badInstrKlass.getTypeRef();
+
+    if (badInstrKlass.isInitialized() || badInstrKlass.isInBootImage()) {
+      newOperator = NEW;
+    } else {
+      newOperator = NEW_UNRESOLVED;
+    }
+
+    OPT_RegisterOperand eRef = gc.temps.makeTemp(eTref);
+
+    OPT_Instruction n = New.create(newOperator, eRef, typeOperand);
+    n.position = gc.inlineSequence;
+    n.bcIndex = DBT_Trace.BAD_INSTRUCTION_NEW;
+
+    appendInstructionToCurrentBlock(n);
+
+    OPT_Operand psRef = gc.makeLocal(1, psTref);
+
+    OPT_Instruction c = Call.create(CALL, null, null, null, null, 3);
+
+    OPT_MethodOperand methOp = OPT_MethodOperand.SPECIAL(
+        badInstrKlassInitMethod.getMemberRef().asMethodReference(),
+        badInstrKlassInitMethod);
+    Call.setParam(c, 0, eRef.copy()); // 'this' pointer in
+    // BadInstructionException.init
+    Call.setParam(c, 1, new OPT_IntConstantOperand(pc));
+    Call.setParam(c, 2, psRef);
+    Call.setGuard(c, new OPT_TrueGuardOperand());
+    Call.setMethod(c, methOp);
+    Call.setAddress(c, new OPT_AddressConstantOperand(badInstrKlassInitMethod
+        .getOffset()));
+    c.position = gc.inlineSequence;
+    c.bcIndex = DBT_Trace.BAD_INSTRUCTION_INIT;
+
+    appendInstructionToCurrentBlock(c);
+
+    OPT_Instruction t = Athrow.create(ATHROW, eRef.copyRO());
+    t.position = gc.inlineSequence;
+    t.bcIndex = DBT_Trace.BAD_INSTRUCTION_THROW;
+
+    appendInstructionToCurrentBlock(t);
+
     setReturnValueResolveLazinessAndBranchToFinish(lazy,
         new OPT_IntConstantOperand(0xEBADC0DE));
-    if (false) {
-      // Need to make sure that the PPC_ProcessSpace registers have
-      // the correct values before call to doSysCall().
-      resolveLaziness(lazy);
-      spillAllRegisters();
-
-      OPT_Operator newOperator;
-      OPT_TypeOperand typeOperand = new OPT_TypeOperand(badInstrKlass);
-      VM_TypeReference eTref = badInstrKlass.getTypeRef();
-
-      if (badInstrKlass.isInitialized() || badInstrKlass.isInBootImage()) {
-        newOperator = NEW;
-      } else {
-        newOperator = NEW_UNRESOLVED;
-      }
-
-      OPT_RegisterOperand eRef = gc.temps.makeTemp(eTref);
-
-      OPT_Instruction n = New.create(newOperator, eRef, typeOperand);
-      n.position = gc.inlineSequence;
-      n.bcIndex = DBT_Trace.BAD_INSTRUCTION_NEW;
-
-      OPT_Operand psRef = gc.makeLocal(1, psTref);
-
-      OPT_Instruction c = Call.create(CALL, null, null, null, null, 3);
-
-      OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(
-          badInstrKlassInitMethod.getMemberRef().asMethodReference(),
-          badInstrKlassInitMethod);
-      Call.setParam(c, 0, eRef.copy()); // 'this' pointer in
-                                        // BadInstructionException.init
-      Call.setParam(c, 1, new OPT_IntConstantOperand(pc));
-      Call.setParam(c, 2, psRef);
-      Call.setGuard(c, new OPT_TrueGuardOperand());
-      Call.setMethod(c, methOp);
-      Call.setAddress(c, new OPT_AddressConstantOperand(badInstrKlassInitMethod
-          .getOffset()));
-      c.position = gc.inlineSequence;
-      c.bcIndex = DBT_Trace.BAD_INSTRUCTION_INIT;
-
-      OPT_Instruction t = Athrow.create(ATHROW, eRef.copyRO());
-      t.position = gc.inlineSequence;
-      t.bcIndex = DBT_Trace.BAD_INSTRUCTION_THROW;
-
-      appendInstructionToCurrentBlock(n);
-
-      appendInstructionToCurrentBlock(c);
-
-      appendInstructionToCurrentBlock(t);
-
-      setReturnValueResolveLazinessAndBranchToFinish(lazy,
-          new OPT_IntConstantOperand(0xEBADC0DE));
-    }
   }
 
   // -oO Trace helping methods Oo-

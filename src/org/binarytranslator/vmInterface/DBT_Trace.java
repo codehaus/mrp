@@ -235,7 +235,7 @@ public final class DBT_Trace extends VM_NormalMethod {
       break;
     case BAD_INSTRUCTION_INIT:
       dynamicLink.set(DecoderUtils.badInstrKlassInitMethod.getMemberRef()
-          .asMethodReference(), JBC_invokevirtual);
+          .asMethodReference(), JBC_invokespecial);
       break;
     case MEMORY_STORE8:
     case MEMORY_STORE16:
