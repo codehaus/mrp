@@ -75,7 +75,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   public static ProcessSpace createProcessSpaceFromBinary(Loader loader)
       throws IOException {
     if (loader.isARM_ABI() || loader.isSysV_ABI()) {
-      report("Creating ARM Linux ABI [rocess space");
+      report("Creating ARM Linux ABI Process space");
       return new ARM_LinuxProcessSpace();
     } else {
       report("Creating ARM image process space.");
@@ -96,21 +96,21 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    */
   @Uninterruptible
   public int getCurrentInstructionAddress() {
-    return registers.read(ARM_Registers.PC);
+    return registers.get(ARM_Registers.PC);
   }
 
   /**
    * Sets the current instruction's address
    */
   public void setCurrentInstructionAddress(int pc) {
-    registers.write(ARM_Registers.PC, pc);
+    registers.set(ARM_Registers.PC, pc);
   }
 
   /**
    * Return as an integer the current instruction's address
    */
   public int getCurrentStackAddress() {
-    return registers.read(14);
+    return registers.get(ARM_Registers.SP);
   }
 
   /**

@@ -17,52 +17,6 @@ import org.binarytranslator.DBT;
  */
 public class ARM_Instructions  {
 
-  /**
-   * Checks if a bit is set within a word.
-   * @param word
-   *  The word that is being examined.
-   * @param bit
-   *  The number of the bit that is to be checked, starting from zero.
-   * @return
-   *  True, if the given bit is set within the word, false otherwise.
-   */
-  private static final boolean getBit(int word, int bit) {
-    if (DBT.VerifyAssertions)
-      DBT._assert(bit >= 0 && bit <= 31);
-    return (word & (1 << bit)) != 0;
-  }
-
-  /**
-   * Extracts a subsequence of bits from a word.
-   * A call to <code>getBits(0xFF, 2, 3)</code> would return 0x3.
-   * @param word
-   *  The word that is to be examined.
-   * @param from
-   *  The first bit (starting from 0) that is to be extracted.
-   * @param to
-   *  The last bit (starting from 0) that is to be extracted from the word.
-   * @return
-   *  A zero-based version of the bit sequence.
-   */
-  private static final int getBits(int word, int from, int to) {
-    if (DBT.VerifyAssertions)
-      DBT._assert(from < to && from >= 0 && to <= 31);
-    return (word & ((1 << (to + 1)) - 1)) >> from;
-  }
-  
-  /** 
-   * Sign extends a given value.
-   * @param value
-   *  The value to sign extends.
-   * @param bitsUsed
-   *  The number bits used within this values.
-   * @return
-   *  A sign extended value.
-   */
-  public static int signExtend(int value, int bitsUsed) {
-    return (value << (32 - bitsUsed)) >> (32 - bitsUsed);
-  }
-
   /** A base class for all (conditional) ARM instructions. */
   public abstract static class Instruction {
     
@@ -74,7 +28,7 @@ public class ARM_Instructions  {
     protected final Condition condition;
 
     private Instruction(int instr) {
-      condition = Condition.values()[(byte) getBits(instr, 28, 31)];
+      condition = Condition.values()[(byte) Utils.getBits(instr, 28, 31)];
     }
 
     /** Returns the condition code that specifies, under which circumstances this operation shall be executed. */
@@ -103,8 +57,8 @@ public class ARM_Instructions  {
     public TwoRegistersTemplate(int instr) {
       super(instr);
 
-      Rd = (byte) getBits(instr, 12, 15);
-      Rn = (byte) getBits(instr, 16, 19);
+      Rd = (byte) Utils.getBits(instr, 12, 15);
+      Rn = (byte) Utils.getBits(instr, 16, 19);
     }
 
     /** Returns the number of the operation's destination register, starting from 0.*/
@@ -128,7 +82,7 @@ public class ARM_Instructions  {
     public ThreeRegistersTemplate(int instr) {
       super(instr);
 
-      Rm = (byte) getBits(instr, 0, 3);
+      Rm = (byte) Utils.getBits(instr, 0, 3);
     }
 
     /** Returns the number of the second operand register, starting from 0.*/
@@ -153,9 +107,9 @@ public class ARM_Instructions  {
     protected MultiplyTemplate(int instr) {
       super(instr);
       
-      updateConditionCodes = getBit(instr, 20);
-      accumulate = getBit(instr, 21);
-      Rs = (byte) getBits(instr, 8, 11);
+      updateConditionCodes = Utils.getBit(instr, 20);
+      accumulate = Utils.getBit(instr, 21);
+      Rs = (byte) Utils.getBits(instr, 8, 11);
     }
 
     /** Returns true, if the condition codes shall be updated by the result of this operation. */
@@ -189,9 +143,9 @@ public class ARM_Instructions  {
     public CoprocessorTemplate(int instr) {
       super(instr);
       
-      cpNum = (byte) getBits(instr, 8, 11);
-      Rd = (byte) getBits(instr, 12, 15);
-      Rn = (byte) getBits(instr, 16, 19);
+      cpNum = (byte) Utils.getBits(instr, 8, 11);
+      Rd = (byte) Utils.getBits(instr, 12, 15);
+      Rn = (byte) Utils.getBits(instr, 16, 19);
     }
     
     /** Returns the coprocessor that shall process this instruction */
@@ -238,32 +192,35 @@ public class ARM_Instructions  {
     
     /** Creates an operand wrapper, that represents a register shifted by an immediate or a register, depending on the instruction. */
     public static OperandWrapper decodeShiftedRegister(int instr) {
-      ShiftType shift = ShiftType.values()[getBits(instr, 5, 6)];
+      ShiftType shift = ShiftType.values()[Utils.getBits(instr, 5, 6)];
       byte shiftedRegister = (byte) (instr & 0xF);
       
-      if (getBit(instr, 4)) {
+      if (Utils.getBit(instr, 4)) {
         //shift by a register
-        byte shiftingRegister = (byte)getBits(instr, 8, 11);
+        byte shiftingRegister = (byte)Utils.getBits(instr, 8, 11);
         return new RegisterShiftRegisterOperand(shiftedRegister, shift, shiftingRegister);
       }
       else {
         //shift by an immediate
-        byte immediate = (byte)getBits(instr, 7, 11);
+        byte immediate = (byte)Utils.getBits(instr, 7, 11);
         
         if (immediate == 0) {
-          //if we are shifting by zero, we might forget about the shift
+          
+          if (shift == ShiftType.LSL) {
+            //If we are shifting by zero with LSL, then this is supposed to denote a register operand
+            return new RegisterOperand(shiftedRegister);
+          }
+          
           if (shift == ShiftType.ROR) {
             //However, if the shift type was RotateRight, then ARM meant do a RotateRightExtend by 1
             return new RegisterShiftImmediateOperand(shiftedRegister, shift, (byte)1);
           }
-          else {
-            //Otherwise, really forget about the shifting
-            return new RegisterOperand(shiftedRegister);
-          }
+          
+          //in all other cases, an immediate of zero denotes a shift by 32
+          immediate = 32;
         }
-        else {
-          return new RegisterShiftImmediateOperand(shiftedRegister, shift, immediate);
-        }
+        
+        return new RegisterShiftImmediateOperand(shiftedRegister, shift, immediate);
       }
     }
     
@@ -305,14 +262,19 @@ public class ARM_Instructions  {
       
       /** @see #getImmediate() */
       protected final int immediate;
-      
+         
       protected ImmediateOperand(int immediate) {
         this.immediate = immediate;
       }
-      
+
       @Override
       public int getImmediate() {
         return immediate;
+      }
+      
+      @Override
+      public byte getShiftAmount() {
+        return 0;
       }
 
       @Override
@@ -452,11 +414,11 @@ public class ARM_Instructions  {
     public DataProcessing(int instr) {
       super(instr);
 
-      updateConditionCodes = getBit(instr, 20);
-      opcode = Opcode.values()[(byte) getBits(instr, 21, 24)];
+      updateConditionCodes = Utils.getBit(instr, 20);
+      opcode = Opcode.values()[(byte) Utils.getBits(instr, 21, 24)];
           
-      if (getBit(instr, 25))
-        operand2 = OperandWrapper.createImmediate((instr & 0xFF) << getBits(instr, 8, 11));
+      if (Utils.getBit(instr, 25))
+        operand2 = OperandWrapper.createImmediate(Integer.rotateRight(instr & 0xFF, Utils.getBits(instr, 8, 11) << 2));
       else
         operand2 = OperandWrapper.decodeShiftedRegister(instr); 
     }
@@ -519,40 +481,40 @@ public class ARM_Instructions  {
     public SingleDataTransfer(int instr) {
       super(instr);
 
-      preIndexing = getBit(instr, 24);
-      positiveOffset = getBit(instr, 23);
-      writeBack = getBit(instr, 21);
-      isLoad = getBit(instr, 20);
+      preIndexing = Utils.getBit(instr, 24);
+      positiveOffset = Utils.getBit(instr, 23);
+      writeBack = Utils.getBit(instr, 21);
+      isLoad = Utils.getBit(instr, 20);
       
-      if (getBit(instr, 26)) {
+      if (Utils.getBit(instr, 26)) {
         //this is an unsigned byte or word transfer
         signExtend = false;
         
         forceUserMode = !preIndexing && writeBack;
         
-        if (getBit(instr, 22))
+        if (Utils.getBit(instr, 22))
           size = TransferSize.Byte;
         else
           size = TransferSize.Word;
         
-        if (getBit(instr, 25))
+        if (Utils.getBit(instr, 25))
           offset = OperandWrapper.createImmediate(instr & 0xFF);
         else
           offset = OperandWrapper.decodeShiftedRegister(instr);
       }
       else {
         //this is a byte or half-word transfer
-        if (getBit(instr, 5))
+        if (Utils.getBit(instr, 5))
           size = TransferSize.HalfWord;
         else
           size = TransferSize.Byte;
         
-        signExtend = getBit(instr, 6);
+        signExtend = Utils.getBit(instr, 6);
         forceUserMode = false;
         
-        if (getBit(instr, 22)) {
+        if (Utils.getBit(instr, 22)) {
           //immediate offset
-          offset = OperandWrapper.createImmediate((getBits(instr, 8, 11) << 4) | (instr & 0xF));
+          offset = OperandWrapper.createImmediate((Utils.getBits(instr, 8, 11) << 4) | (instr & 0xF));
         }
         else {
           //register offset
@@ -616,7 +578,8 @@ public class ARM_Instructions  {
     protected IntMultiply(int instr) {
       super(instr);
       
-      if (DBT.VerifyAssertions) DBT._assert(accumulate || Rn == 0);
+      //check for instruction combinations that show undefined behaviour on ARM
+      if (DBT.VerifyAssertions) DBT._assert((accumulate || Rn == 0) && Rd != 15);
     }
 
     @Override
@@ -634,7 +597,10 @@ public class ARM_Instructions  {
     public LongMultiply(int instr) {
       super(instr);
       
-      unsigned = getBit(instr, 22);
+      unsigned = Utils.getBit(instr, 22);
+      
+      //check for instruction combinations that show undefined behaviour on ARM
+      if (DBT.VerifyAssertions) DBT._assert((accumulate || Rn == 0) && Rd != 15);
     }
     
     /** Long multiplication stores its result in two registers. This function gets the register which receives the high int. */
@@ -666,7 +632,7 @@ public class ARM_Instructions  {
 
     public Swap(int instr) {
       super(instr);
-      swapByte = getBit(instr, 22);
+      swapByte = Utils.getBit(instr, 22);
     }
 
     /** Returns true, if a byte shall be swapped or false, if an int (32 bit) shall be swapped. */
@@ -707,12 +673,12 @@ public class ARM_Instructions  {
     public BlockDataTransfer(int instr) {
       super(instr);
 
-      postIndexing = getBit(instr, 24);
-      incrementBase = getBit(instr, 23);
-      forceUser = getBit(instr, 22);
-      writeBack = getBit(instr, 21);
-      isLoad = getBit(instr, 20);
-      baseRegister = (byte) getBits(instr, 16, 19);
+      postIndexing = Utils.getBit(instr, 24);
+      incrementBase = Utils.getBit(instr, 23);
+      forceUser = Utils.getBit(instr, 22);
+      writeBack = Utils.getBit(instr, 21);
+      isLoad = Utils.getBit(instr, 20);
+      baseRegister = (byte) Utils.getBits(instr, 16, 19);
       registerList = instr;
     }
 
@@ -721,7 +687,7 @@ public class ARM_Instructions  {
       if (DBT.VerifyAssertions)
         DBT._assert(r >= 0 && r < 16);
 
-      return getBit(registerList, r);
+      return Utils.getBit(registerList, r);
     }
     
     /** True if the base register shall be changed after each single transfer, otherwise changed it before each transfer. */
@@ -793,7 +759,7 @@ public class ARM_Instructions  {
 
     public Branch(int instr) {
       super(instr);
-      link = getBit(instr, 24);
+      link = Utils.getBit(instr, 24);
       offset = instr & 0xFFF;
     }
 
@@ -823,23 +789,23 @@ public class ARM_Instructions  {
     protected final boolean link;
 
     public BranchExchange(int instr) {
-      super(getBit(instr, 27) ? 0xE0000000 : instr);
+      super(Utils.getBit(instr, 27) ? 0xE0000000 : instr);
       
-      if (getBit(instr, 27)) {
+      if (Utils.getBit(instr, 27)) {
         //this is the immediate version of a BLX
         link = true;
         
         //sign extend jump target
-        int jumpTarget = signExtend(instr & 0xFFF, 24) << 2;
+        int jumpTarget = Utils.signExtend(instr & 0xFFF, 24) << 2;
         
         //are we addressing a half-byte?
-        if (getBit(instr, 24))
+        if (Utils.getBit(instr, 24))
           jumpTarget += 2;
         
         target = OperandWrapper.createPcRelative(jumpTarget);
       }
       else {
-        link = getBit(instr, 5);
+        link = Utils.getBit(instr, 5);
         target = OperandWrapper.createRegister((byte) (instr & 0xF));
       }
     }
@@ -881,16 +847,16 @@ public class ARM_Instructions  {
     public CoprocessorDataTransfer(int instr) {
       super(instr);
       
-      preIndexing = getBit(instr, 24);
-      largeTransfer = getBit(instr, 22);
-      writeBack = getBit(instr, 21);
-      isLoad = getBit(instr, 20);
+      preIndexing = Utils.getBit(instr, 24);
+      largeTransfer = Utils.getBit(instr, 22);
+      writeBack = Utils.getBit(instr, 21);
+      isLoad = Utils.getBit(instr, 20);
       
       if (!writeBack && !preIndexing) {
         offset = instr & 0xFF;
       }
       else {
-        if (getBit(instr, 23))
+        if (Utils.getBit(instr, 23))
           offset = (instr & 0xFF) << 2;
         else
           offset = - ((instr & 0xFF) << 2);
@@ -960,8 +926,8 @@ public class ARM_Instructions  {
     public CoprocessorDataProcessing(int instr) {
       super(instr);
       
-      opcode = (byte) getBits(instr, 20, 23);
-      cpInfo = (byte) getBits(instr, 5, 7);
+      opcode = (byte) Utils.getBits(instr, 20, 23);
+      cpInfo = (byte) Utils.getBits(instr, 5, 7);
       cpRm = (byte) (instr & 0xF);
     }
     
@@ -1014,10 +980,10 @@ public class ARM_Instructions  {
     public CoprocessorRegisterTransfer(int instr) {
       super(instr);
       
-      opcode = (byte) getBits(instr, 21, 23);
-      cpInfo = (byte) getBits(instr, 5, 7);
+      opcode = (byte) Utils.getBits(instr, 21, 23);
+      cpInfo = (byte) Utils.getBits(instr, 5, 7);
       cpRm = (byte) (instr & 0xF);
-      isLoad = getBit(instr, 20);
+      isLoad = Utils.getBit(instr, 20);
     }
     
     /** Returns true if this operation is a load from a coprocessor or false if it is a store to coprocessor. */
@@ -1068,8 +1034,8 @@ public class ARM_Instructions  {
     public MoveFromStatusRegister(int instr) {
       super(instr);
       
-      Rd = (byte) getBits(instr, 12, 15);
-      transferSavedPSR = getBit(instr, 22);
+      Rd = (byte) Utils.getBits(instr, 12, 15);
+      transferSavedPSR = Utils.getBit(instr, 22);
     }
     
     /** Returns the number of the destination register. */
@@ -1112,15 +1078,15 @@ public class ARM_Instructions  {
     public MoveToStatusRegister(int instr) {
       super(instr);
       
-      transferControl = getBit(instr, 16);
-      transferExtension = getBit(instr, 17);
-      transferStatus = getBit(instr, 18);
-      transferFlags = getBit(instr, 19);
+      transferControl = Utils.getBit(instr, 16);
+      transferExtension = Utils.getBit(instr, 17);
+      transferStatus = Utils.getBit(instr, 18);
+      transferFlags = Utils.getBit(instr, 19);
       
-      transferSavedPSR = getBit(instr, 22);
+      transferSavedPSR = Utils.getBit(instr, 22);
       
-      if (getBit(instr, 25))
-        sourceOperand = OperandWrapper.createImmediate((instr & 0xFF) << getBits(instr, 8, 11));
+      if (Utils.getBit(instr, 25))
+        sourceOperand = OperandWrapper.createImmediate((instr & 0xFF) << Utils.getBits(instr, 8, 11));
       else
         sourceOperand = OperandWrapper.decodeShiftedRegister(instr);
     }
@@ -1174,7 +1140,7 @@ public class ARM_Instructions  {
       super(instr);
       
       Rm = (byte) (instr & 0xF);
-      Rd = (byte) getBits(instr, 12, 15);
+      Rd = (byte) Utils.getBits(instr, 12, 15);
     }
     
     /** Returns the source register for this operation. */

@@ -1,7 +1,8 @@
 package org.binarytranslator.generic.decoder;
 
 /**
- * Represents a disassembled instruction.
+ * Represents an instruction, after it has been decoded by a disassembler.
+ * The instruction should be printable in the format of the target system's assembly language.
  * 
  * @author Michael Baer
  */

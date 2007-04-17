@@ -47,7 +47,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
 
   @Override
   public void initialise(Loader loader, int pc, int brk) {
-    registers.write(ARM_Registers.PC, pc);
+    registers.set(ARM_Registers.PC, pc);
     this.brk = brk;
 
     // initialize the stack

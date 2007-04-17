@@ -15,7 +15,7 @@ public class ARM_SyscallArgumentIterator implements
   }
 
   public int nextInt() {
-    return ps.registers.read(currentArgument++);
+    return ps.registers.get(currentArgument++);
   }
 
   public long nextLong() {

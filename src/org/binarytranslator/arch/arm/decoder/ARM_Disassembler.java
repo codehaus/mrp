@@ -164,7 +164,10 @@ public final class ARM_Disassembler {
             op.getShiftAmount());
 
       case PcRelative:
-        return String.format("#%x", op.getOffset() + address + 8);
+        if (address != -1)
+          return String.format("#%x", op.getOffset() + address + 8);
+        else
+          return String.format("#<%x + pc>", op.getOffset());
 
       case Register:
         return "r" + op.getRegister();
@@ -312,9 +315,11 @@ public final class ARM_Disassembler {
     public void visit(Branch instr) {
 
       String mnemonic = instr.link() ? "BL" : "B";
-      setResult(String.format("%s%s #%x", mnemonic, cond(instr), instr
-          .getOffset()
-          + address));
+      
+      if (address != -1)
+        setResult(String.format("%s%s #%x", mnemonic, cond(instr), instr.getOffset() + address + 8));
+      else
+        setResult(String.format("%s%s #<%x + pc>", mnemonic, cond(instr), instr.getOffset()));
     }
 
     public void visit(BranchExchange instr) {
