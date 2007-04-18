@@ -44,7 +44,7 @@ public class DynamicCodeRunner {
       VM.sysWriteHex(ps.getCurrentInstructionAddress());
       VM.sysWriteln();
       VM.sysWriteln(ps.toString());
-      // ps.dumpStack(20);
+      ps.dumpStack(20);
       VM.sysWrite("About to bridge to ");
       VM.sysWriteHex(VM_Magic.objectAsAddress(code).toInt());
       VM.sysWriteln();

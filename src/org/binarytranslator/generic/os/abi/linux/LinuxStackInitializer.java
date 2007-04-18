@@ -299,8 +299,12 @@ public class LinuxStackInitializer {
 
     // grab the vector of command line options that are to be delivered to the
     // linux program
-    String[] argv = DBT_Options.executableArguments;
-
+    String[] argv = new String[DBT_Options.executableArguments.length+1];
+    argv[0] = DBT_Options.executableFile;
+    for (int i=0; i < DBT_Options.executableArguments.length; i++) {
+      argv[i+1] = DBT_Options.executableArguments[i];
+    }
+  
     // ---
     // First create the information block by concatenating all strings
     // together, then compute pointers to values in the information
