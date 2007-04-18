@@ -109,6 +109,11 @@ public final class OPT_ConditionOperand extends OPT_Operand {
   /** Would is bit a not set in b? */
   public static final int NO_RBIT_TEST          = 35;
 
+  /** Would a*b cause an overflow? */
+  public static final int OVERFLOW_FROM_MUL     = 36;
+  /** Would a*b not cause an overflow? */
+  public static final int NO_OVERFLOW_FROM_MUL  = 37;
+
   /* Results from evaluations */
   /** Evaluation result is false */
   public static final int FALSE = 0;
@@ -310,6 +315,15 @@ public final class OPT_ConditionOperand extends OPT_Operand {
   }
 
   /**
+   * Create the condition code operand for OVERFLOW_FROM_ADD
+   * 
+   * @return a newly created condition code operand
+   */
+  public static OPT_ConditionOperand OVERFLOW_FROM_MUL() {
+    return new OPT_ConditionOperand(OVERFLOW_FROM_MUL);
+  }
+
+  /**
    * Is x higher (unsigned &gt;) than y?
    */
   private static boolean higher(int x, int y) {
@@ -370,6 +384,15 @@ public final class OPT_ConditionOperand extends OPT_Operand {
       return x < (Integer.MIN_VALUE + y);
     else
       return x > (Integer.MAX_VALUE + y);
+  }
+
+  /**
+   * Would x*y overflow a register?
+   */
+  private static boolean overflow_from_mul(int x, int y) {
+    int z = x * y;
+    long z2 = ((long)x) * ((long)y);
+    return (long)z != z2;
   }
 
   /**
@@ -507,6 +530,8 @@ public final class OPT_ConditionOperand extends OPT_Operand {
     case NO_BIT_TEST:
     case RBIT_TEST:
     case NO_RBIT_TEST:
+    case OVERFLOW_FROM_MUL:
+    case NO_OVERFLOW_FROM_MUL:
       return true;
     default:
       return false;
@@ -845,6 +870,8 @@ public final class OPT_ConditionOperand extends OPT_Operand {
       case NO_BIT_TEST:
       case RBIT_TEST:
       case NO_RBIT_TEST:
+      case OVERFLOW_FROM_MUL:
+      case NO_OVERFLOW_FROM_MUL:
         return UNKNOWN;
       default:
         throw new OPT_OptimizingCompilerException("invalid condition " + this);
@@ -891,6 +918,8 @@ public final class OPT_ConditionOperand extends OPT_Operand {
     case NO_BIT_TEST:           return bit_test(v1, v2) ? FALSE : TRUE;
     case RBIT_TEST:             return bit_test(v2, v1) ? TRUE : FALSE;
     case NO_RBIT_TEST:          return bit_test(v2, v1) ? FALSE : TRUE;
+    case OVERFLOW_FROM_MUL:     return overflow_from_mul(v1, v2) ? TRUE : FALSE;
+    case NO_OVERFLOW_FROM_MUL:  return overflow_from_mul(v1, v2) ? FALSE : TRUE;
     }
     throw new OPT_OptimizingCompilerException("invalid condition " + this);
   }
@@ -1055,6 +1084,10 @@ public final class OPT_ConditionOperand extends OPT_Operand {
     case NO_BIT_TEST:           value = BIT_TEST; break;
     case RBIT_TEST:             value = NO_RBIT_TEST; break;
     case NO_RBIT_TEST:          value = RBIT_TEST; break;
+
+    case OVERFLOW_FROM_MUL:     value = NO_OVERFLOW_FROM_MUL; break;
+    case NO_OVERFLOW_FROM_MUL:  value = OVERFLOW_FROM_MUL; break;
+
     default:
       OPT_OptimizingCompilerException.UNREACHABLE();
     }
@@ -1118,6 +1151,10 @@ public final class OPT_ConditionOperand extends OPT_Operand {
     case NO_BIT_TEST:           value = NO_RBIT_TEST; break;
     case RBIT_TEST:             value = BIT_TEST; break;
     case NO_RBIT_TEST:          value = NO_BIT_TEST; break;
+
+    case OVERFLOW_FROM_MUL:     break; // mul is commutative
+    case NO_OVERFLOW_FROM_MUL:  break;
+
     default:
       OPT_OptimizingCompilerException.UNREACHABLE();
     }
@@ -1182,6 +1219,9 @@ public final class OPT_ConditionOperand extends OPT_Operand {
     case NO_BIT_TEST:           return "!bt";
     case RBIT_TEST:             return "rbt";
     case NO_RBIT_TEST:          return "!rbt";
+
+    case OVERFLOW_FROM_MUL:     return "overflow(*)";
+    case NO_OVERFLOW_FROM_MUL:  return "nooverflow(*)";
 
     default:                 return "UNKNOWN";
     }

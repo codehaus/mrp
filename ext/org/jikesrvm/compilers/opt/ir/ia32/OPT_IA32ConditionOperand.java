@@ -171,13 +171,35 @@ public final class OPT_IA32ConditionOperand extends OPT_Operand
       value = LGT;
       break;
     case OPT_ConditionOperand.LOWER:
+    case OPT_ConditionOperand.CARRY_FROM_ADD:
+    case OPT_ConditionOperand.BORROW_FROM_SUB:
+    case OPT_ConditionOperand.BORROW_FROM_RSUB:
+    case OPT_ConditionOperand.BIT_TEST:
+    case OPT_ConditionOperand.RBIT_TEST:
       value = LLT;
       break;
     case OPT_ConditionOperand.HIGHER_EQUAL:
+    case OPT_ConditionOperand.NO_CARRY_FROM_ADD:
+    case OPT_ConditionOperand.NO_BORROW_FROM_SUB:
+    case OPT_ConditionOperand.NO_BORROW_FROM_RSUB:
+    case OPT_ConditionOperand.NO_BIT_TEST:
+    case OPT_ConditionOperand.NO_RBIT_TEST:
       value = LGE;
       break;
     case OPT_ConditionOperand.LOWER_EQUAL:
       value = LLE;
+      break;
+    case OPT_ConditionOperand.OVERFLOW_FROM_ADD:
+    case OPT_ConditionOperand.OVERFLOW_FROM_SUB:
+    case OPT_ConditionOperand.OVERFLOW_FROM_RSUB:
+    case OPT_ConditionOperand.OVERFLOW_FROM_MUL:
+      value =   O;
+      break;
+    case OPT_ConditionOperand.NO_OVERFLOW_FROM_ADD:
+    case OPT_ConditionOperand.NO_OVERFLOW_FROM_SUB:
+    case OPT_ConditionOperand.NO_OVERFLOW_FROM_RSUB:
+    case OPT_ConditionOperand.NO_OVERFLOW_FROM_MUL:
+      value =  NO;
       break;
     case OPT_ConditionOperand.CMPL_EQUAL:
     case OPT_ConditionOperand.CMPL_GREATER:
