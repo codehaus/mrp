@@ -12,6 +12,7 @@ import java.util.ArrayList;
 
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
+import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.binarytranslator.generic.decoder.DecoderUtils;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
@@ -53,10 +54,37 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
    * @return the next instruction address or -1
    */
   protected int translateInstruction(Laziness lazy, int pc) {
-    return X86_InstructionDecoder.translateInstruction((X862IR) this,
-        (X86_ProcessSpace) ps, (X86_Laziness) lazy, pc);
+    if (pc != 0xffffe400) {
+      return X86_InstructionDecoder.translateInstruction((X862IR) this,
+          (X86_ProcessSpace) ps, (X86_Laziness) lazy, pc);
+    } else {
+      return plantSystemCallGateEntry((X86_Laziness) lazy, pc);
+    }
   }
 
+  /**
+   * Perform entry from a predetermined address into the Linux kernel
+   * @param lazy laziness state of registers
+   * @param pc entry point address
+   * @return -1
+   */
+  private int plantSystemCallGateEntry(X86_Laziness lazy, int pc) {
+    plantSystemCall(lazy, pc);
+    // Get return address
+    X86_DecodedOperand source = X86_DecodedOperand.getStack(X86_ProcessSpace._16BIT ? 16 : 32,
+        X86_ProcessSpace._16BIT ? 16 : 32);
+    OPT_RegisterOperand temp = getTempInt(0);
+    source.readToRegister(this, lazy, temp);
+
+    // Increment stack pointer
+    OPT_RegisterOperand esp = getGPRegister(lazy, X86_Registers.ESP, X86_ProcessSpace._16BIT ? 16 : 32);
+    appendInstructionToCurrentBlock(Binary.create(INT_ADD, esp,
+        esp.copyRO(), new OPT_IntConstantOperand(4)));
+    // Branch
+    setReturnValueResolveLazinessAndBranchToFinish((X86_Laziness) lazy.clone(), temp.copyRO());
+    return -1;  
+  }
+  
   // -oO Debug Oo-
 
   /**
