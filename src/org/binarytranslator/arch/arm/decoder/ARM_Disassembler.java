@@ -7,7 +7,6 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.BranchExchange;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CoprocessorDataProcessing;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CoprocessorDataTransfer;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CoprocessorRegisterTransfer;
-import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CountLeadingZeros;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.DataProcessing;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.IntMultiply;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.LongMultiply;
@@ -143,7 +142,10 @@ public final class ARM_Disassembler {
      * @return A human readable form of this instructions condition.
      */
     private String cond(Instruction instr) {
-      return instr.getCondition().name();
+      if (instr.getCondition() == Condition.AL)
+        return "";
+      else
+        return instr.getCondition().name();
     }
 
     /**
@@ -157,7 +159,7 @@ public final class ARM_Disassembler {
     private final String operand(OperandWrapper op) {
       switch (op.getType()) {
       case Immediate:
-        return String.format("#%x", op.getImmediate());
+        return String.format("#%d", op.getImmediate());
 
       case ImmediateShiftedRegister:
         return String.format("r%d %s #%d", op.getRegister(), op.getShiftType(),
@@ -165,9 +167,9 @@ public final class ARM_Disassembler {
 
       case PcRelative:
         if (address != -1)
-          return String.format("#%x", op.getOffset() + address + 8);
+          return String.format("#0x%x", op.getOffset() + address + 8);
         else
-          return String.format("#<%x + pc>", op.getOffset());
+          return String.format("#<%d + pc>", op.getOffset());
 
       case Register:
         return "r" + op.getRegister();
@@ -193,14 +195,15 @@ public final class ARM_Disassembler {
 
       // Filter instructions that only take one parameter
       if (instr.getOpcode() != DataProcessing.Opcode.MOV
-          && instr.getOpcode() != DataProcessing.Opcode.MVN) {
+          && instr.getOpcode() != DataProcessing.Opcode.MVN
+          && instr.getOpcode() != DataProcessing.Opcode.CLZ) {
 
         optionalParam = ", " + operand(instr.getOperand2());
       } else
         optionalParam = "";
 
-      setResult(String.format("%s r%d, r%d %s", mnemonic, instr.getRd(), instr
-          .getRn(), optionalParam));
+      setResult(String.format("%s r%d, r%d%s", mnemonic, instr.getRd(), instr
+          .getOperandRegister(), optionalParam));
     }
 
     public void visit(SingleDataTransfer instr) {
@@ -308,7 +311,7 @@ public final class ARM_Disassembler {
 
     public void visit(SoftwareInterrupt instr) {
 
-      setResult(String.format("SWI%s #%x", cond(instr), instr
+      setResult(String.format("SWI%s #0x%x", cond(instr), instr
           .getInterruptNumber()));
     }
 
@@ -317,15 +320,15 @@ public final class ARM_Disassembler {
       String mnemonic = instr.link() ? "BL" : "B";
       
       if (address != -1)
-        setResult(String.format("%s%s #%x", mnemonic, cond(instr), instr.getOffset() + address + 8));
+        setResult(String.format("%s%s #%d", mnemonic, cond(instr), instr.getOffset() + address + 8));
       else
-        setResult(String.format("%s%s #<%x + pc>", mnemonic, cond(instr), instr.getOffset()));
+        setResult(String.format("%s%s #<%d + pc>", mnemonic, cond(instr), instr.getOffset()));
     }
 
     public void visit(BranchExchange instr) {
 
       String mnemonic = instr.link ? "BLX" : "BX";
-      setResult(String.format("%s%s #%x", mnemonic, cond(instr), operand(instr
+      setResult(String.format("%s%s #%d", mnemonic, cond(instr), operand(instr
           .target())));
     }
 
@@ -406,12 +409,6 @@ public final class ARM_Disassembler {
 
       setResult(String.format("MSR%s %s, %s", cond(instr), fields,
           operand(instr.getSource())));
-    }
-
-    public void visit(CountLeadingZeros instr) {
-
-      setResult(String.format("CLZ%s r%s r%s ", cond(instr), instr.getRd(),
-          instr.getRm()));
     }
   }
 }

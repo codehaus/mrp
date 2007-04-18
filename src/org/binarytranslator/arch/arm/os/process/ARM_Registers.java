@@ -198,5 +198,20 @@ public final class ARM_Registers {
   public boolean isCarrySet() {
     return flagCarry;
   }
+  
+  /** Returns true if the zero flag is set, false otherwise. */
+  public boolean isZeroSet() {
+    return flagZero;
+  }
+  
+  /** Returns true if the overflow flag is set, false otherwise. */
+  public boolean isOverflowSet() {
+    return flagOverflow;
+  }
+  
+  /** Returns true if the negative flag is set, false otherwise. */
+  public boolean isNegativeSet() {
+    return flagNegative;
+  }
 
 }

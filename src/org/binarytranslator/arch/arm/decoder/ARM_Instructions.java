@@ -28,7 +28,7 @@ public class ARM_Instructions  {
     protected final Condition condition;
 
     private Instruction(int instr) {
-      condition = Condition.values()[(byte) Utils.getBits(instr, 28, 31)];
+      condition = Condition.values()[(instr & 0xF0000000) >>> 28];
     }
 
     /** Returns the condition code that specifies, under which circumstances this operation shall be executed. */
@@ -190,6 +190,22 @@ public class ARM_Instructions  {
       return new PcRelativeOperand(offset);
     }
     
+    public static OperandWrapper decodeDataProcessingOperand(int instr) {
+      if (Utils.getBit(instr, 25)) {
+        //this is a right-rotated immediate value 
+        byte shiftAmount = (byte)(Utils.getBits(instr, 8, 11) << 2);
+        int value = instr & 0xFF;
+        
+        if (shiftAmount == 0)
+          return new ImmediateOperand(value);
+        else
+          return new RightRotatedImmediateOperand(value, shiftAmount);
+      }
+      else {
+        return decodeShiftedRegister(instr);
+      }
+    }
+    
     /** Creates an operand wrapper, that represents a register shifted by an immediate or a register, depending on the instruction. */
     public static OperandWrapper decodeShiftedRegister(int instr) {
       ShiftType shift = ShiftType.values()[Utils.getBits(instr, 5, 6)];
@@ -276,6 +292,39 @@ public class ARM_Instructions  {
       public byte getShiftAmount() {
         return 0;
       }
+
+      @Override
+      public Type getType() {
+        return Type.Immediate;
+      }
+    }
+    
+    /** Represents an immediate value operand. */
+    protected static class RightRotatedImmediateOperand extends ImmediateOperand {
+      
+      /** @see #getShiftAmount() */
+      protected final byte shiftAmount;
+         
+      protected RightRotatedImmediateOperand(int immediate, byte shiftAmount) {
+        super(Integer.rotateRight(immediate, shiftAmount));
+        this.shiftAmount = shiftAmount;
+      }
+
+      @Override
+      public int getImmediate() {
+        return immediate;
+      }
+      
+      /** The amount of shifting that had to be performed to create this immediate. */
+      @Override
+      public byte getShiftAmount() {
+        return shiftAmount;
+      }
+      
+      @Override
+      public ShiftType getShiftType() {
+        return ShiftType.ROR;
+      } 
 
       @Override
       public Type getType() {
@@ -392,14 +441,13 @@ public class ARM_Instructions  {
   }
 
   /** Represents a Data Processing instruction. */
-  public static class DataProcessing extends
-      TwoRegistersTemplate {
+  public static class DataProcessing extends Instruction {
     
     /** A list of possible DataProcessing operations. The list is orded in ascendingly, with the
      * first opcode corresponding to opcode 0 (zero) in the opcode field of an ARM data processing
      * instruction. */
     public enum Opcode {
-      AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN
+      AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN, CLZ
     }
 
     /** @see #hasSetConditionCodes() */
@@ -411,16 +459,40 @@ public class ARM_Instructions  {
     /** @see #getOperand2() */
     protected final OperandWrapper operand2;
     
+    /** @see #getOperandRegister() */
+    protected final byte operandRegister;
+
+    /** @see #getRd() */
+    protected final byte Rd;
+    
     public DataProcessing(int instr) {
       super(instr);
+      
+      Rd = (byte) Utils.getBits(instr, 12, 15);
 
       updateConditionCodes = Utils.getBit(instr, 20);
-      opcode = Opcode.values()[(byte) Utils.getBits(instr, 21, 24)];
-          
-      if (Utils.getBit(instr, 25))
-        operand2 = OperandWrapper.createImmediate(Integer.rotateRight(instr & 0xFF, Utils.getBits(instr, 8, 11) << 2));
-      else
-        operand2 = OperandWrapper.decodeShiftedRegister(instr); 
+      
+      if (Utils.getBits(instr, 20, 27) == 0x16 && Utils.getBits(instr, 4, 7) == 1) {
+        //this is a CLZ instruction, which we're catching and merging into the data processing instructions
+        operandRegister = (byte) (instr & 0xF);
+        opcode = Opcode.CLZ;
+        operand2 = OperandWrapper.createImmediate(0);
+      }
+      else {
+        operandRegister = (byte) Utils.getBits(instr, 16, 19);
+        opcode = Opcode.values()[(byte) Utils.getBits(instr, 21, 24)];    
+        operand2 = OperandWrapper.decodeDataProcessingOperand(instr);
+      }
+    }
+
+    /** Returns the number of the operation's destination register, starting from 0.*/
+    public final byte getRd() {
+      return Rd;
+    }
+
+    /** Returns the number of the operation's first operand register, starting from 0.*/
+    public final byte getOperandRegister() {
+      return operandRegister;
     }
 
     /** Returns the opcode, that specifies the data processing operation, which is to be performed. */
@@ -498,9 +570,9 @@ public class ARM_Instructions  {
           size = TransferSize.Word;
         
         if (Utils.getBit(instr, 25))
-          offset = OperandWrapper.createImmediate(instr & 0xFF);
-        else
           offset = OperandWrapper.decodeShiftedRegister(instr);
+        else
+          offset = OperandWrapper.createImmediate(instr & 0xFFF);
       }
       else {
         //this is a byte or half-word transfer
@@ -524,6 +596,9 @@ public class ARM_Instructions  {
         //The decoder should make sure that we're never being called with this combination
         if (DBT.VerifyAssertions) DBT._assert(!signExtend || isLoad);
       }
+      
+      //this instruction variant yields an undefined result
+      if (DBT.VerifyAssertions) DBT._assert(Rd != 15 || !writeBack);
     }
     
     /** Returns true, if this memory access shall be treated as if it had been done in user mode. */
@@ -760,7 +835,7 @@ public class ARM_Instructions  {
     public Branch(int instr) {
       super(instr);
       link = Utils.getBit(instr, 24);
-      offset = instr & 0xFFF;
+      offset = Utils.signExtend((instr & 0xFFF) << 2, 14);
     }
 
     /** Should the current PC be put into the lr? */
@@ -1082,13 +1157,9 @@ public class ARM_Instructions  {
       transferExtension = Utils.getBit(instr, 17);
       transferStatus = Utils.getBit(instr, 18);
       transferFlags = Utils.getBit(instr, 19);
-      
       transferSavedPSR = Utils.getBit(instr, 22);
       
-      if (Utils.getBit(instr, 25))
-        sourceOperand = OperandWrapper.createImmediate((instr & 0xFF) << Utils.getBits(instr, 8, 11));
-      else
-        sourceOperand = OperandWrapper.decodeShiftedRegister(instr);
+      sourceOperand = OperandWrapper.decodeDataProcessingOperand(instr);
     }
     
     /** Identifies the PSR that is to be transferred: true for the SPSR, false for the CPSR. */
@@ -1119,38 +1190,6 @@ public class ARM_Instructions  {
     /** Returns the operand, which is to be transfered into the status register. */
     public final OperandWrapper getSource() {
       return sourceOperand;
-    }
-
-    @Override
-    public void visit(ARM_InstructionVisitor visitor) {
-      visitor.visit(this);
-    }
-  }
-  
-  /** Represents a CLZ instruction. */
-  public static class CountLeadingZeros extends Instruction {
-    
-    /** @see #getRm() */
-    protected final byte Rm;
-    
-    /** @see #getRd() */
-    protected final byte Rd;
-
-    public CountLeadingZeros(int instr) {
-      super(instr);
-      
-      Rm = (byte) (instr & 0xF);
-      Rd = (byte) Utils.getBits(instr, 12, 15);
-    }
-    
-    /** Returns the source register for this operation. */
-    public final byte getRm() {
-      return Rm;
-    }
-    
-    /** Returns the destination register for this operation. */
-    public final byte getRd() {
-      return Rd;
     }
 
     @Override

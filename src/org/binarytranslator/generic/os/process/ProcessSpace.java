@@ -15,6 +15,7 @@ import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.generic.branch.BranchLogic;
+import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.os.loader.Loader;
@@ -112,6 +113,10 @@ public abstract class ProcessSpace {
    */
   protected ProcessSpace() {
     branchInfo = new BranchLogic();
+  }
+  
+  public Interpreter createInstructionInterpreter() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException();
   }
 
   /**

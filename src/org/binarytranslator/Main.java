@@ -8,9 +8,12 @@
  */
 package org.binarytranslator;
 
+import java.io.File;
+
 import org.binarytranslator.generic.execution.DynamicTranslationController;
 import org.binarytranslator.generic.execution.ExecutionController;
 import org.binarytranslator.generic.execution.GdbController;
+import org.binarytranslator.generic.execution.InterpreterController;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -60,9 +63,16 @@ public class Main {
       return;
     }
     
+    //check if the user actually supplied an executable name
     if (DBT_Options.executableFile == null) {
       System.err.println("Missing executable file name");
       showUsage();
+      return;
+    }
+    
+    //also make sure that the said executable really exists
+    if (!new File(DBT_Options.executableFile).exists()) {
+      System.err.println("The specified executable '" + DBT_Options.executableFile + "' could not be found.");
       return;
     }
 

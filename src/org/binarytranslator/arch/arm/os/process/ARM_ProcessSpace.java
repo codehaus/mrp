@@ -2,10 +2,11 @@ package org.binarytranslator.arch.arm.os.process;
 
 import java.io.IOException;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.arch.arm.decoder.ARM_Interpreter;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
-import org.binarytranslator.generic.fault.BadInstructionException;
-import org.binarytranslator.generic.memory.ByteAddressedMemory;
+import org.binarytranslator.generic.decoder.Interpreter;
+import org.binarytranslator.generic.memory.DebugMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
@@ -14,18 +15,10 @@ import org.vmmagic.pragma.Uninterruptible;
 
 public abstract class ARM_ProcessSpace extends ProcessSpace {
 
-  /*
-   * Instance data
-   */
 
-  /**
-   * Registers used by this process
-   */
+  /** Registers used by this process */
   public ARM_Registers registers;
 
-  /*
-   * Utility functions
-   */
 
   /**
    * Debug information
@@ -40,16 +33,9 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
     }
   }
 
-  /*
-   * Methods
-   */
-
-  /**
-   * Constructor
-   */
   protected ARM_ProcessSpace() {
     registers = new ARM_Registers();
-    memory = new ByteAddressedMemory();
+    memory = new DebugMemory();
   }
 
   /**
@@ -82,13 +68,10 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
       return new ARM_ImageProcessSpace();
     }
   }
-
-  /**
-   * Run a single instruction
-   */
-  public void runOneInstruction() throws BadInstructionException {
-    // TODO
-    throw new RuntimeException("Not yet implemented");
+  
+  @Override
+  public Interpreter createInstructionInterpreter() throws UnsupportedOperationException {
+    return new ARM_Interpreter(this);
   }
 
   /**

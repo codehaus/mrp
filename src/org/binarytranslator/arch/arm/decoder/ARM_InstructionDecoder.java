@@ -180,7 +180,7 @@ public class ARM_InstructionDecoder {
       //bit 6 and 7 are clear 
       if (Utils.getBit(instr, 4)) {
         if (Utils.getBit(instr, 22))
-          return factory.createCountLeadingZeros(instr);
+          return factory.createDataProcessing(instr); //should be a CLZ instruction
         else
           return factory.createBranchExchange(instr);
       }
@@ -249,7 +249,6 @@ public class ARM_InstructionDecoder {
     T createCoprocessorRegisterTransfer(int instr);
     T createMoveFromStatusRegister(int instr);
     T createMoveToStatusRegister(int instr);
-    T createCountLeadingZeros(int instr);
     T createUndefinedInstruction(int instr);
   }
   
@@ -281,10 +280,6 @@ public class ARM_InstructionDecoder {
 
     public Instruction createCoprocessorRegisterTransfer(int instr) {
       return new CoprocessorRegisterTransfer(instr);
-    }
-
-    public Instruction createCountLeadingZeros(int instr) {
-      return new CountLeadingZeros(instr);
     }
 
     public Instruction createDataProcessing(int instr) {

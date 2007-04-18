@@ -20,7 +20,8 @@ class Utils {
   }
 
   /**
-   * Extracts a subsequence of bits from a word.
+   * Extracts a subsequence of bits from a word and shifts the beginning of that subsequence to 
+   * a zero based-number.
    * A call to <code>getBits(0xFF, 2, 3)</code> would return 0x3.
    * @param word
    *  The word that is to be examined.
@@ -33,7 +34,8 @@ class Utils {
    */
   static final int getBits(int word, int from, int to) {
     if (DBT.VerifyAssertions)
-      DBT._assert(from < to && from >= 0 && to <= 31);
+      DBT._assert(from < to && from >= 0 && to < 31);
+    
     return (word & ((1 << (to + 1)) - 1)) >> from;
   }
 

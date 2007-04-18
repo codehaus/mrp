@@ -19,5 +19,4 @@ public interface ARM_InstructionVisitor {
   void visit(CoprocessorRegisterTransfer instr);
   void visit(MoveFromStatusRegister instr);
   void visit(MoveToStatusRegister instr);
-  void visit(CountLeadingZeros instr); 
 }
