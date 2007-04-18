@@ -10,7 +10,7 @@ package org.binarytranslator.generic.fault;
 
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
-public class BadInstructionException extends Exception {
+public class BadInstructionException extends RuntimeException {
   
   private final int pc;
   private final ProcessSpace ps;

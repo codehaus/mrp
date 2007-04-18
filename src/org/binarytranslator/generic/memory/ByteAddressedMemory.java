@@ -11,6 +11,7 @@ package org.binarytranslator.generic.memory;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.generic.fault.SegmentationFault;
 
 /**
  * ByteAddressedMemory:
@@ -436,8 +437,12 @@ public class ByteAddressedMemory extends CallBasedMemory {
    * @return the result
    */
   public int load32(int addr) {
-    return (loadSigned8(addr + 3) << 24) | (loadUnsigned8(addr + 2) << 16)
-        | (loadUnsigned8(addr + 1) << 8) | loadUnsigned8(addr);
+    try {
+      return (loadSigned8(addr + 3) << 24) | (loadUnsigned8(addr + 2) << 16)
+      | (loadUnsigned8(addr + 1) << 8) | loadUnsigned8(addr);
+    } catch (Exception e) {
+      throw new SegmentationFault(addr);
+    }
   }
 
   /**
