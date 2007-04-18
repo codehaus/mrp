@@ -441,7 +441,7 @@ public class ARM_Instructions  {
   }
 
   /** Represents a Data Processing instruction. */
-  public static class DataProcessing extends Instruction {
+  public static class DataProcessing extends TwoRegistersTemplate {
     
     /** A list of possible DataProcessing operations. The list is orded in ascendingly, with the
      * first opcode corresponding to opcode 0 (zero) in the opcode field of an ARM data processing
@@ -458,9 +458,6 @@ public class ARM_Instructions  {
     
     /** @see #getOperand2() */
     protected final OperandWrapper operand2;
-    
-    /** @see #getOperandRegister() */
-    protected final byte operandRegister;
 
     /** @see #getRd() */
     protected final byte Rd;
@@ -474,25 +471,13 @@ public class ARM_Instructions  {
       
       if (Utils.getBits(instr, 20, 27) == 0x16 && Utils.getBits(instr, 4, 7) == 1) {
         //this is a CLZ instruction, which we're catching and merging into the data processing instructions
-        operandRegister = (byte) (instr & 0xF);
         opcode = Opcode.CLZ;
-        operand2 = OperandWrapper.createImmediate(0);
+        operand2 = OperandWrapper.createRegister((byte)(instr & 0xF));
       }
       else {
-        operandRegister = (byte) Utils.getBits(instr, 16, 19);
         opcode = Opcode.values()[(byte) Utils.getBits(instr, 21, 24)];    
         operand2 = OperandWrapper.decodeDataProcessingOperand(instr);
       }
-    }
-
-    /** Returns the number of the operation's destination register, starting from 0.*/
-    public final byte getRd() {
-      return Rd;
-    }
-
-    /** Returns the number of the operation's first operand register, starting from 0.*/
-    public final byte getOperandRegister() {
-      return operandRegister;
     }
 
     /** Returns the opcode, that specifies the data processing operation, which is to be performed. */
@@ -1111,6 +1096,8 @@ public class ARM_Instructions  {
       
       Rd = (byte) Utils.getBits(instr, 12, 15);
       transferSavedPSR = Utils.getBit(instr, 22);
+      
+      if (DBT.VerifyAssertions) DBT._assert(Rd != 15);
     }
     
     /** Returns the number of the destination register. */

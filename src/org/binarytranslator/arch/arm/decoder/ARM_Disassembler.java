@@ -191,19 +191,20 @@ public final class ARM_Disassembler {
       if (instr.updateConditionCodes())
         mnemonic += 'S';
 
-      String optionalParam;
+      String parameters;
 
       // Filter instructions that only take one parameter
-      if (instr.getOpcode() != DataProcessing.Opcode.MOV
-          && instr.getOpcode() != DataProcessing.Opcode.MVN
-          && instr.getOpcode() != DataProcessing.Opcode.CLZ) {
+      if (instr.getOpcode() == DataProcessing.Opcode.MOV
+          || instr.getOpcode() == DataProcessing.Opcode.MVN
+          || instr.getOpcode() == DataProcessing.Opcode.CLZ) {
 
-        optionalParam = ", " + operand(instr.getOperand2());
-      } else
-        optionalParam = "";
+        parameters = String.format("%s", operand(instr.getOperand2()));
+      } 
+      else {
+        parameters = String.format("r%d, %s", instr.getRn(), operand(instr.getOperand2()));
+      }
 
-      setResult(String.format("%s r%d, r%d%s", mnemonic, instr.getRd(), instr
-          .getOperandRegister(), optionalParam));
+      setResult(String.format("%s r%d, %s", mnemonic, instr.getRd(), parameters));
     }
 
     public void visit(SingleDataTransfer instr) {

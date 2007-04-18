@@ -1,5 +1,6 @@
 package org.binarytranslator.arch.arm.decoder;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoder.ARM_InstructionFactory;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.OperandWrapper;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.DataProcessing.Opcode;
@@ -8,10 +9,24 @@ import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.generic.decoder.Interpreter;
 
+import com.sun.org.apache.bcel.internal.generic.InstructionFactory;
+
+/**
+ * This class implements the {@link Interpreter} interface to interpret ARM instructions from
+ * a process space. It uses the {@link ARM_InstructionDecoder} class with a custom {@link InstructionFactory}
+ * implementations to create representations of the decoded instructions that implement the {@link Instruction} interface.
+ * 
+ * @author Michael Baer
+ */
 public class ARM_Interpreter implements Interpreter {
 
+  /** The process space that we're interpreting.*/
   protected final ARM_ProcessSpace ps;
+  
+  /** A "quick" pointer to the ARM registers within the process space*/
   protected final ARM_Registers regs;
+  
+  /** The interpreter factory is creating the final instructions, which implement the Interpreter.Instruction interface. */
   protected final InterpreterFactory instructionFactory;
 
   public ARM_Interpreter(ARM_ProcessSpace ps) {
@@ -20,6 +35,7 @@ public class ARM_Interpreter implements Interpreter {
     instructionFactory = new InterpreterFactory();
   }
 
+  /** Decodes the instruction at the given address.*/
   public Instruction decode(int pc) {
 
     int binaryInstruction = ps.memory.loadInstruction32(pc);
@@ -32,14 +48,21 @@ public class ARM_Interpreter implements Interpreter {
     return instruction;
   }
   
+  /** All ARM interpreter instructions implement this interface. */
   private interface ARM_Instruction extends Interpreter.Instruction {
+    /** Returns the condition, under which the given instruction will be executed. */
     Condition getCondition();
   }
 
+  /** All ARM instructions that are supposed to be executed conditionally 
+   * are decorated with this decorator. 
+   * The decorator takes care of checking the individual condition and depending on it, executing the
+   * instruction (or not). The instruction classes itself do not check any conditions. */
   private final class ConditionalDecorator implements Interpreter.Instruction {
 
     protected final ARM_Instruction conditionalInstruction;
 
+    /** Decorates an ARM interpreter instruction, by making it execute conditionally. */
     protected ConditionalDecorator(ARM_Instruction i) {
       conditionalInstruction = i;
     }
@@ -50,13 +73,18 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public int getSuccessor(int pc) {
-      return -1;
+      //if this instruction is not a jump, then we can tell what the next instruction will be.
+      if (conditionalInstruction.getSuccessor(pc) == pc + 4)
+        return pc + 4;
+      else
+        return -1;
     }
     
+   /** Return true if the condition required by the conditional instruction is fulfilled, false otherwise.*/
     private boolean isConditionTrue() {
       switch (conditionalInstruction.getCondition()) {
       case AL:
-        return true;
+        throw new RuntimeException("ARM32 instructions with a condition of AL (always) should not be decorated with a ConditionalDecorator.");
         
       case CC:
         return !regs.isCarrySet();
@@ -109,18 +137,31 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** A base class for all data processing interpreter instructions, including CLZ.*/
   private abstract class DataProcessing extends ARM_Instructions.DataProcessing
       implements ARM_Instruction {
 
+    /** Most data processing instructions may set the carry flag according to the barrel shifter's carry
+     * out value. The (supposed) value of the barrel shifter is stored within this variable. */
     protected boolean shifterCarryOut;
 
     protected DataProcessing(int instr) {
       super(instr);
     }
 
-    protected final int resolveShift(OperandWrapper operand) {
+    /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
+     * and set the result of the barrel shifter accordingly. */
+    private final int resolveShift(OperandWrapper operand) {
+      if (DBT.VerifyAssertions) 
+          DBT._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister ||
+                      operand.getType() == OperandWrapper.Type.RegisterShiftedRegister);
 
       int value = regs.get(operand.getRegister());
+      
+      //consider the "usual" ARM program counter offset
+      if (operand.getRegister() == ARM_Registers.PC)
+        value += 8;
+      
       byte shiftAmount;
 
       if (operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister)
@@ -209,15 +250,19 @@ public class ARM_Interpreter implements Interpreter {
       }
     }
 
+    /** Returns the value of operand 1 of the data processing instruction. This is always a register value.
+     * However, deriving classes may alter this behavior, for example to return a negative register
+     * value for a RSB instruction. */
     protected int resolveOperand1() {
 
-      if (operandRegister == ARM_Registers.PC) {
-        return regs.get(operandRegister) + 8;
+      if (Rn == ARM_Registers.PC) {
+        return regs.get(Rn) + 8;
       }
 
-      return regs.get(operandRegister);
+      return regs.get(Rn);
     }
 
+    /** Returns the value of the rhs-operand of the data processing instruction. */
     protected int resolveOperand2() {
       int value;
 
@@ -249,7 +294,8 @@ public class ARM_Interpreter implements Interpreter {
 
     public abstract void execute();
 
-    protected final void setFlagsForResult(int result) {
+    /** Sets the condition field for logical operations. */
+    protected final void setFlagsForLogicalOperator(int result) {
 
       if (updateConditionCodes) {
         if (Rd != 15) {
@@ -260,6 +306,7 @@ public class ARM_Interpreter implements Interpreter {
       }
     }
 
+    /** Sets the processor flags according to the result of adding <code>lhs</code> and <code>rhs</code>.*/
     protected final void setFlagsForAdd(int lhs, int rhs) {
 
       if (updateConditionCodes) {
@@ -283,6 +330,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Binary and. <code>Rd = op1 & op2 </code>.*/
   private final class DataProcessing_And extends DataProcessing {
 
     protected DataProcessing_And(int instr) {
@@ -293,10 +341,11 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       int result = resolveOperand1() & resolveOperand2();
       regs.set(Rd, result);
-      setFlagsForResult(result);
+      setFlagsForLogicalOperator(result);
     }
   }
 
+  /** Exclusive or. <code>Rd = op1 ^ op2 </code>.*/
   private final class DataProcessing_Eor extends DataProcessing {
 
     protected DataProcessing_Eor(int instr) {
@@ -307,10 +356,11 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       int result = resolveOperand1() ^ resolveOperand2();
       regs.set(Rd, result);
-      setFlagsForResult(result);
+      setFlagsForLogicalOperator(result);
     }
   }
 
+  /** Add. <code>Rd = op1 + op2 </code>.*/
   private class DataProcessing_Add extends DataProcessing {
 
     public DataProcessing_Add(int instr) {
@@ -327,6 +377,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Subtract. <code>Rd = op1 - op2 </code>.*/
   private final class DataProcessing_Sub extends DataProcessing_Add {
 
     public DataProcessing_Sub(int instr) {
@@ -339,6 +390,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Reverse subtract. <code>Rd = - op1 + op2</code>.*/
   private final class DataProcessing_Rsb extends DataProcessing_Add {
 
     protected DataProcessing_Rsb(int instr) {
@@ -351,10 +403,19 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Add with carry. <code>Rd = op1 + op2 + CARRY</code>.
+   * If the carry flag is set, the instruction will add 1 to one of the operands (whichever operands would
+   * not cause an overflow). Then, the normal add-routine is being invoked.  
+   * The class is also used as a base class for the subtract with carry (SBC) and reverse subtract with
+   * carry (RSC) instructions. Therefore, it provides added functionality to optionally negate one or both
+   * of the operands.*/
   private class DataProcessing_Adc extends DataProcessing_Add {
 
+    /** A cached version of the first operand. A carry might be added to this operand. */
     protected int cachedOperand1;
 
+    /** A cached version of the second operand. A carry might be added to this operand, if no carry could
+     * be added to the first operand.. */
     protected int cachedOperand2;
 
     protected DataProcessing_Adc(int instr) {
@@ -362,19 +423,37 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     @Override
-    protected int resolveOperand1() {
+    protected final int resolveOperand1() {
       return cachedOperand1;
     }
 
     @Override
-    protected int resolveOperand2() {
+    protected final int resolveOperand2() {
       return cachedOperand2;
+    }
+    
+    /** Shall be overwritten by deriving classes, if they wish the first operand to be negated before
+     *  the addition. */
+    protected boolean negateOperand1() {
+      return false;
+    }
+    
+    /** Shall be overwritten by deriving classes, if they wish the second operand to be negated before
+     *  the addition. */
+    protected boolean negateOperand2() {
+      return false;
     }
 
     @Override
     public void execute() {
       cachedOperand1 = super.resolveOperand1();
       cachedOperand2 = super.resolveOperand2();
+      
+      if (negateOperand1())
+        cachedOperand1 = -cachedOperand1;
+      
+      if (negateOperand2())
+        cachedOperand2 = -cachedOperand2;
 
       if (regs.isCarrySet()) {
         if (cachedOperand1 != Integer.MAX_VALUE) {
@@ -391,6 +470,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Subtract with carry. <code>Rd = op1 - op2 + CARRY</code>.*/
   private class DataProcessing_Sbc extends DataProcessing_Adc {
 
     protected DataProcessing_Sbc(int instr) {
@@ -398,11 +478,12 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     @Override
-    protected int resolveOperand2() {
-      return -cachedOperand2;
+    protected boolean negateOperand2() {
+      return true;
     }
   }
 
+  /** Reserve subtract with carry. <code>Rd = -op1 + op2 + CARRY</code>.*/
   private class DataProcessing_Rsc extends DataProcessing_Adc {
 
     protected DataProcessing_Rsc(int instr) {
@@ -410,11 +491,13 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     @Override
-    protected int resolveOperand1() {
-      return -cachedOperand1;
+    protected boolean negateOperand1() {
+      return true;
     }
   }
 
+  /** Set the flags according to the logical-and of two values. 
+   * <code>Flags = op1 & op2</code>*/
   private class DataProcessing_Tst extends DataProcessing {
 
     protected DataProcessing_Tst(int instr) {
@@ -423,10 +506,12 @@ public class ARM_Interpreter implements Interpreter {
 
     @Override
     public void execute() {
-      setFlagsForResult(resolveOperand1() & resolveOperand2());
+      setFlagsForLogicalOperator(resolveOperand1() & resolveOperand2());
     }
   }
 
+  /** Sets the flags according to the exclusive-or of two values.
+   * <code>Flags = op1 ^ op2</code> */
   private class DataProcessing_Teq extends DataProcessing {
 
     protected DataProcessing_Teq(int instr) {
@@ -435,10 +520,12 @@ public class ARM_Interpreter implements Interpreter {
 
     @Override
     public void execute() {
-      setFlagsForResult(resolveOperand1() ^ resolveOperand2());
+      setFlagsForLogicalOperator(resolveOperand1() ^ resolveOperand2());
     }
   }
 
+  /** Set the flags according to the comparison of two values.
+   * <code>Flags = op1 - op2</code> */
   private class DataProcessing_Cmp extends DataProcessing {
 
     protected DataProcessing_Cmp(int instr) {
@@ -451,6 +538,8 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Set the flags according to the comparison of two values, negating the 2nd value on the way.
+   * <code>Flags = op1 + op2</code>. */
   private class DataProcessing_Cmn extends DataProcessing {
 
     protected DataProcessing_Cmn(int instr) {
@@ -463,6 +552,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Binary or. <code>Rd = op1 | op2</code>. */
   private class DataProcessing_Orr extends DataProcessing {
 
     protected DataProcessing_Orr(int instr) {
@@ -473,7 +563,7 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       int result = resolveOperand1() | resolveOperand2();
       regs.set(Rd, result);
-      setFlagsForResult(result);
+      setFlagsForLogicalOperator(result);
     }
   }
 
@@ -484,13 +574,16 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     @Override
+    /** Moves a value into a register .*/
     public void execute() {
       int result = resolveOperand2();
       regs.set(Rd, result);
-      setFlagsForResult(result);
+      setFlagsForLogicalOperator(result);
     }
   }
 
+  /** Bit clear. Clear bits in a register by a mask given by a second operand. 
+   * <code>Rd =  op1 & (~op2)</code>.*/
   private class DataProcessing_Bic extends DataProcessing {
 
     protected DataProcessing_Bic(int instr) {
@@ -498,13 +591,16 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     @Override
+    /** Clear bits in a register by a mask given by a second operand. */
     public void execute() {
       int result = resolveOperand1() & (~resolveOperand2());
       regs.set(Rd, result);
-      setFlagsForResult(result);
+      setFlagsForLogicalOperator(result);
     }
   }
 
+  /** Move and negate. Moves an integer between two registers, negating it on the way. 
+   * <code>Rd = -op2</code>.*/
   private class DataProcessing_Mvn extends DataProcessing {
 
     protected DataProcessing_Mvn(int instr) {
@@ -515,10 +611,12 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       int result = ~resolveOperand2();
       regs.set(Rd, result);
-      setFlagsForResult(result);
+      setFlagsForLogicalOperator(result);
     }
   }
   
+  /** Count the number of leading zeros in an integer.
+   * <code>Rd = Number_Of_Leading_Zeroes(op2) </code> */
   private class DataProcessing_Clz extends DataProcessing {
 
     protected DataProcessing_Clz(int instr) {
@@ -527,11 +625,14 @@ public class ARM_Interpreter implements Interpreter {
 
     @Override
     public void execute() {
-      int result = Integer.numberOfLeadingZeros(resolveOperand1());
+      int result = Integer.numberOfLeadingZeros(resolveOperand2());
       regs.set(Rd, result);
     }
   }
 
+  /** Swap a register and a memory value. 
+   * TODO: At the moment, Pearcolator does not support any way of locking the memory. However, once it does
+   * any other memory accesses should be pending until the swap instruction succeeds.*/
   private class Swap extends ARM_Instructions.Swap implements
   ARM_Instruction {
 
@@ -556,6 +657,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Transfer multiple registers at once between the register bank and the memory. */
   private class BlockDataTransfer extends ARM_Instructions.BlockDataTransfer
       implements ARM_Instruction {
 
@@ -662,6 +764,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Branch to another instruction address. */
   private class Branch extends ARM_Instructions.Branch implements
   ARM_Instruction {
 
@@ -670,10 +773,8 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
+      //remember the previous address, taking ARM's register offset into account
       int previousAddress = regs.get(ARM_Registers.PC);
-
-      //jump to the new address
-      regs.set(ARM_Registers.PC, previousAddress + getOffset());
 
       //if we're supposed to link, then write the previous address into the link register
       if (link)
@@ -685,6 +786,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Branch to another instruction  address and switch between ARM32 and Thumb code on the way.*/
   private class BranchExchange extends ARM_Instructions.BranchExchange
       implements ARM_Instruction {
 
@@ -693,8 +795,13 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
-      int previousAddress = regs.get(ARM_Registers.PC);
+      //remember the previous address
+      int previousAddress = regs.get(ARM_Registers.PC) + 8;
+      
+      //are we supposed to jump to thumb (thumb=true) or ARM32 (thumb=false)?
       boolean thumb;
+      
+      //the address of the instruction we're jumping to
       int targetAddress;
 
       switch (target.getType()) {
@@ -720,7 +827,7 @@ public class ARM_Interpreter implements Interpreter {
 
       //if we're supposed to link, then write the previous address into the link register
       if (link)
-        regs.set(ARM_Registers.LR, previousAddress + 4);
+        regs.set(ARM_Registers.LR, previousAddress - 4);
     }
 
     public int getSuccessor(int pc) {
@@ -734,6 +841,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Multiply two integers into a register, possibly adding the value of a third register on the way. */
   private class IntMultiply extends ARM_Instructions.IntMultiply implements
   ARM_Instruction {
 
@@ -742,11 +850,29 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
+      //get the two operands
+      int operand1 = regs.get(Rm);
+      int operand2 = regs.get(Rs);
+      
+      //if any of the operands is the PC, consider ARM's PC offset
+      if (Rm == ARM_Registers.PC)
+        operand1 += 8;
+      
+      if (Rs == ARM_Registers.PC)
+        operand2 += 8;
+      
+      //calculate the result
       int result = regs.get(Rm) * regs.get(Rs);
 
-      if (accumulate)
+      if (accumulate) {
         result += regs.get(Rn);
+        
+        //also consider ARM's PC offset when adding the accumulate register
+        if (Rn == ARM_Registers.PC)
+          result += 8;
+      }
 
+      //and finally, update the register map
       regs.set(Rd, result);
 
       if (updateConditionCodes) {
@@ -755,10 +881,14 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public int getSuccessor(int pc) {
-      return pc + 4;
+      if (Rd != ARM_Registers.PC)
+        return pc + 4;
+      else
+        return -1;
     }
   }
 
+  /** Move the value of the program status register into a register. */
   private class MoveFromStatusRegister extends
       ARM_Instructions.MoveFromStatusRegister implements
       ARM_Instruction {
@@ -768,22 +898,23 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
-      int statusRegisterValue;
 
+      //do we have to transfer the saved or the current PSR?
       if (transferSavedPSR) {
-        statusRegisterValue = regs.getSPSR();
-      } else {
-        statusRegisterValue = regs.getCPSR();
+        regs.set(Rd, regs.getSPSR());
+      } 
+      else {
+        regs.set(Rd, regs.getCPSR());
       }
-
-      regs.set(Rd, statusRegisterValue);
     }
 
     public int getSuccessor(int pc) {
+      //Rd should never be the PC, so we can safely predict the next instruction
       return pc + 4;
     }
   }
 
+  /** Invoke a software interrupt. */
   private class SoftwareInterrupt extends ARM_Instructions.SoftwareInterrupt
       implements ARM_Instruction {
 
@@ -801,6 +932,8 @@ public class ARM_Interpreter implements Interpreter {
 
   }
 
+  /** Transfers a single data item (either a byte, half-byte or word) between a register and memory.
+   * This operation can either be a load from or a store to memory. */
   private class SingleDataTransfer extends ARM_Instructions.SingleDataTransfer
       implements ARM_Instruction {
 
@@ -808,6 +941,7 @@ public class ARM_Interpreter implements Interpreter {
       super(instr);
     }
 
+    /** Resolves the address of the memory slot, that is involved in the transfer. */
     private int resolveAddress() {
 
       //acquire the base address
@@ -885,15 +1019,18 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
+      //should we simulate a user-mode memory access?
       if (forceUserMode) {
         //TODO: Implement user mode memory access
         throw new RuntimeException(
             "Forced user mode memory access is not yet supported.");
       }
 
+      //get the address of the memory, that we're supposed access
       int address = resolveAddress();
 
       if (isLoad) {
+        //we are loading a value from memory. Load it into this variable.
         int value;
 
         switch (size) {
@@ -919,8 +1056,10 @@ public class ARM_Interpreter implements Interpreter {
           throw new RuntimeException("Unexpected memory size: " + size);
         }
 
+        //finally, write the variable into a register
         regs.set(Rd, value);
       } else {
+        //we are store a value from a register to memory.
         int value = regs.get(Rd);
 
         switch (size) {
@@ -941,6 +1080,8 @@ public class ARM_Interpreter implements Interpreter {
         }
       }
 
+      //should the memory address, which we accessed, be written back into a register? This is used for continuos
+      //memory accesses
       if (writeBack) {
         if (preIndexing)
           regs.set(Rn, address);
@@ -960,6 +1101,8 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
+  /** Represents an undefined instruction, will throw a runtime error when this instruction
+   * is executed. */
   private class UndefinedInstruction implements ARM_Instruction {
 
     private final int instruction;
@@ -981,7 +1124,9 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
-  class InterpreterFactory implements
+  /** This class will create instances of the different interpreter instructions. It is being "controlled" by
+   * the ARM_InstructionDecoder, which uses an abstract factory pattern to decode an instruction. */
+  private class InterpreterFactory implements
       ARM_InstructionFactory<ARM_Instruction> {
 
     public ARM_Instruction createDataProcessing(int instr) {
