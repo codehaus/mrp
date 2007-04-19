@@ -405,6 +405,14 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
   }
 
   /**
+   * Wrap the direction flag up in a register operand and return
+   */
+  OPT_RegisterOperand getDirectionFlag() {
+    flag_DF_InUse = true;
+    return new OPT_RegisterOperand(flag_DF, VM_TypeReference.Boolean);
+  }
+
+  /**
    * Wrap the overflow flag up in a register operand and return
    */
   OPT_RegisterOperand getOverflowFlag() {
@@ -576,6 +584,23 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
               .peekResolvedField().getOffset()), new OPT_LocationOperand(
               flagFref), new OPT_TrueGuardOperand()));
     }
+    {
+      OPT_RegisterOperand flag_DF_Op;
+      if (flag_DF == null) {
+        flag_DF_Op = makeTemp(VM_TypeReference.Boolean);
+        flag_DF = flag_DF_Op.register;
+      } else {
+        flag_DF_Op = new OPT_RegisterOperand(flag_DF, VM_TypeReference.Boolean);
+      }
+      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
+          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_DF"),
+          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+      VM_TypeReference flagTref = flagFref.getFieldContentsType();
+      appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_DF_Op,
+          ps_registersOp.copyRO(), new OPT_AddressConstantOperand(flagFref
+              .peekResolvedField().getOffset()), new OPT_LocationOperand(
+              flagFref), new OPT_TrueGuardOperand()));
+    }
   }
 
   /**
@@ -645,6 +670,18 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
           VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
       VM_TypeReference flagTref = flagFref.getFieldContentsType();
       appendInstructionToCurrentBlock(GetField.create(PUTFIELD, flag_OF_Op,
+          ps_registersOp, new OPT_AddressConstantOperand(flagFref
+              .peekResolvedField().getOffset()), new OPT_LocationOperand(
+              flagFref), new OPT_TrueGuardOperand()));
+    }
+    {
+      OPT_RegisterOperand flag_DF_Op = new OPT_RegisterOperand(flag_DF,
+          VM_TypeReference.Boolean);
+      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
+          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_DF"),
+          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+      VM_TypeReference flagTref = flagFref.getFieldContentsType();
+      appendInstructionToCurrentBlock(GetField.create(PUTFIELD, flag_DF_Op,
           ps_registersOp, new OPT_AddressConstantOperand(flagFref
               .peekResolvedField().getOffset()), new OPT_LocationOperand(
               flagFref), new OPT_TrueGuardOperand()));

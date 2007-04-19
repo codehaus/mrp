@@ -17,6 +17,7 @@ import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.*;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.*;
 
 /**
  * Decoder for X86 instructions
@@ -77,55 +78,44 @@ public class X86_InstructionDecoder extends InstructionDecoder {
   public static final int PARITY_ODD = 15;
 
   /**
+   * Encoding of flags for decoders 
+   */
+  protected enum FLAG {
+    CARRY, DIRECTION, INTERRUPT 
+  }
+  
+  /**
    * Look up table to find instruction translator, performed using the first
    * byte of the instruction
    */
   private static final X86_InstructionDecoder[] primaryOpcodes = {
       /* OPCD Decoder */
-      /* 0x00 */new X86_Add_OpcodeDecoder(8, true, 0, true), // 8bit, has
-      // ModRM, no imm,
-      // rm is dest
-      /* 0x01 */new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-      // ModRM,
-      // no
-      // imm,
-      // rm
-      // is
-      // dest
-      /* 0x02 */new X86_Add_OpcodeDecoder(8, true, 0, false),// 8bit, has
-      // ModRM, no imm,
-      // rm is src
+      /* 0x00 */new X86_Add_OpcodeDecoder(8, true, 0, true),
+      //                                  8bit, has ModRM, no imm, rm is dest
+      /* 0x01 */new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true),
+      //                                  16/32bit, has ModRM, no imm, rm is dest
+      /* 0x02 */new X86_Add_OpcodeDecoder(8, true, 0, false),
+      //                                  8bit, has ModRM, no imm, rm is src
       /* 0x03 */new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),
       //                                  16/32bit, has ModRM, no imm, rm is src
-      /* 0x04 */new X86_Add_OpcodeDecoder(8, false, 8, false),// 8bit, no ModRM,
-      // 8bit imm
-      /* 0x05 */new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT ? 16
-          : 32, false),// 16/32bit, no ModRM, 16/32bit imm
+      /* 0x04 */new X86_Add_OpcodeDecoder(8, false, 8, false),
+      //                                  8bit, no ModRM, 8bit imm
+      /* 0x05 */new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT?16:32, false),
+      //                                  16/32bit, no ModRM, 16/32bit imm
       /* 0x06 */null,
       /* 0x07 */null,
-      /* 0x08 */new X86_Or_OpcodeDecoder(8, true, 0, true), // 8bit, has ModRM,
-      // no imm, rm is
-      // dest
-      /* 0x09 */new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-      // ModRM,
-      // no
-      // imm,
-      // rm
-      // is
-      // dest
-      /* 0x0A */new X86_Or_OpcodeDecoder(8, true, 0, false),// 8bit, has ModRM,
-      // no imm, rm is src
-      /* 0x0B */new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-      // ModRM,
-      // no
-      // imm,
-      // rm
-      // is
-      // src
-      /* 0x0C */new X86_Or_OpcodeDecoder(8, false, 8, false),// 8bit, no ModRM,
-      // 8bit imm
+      /* 0x08 */new X86_Or_OpcodeDecoder(8, true, 0, true),
+      //                                 8bit, has ModRM, no imm, rm is dest
+      /* 0x09 */new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true),
+      //                                 16/32bit,has ModRM, no imm, rm is dest
+      /* 0x0A */new X86_Or_OpcodeDecoder(8, true, 0, false),
+      //                                 8bit, has ModRM, no imm, rm is src
+      /* 0x0B */new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),
+      //                                 16/32bit, has ModRM, no imm, rm is src
+      /* 0x0C */new X86_Or_OpcodeDecoder(8, false, 8, false),
+      //                                 8bit, no ModRM, 8bit imm
       /* 0x0D */new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, false, _16BIT ? 16
-          : 32, false),// 16/32bit, no ModRM, 16/32bit imm
+          : 32, false),// 16/32bit, no ModRM, 16/32bit im
       /* 0x0E */null,
       /* 0x0F */new X86_Escape_OpcodeDecoder(),
 
@@ -354,38 +344,20 @@ public class X86_InstructionDecoder extends InstructionDecoder {
               new X86_Xor_OpcodeDecoder(8, true, 8, true),// 6
               new X86_Cmp_OpcodeDecoder(8, true, 8, true) // 7
           }),
-      /* 0x81 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 16/32bit,
-              // ModRM,
-              // 16/32bit
-              // imm,
-              // rm
-              // is
-              // dest
-              new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
-                  : 32, true),// 0
-              new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true,
-                  _16BIT ? 16 : 32, true),// 1
-              new X86_Adc_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
-                  : 32, true),// 2
-              new X86_Sbb_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
-                  : 32, true),// 3
-              new X86_And_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
-                  : 32, true),// 4
-              new X86_Sub_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
-                  : 32, true),// 5
-              new X86_Xor_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
-                  : 32, true),// 6
-              new X86_Cmp_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
-                  : 32, true) // 7
+      /* 0x81 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
+          // 16/32bit, ModRM, 16/32bit imm, rm is dest
+          new X86_Add_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true),// 0
+          new X86_Or_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true),// 1
+          new X86_Adc_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true),// 2
+          new X86_Sbb_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true),// 3
+          new X86_And_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true),// 4
+          new X86_Sub_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true),// 5
+          new X86_Xor_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true),// 6
+          new X86_Cmp_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true) // 7
           }),
       /* 0x82 */null,
-      /* 0x83 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 16/32bit,
-          // ModRM,
-              // 8bit
-              // imm,
-              // rm
-              // is
-              // dest
+      /* 0x83 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
+          // 16/32bit, ModRM, 8bit imm, rm is dest
               new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 0
               new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 1
               new X86_Adc_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 2
@@ -462,8 +434,8 @@ public class X86_InstructionDecoder extends InstructionDecoder {
       /* 0xA3 */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true), // mov
       // [disp(16|32)],
       // eax
-      /* 0xA4 */null,
-      /* 0xA5 */null,
+      /* 0xA4 */new X86_Movs_OpcodeDecoder(8),
+      /* 0xA5 */new X86_Movs_OpcodeDecoder(_16BIT ? 16 : 32),
       /* 0xA6 */null,
       /* 0xA7 */null,
       /* 0xA8 */null,
@@ -550,8 +522,28 @@ public class X86_InstructionDecoder extends InstructionDecoder {
       /* 0xCE */null,
       /* 0xCF */null,
 
-      /* 0xD0 */null,
-      /* 0xD1 */null,
+      /* 0xD0 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
+          // 8bit shift/rotates by 1
+          new X86_Rol_OpcodeDecoder(8),// 0
+          new X86_Ror_OpcodeDecoder(8),// 1
+          new X86_Rcl_OpcodeDecoder(8),// 2
+          new X86_Rcr_OpcodeDecoder(8),// 3
+          new X86_Shl_OpcodeDecoder(8),// 4
+          new X86_Ushr_OpcodeDecoder(8),// 5
+          null, // 6
+          new X86_Shr_OpcodeDecoder(8) // 7
+          }),
+      /* 0xD1 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
+          // 16/32bit shift/rotates by 1
+          new X86_Rol_OpcodeDecoder(_16BIT?16:32),// 0
+          new X86_Ror_OpcodeDecoder(_16BIT?16:32),// 1
+          new X86_Rcl_OpcodeDecoder(_16BIT?16:32),// 2
+          new X86_Rcr_OpcodeDecoder(_16BIT?16:32),// 3
+          new X86_Shl_OpcodeDecoder(_16BIT?16:32),// 4
+          new X86_Ushr_OpcodeDecoder(_16BIT?16:32),// 5
+          null, // 6
+          new X86_Shr_OpcodeDecoder(_16BIT?16:32) // 7
+          }),
       /* 0xD2 */null,
       /* 0xD3 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
           null, // 0
@@ -630,7 +622,7 @@ public class X86_InstructionDecoder extends InstructionDecoder {
       /* 0xF2 */new X86_RepNE_PrefixDecoder(),
       /* 0xF3 */new X86_Rep_PrefixDecoder(),
       /* 0xF4 */null,
-      /* 0xF5 */null,
+      /* 0xF5 */null,//complement carry
       /* 0xF6 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 8bit,
           // ModRM, 8bit imm, rm is dest
               new X86_Test_OpcodeDecoder(8, true, 8), // 0
@@ -659,12 +651,12 @@ public class X86_InstructionDecoder extends InstructionDecoder {
               new X86_Div_OpcodeDecoder(_16BIT ? 16 : 32), // 6 - 16/32bit
               null // 7
           }),
-      /* 0xF8 */null,
-      /* 0xF9 */null,
-      /* 0xFA */null,
-      /* 0xFB */null,
-      /* 0xFC */null,
-      /* 0xFD */null,
+      /* 0xF8 */new X86_MoveToFlag_OpcodeDecoder(FLAG.CARRY,false), // clc
+      /* 0xF9 */new X86_MoveToFlag_OpcodeDecoder(FLAG.CARRY,true),  // stc
+      /* 0xFA */new X86_MoveToFlag_OpcodeDecoder(FLAG.INTERRUPT,false), // cli
+      /* 0xFB */new X86_MoveToFlag_OpcodeDecoder(FLAG.INTERRUPT,true),  // sti
+      /* 0xFC */new X86_MoveToFlag_OpcodeDecoder(FLAG.DIRECTION,false), // cld
+      /* 0xFD */new X86_MoveToFlag_OpcodeDecoder(FLAG.DIRECTION,true),  // std
       /* 0xFE */null,
       /* 0xFF */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
           new X86_Inc_OpcodeDecoder(-1), // 0 - Inc of memory operand
@@ -910,14 +902,14 @@ class X86_GenericDecoder extends X86_InstructionDecoder {
   public int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc) {
     if (prefix1 != null)
-      prefix1.applyPrefix();
+      prefix1.startPrefix(translationHelper, lazy);
 
     int nextPC = opcode.translate(translationHelper, ps, lazy, pc, modrm, sib,
         displacement, immediateSize, immediate, length, prefix2, prefix3,
         prefix4, prefix5);
 
     if (prefix1 != null)
-      prefix1.removePrefix();
+      prefix1.endPrefix(translationHelper, lazy);
 
     return nextPC;
   }
@@ -953,18 +945,14 @@ abstract class X86_PrefixDecoder extends X86_InstructionDecoder {
  */
 abstract class X86_Group1PrefixDecoder extends X86_PrefixDecoder {
   /**
-   * Apply an instruction prefix
+   * Start an instruction prefix
    */
-  void applyPrefix() {
-    DBT_OptimizingCompilerException.TODO();
-  }
+  abstract void startPrefix(X862IR translationHelper, X86_Laziness lazy);
 
   /**
-   * Remove an instruction prefix
+   * End an instruction prefix
    */
-  void removePrefix() {
-    DBT_OptimizingCompilerException.TODO();
-  }
+  abstract void endPrefix(X862IR translationHelper, X86_Laziness lazy);
 
   /**
    * Get the decoder with upto four or five(X86_64) prefix decoders but
@@ -1078,18 +1066,105 @@ abstract class X86_Group5PrefixDecoder extends X86_PrefixDecoder {
  * Decoder for X86 lock prefix
  */
 class X86_Lock_PrefixDecoder extends X86_Group1PrefixDecoder {
+  /**
+   * Start an instruction prefix
+   */
+  void startPrefix(X862IR translationHelper, X86_Laziness lazy) {
+    TODO();
+  }
+
+  /**
+   * End an instruction prefix
+   */
+  void endPrefix(X862IR translationHelper, X86_Laziness lazy) {
+    TODO();
+  }
+
+  /**
+   * Disassemble a single prefix
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
+   * @return the string for this prefic
+   */
+  public String disassemble(ProcessSpace ps, int pc) {
+    return "lock ";
+  }
 }
 
 /**
  * Decoder for X86 repne/repnz prefix
  */
 class X86_RepNE_PrefixDecoder extends X86_Group1PrefixDecoder {
+  /**
+   * Start an instruction prefix
+   */
+  void startPrefix(X862IR translationHelper, X86_Laziness lazy) {
+    TODO();
+  }
+
+  /**
+   * End an instruction prefix
+   */
+  void endPrefix(X862IR translationHelper, X86_Laziness lazy) {
+    TODO();
+  }
+  /**
+   * Disassemble a single prefix
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
+   * @return the string for this prefic
+   */
+  public String disassemble(ProcessSpace ps, int pc) {
+    return "repne ";
+  }
 }
 
 /**
  * Decoder for X86 rep or repe/repz prefix
  */
 class X86_Rep_PrefixDecoder extends X86_Group1PrefixDecoder {
+  /**
+   * Block containing instruction to repeat
+   */
+  private OPT_BasicBlock instructionBlock;
+  /**
+   * Start an instruction prefix
+   */
+  void startPrefix(X862IR translationHelper, X86_Laziness lazy) {
+    instructionBlock = translationHelper.createBlockAfterCurrent();
+    translationHelper.setCurrentBlock(instructionBlock);
+  }
+
+  /**
+   * End an instruction prefix
+   */
+  void endPrefix(X862IR translationHelper, X86_Laziness lazy) {
+    // TODO: handle 16bit addresses
+    OPT_RegisterOperand ecx = translationHelper.getGPRegister(lazy,
+        X86_Registers.ECX, 32);
+
+    translationHelper.appendInstructionToCurrentBlock(
+        Binary.create(INT_ADD, ecx.copyRO(), ecx.copyRO(), new OPT_IntConstantOperand(-1)));
+
+    OPT_RegisterOperand guardResult = translationHelper.getTempValidation(0);
+    translationHelper.appendInstructionToCurrentBlock(
+        IfCmp.create(INT_IFCMP, guardResult, ecx.copyRO(), new OPT_IntConstantOperand(0),
+            OPT_ConditionOperand.EQUAL(), instructionBlock.makeJumpTarget(),
+            OPT_BranchProfileOperand.likely()));
+
+    instructionBlock.insertOut(instructionBlock);
+    OPT_BasicBlock nextBlock = translationHelper.createBlockAfterCurrent();
+    translationHelper.setCurrentBlock(nextBlock);
+  }
+  /**
+   * Disassemble a single prefix
+   * @param ps the process space of the translation
+   * @param pc the address of the instruction to translate
+   * @return the string for this prefic
+   */
+  public String disassemble(ProcessSpace ps, int pc) {
+    return "rep ";
+  }
 }
 
 // -oO Group 2 prefixs Oo-
@@ -1523,6 +1598,9 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
       immediate = ps.memory.loadSigned8(pc + offset);
       offset++;
       break;
+    case 1: // Special case for shift/rotates by 1
+      immediate = 1;
+      break;
     default: // no immediate
       break;
     }
@@ -1589,6 +1667,9 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
     case 8:
       immediate = ps.memory.loadSigned8(pc + offset);
       offset++;
+      break;
+    case 1: // Special case for shift/rotates by 1
+      immediate = 1;
       break;
     default: // no immediate
       break;
@@ -2402,6 +2483,150 @@ class X86_Mov_OpcodeDecoder extends X86_OpcodeDecoder {
 }
 
 /**
+ * The decoder for the Movs opcode
+ */
+class X86_Movs_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Constructor, {@see X86_OpcodeDecoder}
+   */
+  X86_Movs_OpcodeDecoder(int size) {
+    super(size, false, 0, false);
+  }
+  /**
+   * Perform the actual translation
+   * @param translationHelper
+   * @param ps
+   * @param lazy
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
+   */
+  protected int translate(X862IR translationHelper, ProcessSpace ps,
+      X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
+      int displacement, int immediateSize, int immediate, int length,
+      X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
+      X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
+    int operandSize;
+    if (prefix3 == null) {
+      operandSize = this.operandSize;
+    } else if (this.operandSize == 32) {
+      operandSize = 16;
+    } else {
+      operandSize = 32;
+    }
+    int addressSize;
+    if (prefix4 == null) {
+      addressSize = _16BIT ? 16 : 32;
+    } else {
+      addressSize = _16BIT ? 32 : 16;
+    }
+    // Create memory references
+    X86_DecodedOperand source = X86_DecodedOperand.getMemory(
+        (prefix2 != null) ? prefix2.getSegment() : X86_Registers.DS,
+            X86_Registers.ESI, 0, -1, 0, addressSize, operandSize);
+    
+    X86_DecodedOperand destination = X86_DecodedOperand.getMemory(
+        X86_Registers.ES, X86_Registers.EDI, 0, -1, 0, addressSize, operandSize);
+
+    // Perform copy
+    OPT_RegisterOperand temp = translationHelper.getTempInt(0);
+    source.readToRegister(translationHelper, lazy, temp);
+    destination.writeValue(translationHelper, lazy, temp);
+    
+    // Do update
+    OPT_RegisterOperand esi = translationHelper.getGPRegister(lazy,
+        X86_Registers.ESI, addressSize);
+    OPT_RegisterOperand edi = translationHelper.getGPRegister(lazy,
+        X86_Registers.EDI, addressSize);
+
+    OPT_IntConstantOperand upIncrement = null, downIncrement = null;
+    switch(operandSize) {
+    case 32:
+      upIncrement = new OPT_IntConstantOperand(4);
+      downIncrement = new OPT_IntConstantOperand(-4);
+      break;
+    case 16:
+      upIncrement = new OPT_IntConstantOperand(2);
+      downIncrement = new OPT_IntConstantOperand(-2);
+      break;
+    case 8:
+      upIncrement = new OPT_IntConstantOperand(1);
+      downIncrement = new OPT_IntConstantOperand(-1);
+      break;
+    default:
+      DBT_OptimizingCompilerException.UNREACHABLE();
+    }
+    translationHelper.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+        temp.copyRO(), translationHelper.getDirectionFlag(), new OPT_IntConstantOperand(0),
+        OPT_ConditionOperand.EQUAL(), upIncrement, downIncrement));
+    
+    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+        esi.copyRO(), esi.copyRO(), temp.copyRO()));
+
+    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+        edi.copyRO(), edi.copyRO(), temp.copyRO()));
+
+    return pc + length;
+  }
+
+  /**
+   * Disassemble the opcode
+   * @param ps
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
+   */
+  protected String disassemble(ProcessSpace ps, int pc,
+      X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
+      int immediateSize, int immediate, int length,
+      X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
+      X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
+    int operandSize;
+    if (prefix3 == null) {
+      operandSize = this.operandSize;
+    } else if (this.operandSize == 32) {
+      operandSize = 16;
+    } else {
+      operandSize = 32;
+    }
+    char addressPrefix;
+    if (prefix4 == null) {
+      addressPrefix = _16BIT ? ' ' : 'e';
+    } else {
+      addressPrefix = _16BIT ? 'e' : ' ';
+    }
+    // TODO: apply segment override
+    switch (operandSize) {
+    case 8:
+      return "movsb ds:" + addressPrefix + "si, " + addressPrefix + "di";
+    case 16:
+      return "movsw ds:" + addressPrefix + "si, " + addressPrefix + "di";
+    case 32:
+      return "movsd ds:" + addressPrefix + "si, " + addressPrefix + "di";
+    default:
+      DBT_OptimizingCompilerException.UNREACHABLE();
+    return "error";
+    }
+  }
+}
+
+/**
  * The decoder for the Or opcode
  */
 class X86_Or_OpcodeDecoder extends X86_OpcodeDecoder {
@@ -2427,47 +2652,109 @@ class X86_Or_OpcodeDecoder extends X86_OpcodeDecoder {
     return "or";
   }
 }
-
 /**
- * The decoder for the Shr opcode
+ * The decoder for the Rcl opcode
  */
-class X86_Shr_OpcodeDecoder extends X86_OpcodeDecoder {
+class X86_Rcl_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Rotate rm right by 1 through carry 
+   */
+  X86_Rcl_OpcodeDecoder(int size) {
+    super(size, true, 1, true);
+  }
   /**
    * Constructor, {@see X86_OpcodeDecoder}
    */
-  X86_Shr_OpcodeDecoder(int size, boolean hasModRM, int immediateSize,
+  X86_Rcl_OpcodeDecoder(int size, boolean hasModRM, int immediateSize,
       boolean isMemoryOperandDestination) {
     super(size, hasModRM, immediateSize, isMemoryOperandDestination,
         X86_Registers.ECX);
   }
-
   /**
-   * Return the SHR operator
+   * Return the RCL operator
    */
   OPT_Operator getOperator() {
-    return INT_SHR;
+    TODO();
+    return null;
+  }
+}
+/**
+ * The decoder for the Rcr opcode
+ */
+class X86_Rcr_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Rotate rm right by 1 through carry 
+   */
+  X86_Rcr_OpcodeDecoder(int size) {
+    super(size, true, 1, true);
+  }
+  /**
+   * Constructor, {@see X86_OpcodeDecoder}
+   */
+  X86_Rcr_OpcodeDecoder(int size, boolean hasModRM, int immediateSize,
+      boolean isMemoryOperandDestination) {
+    super(size, hasModRM, immediateSize, isMemoryOperandDestination,
+        X86_Registers.ECX);
+  }
+  /**
+   * Return the RCL operator
+   */
+  OPT_Operator getOperator() {
+    TODO();
+    return null;
+  }
+}
+/**
+ * The decoder for the Rol opcode
+ */
+class X86_Rol_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Rotate rm left by 1 
+   */
+  X86_Rol_OpcodeDecoder(int size) {
+    super(size, true, 1, true);
+  }
+  /**
+   * Constructor, {@see X86_OpcodeDecoder}
+   */
+  X86_Rol_OpcodeDecoder(int size, boolean hasModRM, int immediateSize,
+      boolean isMemoryOperandDestination) {
+    super(size, hasModRM, immediateSize, isMemoryOperandDestination,
+        X86_Registers.ECX);
+  }
+  /**
+   * Return the ROL operator
+   */
+  OPT_Operator getOperator() {
+    TODO();
+    return null;
+  }
+}
+/**
+ * The decoder for the Ror opcode
+ */
+class X86_Ror_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Rotate rm right by 1 
+   */
+  X86_Ror_OpcodeDecoder(int size) {
+    super(size, true, 1, true);
   }
 
   /**
-   * Set the carry flag following a computation. 1 - true/set; 0 - false/clear
+   * Constructor, {@see X86_OpcodeDecoder}
    */
-  protected void setCarryFlag(X862IR translationHelper,
-      OPT_RegisterOperand result, OPT_RegisterOperand source1,
-      OPT_RegisterOperand source2) {
-    OPT_RegisterOperand carry = translationHelper.getCarryFlag();
-    OPT_RegisterOperand temp = translationHelper.getTempInt(9);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_SUB,
-        temp, source2, new OPT_IntConstantOperand(1)));
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
-        BOOLEAN_CMP_INT, carry, source1, temp.copyRO(), OPT_ConditionOperand
-            .BIT_TEST(), new OPT_BranchProfileOperand()));
+  X86_Ror_OpcodeDecoder(int size, boolean hasModRM, int immediateSize,
+      boolean isMemoryOperandDestination) {
+    super(size, hasModRM, immediateSize, isMemoryOperandDestination,
+        X86_Registers.ECX);
   }
-
   /**
-   * Return "shr"
+   * Return the ROL operator
    */
-  String getOperatorString() {
-    return "shr";
+  OPT_Operator getOperator() {
+    TODO();
+    return null;
   }
 }
 
@@ -2475,6 +2762,13 @@ class X86_Shr_OpcodeDecoder extends X86_OpcodeDecoder {
  * The decoder for the Shl opcode
  */
 class X86_Shl_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Shift rm left by 1 
+   */
+  X86_Shl_OpcodeDecoder(int size) {
+    super(size, true, 1, true);
+  }
+
   /**
    * Constructor, {@see X86_OpcodeDecoder}
    */
@@ -2511,6 +2805,56 @@ class X86_Shl_OpcodeDecoder extends X86_OpcodeDecoder {
    */
   String getOperatorString() {
     return "shl";
+  }
+}
+
+/**
+ * The decoder for the Shr opcode
+ */
+class X86_Shr_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Shift rm right by 1 
+   */
+  X86_Shr_OpcodeDecoder(int size) {
+    super(size, true, 1, true);
+  }
+  
+  /**
+   * Constructor, {@see X86_OpcodeDecoder}
+   */
+  X86_Shr_OpcodeDecoder(int size, boolean hasModRM, int immediateSize,
+      boolean isMemoryOperandDestination) {
+    super(size, hasModRM, immediateSize, isMemoryOperandDestination,
+        X86_Registers.ECX);
+  }
+
+  /**
+   * Return the SHR operator
+   */
+  OPT_Operator getOperator() {
+    return INT_SHR;
+  }
+
+  /**
+   * Set the carry flag following a computation. 1 - true/set; 0 - false/clear
+   */
+  protected void setCarryFlag(X862IR translationHelper,
+      OPT_RegisterOperand result, OPT_RegisterOperand source1,
+      OPT_RegisterOperand source2) {
+    OPT_RegisterOperand carry = translationHelper.getCarryFlag();
+    OPT_RegisterOperand temp = translationHelper.getTempInt(9);
+    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+        temp, source2, new OPT_IntConstantOperand(1)));
+    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+        BOOLEAN_CMP_INT, carry, source1, temp.copyRO(), OPT_ConditionOperand
+            .BIT_TEST(), new OPT_BranchProfileOperand()));
+  }
+
+  /**
+   * Return "shr"
+   */
+  String getOperatorString() {
+    return "shr";
   }
 }
 
@@ -2649,6 +2993,12 @@ class X86_Test_OpcodeDecoder extends X86_OpcodeDecoder {
  * The decoder for the Ushr opcode
  */
 class X86_Ushr_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Unsigned shift rm right by 1 
+   */
+  X86_Ushr_OpcodeDecoder(int size) {
+    super(size, true, 1, true);
+  }
   /**
    * Constructor, {@see X86_OpcodeDecoder}
    */
@@ -4524,6 +4874,110 @@ class X86_MovZX_OpcodeDecoder extends X86_OpcodeDecoder {
   }
 }
 
+/**
+ * The decoder to set or clear flags
+ */
+class X86_MoveToFlag_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * The value to set the flag to
+   */
+  private final boolean value;
+  /**
+   * The flag to set
+   */
+  private final FLAG flag;
+
+  /**
+   * Constructor, {@see X86_OpcodeDecoder}
+   */
+  X86_MoveToFlag_OpcodeDecoder(FLAG flag, boolean value) {
+    super(0, false, 0, false);
+    this.flag = flag;
+    this.value = value;
+  }
+
+  /**
+   * Perform the actual translation
+   * @param translationHelper
+   * @param ps
+   * @param lazy
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
+   */
+  protected int translate(X862IR translationHelper, ProcessSpace ps,
+      X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
+      int displacement, int immediateSize, int immediate, int length,
+      X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
+      X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
+    OPT_RegisterOperand flagOp;
+    switch (flag) {
+    case CARRY:
+      flagOp = translationHelper.getCarryFlag();
+      break;
+    case DIRECTION:
+      flagOp = translationHelper.getDirectionFlag();
+      break;
+    default:
+      TODO();
+      flagOp = null;
+      break;      
+    }
+    translationHelper.appendInstructionToCurrentBlock(
+        Move.create(INT_MOVE, flagOp,
+            value ? new OPT_IntConstantOperand(1) :
+              new OPT_IntConstantOperand(0)));
+    return pc + length;
+  }
+
+  /**
+   * Return the operator for this opcode
+   */
+  OPT_Operator getOperator() {
+    throw new Error("This opcode requires more complex operator decoding");
+  }
+
+  /**
+   * Disassemble the opcode
+   * @param ps
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
+   */
+  protected String disassemble(ProcessSpace ps, int pc,
+      X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
+      int immediateSize, int immediate, int length,
+      X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
+      X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
+    String prefix = value ? "st" : "cl";
+    switch (flag) {
+    case CARRY:
+      return prefix + "c";
+    case DIRECTION:
+      return prefix + "d";
+    case INTERRUPT:
+      return prefix + "i";
+    default:
+      return "Unrecognized flag";  
+    }    
+  }
+}
 /**
  * The decoder for the Nop opcode
  */
