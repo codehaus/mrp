@@ -220,7 +220,11 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
     this.base = base;
     this.scale = scale;
     this.index = index;
-    this.displacement = displacement;
+    if (segment == X86_Registers.GS){
+      this.displacement = displacement + 0xffffe000;
+    } else {
+      this.displacement = displacement;
+    }
     this.addressSize = addressSize;
     this.operandSize = operandSize;
   }

@@ -1046,13 +1046,17 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * @return true => try to stop the trace
    */
   protected boolean suitableToStop() {
-    switch (gc.options.getOptLevel()) {
-    case 0:
-      return numberOfInstructions > DBT_Options.instrOpt0;
-    case 1:
-      return numberOfInstructions > DBT_Options.instrOpt1;
-    default:
-      return numberOfInstructions > DBT_Options.instrOpt2;
+    if (DBT_Options.singleInstrTranslation && (numberOfInstructions >= 1)) {
+      return true;
+    } else {    
+      switch (gc.options.getOptLevel()) {
+      case 0:
+        return numberOfInstructions > DBT_Options.instrOpt0;
+      case 1:
+        return numberOfInstructions > DBT_Options.instrOpt1;
+      default:
+        return numberOfInstructions > DBT_Options.instrOpt2;
+      }
     }
   }
 

@@ -29,7 +29,7 @@ public class ELF_Loader extends Loader {
   /**
    * Header of ELF file
    */
-  private ELF_Header elfHeader;
+  public ELF_Header elfHeader;
 
   /**
    * Program segment headers
@@ -259,6 +259,13 @@ public class ELF_Loader extends Loader {
     return elfHeader.isARM_ABI();
   }
 
+  /**
+   * Where did the program header get loaded in memory?
+   */
+  public int getProgramHeaderAddress() {
+    return elfHeader.e_phoff - segmentHeaders[0].p_offset + segmentHeaders[0].p_vaddr;
+  }
+
   /*
    * Local classes holding structures from the ELF file
    */
@@ -267,7 +274,7 @@ public class ELF_Loader extends Loader {
    * Class to read and hold ELF header information
    */
   @SuppressWarnings("unused")
-  class ELF_Header {
+  public class ELF_Header {
     /**
      * Class to read and hold ELF header indentity information
      */
@@ -744,7 +751,7 @@ public class ELF_Loader extends Loader {
     int getEntryPoint() {
       return e_entry;
     }
-
+        
     /**
      * Program header table file offset
      */
@@ -760,56 +767,56 @@ public class ELF_Loader extends Loader {
     /**
      * Section header table file offset
      */
-    private int e_shoff;
+    private final int e_shoff;
 
     /**
      * Processor-specific flags
      */
-    private int e_flags;
+    private final int e_flags;
 
     /**
      * ELF header size in bytes
      */
-    private short e_ehsize;
+    private final short e_ehsize;
 
     /**
      * Program header table entry size
      */
-    private short e_phentsize;
+    private final short e_phentsize;
 
     /**
      * What's the size of a program segment header?
      */
-    int getProgramSegmentHeaderSize() {
+    public int getProgramSegmentHeaderSize() {
       return e_phentsize;
     }
 
     /**
      * Program header table entry count
      */
-    private short e_phnum;
+    private final short e_phnum;
 
     /**
      * How many program segments are in this ELF binary?
      */
-    int getNumberOfProgramSegmentHeaders() {
+    public int getNumberOfProgramSegmentHeaders() {
       return e_phnum;
     }
 
     /**
      * Section header table entry size
      */
-    private short e_shentsize;
+    private final short e_shentsize;
 
     /**
      * Section header table entry count
      */
-    private short e_shnum;
+    private final short e_shnum;
 
     /**
      * Section header table index
      */
-    private short e_shstrndx;
+    private final short e_shstrndx;
 
     /**
      * Construct/read ELF header

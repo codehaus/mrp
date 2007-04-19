@@ -16,7 +16,9 @@ import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
+import org.binarytranslator.generic.memory.MemoryMapException;
 
 /**
  * Linux specific parts of the process
@@ -61,19 +63,27 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
     registers.eip = pc;
     this.brk = brk;
     registers.writeGP32(X86_Registers.ESP, initialiseStack(loader, pc));
+    try {
+      memory.map(0xffffe000, 8192, true, true, true);
+    } catch (MemoryMapException e) {
+      throw new Error ("Error creating VDSO page");
+    }
+    memory.store8(0xffffe400, 0xCD); // INT
+    memory.store8(0xffffe400, 0x80); // 80h    
+    memory.store8(0xffffe400, 0xC3); // RET
   }
 
   /**
    * Initialise the stack
    */
   private int initialiseStack(Loader loader, int pc) {
-    int[] auxVector = {LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR, 0xffffe000,
+    int[] auxVector = {//LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
+                       //LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR, 0xffffe000,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x78bfbff,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_CLKTCK, 0x64,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, 0xBADADD8E,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, 0xBAD2BAD2,
+                       LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, ((ELF_Loader)loader).getProgramHeaderAddress(),
+                       LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, ((ELF_Loader)loader).elfHeader.getNumberOfProgramSegmentHeaders(),
                        LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
                        LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, pc,

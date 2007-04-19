@@ -16,6 +16,7 @@ import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
@@ -99,12 +100,13 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
         0x64,
 
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR,
-        0xBADADD8E, // todo
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHENT,
-        0xBAD1BAD1, // todo
+        ((ELF_Loader)loader).getProgramHeaderAddress(),
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM,
-        0xBAD2BAD2, // todo
-        LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
+        ((ELF_Loader)loader).elfHeader.getNumberOfProgramSegmentHeaders(),
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHENT,
+        ((ELF_Loader)loader).elfHeader.getProgramSegmentHeaderSize(),
+
+        //LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, pc,
         LinuxStackInitializer.AuxiliaryVectorType.AT_UID, DBT_Options.UID,

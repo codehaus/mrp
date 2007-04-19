@@ -54,12 +54,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
    * @return the next instruction address or -1
    */
   protected int translateInstruction(Laziness lazy, int pc) {
-    if (pc != 0xffffe400) {
-      return X86_InstructionDecoder.translateInstruction((X862IR) this,
-          (X86_ProcessSpace) ps, (X86_Laziness) lazy, pc);
-    } else {
-      return plantSystemCallGateEntry((X86_Laziness) lazy, pc);
-    }
+    return X86_InstructionDecoder.translateInstruction((X862IR) this,
+        (X86_ProcessSpace) ps, (X86_Laziness) lazy, pc);
   }
 
   /**

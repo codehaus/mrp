@@ -138,6 +138,12 @@ public abstract class ProcessSpace {
   public abstract void setCurrentInstructionAddress(int pc);
 
   /**
+   * Return a string disassembly of the instuction at the given address
+   */
+  @Uninterruptible
+  public abstract String disassembleInstruction(int pc);
+
+  /**
    * Return as an integer the current instruction's address
    */
   public abstract int getCurrentStackAddress();

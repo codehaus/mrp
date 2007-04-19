@@ -40,11 +40,12 @@ public class DynamicCodeRunner {
       throws BadInstructionException {
     // Useful when debugging in GDB:
     if (DBT_Options.debugRuntime) {
-      VM.sysWrite("Running PC=");
-      VM.sysWriteHex(ps.getCurrentInstructionAddress());
-      VM.sysWriteln();
       VM.sysWriteln(ps.toString());
       ps.dumpStack(20);
+      VM.sysWrite("Running PC=");
+      VM.sysWriteHex(ps.getCurrentInstructionAddress());
+      VM.sysWrite(" ");
+      VM.sysWriteln(ps.disassembleInstruction(ps.getCurrentInstructionAddress()));
       VM.sysWrite("About to bridge to ");
       VM.sysWriteHex(VM_Magic.objectAsAddress(code).toInt());
       VM.sysWriteln();

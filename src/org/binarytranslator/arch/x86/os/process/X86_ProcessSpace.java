@@ -20,6 +20,7 @@ import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.arch.x86.os.process.linux.X86_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
+import org.binarytranslator.arch.x86.decoder.X86_InstructionDecoder;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.vmmagic.pragma.Uninterruptible;
 
@@ -183,6 +184,15 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
   public void setCurrentInstructionAddress(int pc) {
     registers.eip = pc;
   }
+  
+  /**
+   * Return a string disassembly of the instuction at the given address
+   */
+  @Uninterruptible
+  public String disassembleInstruction(int pc) {
+    return X86_InstructionDecoder.getDecoder(this,pc).disassemble(this, pc);
+  }
+
   /**
    * Return as an integer the current instruction's address
    */

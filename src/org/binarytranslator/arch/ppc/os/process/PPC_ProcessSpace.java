@@ -22,6 +22,7 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.ppc.PPC_Disassembler;
 import org.vmmagic.pragma.Uninterruptible;
 
 /**
@@ -173,6 +174,15 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
    */
   public void setCurrentInstructionAddress(int pc) {
     this.pc = pc;
+  }
+
+  /**
+   * Return a string disassembly of the instuction at the given address
+   */
+  @Uninterruptible
+  public String disassembleInstruction(int pc) {
+    int instr = memory.load32(pc);
+    return PPC_Disassembler.disasm(instr, pc);
   }
 
   /**

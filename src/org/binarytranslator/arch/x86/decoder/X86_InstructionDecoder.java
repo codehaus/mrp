@@ -21,7 +21,7 @@ import org.jikesrvm.compilers.opt.ir.*;
 /**
  * Decoder for X86 instructions
  */
-class X86_InstructionDecoder extends InstructionDecoder {
+public class X86_InstructionDecoder extends InstructionDecoder {
 
   /*
    * Process defaults
@@ -714,7 +714,7 @@ class X86_InstructionDecoder extends InstructionDecoder {
   /**
    * Get the decoder
    */
-  static X86_InstructionDecoder getDecoder(ProcessSpace ps, int pc) {
+  public static X86_InstructionDecoder getDecoder(ProcessSpace ps, int pc) {
     int opcode = ps.memory.loadInstruction8(pc);
     return primaryOpcodeLookup(opcode).getDecoder(ps, pc, 1, null, null, null,
         null, null);
