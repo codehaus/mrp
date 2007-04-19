@@ -1,26 +1,214 @@
 package org.binarytranslator.arch.arm.decoder;
 
-import org.binarytranslator.DBT;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.*;
 
 /**
  * This class decodes an ARM instruction and uses a user-supplied ARM_InstructionFactory to create a class
  * that represents the given instruction.
  * 
- * I'm not happy with the structure of this module, but looking at the opcode map of the ARM, it's hard to
- * provide a structured way of decoding primary and secondary opcodes efficiently. This class first looks at
- * bits 25-27 and tries to decode as much from these as possible, using the decode_xxx functions. However,
- * sometimes bits have to be checked in quite a non-systematic fashion to really catch all the cases that 
- * have been squeezed into newer ARM architectures.
+ * The decoder first performs a pseudo-switch on bits 27-25 of the instruction.
+ * For performance reasons, the switch is implemented as an array lookup (using the {@link #prefixDecoders} array),
+ * with single {@link Decoder} classes implementing the cases.
+ * 
+ * ARM has a very cluttered opcode map, which is why the decoding process does not look very tidy.
+ * However, the presented decoded scheme has been derived by producing all possible instructions and then
+ * letting a data mining tool (specifically: Weka) create a decision tree to decode the single
+ * instruction classes. This has two implications:
+ * <ol> 
+ *  <li>The decoder is correct (at least, when I didn't introduce any typos), as Weka verified an error rate of 0% for this decision tree.</li>
+ *  <li>The decoder is reasonably fast, considering Weka tries to build a shallow decision tree.</li>
+ * </ol>
  * 
  * @author Michael Baer
  *
  */
 public class ARM_InstructionDecoder {
   
-  /** This static field caches the default {@link ARM_InstructionFactory} implementation, which is used by {@link #decode(int)}.
+  /** 
+   * This table is used to perform a lookup on bits 25-27 of an instruction. 
+   * According to the result of this lookup, the {@link Decoder} instances within this 
+   * array perform the subsequent instruction decoding. */
+  private static Decoder[] prefixDecoders = {
+    new decoder_000(), new decoder_001(), 
+    new decoder_010(), new decoder_011(),
+    new decoder_100(), new decoder_101(),
+    new decoder_110(), new decoder_111()
+  };
+  
+  /** 
+   * This static field caches the default {@link ARM_InstructionFactory} implementation, which is used by {@link #decode(int)}.
    * It is being lazily initialized once it is used for the first time. */
   private static DefaultFactory _defaultFactory;
+  
+  /** 
+   * This class performs additional instruction decoding, after bits 25-27 of an instruction have been
+   * determined. The class is basically just a way of substituting a switch by an array lookup+virtual method call.
+   * */
+  private static abstract class Decoder {
+    abstract <T> T decode(int instr, ARM_InstructionFactory<T> factory); 
+  }
+  
+  /** Decoder which assumes that bits 27-25 == 000. */
+  private static class decoder_000 extends Decoder {
+
+    @Override
+    <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
+      
+      //Check condition==never?
+      if ((instr & 0xF0000000) == 0xF0000000) {
+        return factory.createUndefinedInstruction(instr);
+      }
+      
+      byte bits_7_4 = (byte)Utils.getBits(instr, 4, 7);
+
+      if (bits_7_4 == 0 && ((instr & 0x01900000) == 0x01100000)) {
+        //Utils.getBit(instr, 24) == true && Utils.getBit(instr, 23) == false && Utils.getBit(instr, 20) == true
+        if (Utils.getBit(instr, 21))
+          return factory.createMoveToStatusRegister(instr);
+        else
+          return factory.createMoveFromStatusRegister(instr);
+      }
+      
+      if (bits_7_4 == 1 && ((instr & 0x01F00000) == 0x01200000)) {
+        //Utils.getBit(instr, 24) == true && Utils.getBit(instr, 23) == false && Utils.getBit(instr, 22) == false && Utils.getBit(instr, 21) == true && Utils.getBit(instr, 20) == false
+        return factory.createBranchExchange(instr);
+      }
+      
+      if ((bits_7_4 & 9) == 9) {
+        //bits7-4 = 1xx1
+        if (bits_7_4 == 9) {
+          if (Utils.getBit(instr, 23)) {
+            return factory.createLongMultiply(instr);
+          }
+          else {
+            if (Utils.getBit(instr, 24))
+              return factory.createSwap(instr);
+            else
+              return factory.createIntMultiply(instr);
+          }
+        }
+        else
+          return factory.createSingleDataTransfer(instr);
+      }
+      
+      return factory.createDataProcessing(instr);
+    }
+  }
+  
+  /** Decoder which assumes that bits 27-25 == 001. */
+  private static class decoder_001 extends Decoder {
+
+    @Override
+    <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
+      
+      //Check condition==never?
+      if ((instr & 0xF0000000) == 0xF0000000) {
+        return factory.createUndefinedInstruction(instr);
+      }
+      
+      if (((instr & 0x01900000) == 0x01000000)) {
+        //Utils.getBit(instr, 24) == true && Utils.getBit(instr, 23) == false && Utils.getBit(instr, 20) == false
+        if (Utils.getBit(instr, 21))
+          return factory.createMoveToStatusRegister(instr);
+        else
+          return factory.createUndefinedInstruction(instr);
+      }
+      
+      return factory.createDataProcessing(instr);
+    }
+  }
+ 
+  /** Decoder which assumes that bits 27-25 == 010. */
+  private static class decoder_010 extends Decoder {
+
+    @Override
+    <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
+      //Check condition==never?
+      if ((instr & 0xF0000000) == 0xF0000000) {
+        return factory.createUndefinedInstruction(instr);
+      }
+      else {
+        return factory.createSingleDataTransfer(instr);
+      }
+    }
+  }
+  
+  /** Decoder which assumes that bits 27-25 == 011. */
+  private static class decoder_011 extends Decoder {
+
+    @Override
+    <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
+      //Check condition==never? or bit4==true
+      if ((instr & 0xF0000000) == 0xF0000000 || Utils.getBit(instr, 4)) {
+        return factory.createUndefinedInstruction(instr);
+      }
+      else {
+        return factory.createSingleDataTransfer(instr);
+      }
+    }
+  }
+  
+  /** Decoder which assumes that bits 27-25 == 100. */
+  private static class decoder_100 extends Decoder {
+
+    @Override
+    <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
+      //Check condition==never?
+      if ((instr & 0xF0000000) == 0xF0000000) {
+        return factory.createUndefinedInstruction(instr);
+      }
+      
+      return factory.createBlockDataTransfer(instr);
+    }
+  }
+  
+  /** Decoder which assumes that bits 27-25 == 101. */
+  private static class decoder_101 extends Decoder {
+
+    @Override
+    <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
+      //Check condition==never?
+      if ((instr & 0xF0000000) == 0xF0000000) {
+        return factory.createBranchExchange(instr);
+      }
+      
+      return factory.createBranch(instr);
+    }
+  }
+  
+  /** Decoder which assumes that bits 27-25 == 110. */
+  private static class decoder_110 extends Decoder {
+
+    @Override
+    <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
+      return factory.createCoprocessorDataTransfer(instr);
+    }
+  }
+  
+  /** Decoder which assumes that bits 27-25 == 111. */
+  private static class decoder_111 extends Decoder {
+
+    @Override
+    <T> T decode(int instr, ARM_InstructionFactory<T> factory) {
+      if (Utils.getBit(instr, 24)) {
+        //Check condition==never?
+        if ((instr & 0xF0000000) == 0xF0000000) {
+          return factory.createUndefinedInstruction(instr);
+        }
+        else {
+          return factory.createSoftwareInterrupt(instr);
+        }
+      }
+      else {
+        if (Utils.getBit(instr, 4)) {
+          return factory.createCoprocessorRegisterTransfer(instr);
+        }
+        else {
+          return factory.createCoprocessorDataProcessing(instr);
+        }
+      }
+    }
+  }
   
   /**
    * Decodes a given ARM instruction and returns an object representation of it.
@@ -51,180 +239,9 @@ public class ARM_InstructionDecoder {
    *  An object representation of the decoded instruction.
    */
   static <T> T decode(int instruction, ARM_InstructionFactory<T> factory) {
-    if (Utils.getBit(instruction, 27)) {
-      return decode_1xx(instruction, factory);
-    }
-    else {
-      return decode_0xx(instruction, factory);
-    }
-  }
-  
-  private static <T> T decode_0xx(int instr, ARM_InstructionFactory<T> factory) {
-    if ((instr & 0xF0000000) == 0xF0000000) {
-      return factory.createUndefinedInstruction(instr);
-    }
     
-    if (Utils.getBit(instr, 26)) {
-      //opcode: 01
-      if (Utils.getBit(instr, 25) && Utils.getBit(instr, 4))
-        return factory.createUndefinedInstruction(instr);
-      else
-        return factory.createSingleDataTransfer(instr);
-    }
-    else {
-      //opcode: 00
-      return decode_00x(instr, factory);
-    }
-  }
-  
-  private static <T> T decode_1xx(int instr, ARM_InstructionFactory<T> factory) {
-    if (Utils.getBit(instr, 26)) {
-      //opcode: 11
-      return decode_11x( instr, factory);
-    }
-    else {
-      //opcode: 10
-      return decode_10x(instr, factory);
-    }
-  }
-  
-  private static <T> T decode_00x(int instr, ARM_InstructionFactory<T> factory) {
-    if (Utils.getBit(instr, 25))
-      return decode_001(instr, factory);
-    else
-      return decode_000(instr, factory);
-  }
-  
-  private static <T> T decode_10x(int instr, ARM_InstructionFactory<T> factory) {
-    if (Utils.getBit(instr, 25)) {
-      //opcode: 101
-      if ((instr & 0xF0000000) == 0xF0000000)
-        return factory.createBranchExchange(instr);
-      else
-        return factory.createBranch(instr);
-    }
-    else {
-      //opcode: 100
-      if ((instr & 0xF0000000) == 0xF0000000) 
-        return factory.createUndefinedInstruction(instr);
-      else
-        return factory.createBlockDataTransfer(instr);
-    }
-  }
-  
-  private static <T> T decode_000(int instr, ARM_InstructionFactory<T> factory) {
-    //opcode: 000
-    if (Utils.getBit(instr, 24) && !Utils.getBit(instr, 23) && !Utils.getBit(instr, 20)) {
-      //opcode: 00010xx0 - those are the new instructions, which the ARM ref. manual calls "misc. instructions" 
-      return decode_00010xx0(instr, factory);
-    }
-    else {
-      if (Utils.getBit(instr, 4) == false || Utils.getBit(instr, 7) == false)
-        return factory.createDataProcessing(instr);
-      
-      return decode_multiplies_extra_load_stores(instr, factory);
-    }
-  }
-  
-  private static <T> T decode_001(int instr, ARM_InstructionFactory<T> factory) {
-    //opcode: 001
-    if (!Utils.getBit(instr, 24) || Utils.getBit(instr, 23) || Utils.getBit(instr, 20)) {
-      return factory.createDataProcessing(instr);
-    }
-    
-    if (Utils.getBit(instr, 21))
-      return factory.createMoveToStatusRegister(instr);
-    else
-      return factory.createUndefinedInstruction(instr);
-  }
-  
-  private static <T> T decode_11x(int instr, ARM_InstructionFactory<T> factory) {
-    
-    if (Utils.getBit(instr, 25) == false) {
-      //opcode: 110
-      return factory.createCoprocessorDataTransfer(instr);
-    }
-    
-    //opcode: 111
-    if (Utils.getBit(instr, 24)) {
-      //opcode: 1111
-      if ((instr & 0xF0000000) == 0xF0000000)
-        return factory.createUndefinedInstruction(instr);
-      else
-        return factory.createSoftwareInterrupt(instr);
-    }
-    else {
-      //opcode: 1110
-      if (Utils.getBit(instr, 4)) {
-        return factory.createCoprocessorDataTransfer(instr);
-      }
-      else {
-        return factory.createCoprocessorRegisterTransfer(instr);
-      }
-    }
-  }
-  /** Decodes instructions with the opcode 00010xx0 - those are the new instructions, which
-   *  the ARM ref. manual calls "misc. instructions".
-   *  
-   *  @see Page A3-4 in the ARM Reference Manual (ARM DDI 0100 E) / 2000
-   */
-  private static <T> T decode_00010xx0(int instr, ARM_InstructionFactory<T> factory) {
-    //
-    if (Utils.getBit(instr, 6) || Utils.getBit(instr, 7)) {
-      //enhanced DSP multiplications, DSP add/subtracts and software breakpoints
-      //we might want to support these in the future, so when in debug mode, catch if any program actually uses them
-      if (DBT.VerifyAssertions) DBT._assert(false);
-      return factory.createUndefinedInstruction(instr);
-    }
-    else {
-      //bit 6 and 7 are clear 
-      if (Utils.getBit(instr, 4)) {
-        if (Utils.getBit(instr, 22))
-          return factory.createDataProcessing(instr); //should be a CLZ instruction
-        else
-          return factory.createBranchExchange(instr);
-      }
-      else {
-        if (Utils.getBit(instr, 21))
-          return factory.createMoveToStatusRegister(instr);
-        else
-          return factory.createMoveFromStatusRegister(instr);
-      }
-    }
-  }
-  
-  /** This might appear even more weird, but I didn't design the ARM ISA. This function decodes
-   *  all the operations defined on p. A3-3 in the ARM reference manual from 2000 (ARM DDI 0100 E).
-   *  
-   *  @see ARM Reference Manual (ARM DDI 0100 E) / 2000
-   */
-  private static <T> T decode_multiplies_extra_load_stores(int instr, ARM_InstructionFactory<T> factory) {
-    //Here, we already know that bits 4 and 7 are set, while bit 25-27 are clear
-    if (Utils.getBit(instr, 6)) {
-      //load/store signed half-word or two words
-      if (Utils.getBit(instr, 20))
-        return factory.createSingleDataTransfer(instr);
-      else
-        return factory.createUndefinedInstruction(instr); //two words immediate offset
-    }
-    else {
-      if (Utils.getBit(instr, 5)) {
-        //load/store half-word
-        return factory.createSingleDataTransfer(instr);
-      }
-      else {
-        //Multiply, multiply long or Swap
-        if (Utils.getBit(instr, 24)) {
-          return factory.createSwap(instr);
-        }
-        else {
-          if (Utils.getBit(instr, 23))
-            return factory.createLongMultiply(instr);
-          else
-            return factory.createIntMultiply(instr);
-        }
-      }
-    }
+    int bits_27_25 = Utils.getBits(instruction, 25, 27);
+    return prefixDecoders[bits_27_25].decode(instruction, factory);
   }
   
   /**
