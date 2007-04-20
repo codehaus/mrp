@@ -262,11 +262,11 @@ public class ELF_Loader extends Loader {
   /**
    * Class to read and hold ELF header indentity information
    */
-
+  @SuppressWarnings("unused")
   private static class ELF_Identity {
     
     /** Represents acceptable ELF address sizes. */
-    enum AddressSize implements IdentifiedEnum {
+    private enum AddressSize implements IdentifiedEnum {
       Size32(1),
       Size64(2);
       
@@ -282,7 +282,7 @@ public class ELF_Loader extends Loader {
     }
     
     /** Represents accepted ELF byte orders. */
-    enum ByteOrder implements IdentifiedEnum {
+    private enum ByteOrder implements IdentifiedEnum {
       LittleEndian(1),
       BigEndian(2);
       
@@ -296,6 +296,22 @@ public class ELF_Loader extends Loader {
         return identifier;
       }
     }
+    
+    /* Symbolic names for the most widely used ABIs. This is not an enum, because the list isn't complete. */
+    private static final byte ELFOSABI_SYSTEMV = 0;
+    private static final byte ELFOSABI_HPUX = 1;
+    private static final byte ELFOSABI_NETBSD = 2;
+    private static final byte ELFOSABI_LINUX = 3;
+    private static final byte ELFOSABI_SOLARIS = 6;
+    private static final byte ELFOSABI_AIX = 7;
+    private static final byte ELFOSABI_IRIX = 8;
+    private static final byte ELFOSABI_FREEBSD = 9;
+    private static final byte ELFOSABI_TRU64 = 10;
+    private static final byte ELFOSABI_MODESTO = 11;
+    private static final byte ELFOSABI_OPENBSD = 12;
+    private static final byte ELFOSABI_OPENVMS = 13;
+    private static final byte ELFOSABI_NSK = 14;
+    private static final byte ELFOSABI_ARM = 97;
 
     /**
      * ELF magic values indicating an ELF file
@@ -356,13 +372,13 @@ public class ELF_Loader extends Loader {
     {
       //read the OS ABI
       switch (abi) {
-        case 0:
+        case ELFOSABI_SYSTEMV:
           return ABI.SystemV;
           
-        case 3:
+        case ELFOSABI_LINUX:
           return ABI.Linux;
           
-        case 97:
+        case ELFOSABI_ARM:
           return ABI.ARM;
         
         default:
