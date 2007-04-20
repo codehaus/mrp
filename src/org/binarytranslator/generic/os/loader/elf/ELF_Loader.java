@@ -8,23 +8,27 @@
  */
 package org.binarytranslator.generic.os.loader.elf;
 
-import org.binarytranslator.generic.os.loader.Loader;
-import org.binarytranslator.generic.os.process.ProcessSpace;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+
+import org.binarytranslator.DBT;
+import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
-import org.binarytranslator.DBT_Options;
-
-import java.io.*;
+import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.process.ProcessSpace;
 
 public class ELF_Loader extends Loader {
-  /*
-   * Instance variables
-   */
 
   /**
    * Wrapper class used for reading the ELF file with the required endianness
    */
   private ELF_BinaryReader reader;
+  
+  /**
+   * Field holding identity information
+   */
+  private ELF_Identity identity;
 
   /**
    * Header of ELF file
@@ -36,10 +40,6 @@ public class ELF_Loader extends Loader {
    */
   private ELF_ProgramSegmentHeader segmentHeaders[];
 
-  /*
-   * Utility functions
-   */
-
   /**
    * Debug information
    * @param s string of debug information
@@ -50,78 +50,96 @@ public class ELF_Loader extends Loader {
       System.out.println(s);
     }
   }
-
-  /*
-   * Utility classes
-   */
-
   /**
-   * Reader for byte and multibyte values respecting endianness
+   * Reader for byte and multibyte values respecting endianness.
    */
-  private static class ELF_BinaryReader {
+  private abstract static class ELF_BinaryReader {
+    
+    /** File to read from */
+    protected RandomAccessFile rFile;
+    
     /**
-     * Do we need to byte swap multi-byte values?
+     * Returns a new ELF_BinaryReader for the specified byte order and file.
+     * 
+     * @param byteOrder
+     *  The byte order that the file posesses.
+     * @param file
+     *  The file that is to be read.
+     * @return
+     *  An ELF_BinaryReader, that hides the details of the byte order.
      */
-    private final boolean needsBswap;
+    public static ELF_BinaryReader create(ELF_Identity.ByteOrder byteOrder, RandomAccessFile file) {
+      
+      if (byteOrder == ELF_Identity.ByteOrder.BigEndian)
+        return new NonSwappingReader(file); 
+      else
+        return new ByteSwappingReader(file);
+    }
 
-    /**
-     * File to read from
-     */
-    RandomAccessFile rFile;
-
-    /**
-     * Constructor
-     * @param rFile file to read from
-     * @param needsBswap do multibyte values need byte swapping
-     */
-    ELF_BinaryReader(RandomAccessFile rFile, boolean needsBswap) {
+    /** Hide the constructor, because this class shall only be instantiated by using the factory method {@link #create(org.binarytranslator.generic.os.loader.elf.ELF_Loader.ELF_Header.ByteOrder, RandomAccessFile)}. */
+    private ELF_BinaryReader(RandomAccessFile rFile) {
       this.rFile = rFile;
-      this.needsBswap = needsBswap;
     }
-
-    /**
-     * Byte swap a 32-bit integer
-     */
-    private static int bswap(int x) {
-      return ((x & 0xFF) << 24) | ((x & 0xFF00) << 8) | ((x & 0xFF0000) >> 8)
-          | (x >>> 24);
-    }
-
-    /**
-     * Byte swap a 16-bit integer
-     */
-    private static short bswap(short x) {
-      short result = (short) (((x & 0xFF) << 8) | ((x & 0xFF00) >> 8));
-      return result;
-    }
-
-    /**
-     * Read a 32bit int value
-     */
-    int readInt() throws IOException {
-      int result = rFile.readInt();
-      return needsBswap ? bswap(result) : result;
-    }
-
-    /**
-     * Read a 16bit short value
-     */
-    short readShort() throws IOException {
-      short result = rFile.readShort();
-      return needsBswap ? bswap(result) : result;
-    }
-
-    /**
-     * Seek to location from beginning of file
-     */
+    
+    /** Seek to location from beginning of file */
     void seek(long pos) throws IOException {
       rFile.seek(pos);
     }
-  }
+    
+    /** Read an integer from the file. This function is supposed to hide the difference between little and big endian reads. */
+    public abstract int readInt() throws IOException;
+    
+    /** Read a short from the file. This function is supposed to hide the difference between little and big endian reads. */
+    public abstract short readShort() throws IOException;
+    
+    /** Reader that performs byte swaps for each int/short read. */
+    private static class ByteSwappingReader extends ELF_BinaryReader {
+      
+      ByteSwappingReader(RandomAccessFile rFile) {
+        super(rFile);
+      }
 
-  /*
-   * Methods
-   */
+      /** Byte swap a 32-bit integer */
+      private static int bswap(int x) {
+        return ((x & 0xFF) << 24) | ((x & 0xFF00) << 8) | ((x & 0xFF0000) >> 8)
+            | (x >>> 24);
+      }
+
+      /** Byte swap a 16-bit integer */
+      private static short bswap(short x) {
+        short result = (short) (((x & 0xFF) << 8) | ((x & 0xFF00) >> 8));
+        return result;
+      }
+
+      @Override
+      public int readInt() throws IOException {
+        return bswap(rFile.readInt());
+      }
+
+      @Override
+      public short readShort() throws IOException {
+        return bswap(rFile.readShort());
+      }
+    }
+    
+    /** Reader that does not perform any byte swaps.*/
+    private static class NonSwappingReader extends ELF_BinaryReader {
+
+      NonSwappingReader(RandomAccessFile rFile) {
+        super(rFile);
+      }
+
+      @Override
+      public int readInt() throws IOException {
+        return rFile.readInt();
+      }
+
+      @Override
+      public short readShort() throws IOException {
+        return rFile.readShort();
+      }
+    }
+  }
 
   /**
    * Main entry point that loads the binary
@@ -131,8 +149,14 @@ public class ELF_Loader extends Loader {
   public ProcessSpace readBinary(String filename) throws IOException {
     report("Opening File: " + filename);
     RandomAccessFile rFile = new RandomAccessFile(filename, "r");
+    
+    // Identification is in bytes and therefore is endian agnostic
+    identity = new ELF_Identity(rFile);
+    
+    // Set up reader to handle endianness for the rest of the file
+    reader = ELF_BinaryReader.create(identity.byteOrder, rFile);
 
-    elfHeader = new ELF_Header(rFile); // NB also sets up reader
+    elfHeader = new ELF_Header(reader); // NB also sets up reader
     report("ELF header read successfully");
 
     ProcessSpace ps = ProcessSpace.createProcessSpaceFromBinary(this);
@@ -202,61 +226,14 @@ public class ELF_Loader extends Loader {
     return segmentHeaders;
   }
 
-  /**
-   * Return the application binary interface (ABI) supported by this file
-   */
-  public String getABIString() {
-    return elfHeader.getABIString();
+  @Override
+  public ABI getABI() {
+    return identity.getABI();
   }
-
-  /**
-   * Return the architecture (ISA) supported by this file
-   */
-  public String getArchitectureString() {
-    return elfHeader.getArchitectureString();
-  }
-
-  /**
-   * Is the ELF's machine field Intel 80386
-   */
-  public boolean isX86_ISA() {
-    return elfHeader.isX86_ISA();
-  }
-
-  /**
-   * Is the ELF's machine field PowerPC
-   */
-  public boolean isPPC_ISA() {
-    return elfHeader.isPPC_ISA();
-  }
-
-  /**
-   * Is this binary for the ARM architecture?
-   */
-  public boolean isARM_ISA() {
-    return elfHeader.isARM_ISA();
-  }
-
-  /**
-   * Does this file support the SysV ABI?
-   */
-  public boolean isSysV_ABI() {
-    return elfHeader.isSysV_ABI();
-  }
-
-  /**
-   * Does this file support the Linux ABI?
-   */
-  public boolean isLinuxABI() {
-    return elfHeader.isLinuxABI();
-  }
-
-  /**
-   * Does this file support the ARM ABI?
-   * @return
-   */
-  public boolean isARM_ABI() {
-    return elfHeader.isARM_ABI();
+  
+  @Override
+  public ISA getISA() {
+    return elfHeader.getISA();
   }
 
   /**
@@ -266,325 +243,160 @@ public class ELF_Loader extends Loader {
     return elfHeader.e_phoff - segmentHeaders[0].p_offset + segmentHeaders[0].p_vaddr;
   }
 
-  /*
-   * Local classes holding structures from the ELF file
+  /** An interface for enums where each value is identified by an identifier.*/
+  private static interface IdentifiedEnum {
+    int getIdentifier();
+  }
+  
+  /** 
+   * Creates a corresponding enum value from an integer identifier for enums implementing the {@link IdentifiedEnum} interface.
+   * In case no corresponding enum value is available, the function returns null. */
+  private static <T extends Enum<T> & IdentifiedEnum> T getEnumFromIdentifier(Class<T> enumClass, int identifier) {
+    for (T value : enumClass.getEnumConstants())
+      if (value.getIdentifier() == identifier)
+        return value;
+    
+    return null;
+  }
+  
+  /**
+   * Class to read and hold ELF header indentity information
    */
+
+  private static class ELF_Identity {
+    
+    /** Represents acceptable ELF address sizes. */
+    enum AddressSize implements IdentifiedEnum {
+      Size32(1),
+      Size64(2);
+      
+      private int identifier;
+      
+      private AddressSize(int identifier) {
+        this.identifier = identifier;
+      }
+
+      public int getIdentifier() {
+        return identifier;
+      }
+    }
+    
+    /** Represents accepted ELF byte orders. */
+    enum ByteOrder implements IdentifiedEnum {
+      LittleEndian(1),
+      BigEndian(2);
+      
+      private int identifier;
+      
+      private ByteOrder(int identifier) {
+        this.identifier = identifier;
+      }
+
+      public int getIdentifier() {
+        return identifier;
+      }
+    }
+
+    /**
+     * ELF magic values indicating an ELF file
+     */
+    private static final byte ELF_MAGIC_VALUE[] = { 0x7f, 'E', 'L','F' };
+
+    /** Specifies the size of an address within this elf.*/
+    private AddressSize addressSize;
+    
+    /** The byte order used by this elf.*/
+    private ByteOrder byteOrder;
+    
+    /** The ABI that is used by this ELF.*/
+    private byte abi;
+    
+    /**
+     * Construct/read ELF identity
+     */
+    ELF_Identity(RandomAccessFile rFile) throws IOException {
+      // Identification is in bytes and therefore is endian agnostic
+      byte[] magic = new byte[ELF_MAGIC_VALUE.length];
+      
+      if (rFile.read(magic) != magic.length)
+        throw new IOException("ELF file too short.");
+      
+      // Check that the ELF magic is correct
+      for (int i = 0; i < ELF_MAGIC_VALUE.length; i++) {
+        if (magic[i] != ELF_MAGIC_VALUE[i]) {
+          throw new IOException("Bad ELF file magic: " + rFile);
+        }
+      }
+      
+      //read the address size
+      addressSize = getEnumFromIdentifier(AddressSize.class, rFile.readByte());
+      if (addressSize == null)
+        throw new IOException("Invalid address sizer specified by ELF file.");
+
+      //read the byte order
+      byteOrder = getEnumFromIdentifier(ByteOrder.class, rFile.readByte());
+      if (byteOrder == null)
+        throw new IOException("Invalid byte order specified by ELF file.");
+      
+      //Check the ELF's file version
+      if (rFile.readByte() != 1) {
+        throw new IOException("Invalid ELF File version.");
+      }
+      
+      //read a byte describing the target ABI
+      abi = rFile.readByte();
+      
+      //skip the remaining padding bytes so that we're arriving at a 16 byte alignment.
+      if (rFile.skipBytes(8) != 8) {
+        throw new IOException("ELF file is too short.");
+      }
+    }
+
+    public ABI getABI() 
+    {
+      //read the OS ABI
+      switch (abi) {
+        case 0:
+          return ABI.SystemV;
+          
+        case 3:
+          return ABI.Linux;
+          
+        case 97:
+          return ABI.ARM;
+        
+        default:
+          return ABI.Undefined;
+      }
+    }
+  }
 
   /**
    * Class to read and hold ELF header information
    */
   @SuppressWarnings("unused")
-  public class ELF_Header {
-    /**
-     * Class to read and hold ELF header indentity information
-     */
-    @SuppressWarnings("unused")
-    private class ELF_Identity {
-      /**
-       * Size of ELF identity structure
-       */
-      private static final int EI_NIDENT = 16;
+  public static class ELF_Header {
 
-      /**
-       * Backing store for identity structure:
-       * {0x7f,'E','L','F',class,data,version,padding..}
-       */
-      private byte[] e_ident = new byte[EI_NIDENT];
-
-      /**
-       * ELF Magic numbers locations in identity
-       */
-      private static final int EI_MAG0 = 0, EI_MAG1 = 1, EI_MAG2 = 2,
-          EI_MAG3 = 3;
-
-      /**
-       * ELF magic values indicating an ELF file
-       */
-      private static final byte ELFMAG0 = 0x7f, ELFMAG1 = 'E', ELFMAG2 = 'L',
-          ELFMAG3 = 'F';
-
-      /**
-       * Location of class data in identity structure
-       */
-      private static final int EI_CLASS = 4;
-
-      /**
-       * ELF file is invalid
-       */
-      private static final byte ELFCLASSNONE = 0;
-
-      /**
-       * ELF file contains 32bit data
-       */
-      private static final byte ELFCLASS32 = 1;
-
-      /**
-       * ELF file contains 64bit data
-       */
-      private static final byte ELFCLASS64 = 2;
-
-      /**
-       * Location of data information in identity structure
-       */
-      private static final int EI_DATA = 5;
-
-      /**
-       * Invalid data encoding
-       */
-      private static final byte ELFDATANONE = 0;
-
-      /**
-       * LSB or little-endian encoding N.B. not the native Java format
-       */
-      private static final byte ELFDATA2LSB = 1;
-
-      /**
-       * MSB or big-endian encoding N.B. the native Java format
-       */
-      private static final byte ELFDATA2MSB = 2;
-
-      /**
-       * Is this ELF MSB encoded?
-       */
-      boolean isMSB() throws IOException {
-        switch (e_ident[EI_DATA]) {
-        case ELFDATA2LSB:
-          return false;
-        case ELFDATA2MSB:
-          return true;
-        default:
-          throw new IOException("Unrecognized data encoding");
-        }
+    /** A list of possible object file types. */
+    enum ObjectFileType implements IdentifiedEnum {
+      Relocatable(1),
+      Executable(2),
+      SharedObject(3), 
+      Core(4);
+      
+      private int identifier;
+      
+      private ObjectFileType(int identifier) {
+        this.identifier = identifier;
       }
 
-      /**
-       * Location of version data - should be EV_CURRENT as defined by the ELF
-       * header
-       */
-      private static final int EI_VERSION = 6;
-
-      /**
-       * Location of OS ABI data
-       */
-      private static final int EI_OSABI = 7;
-
-      /**
-       * UNIX System V ABI.
-       */
-      private static final byte ELFOSABI_SYSV = 0;
-
-      /**
-       * HP-UX ABI
-       */
-      private static final byte ELFOSABI_HPUX = 1;
-
-      /**
-       * NetBSD ABI
-       */
-      private static final byte ELFOSABI_NETBSD = 2;
-
-      /**
-       * Linux ABI
-       */
-      private static final byte ELFOSABI_LINUX = 3;
-
-      /**
-       * Solaris ABI
-       */
-      private static final byte ELFOSABI_SOLARIS = 6;
-
-      /**
-       * AIX ABI
-       */
-      private static final byte ELFOSABI_AIX = 7;
-
-      /**
-       * IRIX ABI
-       */
-      private static final byte ELFOSABI_IRIX = 8;
-
-      /**
-       * FreeBSD ABI
-       */
-      private static final byte ELFOSABI_FREEBSD = 9;
-
-      /**
-       * TRU64 UNIX ABI
-       */
-      private static final byte ELFOSABI_TRU64 = 10;
-
-      /**
-       * Novell Modesto
-       */
-      private static final byte ELFOSABI_MODESTO = 11;
-
-      /**
-       * Open BSD
-       */
-      private static final byte ELFOSABI_OPENBSD = 12;
-
-      /**
-       * Open VMS
-       */
-      private static final byte ELFOSABI_OPENVMS = 13;
-
-      /**
-       * Hewlett-Packard Non-Stop Kernel
-       */
-      private static final byte ELFOSABI_NSK = 14;
-
-      /**
-       * ARM ABI, probably using the ARM AAPCS.
-       */
-      private static final byte ELFOSABI_ARM = 97;
-
-      /**
-       * Return the application binary interface (ABI) supported by this file
-       */
-      String getABIString() {
-        switch (e_ident[EI_OSABI]) {
-        case ELFOSABI_SYSV:
-          return "SysV";
-        case ELFOSABI_HPUX:
-          return "HP-UX";
-        case ELFOSABI_NETBSD:
-          return "NetBSD";
-        case ELFOSABI_LINUX:
-          return "Linux";
-        case ELFOSABI_SOLARIS:
-          return "Solaris";
-        case ELFOSABI_AIX:
-          return "AIX";
-        case ELFOSABI_IRIX:
-          return "IRIX";
-        case ELFOSABI_FREEBSD:
-          return "FreeBSD";
-        case ELFOSABI_TRU64:
-          return "TRU64";
-        case ELFOSABI_MODESTO:
-          return "Novell Modesto";
-        case ELFOSABI_OPENBSD:
-          return "OpenBSD";
-        case ELFOSABI_OPENVMS:
-          return "OpenVMS";
-        case ELFOSABI_NSK:
-          return "Hewlett-Packard Non-Stop Kernel";
-        case ELFOSABI_ARM:
-          return "ARM ABI";
-        default:
-          return "Unknown ELF ABI: " + e_ident[EI_OSABI];
-        }
-      }
-
-      /**
-       * Does this file support the SysV ABI?
-       */
-      boolean isSysV_ABI() {
-        return e_ident[EI_OSABI] == ELFOSABI_SYSV;
-      }
-
-      /**
-       * Does this file support the Linux ABI?
-       */
-      boolean isLinuxABI() {
-        return e_ident[EI_OSABI] == ELFOSABI_LINUX;
-      }
-
-      boolean isARM_ABI() {
-        return e_ident[EI_OSABI] == ELFOSABI_ARM;
-      }
-
-      /**
-       * Location of OS ABI version data
-       */
-      private static final int EI_ABIVERSION = 8;
-
-      /**
-       * Location of padding bytes
-       */
-      private static final int EI_PAD = 9;
-
-      /**
-       * Construct/read ELF identity
-       */
-      ELF_Identity(RandomAccessFile rFile) throws IOException {
-        // Identification is in bytes and therefore is endian agnostic
-        rFile.read(e_ident);
-        // Check magic is correct
-        if ((ELFMAG0 != e_ident[EI_MAG0]) || (ELFMAG1 != e_ident[EI_MAG1])
-            || (ELFMAG2 != e_ident[EI_MAG2]) || (ELFMAG3 != e_ident[EI_MAG3])) {
-          throw new IOException("Bad ELF file magic: " + rFile);
-        }
+      public int getIdentifier() {
+        return identifier;
       }
     }
-
-    /**
-     * Field holding identity information
-     */
-    private ELF_Identity identity;
-
-    /**
-     * Return the application binary interface (ABI) supported by this file
-     */
-    String getABIString() {
-      return identity.getABIString();
-    }
-
-    /**
-     * Does this file support the SysV ABI?
-     */
-    boolean isSysV_ABI() {
-      return identity.isSysV_ABI();
-    }
-
-    /**
-     * Does this file support the Linux ABI?
-     */
-    boolean isLinuxABI() {
-      return identity.isLinuxABI();
-    }
-
-    /**
-     * Does this file support the ARM ABI?
-     */
-    boolean isARM_ABI() {
-      return identity.isARM_ABI();
-    }
-
-    /**
-     * Object file type
-     */
-    private short e_type;
-
-    /**
-     * No file type
-     */
-    private static final short ET_NONE = 0;
-
-    /**
-     * Relocatable file
-     */
-    private static final short ET_REL = 1;
-
-    /**
-     * Executable file
-     */
-    private static final short ET_EXEC = 2;
-
-    /**
-     * Shared object file
-     */
-    private static final short ET_DYN = 3;
-
-    /**
-     * Core file
-     */
-    private static final short ET_CORE = 4;
-
-    /**
-     * Number of defined types
-     */
-    private static final short ET_NUM = 5;
+    
+    /** Object file type */
+    private ObjectFileType e_type;
 
     /**
      * Start of OS reserved region
@@ -611,133 +423,23 @@ public class ELF_Loader extends Loader {
      */
     private short e_machine;
 
-    /**
-     * No machine
-     */
-    private static final short EM_NONE = 0;
-
-    /**
-     * AT&amp;T WE 32100
-     */
+    /* Short names for a few known machine types. Not an enum, because this list is not complete. */
     private static final short EM_M32 = 1;
-
-    /**
-     * SPARC
-     */
     private static final short EM_SPARC = 2;
-
-    /**
-     * Intel 80386
-     */
     private static final short EM_386 = 3;
-
-    /**
-     * Motoral 68000
-     */
     private static final short EM_68K = 4;
-
-    /**
-     * Motorola 88000
-     */
     private static final short EM_88K = 5;
-
-    /**
-     * Intel 80860
-     */
     private static final short EM_860 = 7;
-
-    /**
-     * MIPS RS3000
-     */
     private static final short EM_MIPS = 8;
-
-    /**
-     * PowerPC
-     */
     private static final short EM_PPC = 20;
-
-    /**
-     * ARM
-     */
     private static final short EM_ARM = 40;
-
-    /**
-     * Alpha
-     */
     private static final short EM_ALPHA = 41;
-
-    /**
-     * Sparc V9
-     */
     private static final short EM_SPARCV9 = 43;
-
-    /**
-     * Is the ELF's machine field Intel 80386
-     */
-    boolean isX86_ISA() {
-      return e_machine == EM_386;
-    }
-
-    /**
-     * Is the ELF's machine field PowerPC
-     */
-    boolean isPPC_ISA() {
-      return e_machine == EM_PPC;
-    }
-
-    /**
-     * Is the elf binary for an ARM architecture?
-     */
-    boolean isARM_ISA() {
-      return e_machine == EM_ARM;
-    }
-
-    /**
-     * Return the architecture (ISA) supported by this file
-     */
-    public String getArchitectureString() {
-      switch (e_machine) {
-      case EM_M32:
-        return "AT&T WE 32100";
-      case EM_SPARC:
-        return "SPARC";
-      case EM_386:
-        return "Intel 80386";
-      case EM_68K:
-        return "Motorola 68000";
-      case EM_88K:
-        return "Motorola 88000";
-      case EM_860:
-        return "Intel 80860";
-      case EM_MIPS:
-        return "MIPS RS3000";
-      case EM_PPC:
-        return "PowerPC";
-      case EM_ARM:
-        return "ARM";
-      case EM_ALPHA:
-        return "Alpha";
-      case EM_SPARCV9:
-        return "SPARC V9";
-      default:
-        return "Unknown architecture " + e_machine;
-      }
-    }
 
     /**
      * Object file version
      */
     private int e_version;
-
-    /**
-     * Invalid version
-     */
-    private static final int EV_NONE = 0;
-
-    /**
-     * Current version
-     */
-    private static final int EV_CURRENT = 1;
 
     /**
      * Entry point virtual address. The virtual address to which the system
@@ -746,23 +448,9 @@ public class ELF_Loader extends Loader {
     private int e_entry;
 
     /**
-     * Return the entry point of the binary
-     */
-    int getEntryPoint() {
-      return e_entry;
-    }
-        
-    /**
      * Program header table file offset
      */
     private int e_phoff;
-
-    /**
-     * What is the offset in the file of the program headers
-     */
-    int getProgramSegmentHeaderOffset() {
-      return e_phoff;
-    }
 
     /**
      * Section header table file offset
@@ -783,25 +471,11 @@ public class ELF_Loader extends Loader {
      * Program header table entry size
      */
     private final short e_phentsize;
-
-    /**
-     * What's the size of a program segment header?
-     */
-    public int getProgramSegmentHeaderSize() {
-      return e_phentsize;
-    }
-
+    
     /**
      * Program header table entry count
      */
     private final short e_phnum;
-
-    /**
-     * How many program segments are in this ELF binary?
-     */
-    public int getNumberOfProgramSegmentHeaders() {
-      return e_phnum;
-    }
 
     /**
      * Section header table entry size
@@ -821,16 +495,22 @@ public class ELF_Loader extends Loader {
     /**
      * Construct/read ELF header
      */
-    ELF_Header(RandomAccessFile rFile) {
+    ELF_Header(ELF_BinaryReader reader) {
       try {
-        // Identification is in bytes and therefore is endian agnostic
-        identity = new ELF_Identity(rFile);
-        // Set up reader to handle endianness for the rest of the file
-        reader = new ELF_BinaryReader(rFile, !identity.isMSB());
         // Read in rest of header
-        e_type = reader.readShort();
+        e_type = getEnumFromIdentifier(ObjectFileType.class, reader.readShort());
+        
+        if (e_type == null) {
+          throw new Error("Invalid Object file type.");
+        }
+        
         e_machine = reader.readShort();
         e_version = reader.readInt();
+        
+        if (e_version != 1) {
+          throw new Error("Unexpected ELF File version: " + e_version);
+        }
+        
         e_entry = reader.readInt();
         e_phoff = reader.readInt();
         e_shoff = reader.readInt();
@@ -844,6 +524,93 @@ public class ELF_Loader extends Loader {
       } catch (IOException e) {
         throw new Error(e);
       }
+    }
+    
+    /**
+     * What is the offset in the file of the program headers
+     */
+    int getProgramSegmentHeaderOffset() {
+      return e_phoff;
+    }
+
+    /**
+     * What's the size of a program segment header?
+     */
+    public int getProgramSegmentHeaderSize() {
+      return e_phentsize;
+    }
+
+    /**
+     * How many program segments are in this ELF binary?
+     */
+    public int getNumberOfProgramSegmentHeaders() {
+      return e_phnum;
+    }
+    
+    /**
+     * Return the entry point of the binary
+     */
+    int getEntryPoint() {
+      return e_entry;
+    }
+        
+    /** Maps the ISA specified within the ELF file to an ISA supported by Pearcolator. */
+    public ISA getISA() {
+      switch (e_machine) {
+        case EM_ARM:
+          return ISA.ARM;
+          
+        case EM_386:
+          return ISA.X86;
+          
+        case EM_PPC:
+          return ISA.PPC;
+          
+        default:
+          return ISA.Undefined;
+      }
+    }
+  }
+  
+  /** Identifies a named segment range. */
+  private enum SegmentRange {
+    /** SUN reserved segments */
+    SunReserved(0x6ffffffa, 0x6fffffff, "SUN Reserved Segment"),
+    
+    /** OS reserved segment types */
+    OperatingSystem(0x60000000, 0x6fffffff, ("Operating System Segment")),
+    
+    /** processor reserved segment types */
+    Processor(0x70000000, 0x7fffffff, "Processor Segment"),
+    
+    /** remaining (unknown) segment types */
+    Unknown(0x0, 0xffffffff, "Unknown Segment"); 
+    
+    private int lowAddress;
+    private int highAddress;
+    private String description;
+    
+    private SegmentRange(int from, int to, String description) {
+      
+      if (DBT.VerifyAssertions) DBT._assert(from < to);
+      
+      lowAddress = from;
+      highAddress = to;
+      this.description = description;
+    }
+    
+    public static SegmentRange fromInteger(int address) {
+      for (SegmentRange range : values()) {
+        if (range.lowAddress >= address && range.highAddress <= address)
+          return range;
+      }
+      
+      return null;
+    }
+    
+    @Override
+    public String toString() {
+      return description;
     }
   }
 
@@ -900,15 +667,10 @@ public class ELF_Loader extends Loader {
      */
     private static final int PT_TLS = 7;
 
-    /**
-     * Number of defined types
-     */
-    private static final int PT_NUM = 8;
 
     /**
      * Start of OS reserved segment types
      */
-    private static final int PT_LOOS = 0x60000000;
 
     /**
      * SUN unwind table segment
@@ -933,7 +695,6 @@ public class ELF_Loader extends Loader {
     /**
      * Start of SUN reserved segments
      */
-    private static final int PT_LOSUNW = 0x6ffffffa;
 
     /**
      * The array element has the same attributes as a PT_LOAD element and is
@@ -960,22 +721,11 @@ public class ELF_Loader extends Loader {
     /**
      * End of SUN reserved segments
      */
-    private static final int PT_HISUNW = 0x6fffffff;
 
     /**
      * End of OS reserved segment types
      */
-    private static final int PT_HIOS = 0x6fffffff;
 
-    /**
-     * Start of processor reserved segment types
-     */
-    private static final int PT_LOPROC = 0x70000000;
-
-    /**
-     * End of processor reserved segment types
-     */
-    private static final int PT_HIPROC = 0x7fffffff;
 
     /**
      * Offset of first byte of segment data in file
@@ -1194,17 +944,8 @@ public class ELF_Loader extends Loader {
       case PT_GNU_STACK:
         return "GNU stack executability";
       default:
-        if ((p_type > PT_LOPROC) && (p_type <= PT_HIPROC)) {
-          return "Processor specific segment 0x" + Integer.toHexString(p_type);
-        } else if ((p_type > PT_LOOS) && (p_type <= PT_HIOS)) {
-          if ((p_type > PT_LOSUNW) && (p_type <= PT_HISUNW)) {
-            return "Sun OS specific segment 0x" + Integer.toHexString(p_type);
-          } else {
-            return "OS specific segment 0x" + Integer.toHexString(p_type);
-          }
-        } else {
-          return "Unknown segment: 0x" + Integer.toHexString(p_type);
-        }
+        SegmentRange range = SegmentRange.fromInteger(p_type);
+        return range.toString() + "(0x" + Integer.toHexString(p_type) + ")";
       }
     }
   }

@@ -80,19 +80,27 @@ public abstract class ProcessSpace {
   public static ProcessSpace createProcessSpaceFromBinary(Loader loader)
       throws IOException {
     ProcessSpace result;
-    if (loader.isX86_ISA()) {
-      report("X86 Binary");
-      result = X86_ProcessSpace.createProcessSpaceFromBinary(loader);
-    } else if (loader.isPPC_ISA()) {
-      report("PPC Binary");
-      result = PPC_ProcessSpace.createProcessSpaceFromBinary(loader);
-    } else if (loader.isARM_ISA()) {
-      report("ARM Binary");
-      result = ARM_ProcessSpace.createProcessSpaceFromBinary(loader);
-    } else {
-      throw new UnsupportedOperationException("Binary of "
-          + loader.getArchitectureString() + " architecture is unsupported");
+   
+    Loader.ISA isa = loader.getISA();
+    report("Found " + isa.toString() + " ISA.");
+    
+    switch (isa) {
+      case X86:
+        result = X86_ProcessSpace.createProcessSpaceFromBinary(loader);
+        break;
+        
+      case PPC:
+        result = PPC_ProcessSpace.createProcessSpaceFromBinary(loader);
+        break;
+        
+      case ARM:
+        result = ARM_ProcessSpace.createProcessSpaceFromBinary(loader);
+        break;
+        
+      default:
+        throw new UnsupportedOperationException("Binary of "+ isa + " architecture is unsupported");
     }
+    
     return result;
   }
  

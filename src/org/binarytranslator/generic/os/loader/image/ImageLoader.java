@@ -25,43 +25,22 @@ public class ImageLoader extends Loader {
   private String architecture;
   
   @Override
-  public String getABIString() {
-    return null;
+  public ABI getABI() {
+    return ABI.Undefined;
   }
 
   @Override
-  public String getArchitectureString() {
-    return architecture;
-  }
-
-  @Override
-  public boolean isARM_ABI() {
-    return false;
-  }
-
-  @Override
-  public boolean isARM_ISA() {
-    return architecture.equals("ARM");
-  }
-
-  @Override
-  public boolean isLinuxABI() {
-    return false;
-  }
-
-  @Override
-  public boolean isPPC_ISA() {
-    return architecture.equals("ISA");
-  }
-
-  @Override
-  public boolean isSysV_ABI() {
-    return false;
-  }
-
-  @Override
-  public boolean isX86_ISA() {
-    return architecture.equals("X86");
+  public ISA getISA() {
+    if (architecture.equals("ARM"))
+      return ISA.ARM;
+    else
+      if (architecture.equals("PPC"))
+        return ISA.PPC;
+      else
+        if (architecture.equals("X86"))
+          return ISA.X86;
+    
+    return ISA.Undefined;
   }
   
   /**

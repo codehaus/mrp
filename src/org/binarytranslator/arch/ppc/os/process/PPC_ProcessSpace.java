@@ -152,12 +152,17 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
    */
   public static ProcessSpace createProcessSpaceFromBinary(Loader loader)
       throws IOException {
-    if (loader.isLinuxABI() || loader.isSysV_ABI()) {
-      report("Linux/SysV ABI");
-      return new PPC_LinuxProcessSpace(loader);
-    } else {
-      throw new IOException("Binary of " + loader.getABIString()
-          + " ABI is unsupported for the PowerPC architecture");
+    
+    Loader.ABI abi = loader.getABI();
+    
+    switch (abi) {
+      case Linux:
+      case SystemV:
+        report("Linux/SysV ABI");
+        return new PPC_LinuxProcessSpace(loader);
+        
+      default:
+        throw new IOException("Binary of " + abi + " ABI is unsupported for the PowerPC architecture");
     }
   }
 

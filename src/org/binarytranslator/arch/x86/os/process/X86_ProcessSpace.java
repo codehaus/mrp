@@ -18,6 +18,7 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.BadInstructionException;
+import org.binarytranslator.arch.ppc.os.process.linux.PPC_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.os.process.linux.X86_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
 import org.binarytranslator.arch.x86.decoder.X86_InstructionDecoder;
@@ -155,12 +156,16 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
    * @return the appropriate process space
    */
   public static ProcessSpace createProcessSpaceFromBinary (Loader loader) throws IOException {
-    if (loader.isLinuxABI() || loader.isSysV_ABI()) {
-      report("Linux/SysV ABI");
-      return new X86_LinuxProcessSpace(loader);
-    }
-    else {
-      throw new IOException("Binary of " + loader.getABIString() + " ABI is unsupported for the X86 architecture");
+    Loader.ABI abi = loader.getABI();
+    
+    switch (abi) {
+      case Linux:
+      case SystemV:
+        report("Linux/SysV ABI");
+        return new PPC_LinuxProcessSpace(loader);
+        
+      default:
+        throw new IOException("Binary of " + abi + " ABI is unsupported for the PowerPC architecture");
     }
   }
 

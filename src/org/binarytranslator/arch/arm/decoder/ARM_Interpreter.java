@@ -1088,6 +1088,7 @@ public class ARM_Interpreter implements Interpreter {
         else {
           //TODO: calculate the post-indexed address
           //and set it to Rn
+          throw new RuntimeException("Not yet implemented.");
         }
       }
     }

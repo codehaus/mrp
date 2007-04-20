@@ -48,49 +48,27 @@ public abstract class Loader {
    */
   abstract public ProcessSpace readBinary(String filename) throws IOException;
 
-  /**
-   * Return the application binary interface (ABI) supported by this file
-   */
-  abstract public String getABIString();
-
-  /**
-   * Return the architecture (ISA) supported by this file
-   */
-  abstract public String getArchitectureString();
-
-  /**
-   * Is the binary for the X86 ISA?
-   */
-  abstract public boolean isX86_ISA();
-
-  /**
-   * Is the binary for the Power PC ISA?
-   */
-  abstract public boolean isPPC_ISA();
-
-  /**
-   * Is the binary for the ARM ISA?
-   */
-  abstract public boolean isARM_ISA();
-
-  /**
-   * Does this file support the SysV ABI?
-   */
-  abstract public boolean isSysV_ABI();
-
-  /**
-   * Does this file support the Linux ABI?
-   */
-  abstract public boolean isLinuxABI();
-
-  /**
-   * Does this file support the ARM ABI?
-   */
-  abstract public boolean isARM_ABI();
-
-  /*
-   * Static methods
-   */
+  /** A list of supported instruction set architectures. */
+  public enum ISA {
+    Undefined,
+    X86,
+    PPC,
+    ARM
+  }
+  
+  /** A list of supported Application binary interface. */
+  public enum ABI {
+    Undefined,
+    SystemV,
+    Linux,
+    ARM
+  }
+  
+  /** Returns the instruction set architecture required by this executable. */
+  public abstract ISA getISA();
+  
+  /** Shall return the Application Binary Interface that is required to load this executable. */
+  public abstract ABI getABI();
 
   /**
    * Open and read the start of the file to determine the appropriate file
