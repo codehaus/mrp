@@ -9,6 +9,7 @@ import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
 public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
@@ -51,13 +52,13 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
     this.brk = brk;
 
     // initialize the stack
-    int[] auxVector = { LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO,
-        0xffffe400, LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR,
-        0xffffe000, LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP,
-        0x78bfbff, LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
+    int[] auxVector = {//LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
+        //LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR, 0xffffe000,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x78bfbff,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
         LinuxStackInitializer.AuxiliaryVectorType.AT_CLKTCK, 0x64,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, 0xBADADD8E,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, 0xBAD2BAD2,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, ((ELF_Loader)loader).getProgramHeaderAddress(),
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, ((ELF_Loader)loader).elfHeader.getNumberOfProgramSegmentHeaders(),
         LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, pc,
@@ -68,9 +69,10 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
         LinuxStackInitializer.AuxiliaryVectorType.AT_EGID, DBT_Options.GID,
 
         LinuxStackInitializer.AuxiliaryVectorType.AT_SECURE, 0,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0 };
+        //LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, LinuxStackInitializer.AuxiliaryVectorType.STACK_TOP - getPlatformString().length,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0};
 
-    LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector);
+    registers.set(ARM_Registers.SP, LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector));
   }
 
   public int getBrk() {

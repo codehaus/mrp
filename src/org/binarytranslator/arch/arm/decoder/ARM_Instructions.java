@@ -193,7 +193,7 @@ public class ARM_Instructions  {
     public static OperandWrapper decodeDataProcessingOperand(int instr) {
       if (Utils.getBit(instr, 25)) {
         //this is a right-rotated immediate value 
-        byte shiftAmount = (byte)(Utils.getBits(instr, 8, 11) << 2);
+        byte shiftAmount = (byte)(Utils.getBits(instr, 8, 11) * 2);
         int value = instr & 0xFF;
         
         if (shiftAmount == 0)
@@ -707,7 +707,7 @@ public class ARM_Instructions  {
   }
 
   /** Represents a LDM/STM instruction. */
-  public static class BlockDataTransfer extends Instruction {
+  public static class MultipleDataTransfer extends Instruction {
 
     /** @see #postIndexing() */
     protected final boolean postIndexing;
@@ -730,10 +730,10 @@ public class ARM_Instructions  {
     /** Contains a set bit at position N if rN should be transferred using this instruction.*/
     protected final int registerList;
 
-    public BlockDataTransfer(int instr) {
+    public MultipleDataTransfer(int instr) {
       super(instr);
 
-      postIndexing = Utils.getBit(instr, 24);
+      postIndexing = !Utils.getBit(instr, 24);
       incrementBase = Utils.getBit(instr, 23);
       forceUser = Utils.getBit(instr, 22);
       writeBack = Utils.getBit(instr, 21);
@@ -820,7 +820,7 @@ public class ARM_Instructions  {
     public Branch(int instr) {
       super(instr);
       link = Utils.getBit(instr, 24);
-      offset = Utils.signExtend((instr & 0xFFF) << 2, 14);
+      offset = Utils.signExtend((instr & 0xFFFFFF) << 2, 26);
     }
 
     /** Should the current PC be put into the lr? */

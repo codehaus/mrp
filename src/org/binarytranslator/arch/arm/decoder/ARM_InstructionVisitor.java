@@ -10,7 +10,7 @@ public interface ARM_InstructionVisitor {
   void visit(IntMultiply instr);
   void visit(LongMultiply instr);
   void visit(Swap instr);
-  void visit(BlockDataTransfer instr);
+  void visit(MultipleDataTransfer instr);
   void visit(SoftwareInterrupt instr);
   void visit(Branch instr);
   void visit(BranchExchange instr);

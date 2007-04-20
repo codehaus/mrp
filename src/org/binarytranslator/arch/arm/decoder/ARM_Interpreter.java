@@ -68,8 +68,16 @@ public class ARM_Interpreter implements Interpreter {
     }
     
     public void execute() {
-      if (isConditionTrue())
+      if (isConditionTrue()) {
         conditionalInstruction.execute();
+        
+        int nextInstruction = conditionalInstruction.getSuccessor(ps.getCurrentInstructionAddress());
+        
+        if (nextInstruction != -1)
+          ps.setCurrentInstructionAddress(nextInstruction);
+      }
+      else
+        ps.setCurrentInstructionAddress(ps.getCurrentInstructionAddress()+4);
     }
 
     public int getSuccessor(int pc) {
@@ -134,6 +142,11 @@ public class ARM_Interpreter implements Interpreter {
         default:
           throw new RuntimeException("Unexpected condition code: " + conditionalInstruction.getCondition());
       }
+    }
+    
+    @Override
+    public String toString() {
+      return conditionalInstruction.toString();
     }
   }
 
@@ -658,11 +671,11 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Transfer multiple registers at once between the register bank and the memory. */
-  private class BlockDataTransfer extends ARM_Instructions.BlockDataTransfer
+  private class BlockDataTransfer extends ARM_Instructions.MultipleDataTransfer
       implements ARM_Instruction {
 
     /** the lowest address that we're reading a register from / writing a register to */
-    private final int startAddress;
+    private final int registerCount;
 
     /** An array that contains the registers to be transferd in ascending order. 
      * The list is delimited by setting the entry after the last register index to -1.
@@ -676,38 +689,40 @@ public class ARM_Interpreter implements Interpreter {
       super(instr);
 
       transferPC = transferRegister(15);
-      int registerCount = 0;
+      int regCount = 0;
 
       for (int i = 0; i < 14; i++)
         if (transferRegister(i)) {
-          registersToTransfer[registerCount++] = i;
+          registersToTransfer[regCount++] = i;
         }
 
-      registersToTransfer[registerCount] = -1;
+      registersToTransfer[regCount] = -1;
+      
+      registerCount = regCount;
+    }
 
+    public void execute() {
       //build the address, which generally ignores the last two bits
+      int startAddress = regs.get(baseRegister) & 0xFFFFFFFC;
+      
       if (!incrementBase) {
         if (postIndexing) {
           //post-indexing, backward reading
-          startAddress = regs.get(baseRegister) & 0xFFFFFFFC
-              - (registerCount + (transferPC ? -1 : 0)) * 4;
+          startAddress -= (registerCount + (transferPC ? 1 : 0)) * 4;
         } else {
           //pre-indexing, backward-reading
-          startAddress = regs.get(baseRegister) & 0xFFFFFFFC
-              - (registerCount + (transferPC ? 1 : 0)) * 4;
+          startAddress -= (registerCount + (transferPC ? 2 : 1)) * 4;
         }
       } else {
         if (postIndexing) {
           //post-indexing, forward reading
-          startAddress = regs.get(baseRegister) & 0xFFFFFFFC - 4;
+          startAddress -= 4;
         } else {
           //pre-indexing, forward reading
-          startAddress = regs.get(baseRegister) & 0xFFFFFFFC;
+          //no need to adjust the start address
+          
         }
       }
-    }
-
-    public void execute() {
       int nextAddress = startAddress;
 
       //are we supposed to load or store multiple registers?
@@ -747,9 +762,22 @@ public class ARM_Interpreter implements Interpreter {
 
       if (writeBack) {
         //write the last address we read from back to a register
-        //TODO: Check if we have to consider the different cases?
-        if (!incrementBase)
-          nextAddress = startAddress;
+        if (!incrementBase) {
+          //backward reading
+          if (postIndexing) {
+            //backward reading, post-indexing
+            nextAddress = startAddress;
+          }
+          else {
+            //backward reading, pre-indexing
+            nextAddress = startAddress + 4;
+          }
+        }
+        else {
+          //forward reading
+          if (postIndexing)
+            nextAddress += 4;
+        }
 
         regs.set(baseRegister, nextAddress);
       }
@@ -954,31 +982,26 @@ public class ARM_Interpreter implements Interpreter {
       //if we are not pre-indexing, then just use the base register for the memory access
       if (!preIndexing)
         return base;
+      
+      int addrOffset;
 
       switch (offset.getType()) {
       case Immediate:
-        if (positiveOffset)
-          return base + offset.getImmediate();
-        else
-          return base - offset.getImmediate();
+        addrOffset = offset.getImmediate();
+        break;
 
       case Register:
-        int offsetRegister = regs.get(offset.getRegister());
+        addrOffset = regs.get(offset.getRegister());
         if (offset.getRegister() == ARM_Registers.PC) {
-          offsetRegister += 8;
+          addrOffset += 8;
         }
-
-        if (positiveOffset)
-          return base + offsetRegister;
-        else
-          return base - offsetRegister;
+        break;
 
       case ImmediateShiftedRegister:
+        addrOffset = regs.get(offset.getRegister());
+        
         if (offset.getRegister() == 15)
-          throw new RuntimeException(
-              "PC-relative memory accesses are not yet supported.");
-
-        int addrOffset = regs.get(offset.getRegister());
+          addrOffset += 8;
 
         switch (offset.getShiftType()) {
         case ASR:
@@ -1008,6 +1031,7 @@ public class ARM_Interpreter implements Interpreter {
           throw new RuntimeException("Unexpected shift type: "
               + offset.getShiftType());
         }
+        break;
 
       case PcRelative:
       case RegisterShiftedRegister:
@@ -1015,7 +1039,11 @@ public class ARM_Interpreter implements Interpreter {
         throw new RuntimeException("Unexpected operand type: "
             + offset.getType());
       }
-
+      
+      if (positiveOffset)
+        return base + addrOffset;
+      else
+        return base - addrOffset;
     }
 
     public void execute() {

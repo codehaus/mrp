@@ -1,7 +1,7 @@
 package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction;
-import org.binarytranslator.arch.arm.decoder.ARM_Instructions.BlockDataTransfer;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.MultipleDataTransfer;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Branch;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.BranchExchange;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CoprocessorDataProcessing;
@@ -188,10 +188,17 @@ public final class ARM_Disassembler {
       String mnemonic = instr.getOpcode().name();
       mnemonic += cond(instr);
 
+      String parameters;
+      
+      if (instr.getOpcode() == DataProcessing.Opcode.CMN ||
+          instr.getOpcode() == DataProcessing.Opcode.CMP) {
+        //these functions don't use the destination register and always set the condition codes
+        setResult(String.format("%s r%s, %s", mnemonic, instr.getRn(), operand(instr.getOperand2())));
+        return;
+      }
+      
       if (instr.updateConditionCodes())
         mnemonic += 'S';
-
-      String parameters;
 
       // Filter instructions that only take one parameter
       if (instr.getOpcode() == DataProcessing.Opcode.MOV
@@ -212,12 +219,22 @@ public final class ARM_Disassembler {
       String address = "[r" + instr.getRn();
 
       if (instr.preIndexing()) {
-        address += ", " + operand(instr.getOffset()) + "]";
+        address += ", ";
+        
+        if (!instr.positiveOffset())
+          address += '-';
+        
+        address += operand(instr.getOffset()) + ']';
 
         if (instr.writeBack())
           address += '!';
       } else {
-        address += "], " + operand(instr.getOffset());
+        address += "], ";
+        
+        if (!instr.positiveOffset())
+          address += '-';
+        
+        address += operand(instr.getOffset());
       }
       mnemonic += cond(instr);
 
@@ -287,7 +304,7 @@ public final class ARM_Disassembler {
           instr.getRd(), instr.getRm(), instr.getRn()));
     }
 
-    public void visit(BlockDataTransfer instr) {
+    public void visit(MultipleDataTransfer instr) {
       String mnemonic = instr.isLoad() ? "LDM" : "STM";
       String baseRegister = "r" + instr.getBaseRegister();
 

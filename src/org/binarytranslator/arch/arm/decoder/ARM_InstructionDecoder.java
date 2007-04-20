@@ -61,8 +61,8 @@ public class ARM_InstructionDecoder {
       
       byte bits_7_4 = (byte)Utils.getBits(instr, 4, 7);
 
-      if (bits_7_4 == 0 && ((instr & 0x01900000) == 0x01100000)) {
-        //Utils.getBit(instr, 24) == true && Utils.getBit(instr, 23) == false && Utils.getBit(instr, 20) == true
+      if (bits_7_4 == 0 && ((instr & 0x01900000) == 0x01000000)) {
+        //Utils.getBit(instr, 24) == true && Utils.getBit(instr, 23) == false && Utils.getBit(instr, 20) == false
         if (Utils.getBit(instr, 21))
           return factory.createMoveToStatusRegister(instr);
         else
@@ -276,7 +276,7 @@ public class ARM_InstructionDecoder {
   static class DefaultFactory implements ARM_InstructionFactory<ARM_Instructions.Instruction> {
 
     public Instruction createBlockDataTransfer(int instr) {
-      return new BlockDataTransfer(instr);
+      return new MultipleDataTransfer(instr);
     }
 
     public Instruction createBranch(int instr) {
