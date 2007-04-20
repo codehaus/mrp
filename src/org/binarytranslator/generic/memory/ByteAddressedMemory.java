@@ -509,9 +509,13 @@ public class ByteAddressedMemory extends CallBasedMemory {
    *          the address of where to store
    */
   public void store32(int addr, int value) {
-    store8(addr + 3, value >> 24);
-    store8(addr + 2, value >> 16);
-    store8(addr + 1, value >> 8);
-    store8(addr, value);
+    try {
+      store8(addr + 3, value >> 24);
+      store8(addr + 2, value >> 16);
+      store8(addr + 1, value >> 8);
+      store8(addr, value);
+    } catch (Exception e) {
+      throw new SegmentationFault(addr);
+    }
   }
 }

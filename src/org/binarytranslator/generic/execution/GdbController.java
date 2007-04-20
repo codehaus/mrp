@@ -506,7 +506,7 @@ public class GdbController extends
    */
   private void handle_getMemValue(int dataEnd) throws IOException {
     String data = bufferToString(2, dataEnd);
-    int address = Integer.parseInt(data.substring(0, data.indexOf(',')), 16);
+    int address = (int)Long.parseLong(data.substring(0, data.indexOf(',')), 16);
     int count = Integer.parseInt(data.substring(data.indexOf(',') + 1), 16);
     try {
       byte value[] = new byte[count * 2];

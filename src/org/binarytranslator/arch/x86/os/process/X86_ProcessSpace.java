@@ -9,6 +9,7 @@
 package org.binarytranslator.arch.x86.os.process;
 
 import java.io.*;
+import java.util.Hashtable;
 
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
@@ -18,12 +19,15 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.BadInstructionException;
-import org.binarytranslator.arch.ppc.os.process.linux.PPC_LinuxProcessSpace;
+import org.binarytranslator.arch.ppc.decoder.PPC_InstructionDecoder;
 import org.binarytranslator.arch.x86.os.process.linux.X86_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
 import org.binarytranslator.arch.x86.decoder.X86_InstructionDecoder;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.vmInterface.DBT_Trace;
+import org.binarytranslator.vmInterface.DynamicCodeRunner;
 import org.vmmagic.pragma.Uninterruptible;
+import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
 
 /**
  * Encapsulate the parts of an X86 process that are common across operating systems
@@ -157,23 +161,39 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
    */
   public static ProcessSpace createProcessSpaceFromBinary (Loader loader) throws IOException {
     Loader.ABI abi = loader.getABI();
-    
+
     switch (abi) {
-      case Linux:
-      case SystemV:
-        report("Linux/SysV ABI");
-        return new PPC_LinuxProcessSpace(loader);
-        
-      default:
-        throw new IOException("Binary of " + abi + " ABI is unsupported for the PowerPC architecture");
+    case Linux:
+    case SystemV:
+      report("Linux/SysV ABI");
+      return new X86_LinuxProcessSpace(loader);
+    default:
+      throw new IOException("Binary of " + abi + " ABI is unsupported for the X86 architecture");
     }
   }
 
+  Hashtable<Integer, DBT_Trace> singleInstrCodeHash = new Hashtable<Integer, DBT_Trace>();
   /**
    * Run a single instruction
    */
   public void runOneInstruction() throws BadInstructionException {
-    throw new UnsupportedOperationException("To be implemented");
+    try {
+      // X86_InstructionDecoder.getDecoder(this,registers.eip).interpret(this, registers.eip);
+      DBT_Trace trace = singleInstrCodeHash.get(registers.eip);
+      if (trace == null) {
+        trace = new DBT_Trace(this, registers.eip);
+        if (DBT_Options.debugRuntime) {
+          report("Translating code for 0x" + Integer.toHexString(trace.pc));
+        }
+        DBT_Options.singleInstrTranslation = true;
+        trace.compile();
+        singleInstrCodeHash.put(registers.eip, trace);
+      }
+      VM_CodeArray code = trace.getCurrentCompiledMethod().getEntryCodeArray();
+      registers.eip = DynamicCodeRunner.invokeCode(code, this);
+    } catch (NullPointerException e) {
+      throw new BadInstructionException(registers.eip, this);
+    }
   }
 
   /**

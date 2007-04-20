@@ -759,8 +759,10 @@ public class X86_InstructionDecoder extends InstructionDecoder {
    *          instruction and instruction address
    * @return the next instruction interpreter
    */
-  public InstructionDecoder interpret(ProcessSpace ps)
+  public InstructionDecoder interpret(ProcessSpace ps, int pc)
       throws BadInstructionException {
+    X86_InstructionDecoder decoder = getDecoder(ps, pc);
+    System.err.println("Attempt to interpret " + decoder.disassemble(ps, pc));
     TODO();
     return null;
   }
@@ -1144,12 +1146,12 @@ class X86_Rep_PrefixDecoder extends X86_Group1PrefixDecoder {
         X86_Registers.ECX, 32);
 
     translationHelper.appendInstructionToCurrentBlock(
-        Binary.create(INT_ADD, ecx.copyRO(), ecx.copyRO(), new OPT_IntConstantOperand(-1)));
+        Binary.create(INT_ADD, ecx, ecx.copyRO(), new OPT_IntConstantOperand(-1)));
 
     OPT_RegisterOperand guardResult = translationHelper.getTempValidation(0);
     translationHelper.appendInstructionToCurrentBlock(
         IfCmp.create(INT_IFCMP, guardResult, ecx.copyRO(), new OPT_IntConstantOperand(0),
-            OPT_ConditionOperand.EQUAL(), instructionBlock.makeJumpTarget(),
+            OPT_ConditionOperand.NOT_EQUAL(), instructionBlock.makeJumpTarget(),
             OPT_BranchProfileOperand.likely()));
 
     instructionBlock.insertOut(instructionBlock);
@@ -2539,7 +2541,7 @@ class X86_Movs_OpcodeDecoder extends X86_OpcodeDecoder {
     // Perform copy
     OPT_RegisterOperand temp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, temp);
-    destination.writeValue(translationHelper, lazy, temp);
+    destination.writeValue(translationHelper, lazy, temp.copyRO());
     
     // Do update
     OPT_RegisterOperand esi = translationHelper.getGPRegister(lazy,
@@ -2614,11 +2616,11 @@ class X86_Movs_OpcodeDecoder extends X86_OpcodeDecoder {
     // TODO: apply segment override
     switch (operandSize) {
     case 8:
-      return "movsb ds:" + addressPrefix + "si, " + addressPrefix + "di";
+      return "movsb es:" + addressPrefix + "di, ds:" + addressPrefix + "si";
     case 16:
-      return "movsw ds:" + addressPrefix + "si, " + addressPrefix + "di";
+      return "movsw es:" + addressPrefix + "di, ds:" + addressPrefix + "si";
     case 32:
-      return "movsd ds:" + addressPrefix + "si, " + addressPrefix + "di";
+      return "movsd es:" + addressPrefix + "di, ds:" + addressPrefix + "si";
     default:
       DBT_OptimizingCompilerException.UNREACHABLE();
     return "error";
