@@ -4,27 +4,23 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.abi.linux.ARM_LinuxSystemCalls;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
+import org.binarytranslator.arch.arm.os.process.linux.abi.Legacy;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
-import org.binarytranslator.generic.os.process.ProcessSpace;
 
-public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
-    LinuxSystemCallGenerator {
+public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
 
   /**
    * A link to the current system call interface
    */
   private final LinuxSystemCalls sysCalls;
-
-  /**
-   * A re-used iterator that allows enumerating the argument of the current
-   * system call
-   */
-  private final ARM_SyscallArgumentIterator syscallArgs;
+  
+  /** As ARM provides two different linux ABIs, we put the system call specifics into a separate class.*/
+  private final LinuxSystemCallGenerator sysCallGenerator;
 
   /**
    * The top of the stack
@@ -37,13 +33,17 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
   private int brk;
 
   public ARM_LinuxProcessSpace() {
-    sysCalls = new ARM_LinuxSystemCalls(this);
-    syscallArgs = new ARM_SyscallArgumentIterator(this);
+    sysCallGenerator = new Legacy(this);
+    sysCalls = new ARM_LinuxSystemCalls(sysCallGenerator);
   }
 
   @Override
   public void doSysCall() {
     sysCalls.doSysCall();
+    
+    //simulate a return from the call
+    //TODO: This actually assumes that we're calling from ARM32
+    registers.set(ARM_Registers.PC, getCurrentInstructionAddress() + 4);
   }
 
   @Override
@@ -75,38 +75,9 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace implements
     registers.set(ARM_Registers.SP, LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector));
   }
 
-  public int getBrk() {
-    return brk;
-  }
-
-  public int getSysCallNumber() {
-    // TODO Auto-generated method stub
-    return 0;
-  }
-
-  public CallArgumentIterator getSysCallArguments() {
-    syscallArgs.reset();
-    return syscallArgs;
-  }
-
-  public void setBrk(int address) {
-    brk = address;
-  }
-
-  public void setSysCallError(int r) {
-    // TODO Auto-generated method stub
-  }
-
-  public void setSysCallReturn(int r) {
-    // TODO Auto-generated method stub
-  }
-
   @Override
   public GdbTarget getGdbTarget() {
     return null;
   }
 
-  public ProcessSpace getProcessSpace() {
-    return this;
-  }
 }

@@ -317,7 +317,7 @@ public final class ARM_Disassembler {
 
       String registers = "";
 
-      for (int i = 0; i < 15; i++)
+      for (int i = 0; i <= 15; i++)
         if (instr.transferRegister(i))
           registers += ", r" + i;
 

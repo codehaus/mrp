@@ -12,19 +12,21 @@ public class InterpreterController extends ExecutionController {
   @Override
   public void run() {
     Interpreter interpreter = ps.createInstructionInterpreter();
+    
     int pc = ps.getCurrentInstructionAddress();
     
     while (!ps.finished) {
       
       Interpreter.Instruction instruction = interpreter.decode(pc);
+      System.out.println(String.format("[0x%x] %s", pc, instruction.toString()));
       pc = instruction.getSuccessor(pc);
-      
-      System.out.println("Interpreting instruction: " + instruction.toString());
       
       instruction.execute();
       
       if (pc == -1)
         pc = ps.getCurrentInstructionAddress();
+      else
+        ps.setCurrentInstructionAddress(pc);
     }
   }
 

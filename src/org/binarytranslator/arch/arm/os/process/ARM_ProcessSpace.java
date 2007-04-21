@@ -5,7 +5,6 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.decoder.ARM_Interpreter;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
-import org.binarytranslator.arch.x86.decoder.X86_InstructionDecoder;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.memory.DebugMemory;
 import org.binarytranslator.generic.os.loader.Loader;

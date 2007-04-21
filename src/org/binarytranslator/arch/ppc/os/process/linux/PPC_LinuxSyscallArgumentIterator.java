@@ -53,5 +53,4 @@ final class PPC_LinuxSyscallArgumentIterator implements
   public void reset() {
     nextArgument = 0;
   }
-
 }

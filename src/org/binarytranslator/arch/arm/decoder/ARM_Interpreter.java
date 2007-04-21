@@ -691,7 +691,7 @@ public class ARM_Interpreter implements Interpreter {
       transferPC = transferRegister(15);
       int regCount = 0;
 
-      for (int i = 0; i < 14; i++)
+      for (int i = 0; i <= 14; i++)
         if (transferRegister(i)) {
           registersToTransfer[regCount++] = i;
         }
@@ -756,7 +756,7 @@ public class ARM_Interpreter implements Interpreter {
         //also transfer the program counter, if requested so
         if (transferPC) {
           nextAddress += 4;
-          ps.memory.store32(nextAddress, regs.get(15));
+          ps.memory.store32(nextAddress, regs.get(15) + 8);
         }
       }
 

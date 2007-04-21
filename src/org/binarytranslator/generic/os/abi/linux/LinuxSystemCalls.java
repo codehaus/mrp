@@ -24,6 +24,9 @@ abstract public class LinuxSystemCalls {
    * The source of the system calls
    */
   private LinuxSystemCallGenerator src;
+  
+  /** Allows access to the system call's arguments */
+  private LinuxSystemCallGenerator.CallArgumentIterator arguments;
 
   /**
    * Maximum number of system calls
@@ -160,6 +163,7 @@ abstract public class LinuxSystemCalls {
   public void doSysCall() {
     int sysCallNumber = src.getSysCallNumber();
     System.err.println("Syscall "+ sysCallToString(sysCallNumber));
+    arguments = src.getSysCallArguments();
     systemCallTable[sysCallNumber].doSysCall();
   }
   
@@ -484,14 +488,6 @@ abstract public class LinuxSystemCalls {
      */
     public abstract void doSysCall();
   }
-  
-  abstract class ParameterizedSystemCall extends SystemCall {
-    protected final LinuxSystemCallGenerator.CallArgumentIterator arguments;
-    
-    public ParameterizedSystemCall() {
-      arguments = src.getSysCallArguments();
-    }
-  }
 
   /**
    * Unknown System Call
@@ -513,7 +509,7 @@ abstract public class LinuxSystemCalls {
   /**
    * Exit system call
    */
-  public class SysExit extends ParameterizedSystemCall {
+  public class SysExit extends SystemCall {
     public void doSysCall() {
       int status = arguments.nextInt();
       System.exit(status);
@@ -523,7 +519,7 @@ abstract public class LinuxSystemCalls {
   /**
    * Read from a file
    */
-  public class SysRead extends ParameterizedSystemCall {
+  public class SysRead extends SystemCall {
     public void doSysCall() {
       int fd = arguments.nextInt();
       int buf = arguments.nextInt();
@@ -574,7 +570,7 @@ abstract public class LinuxSystemCalls {
   /**
    * Write to a file
    */
-  public class SysWrite extends ParameterizedSystemCall {
+  public class SysWrite extends SystemCall {
     public void doSysCall() {
       int fd = arguments.nextInt();
       int buf = arguments.nextInt();
@@ -626,7 +622,7 @@ abstract public class LinuxSystemCalls {
   /**
    * Write data into multiple buffers
    */
-  public class SysWriteV extends ParameterizedSystemCall {
+  public class SysWriteV extends SystemCall {
     public void doSysCall() {     
       int fd = arguments.nextInt();
       int vector = arguments.nextInt();
@@ -655,7 +651,7 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysOpen extends ParameterizedSystemCall {
+  public class SysOpen extends SystemCall {
     public void doSysCall() {
       int pathname = arguments.nextInt();
       int flags = arguments.nextInt();
@@ -703,7 +699,7 @@ abstract public class LinuxSystemCalls {
     }
   }
     
-  public class SysClose extends ParameterizedSystemCall {
+  public class SysClose extends SystemCall {
     public void doSysCall() {
       int fd = arguments.nextInt();
       RandomAccessFile raFile = getRAFile(fd);
@@ -747,7 +743,7 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysBrk extends ParameterizedSystemCall {
+  public class SysBrk extends SystemCall {
     public void doSysCall() {
       int brk = arguments.nextInt();
       
@@ -767,20 +763,20 @@ abstract public class LinuxSystemCalls {
     }
   }
     
-  public class SysFcntl64 extends ParameterizedSystemCall {
+  public class SysFcntl64 extends SystemCall {
     public void doSysCall() {
       // This is complicated so fudge it for now.
       int fd = arguments.nextInt();
       int cmd = arguments.nextInt();
                               
-      if( ((fd == 0) | (fd == 1) | (fd == 2)) & (cmd == 1) )
+      if( ((fd == 0) || (fd == 1) || (fd == 2)) && (cmd == 1) )
         src.setSysCallReturn(0);
       else
         throw new Error("Unrecognised system call.");
     }
   }
 
-  public class SysUname extends ParameterizedSystemCall {
+  public class SysUname extends SystemCall {
     public void doSysCall() {
       // Simple uname support
       int addr = arguments.nextInt();
@@ -819,7 +815,7 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysMmap extends ParameterizedSystemCall {
+  public class SysMmap extends SystemCall {
     public void doSysCall() {
 
       int start = arguments.nextInt();
@@ -846,7 +842,7 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysMunmap extends ParameterizedSystemCall {
+  public class SysMunmap extends SystemCall {
     public void doSysCall() {
 
       int start = arguments.nextInt();
@@ -856,7 +852,7 @@ abstract public class LinuxSystemCalls {
     }
   }
 
-  public class SysExitGroup extends ParameterizedSystemCall {
+  public class SysExitGroup extends SystemCall {
     public void doSysCall() {
       // For now, equivalent to SysExit
       System.exit(arguments.nextInt());
