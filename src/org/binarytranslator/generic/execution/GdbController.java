@@ -74,7 +74,7 @@ public class GdbController extends
   /**
    * The stream to read from the socket
    */
-  private final InputStream in;
+  private final PushbackInputStream in;
 
   /**
    * The stream to read from the socket
@@ -91,6 +91,11 @@ public class GdbController extends
    */
   private final GdbTarget target;
 
+  /**
+   * If we get an unexpected packet should we fail or try to ignore it?
+   */
+  private final boolean ignoreProtocolErrors = true;
+  
   /**
    * Thread to continue or step, a value of -1 means all threads, 0 means any
    * thread.
@@ -167,7 +172,7 @@ public class GdbController extends
     try {
       ServerSocket connectionSocket = new ServerSocket(port);
       socket = connectionSocket.accept();
-      in = socket.getInputStream();
+      in = new PushbackInputStream(socket.getInputStream());
       out = socket.getOutputStream();
       buffer = new byte[256];
       getACK();
@@ -235,7 +240,12 @@ public class GdbController extends
   private void getACK() throws IOException {
     int command = in.read();
     if (command != ACK) {
-      throw new IOException("Acknowledge expected but got " + (char) command);
+      if (ignoreProtocolErrors) {
+        in.unread(command);
+        report("Acknowledge expected but got \"" + (char) command + "\"");
+      } else {
+        throw new IOException("Acknowledge expected but got \"" + (char) command + "\"");        
+      }
     }
   }
 
@@ -254,11 +264,21 @@ public class GdbController extends
   private int readPacket() throws IOException {
     // Read the packet start
     int index = 0;
-    buffer[index] = (byte) in.read();
-    if (buffer[index] != START) {
-      throw new IOException("Expected the start of a packet ($) but got "
-          + (char) buffer[index]);
-    }
+    boolean foundStart = false;
+    do {
+      buffer[index] = (byte) in.read();
+      if (buffer[index] == START) {
+        foundStart = true;
+      } else {
+        if (!ignoreProtocolErrors) {
+          throw new IOException("Expected the start of a packet \"$\" but got \""
+              + (char) buffer[index] + "\"");
+        } else {
+          report("Expected the start of a packet \"$\" but got \""
+              + (char) buffer[index] + "\"");
+        }
+      }
+    } while(!foundStart);
     // Read the data
     int csum = 0;
     do {
