@@ -21,6 +21,7 @@ public class ARM_LinuxSystemCalls extends LinuxSystemCalls {
     systemCallTable[90] = new LinuxSystemCalls.SysMmap();
     systemCallTable[122] = new LinuxSystemCalls.SysUname();
     systemCallTable[146] = new LinuxSystemCalls.SysWriteV();
+    systemCallTable[197] = new LinuxSystemCalls.SysFstat64();
     systemCallTable[199] = new LinuxSystemCalls.SysGetEUID();
     systemCallTable[200] = new LinuxSystemCalls.SysGetEGID();
     systemCallTable[201] = new LinuxSystemCalls.SysGetEUID();

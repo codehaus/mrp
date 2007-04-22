@@ -4,8 +4,8 @@ import org.binarytranslator.DBT;
 
 /**
  * In the ARM decoder model, the decoding and usage (translating/interpreting/disassembling) of instructions
- * is strictly separated. This class provides a namespace for all decoder classes. A decoder works like a
- * mask than can be put upon a binary instruction to look at the different fields within that instruction.
+ * is separated. This class provides a namespace for all decoder classes. A decoder works like a
+ * mask that can be put upon a binary instruction to look at the different fields within that instruction.
  * 
  * Application might derive from these decoders to implement instruction-specific functionality.
  * Then, implement a version of the generic {@link ARM_InstructionFactory} interface, which returns 

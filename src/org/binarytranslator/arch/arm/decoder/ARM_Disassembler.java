@@ -219,13 +219,20 @@ public final class ARM_Disassembler {
       String address = "[r" + instr.getRn();
 
       if (instr.preIndexing()) {
-        address += ", ";
         
-        if (!instr.positiveOffset())
-          address += '-';
-        
-        address += operand(instr.getOffset()) + ']';
+        OperandWrapper offset = instr.getOffset(); 
+        if (offset.getType() != OperandWrapper.Type.Immediate || offset.getImmediate() != 0) {
+          
+          address += ", ";
+          
+          if (!instr.positiveOffset())
+            address += '-';
+          
+          address += operand(instr.getOffset());
+        }
 
+        address += ']';
+        
         if (instr.writeBack())
           address += '!';
       } else {

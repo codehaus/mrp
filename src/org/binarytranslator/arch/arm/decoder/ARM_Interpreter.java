@@ -292,7 +292,13 @@ public class ARM_Interpreter implements Interpreter {
 
       case Register:
         shifterCarryOut = regs.isCarrySet();
-        return regs.get(operand2.getRegister());
+        int reg = operand2.getRegister();
+        
+        //mind the arm pc offset
+        if (reg == 15)
+          return regs.get(reg) + 8;
+        else
+          return regs.get(operand2.getRegister());
 
       case RegisterShiftedRegister:
       case ImmediateShiftedRegister:
@@ -1152,6 +1158,21 @@ public class ARM_Interpreter implements Interpreter {
       return Condition.AL;
     }
   }
+  
+  private class DebugNopInstruction implements ARM_Instruction {
+
+    public Condition getCondition() {
+      return Condition.AL;
+    }
+
+    public void execute() {
+    }
+
+    public int getSuccessor(int pc) {
+      return pc+4;
+    }
+    
+  }
 
   /** This class will create instances of the different interpreter instructions. It is being "controlled" by
    * the ARM_InstructionDecoder, which uses an abstract factory pattern to decode an instruction. */
@@ -1218,20 +1239,23 @@ public class ARM_Interpreter implements Interpreter {
 
     public ARM_Instruction createCoprocessorDataProcessing(int instr) {
       //TODO: Implement coprocessor instructions
-      throw new RuntimeException(
-          "Coprocessor instructions are not yet supported.");
+      /*throw new RuntimeException(
+          "Coprocessor instructions are not yet supported.");*/
+      return new DebugNopInstruction();
     }
 
     public ARM_Instruction createCoprocessorDataTransfer(int instr) {
       //    TODO: Implement coprocessor instructions
-      throw new RuntimeException(
-          "Coprocessor instructions are not yet supported.");
+      /*throw new RuntimeException(
+          "Coprocessor instructions are not yet supported.");*/
+      return new DebugNopInstruction();
     }
 
     public ARM_Instruction createCoprocessorRegisterTransfer(int instr) {
       //    TODO: Implement coprocessor instructions
-      throw new RuntimeException(
-          "Coprocessor instructions are not yet supported.");
+      /*throw new RuntimeException(
+          "Coprocessor instructions are not yet supported.");*/
+      return new DebugNopInstruction();
     }
 
     public ARM_Instruction createIntMultiply(int instr) {
