@@ -457,13 +457,15 @@ abstract public class LinuxSystemCalls {
    * Class capturing file control (fcntl) constants
    */
   private final static class fcntl {
-    public final static int O_RDONLY=0x0;
-    public final static int O_WRONLY=0x1;
-    public final static int O_RDWR  =0x2;
-    public final static int O_CREAT =0x40;
-    public final static int O_EXCL  =0x80;
-    public final static int O_TRUNC =0x200;
-    public final static int O_APPEND=0x400;
+    public final static int O_RDONLY   =     0;
+    public final static int O_WRONLY   =     1;
+    public final static int O_RDWR     =     2;
+    public final static int O_CREAT    =  0100;
+    public final static int O_EXCL     =  0200;
+    public final static int O_NOCTTY   =  0400;
+    public final static int O_TRUNC    = 01000;
+    public final static int O_APPEND   = 02000;
+    public final static int O_NONBLOCK = 04000;
   }
 
   /**
@@ -508,6 +510,18 @@ abstract public class LinuxSystemCalls {
       else {
         throw new Error("System Call " + sysCallToString(src.getSysCallNumber()) + " Unknown");
       }
+    }
+  }
+
+  /**
+   * Null System Call - do nothing just return 0
+   */
+  public class NullSystemCall extends SystemCall {
+    /**
+     * Handle a system call
+     */
+    public void doSysCall() {
+      src.setSysCallReturn(0);
     }
   }
 
@@ -635,6 +649,7 @@ abstract public class LinuxSystemCalls {
       Memory mem = src.getProcessSpace().memory;
 
       if((fd == 1)||(fd == 2)) { // stdout || stderr
+        PrintStream out = (fd == 1) ? System.out : System.err;
         int base = mem.load32(vector);
         int len  = mem.load32(vector+4);
         int currentVector = 0;
@@ -646,12 +661,31 @@ abstract public class LinuxSystemCalls {
             len  = mem.load32(vector+(currentVector*8)+4);
             curVectorPos = 0;
           }
-          System.out.print((char) mem.loadUnsigned8(base + curVectorPos));
+          out.print((char) mem.loadUnsigned8(base + curVectorPos));
           curVectorPos++;
         }
         src.setSysCallReturn(count);       
       } else {
-        throw new Error("TODO: "+ fd);
+        try {
+          RandomAccessFile out = getRAFile(fd);
+          int base = mem.load32(vector);
+          int len  = mem.load32(vector+4);
+          int currentVector = 0;
+          int curVectorPos = 0;
+          for(int c = 0 ; c < count; c++) {
+            if(curVectorPos == len) {
+              currentVector++;
+              base = mem.load32(vector+(currentVector*8));
+              len  = mem.load32(vector+(currentVector*8)+4);
+              curVectorPos = 0;
+            }
+            out.write((int)mem.loadUnsigned8(base + curVectorPos));
+            curVectorPos++;
+          }
+          src.setSysCallReturn(count);
+        } catch(IOException e) {
+          throw new Error("TODO - set error correctly", e);
+        }
       }
     }
   }
@@ -699,8 +733,12 @@ abstract public class LinuxSystemCalls {
       }
       // NOT YET HANDLING ALL THE flags OPTIONS (IW have included
       // TRUNC & APPEND but not properly!)
-      if((flags & ~(fcntl.O_WRONLY | fcntl.O_RDWR | fcntl.O_CREAT | fcntl.O_EXCL | fcntl.O_TRUNC | fcntl.O_APPEND)) != 0)
-        throw new Error("Not yet implemented option to sys_open. " + Integer.toString(flags,8));
+      if((flags & ~(fcntl.O_WRONLY | fcntl.O_RDWR | fcntl.O_CREAT | fcntl.O_EXCL | fcntl.O_TRUNC |
+          fcntl.O_APPEND | fcntl.O_NOCTTY | fcntl.O_NONBLOCK)) != 0) {
+        throw new Error("Not yet implemented option to sys_open. 0" + Integer.toString(flags,8) +
+            " flag 0" + Integer.toString(flags & ~(fcntl.O_WRONLY | fcntl.O_RDWR | fcntl.O_CREAT |
+                fcntl.O_EXCL | fcntl.O_TRUNC | fcntl.O_APPEND | fcntl.O_NOCTTY | fcntl.O_NONBLOCK),8));
+      }
     }
   }
     

@@ -27,6 +27,67 @@ import org.jikesrvm.compilers.opt.ir.*;
 public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_Operators, OPT_Constants {
 
+  private static final VM_TypeReference  psTref;
+  private static final VM_FieldReference registersFref;
+  private static final VM_TypeReference  registersTref;
+  private static final VM_FieldReference segRegFref;
+  private static final VM_TypeReference  segRegTref;
+  private static final VM_FieldReference gp32Fref;
+  private static final VM_TypeReference  gp32Tref;
+  private static final VM_FieldReference flagCFref;
+  private static final VM_FieldReference flagSFref;
+  private static final VM_FieldReference flagZFref;
+  private static final VM_FieldReference flagOFref;
+  private static final VM_FieldReference flagDFref;
+  
+  static {
+    psTref = VM_TypeReference.findOrCreate(
+        VM_BootstrapClassLoader.getBootstrapClassLoader(),
+        VM_Atom
+            .findOrCreateAsciiAtom("Lorg/binarytranslator/arch/x86/os/process/X86_ProcessSpace;"));
+
+    registersFref = VM_MemberReference
+    .findOrCreate(
+        psTref,
+        VM_Atom.findOrCreateAsciiAtom("registers"),
+        VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/x86/os/process/X86_Registers;"))
+    .asFieldReference();
+    
+    registersTref = registersFref.getFieldContentsType();
+
+    segRegFref = VM_MemberReference.findOrCreate(
+        registersTref, VM_Atom.findOrCreateAsciiAtom("segmentRegister"),
+        VM_Atom.findOrCreateAsciiAtom("[C")).asFieldReference();
+
+    segRegTref = segRegFref.getFieldContentsType();
+    
+    gp32Fref = VM_MemberReference.findOrCreate(
+      registersTref, VM_Atom.findOrCreateAsciiAtom("gp32"),
+      VM_Atom.findOrCreateAsciiAtom("[I")).asFieldReference();
+    
+    gp32Tref = gp32Fref.getFieldContentsType();
+
+    flagCFref = VM_MemberReference.findOrCreate(
+        registersTref, VM_Atom.findOrCreateAsciiAtom("flag_CF"),
+        VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+
+    flagSFref = VM_MemberReference.findOrCreate(
+        registersTref, VM_Atom.findOrCreateAsciiAtom("flag_SF"),
+        VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+
+    flagZFref = VM_MemberReference.findOrCreate(
+        registersTref, VM_Atom.findOrCreateAsciiAtom("flag_ZF"),
+        VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+
+    flagOFref = VM_MemberReference.findOrCreate(
+        registersTref, VM_Atom.findOrCreateAsciiAtom("flag_OF"),
+        VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+
+    flagDFref = VM_MemberReference.findOrCreate(
+        registersTref, VM_Atom.findOrCreateAsciiAtom("flag_DF"),
+        VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+  }
+
   /**
    * Constructor
    */
@@ -34,6 +95,9 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     super(context);
 
     // Create the registers
+    SegReg = new OPT_Register[6];
+    SegRegInUse = new boolean[6];
+    
     GP32 = new OPT_Register[8];
     GP32InUse = new boolean[8];
 
@@ -92,6 +156,17 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
   }
 
   // -oO Register Manipulation Oo-
+
+  /**
+   * Registers holding 16bit segment values during the trace
+   */
+  private OPT_Register[] SegReg;
+
+  /**
+   * Which 16bit segment registers have been used during the trace - unused
+   * registers can be eliminated
+   */
+  private boolean[] SegRegInUse;
 
   /**
    * Registers holding 32bit values during the trace
@@ -171,6 +246,19 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       }
       laziness.set32bitRegisterValid(r);
     }
+  }
+
+  /**
+   * Read a 32bit register
+   * 
+   * @param laziness
+   *          the lazy state, used to determine register mangling
+   * @param r
+   *          the register to read
+   */
+  public OPT_RegisterOperand getSegRegister(X86_Laziness laziness, int r) {
+    SegRegInUse[r] = true;
+    return new OPT_RegisterOperand(SegReg[r], VM_TypeReference.Int);
   }
 
   /**
@@ -439,19 +527,14 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
   private OPT_Register ps_registers;
 
   /**
-   * The type of ps.registers
+   * A register holding a reference to ps.registers.segmentRegister
    */
-  private VM_TypeReference registersTref;
+  private OPT_Register ps_registers_segReg;
 
   /**
    * A register holding a reference to ps.registers.gp32
    */
   private OPT_Register ps_registers_gp32;
-
-  /**
-   * The type of ps.registers.gp32
-   */
-  private VM_TypeReference gp32Tref;
 
   /**
    * Fill all the registers from the ProcessSpace, that is take the register
@@ -462,19 +545,6 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     // Get the registers
     if (ps_registers == null) {
       // Set up the reference to memory
-      VM_TypeReference psTref = VM_TypeReference
-          .findOrCreate(
-              VM_BootstrapClassLoader.getBootstrapClassLoader(),
-              VM_Atom
-                  .findOrCreateAsciiAtom("Lorg/binarytranslator/arch/x86/os/process/X86_ProcessSpace;"));
-      VM_FieldReference registersFref = VM_MemberReference
-          .findOrCreate(
-              psTref,
-              VM_Atom.findOrCreateAsciiAtom("registers"),
-              VM_Atom
-                  .findOrCreateAsciiAtom("Lorg/binarytranslator/arch/x86/os/process/X86_Registers;"))
-          .asFieldReference();
-      registersTref = registersFref.getFieldContentsType();
       ps_registersOp = gc.temps.makeTemp(registersTref);
       ps_registers = ps_registersOp.register;
       appendInstructionToCurrentBlock(GetField.create(GETFIELD, ps_registersOp,
@@ -484,13 +554,22 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     } else {
       ps_registersOp = new OPT_RegisterOperand(ps_registers, registersTref);
     }
+    // Get the array of segment registers
+    OPT_RegisterOperand ps_registers_segRegOp;
+    if (ps_registers_segReg == null) {
+      ps_registers_segRegOp = gc.temps.makeTemp(segRegTref);
+      appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+          ps_registers_segRegOp, ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(segRegFref.peekResolvedField()
+              .getOffset()), new OPT_LocationOperand(segRegFref),
+          new OPT_TrueGuardOperand()));
+      ps_registers_segReg = ps_registers_segRegOp.register;
+    } else {
+      ps_registers_segRegOp = new OPT_RegisterOperand(ps_registers_segReg, segRegTref);
+    }
     // Get the array of general purpose registers
     OPT_RegisterOperand ps_registers_gp32Op;
     if (ps_registers_gp32 == null) {
-      VM_FieldReference gp32Fref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("gp32"),
-          VM_Atom.findOrCreateAsciiAtom("[I")).asFieldReference();
-      gp32Tref = gp32Fref.getFieldContentsType();
       ps_registers_gp32Op = gc.temps.makeTemp(gp32Tref);
       appendInstructionToCurrentBlock(GetField.create(GETFIELD,
           ps_registers_gp32Op, ps_registersOp.copyRO(),
@@ -500,6 +579,20 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       ps_registers_gp32 = ps_registers_gp32Op.register;
     } else {
       ps_registers_gp32Op = new OPT_RegisterOperand(ps_registers_gp32, gp32Tref);
+    }
+    // Fill segment registers
+    for (int i = 0; i < SegReg.length; i++) {
+      OPT_RegisterOperand segRegOp;
+      if (GP32[i] == null) {
+        segRegOp = makeTemp(VM_TypeReference.Char);
+        SegReg[i] = segRegOp.register;
+      } else {
+        segRegOp = new OPT_RegisterOperand(SegReg[i], VM_TypeReference.Char);
+      }
+      appendInstructionToCurrentBlock(ALoad.create(USHORT_ALOAD, segRegOp,
+          ps_registers_segRegOp.copyRO(), new OPT_IntConstantOperand(i),
+          new OPT_LocationOperand(VM_TypeReference.Char),
+          new OPT_TrueGuardOperand()));
     }
     // Fill general purpose registers
     for (int i = 0; i < GP32.length; i++) {
@@ -524,14 +617,11 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_CF_Op = new OPT_RegisterOperand(flag_CF, VM_TypeReference.Boolean);
       }
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_CF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
       appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_CF_Op,
-          ps_registersOp.copyRO(), new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+          ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagCFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagCFref),
+          new OPT_TrueGuardOperand()));
     }
     {
       OPT_RegisterOperand flag_SF_Op;
@@ -541,14 +631,11 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_SF_Op = new OPT_RegisterOperand(flag_SF, VM_TypeReference.Boolean);
       }
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_SF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
       appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_SF_Op,
-          ps_registersOp.copyRO(), new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+          ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagSFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagSFref),
+          new OPT_TrueGuardOperand()));
     }
     {
       OPT_RegisterOperand flag_ZF_Op;
@@ -558,14 +645,11 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_ZF_Op = new OPT_RegisterOperand(flag_ZF, VM_TypeReference.Boolean);
       }
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_ZF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
       appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_ZF_Op,
-          ps_registersOp.copyRO(), new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+          ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagZFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagZFref),
+          new OPT_TrueGuardOperand()));
     }
     {
       OPT_RegisterOperand flag_OF_Op;
@@ -575,14 +659,11 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_OF_Op = new OPT_RegisterOperand(flag_OF, VM_TypeReference.Boolean);
       }
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_OF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
       appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_OF_Op,
-          ps_registersOp.copyRO(), new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+          ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagOFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagOFref),
+          new OPT_TrueGuardOperand()));
     }
     {
       OPT_RegisterOperand flag_DF_Op;
@@ -592,14 +673,11 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_DF_Op = new OPT_RegisterOperand(flag_DF, VM_TypeReference.Boolean);
       }
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_DF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
       appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_DF_Op,
-          ps_registersOp.copyRO(), new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+          ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagDFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagDFref),
+          new OPT_TrueGuardOperand()));
     }
   }
 
@@ -608,9 +686,24 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
    * into the process space
    */
   protected void spillAllRegisters() {
+    // spill segment registers
+    OPT_RegisterOperand ps_registers_segRegOp =
+      new OPT_RegisterOperand(ps_registers_segReg, segRegTref);
+    for (int i = 0; i < SegReg.length; i++) {
+      // We can save spills if the trace has no syscalls and the register was
+      // never used
+      if ((DBT_Options.singleInstrTranslation == false)
+          || (SegRegInUse[i] == true)) {
+        appendInstructionToCurrentBlock(AStore.create(SHORT_ASTORE,
+            new OPT_RegisterOperand(GP32[i], VM_TypeReference.Int),
+            ps_registers_segRegOp.copyRO(), new OPT_IntConstantOperand(i),
+            new OPT_LocationOperand(VM_TypeReference.Char),
+            new OPT_TrueGuardOperand()));
+      }
+    }
     // spill general purpose registers
-    OPT_RegisterOperand ps_registers_gp32Op = new OPT_RegisterOperand(
-        ps_registers_gp32, gp32Tref);
+    OPT_RegisterOperand ps_registers_gp32Op =
+      new OPT_RegisterOperand(ps_registers_gp32, gp32Tref);
     for (int i = 0; i < GP32.length; i++) {
       // We can save spills if the trace has no syscalls and the register was
       // never used
@@ -624,67 +717,52 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       }
     }
     // Spill flags
-    OPT_RegisterOperand ps_registersOp = new OPT_RegisterOperand(ps_registers,
-        registersTref);
+    OPT_RegisterOperand ps_registersOp =
+      new OPT_RegisterOperand(ps_registers, registersTref);
     {
-      OPT_RegisterOperand flag_CF_Op = new OPT_RegisterOperand(flag_CF,
-          VM_TypeReference.Boolean);
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_CF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD, flag_CF_Op,
-          ps_registersOp, new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+      OPT_RegisterOperand flag_CF_Op =
+        new OPT_RegisterOperand(flag_CF, VM_TypeReference.Boolean);
+      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+          flag_CF_Op, ps_registersOp,
+          new OPT_AddressConstantOperand(flagCFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagCFref),
+          new OPT_TrueGuardOperand()));
     }
     {
       OPT_RegisterOperand flag_SF_Op = new OPT_RegisterOperand(flag_SF,
           VM_TypeReference.Boolean);
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_SF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD, flag_SF_Op,
-          ps_registersOp.copyRO(), new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+          flag_SF_Op, ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagSFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagSFref),
+          new OPT_TrueGuardOperand()));
     }
     {
-      OPT_RegisterOperand flag_ZF_Op = new OPT_RegisterOperand(flag_ZF,
-          VM_TypeReference.Boolean);
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_ZF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD, flag_ZF_Op,
-          ps_registersOp.copyRO(), new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+      OPT_RegisterOperand flag_ZF_Op =
+        new OPT_RegisterOperand(flag_ZF, VM_TypeReference.Boolean);
+      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+          flag_ZF_Op, ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagZFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagZFref),
+          new OPT_TrueGuardOperand()));
     }
     {
-      OPT_RegisterOperand flag_OF_Op = new OPT_RegisterOperand(flag_OF,
-          VM_TypeReference.Boolean);
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_OF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD, flag_OF_Op,
-          ps_registersOp, new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+      OPT_RegisterOperand flag_OF_Op =
+        new OPT_RegisterOperand(flag_OF, VM_TypeReference.Boolean);
+      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+          flag_OF_Op, ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagOFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagOFref),
+          new OPT_TrueGuardOperand()));
     }
     {
-      OPT_RegisterOperand flag_DF_Op = new OPT_RegisterOperand(flag_DF,
-          VM_TypeReference.Boolean);
-      VM_FieldReference flagFref = VM_MemberReference.findOrCreate(
-          registersTref, VM_Atom.findOrCreateAsciiAtom("flag_DF"),
-          VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-      VM_TypeReference flagTref = flagFref.getFieldContentsType();
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD, flag_DF_Op,
-          ps_registersOp, new OPT_AddressConstantOperand(flagFref
-              .peekResolvedField().getOffset()), new OPT_LocationOperand(
-              flagFref), new OPT_TrueGuardOperand()));
+      OPT_RegisterOperand flag_DF_Op =
+        new OPT_RegisterOperand(flag_DF, VM_TypeReference.Boolean);
+      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+          flag_DF_Op, ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(flagDFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(flagDFref),
+          new OPT_TrueGuardOperand()));
     }
   }
 
@@ -713,7 +791,13 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
    * Return an array of unused registers
    */
   protected OPT_Register[] getUnusedRegisters() {
-    ArrayList unusedRegisterList = new ArrayList();
+    ArrayList<OPT_Register> unusedRegisterList = new ArrayList<OPT_Register>();
+    // Add general purpose registers
+    for (int i = 0; i < SegRegInUse.length; i++) {
+      if (SegRegInUse[i] == false) {
+        unusedRegisterList.add(SegReg[i]);
+      }
+    }
     // Add general purpose registers
     for (int i = 0; i < GP32InUse.length; i++) {
       if (GP32InUse[i] == false) {
@@ -736,7 +820,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     if (flag_OF_InUse == false) {
       unusedRegisterList.add(flag_OF);
     }
-    return (OPT_Register[]) unusedRegisterList
-        .toArray(new OPT_Register[unusedRegisterList.size()]);
+    return unusedRegisterList.toArray(
+        new OPT_Register[unusedRegisterList.size()]);
   }
 }

@@ -328,22 +328,17 @@ public class X86_InstructionDecoder extends InstructionDecoder {
       /* 0x7E */new X86_Jcc_OpcodeDecoder(LESS_EQUAL, 8),
       /* 0x7F */new X86_Jcc_OpcodeDecoder(GREATER, 8),
 
-      /* 0x80 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {// 8bit,
-          // ModRM,
-              // 8bit
-              // imm,
-              // rm
-              // is
-              // dest
-              new X86_Add_OpcodeDecoder(8, true, 8, true),// 0
-              new X86_Or_OpcodeDecoder(8, true, 8, true),// 1
-              new X86_Adc_OpcodeDecoder(8, true, 8, true),// 2
-              new X86_Sbb_OpcodeDecoder(8, true, 8, true),// 3
-              new X86_And_OpcodeDecoder(8, true, 8, true),// 4
-              new X86_Sub_OpcodeDecoder(8, true, 8, true),// 5
-              new X86_Xor_OpcodeDecoder(8, true, 8, true),// 6
-              new X86_Cmp_OpcodeDecoder(8, true, 8, true) // 7
-          }),
+      /* 0x80 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
+          // 8bit, ModRM, 8bit imm, rm is dest
+          new X86_Add_OpcodeDecoder(8, true, 8, true),// 0
+          new X86_Or_OpcodeDecoder(8, true, 8, true),// 1
+          new X86_Adc_OpcodeDecoder(8, true, 8, true),// 2
+          new X86_Sbb_OpcodeDecoder(8, true, 8, true),// 3
+          new X86_And_OpcodeDecoder(8, true, 8, true),// 4
+          new X86_Sub_OpcodeDecoder(8, true, 8, true),// 5
+          new X86_Xor_OpcodeDecoder(8, true, 8, true),// 6
+          new X86_Cmp_OpcodeDecoder(8, true, 8, true) // 7
+      }),
       /* 0x81 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
           // 16/32bit, ModRM, 16/32bit imm, rm is dest
           new X86_Add_OpcodeDecoder(_16BIT?16:32, true, _16BIT?16:32, true),// 0
@@ -358,46 +353,34 @@ public class X86_InstructionDecoder extends InstructionDecoder {
       /* 0x82 */null,
       /* 0x83 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
           // 16/32bit, ModRM, 8bit imm, rm is dest
-              new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 0
-              new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 1
-              new X86_Adc_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 2
-              new X86_Sbb_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 3
-              new X86_And_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 4
-              new X86_Sub_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 5
-              new X86_Xor_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 6
-              new X86_Cmp_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true) // 7
-          }),
-      /* 0x84 */new X86_Test_OpcodeDecoder(8, true, 0), // 8bit, has ModRM, no
-      // imm
-      /* 0x85 */new X86_Test_OpcodeDecoder(_16BIT ? 16 : 32, true, 0), // 16/32bit,has
-      // ModRM,
-      // no
-      // imm
+          new X86_Add_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 0
+          new X86_Or_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 1
+          new X86_Adc_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 2
+          new X86_Sbb_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 3
+          new X86_And_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 4
+          new X86_Sub_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 5
+          new X86_Xor_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 6
+          new X86_Cmp_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true) // 7
+      }),
+      /* 0x84 */new X86_Test_OpcodeDecoder(8, true, 0),
+      // 8bit, has ModRM, no imm
+      /* 0x85 */new X86_Test_OpcodeDecoder(_16BIT ? 16 : 32, true, 0),
+      // 16/32bit,has ModRM, no imm
       /* 0x86 */null,
       /* 0x87 */null,
-      /* 0x88 */new X86_Mov_OpcodeDecoder(8, true, 0, true), // 8bit, has
-      // ModRM, no imm,
-      // rm is dest
-      /* 0x89 */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true), // 16/32bit,has
-      // ModRM,
-      // no
-      // imm,
-      // rm
-      // is
-      // dest
-      /* 0x8A */new X86_Mov_OpcodeDecoder(8, true, 0, false),// 8bit, has
-      // ModRM, no imm,
-      // rm is src
-      /* 0x8B */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),// 16/32bit,has
-      // ModRM,
-      // no
-      // imm,
-      // rm
-      // is
-      // src
-      /* 0x8C */null,
+      /* 0x88 */new X86_Mov_OpcodeDecoder(8, true, 0, true),
+      // 8bit, has ModRM, no imm, rm is dest
+      /* 0x89 */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, true),
+      // 16/32bit,has ModRM, no imm, rm is dest
+      /* 0x8A */new X86_Mov_OpcodeDecoder(8, true, 0, false),
+      // 8bit, has ModRM, no imm, rm is src
+      /* 0x8B */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true, 0, false),
+      // 16/32bit,has ModRM, no imm, rm is src
+      /* 0x8C */new X86_MovSeg_OpcodeDecoder(true),
+      // move Sreg to r/m
       /* 0x8D */new X86_Lea_OpcodeDecoder(),
-      /* 0x8E */null,
+      /* 0x8E */new X86_MovSeg_OpcodeDecoder(false),
+      // move r/m to Sreg
       /* 0x8F */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
           new X86_Pop_OpcodeDecoder(-1), // 0 - Pop of memory operand
           null, // 1
@@ -447,30 +430,24 @@ public class X86_InstructionDecoder extends InstructionDecoder {
       /* 0xAE */null,
       /* 0xAF */null,
 
-      /* 0xB0 */new X86_Mov_OpcodeDecoder(0, 8), // reg, 8bit immediate
-      /* 0xB1 */new X86_Mov_OpcodeDecoder(1, 8), // reg, 8bit immediate
-      /* 0xB2 */new X86_Mov_OpcodeDecoder(2, 8), // reg, 8bit immediate
-      /* 0xB3 */new X86_Mov_OpcodeDecoder(3, 8), // reg, 8bit immediate
-      /* 0xB4 */new X86_Mov_OpcodeDecoder(4, 8), // reg, 8bit immediate
-      /* 0xB5 */new X86_Mov_OpcodeDecoder(5, 8), // reg, 8bit immediate
-      /* 0xB6 */new X86_Mov_OpcodeDecoder(6, 8), // reg, 8bit immediate
-      /* 0xB7 */new X86_Mov_OpcodeDecoder(7, 8), // reg, 8bit immediate
-      /* 0xB8 */new X86_Mov_OpcodeDecoder(0, _16BIT ? 16 : 32), // reg, 16/32bit
-      // immediate
-      /* 0xB9 */new X86_Mov_OpcodeDecoder(1, _16BIT ? 16 : 32), // reg, 16/32bit
-      // immediate
-      /* 0xBA */new X86_Mov_OpcodeDecoder(2, _16BIT ? 16 : 32), // reg, 16/32bit
-      // immediate
-      /* 0xBB */new X86_Mov_OpcodeDecoder(3, _16BIT ? 16 : 32), // reg, 16/32bit
-      // immediate
-      /* 0xBC */new X86_Mov_OpcodeDecoder(4, _16BIT ? 16 : 32), // reg, 16/32bit
-      // immediate
-      /* 0xBD */new X86_Mov_OpcodeDecoder(5, _16BIT ? 16 : 32), // reg, 16/32bit
-      // immediate
-      /* 0xBE */new X86_Mov_OpcodeDecoder(6, _16BIT ? 16 : 32), // reg, 16/32bit
-      // immediate
-      /* 0xBF */new X86_Mov_OpcodeDecoder(7, _16BIT ? 16 : 32), // reg, 16/32bit
-      // immediate
+      // reg, 8bit immediate
+      /* 0xB0 */new X86_Mov_OpcodeDecoder(0, 8),
+      /* 0xB1 */new X86_Mov_OpcodeDecoder(1, 8),
+      /* 0xB2 */new X86_Mov_OpcodeDecoder(2, 8),
+      /* 0xB3 */new X86_Mov_OpcodeDecoder(3, 8),
+      /* 0xB4 */new X86_Mov_OpcodeDecoder(4, 8),
+      /* 0xB5 */new X86_Mov_OpcodeDecoder(5, 8),
+      /* 0xB6 */new X86_Mov_OpcodeDecoder(6, 8),
+      /* 0xB7 */new X86_Mov_OpcodeDecoder(7, 8),
+      // reg, 16/32bit immediate
+      /* 0xB8 */new X86_Mov_OpcodeDecoder(0, _16BIT ? 16 : 32),
+      /* 0xB9 */new X86_Mov_OpcodeDecoder(1, _16BIT ? 16 : 32),
+      /* 0xBA */new X86_Mov_OpcodeDecoder(2, _16BIT ? 16 : 32),
+      /* 0xBB */new X86_Mov_OpcodeDecoder(3, _16BIT ? 16 : 32),
+      /* 0xBC */new X86_Mov_OpcodeDecoder(4, _16BIT ? 16 : 32),
+      /* 0xBD */new X86_Mov_OpcodeDecoder(5, _16BIT ? 16 : 32),
+      /* 0xBE */new X86_Mov_OpcodeDecoder(6, _16BIT ? 16 : 32),
+      /* 0xBF */new X86_Mov_OpcodeDecoder(7, _16BIT ? 16 : 32),
 
       /* 0xC0 */null,
       /* 0xC1 */new X86_OpcodeInModRMReg_Decoder(new X86_OpcodeDecoder[] {
@@ -478,45 +455,30 @@ public class X86_InstructionDecoder extends InstructionDecoder {
           null, // 1
           null, // 2
           null, // 3
-          new X86_Shl_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true), // 4 -
-          // 16/32bit,
-          // has
-          // ModRM,
-          // 8bit
-          // imm, rm
-          // is dest
-          new X86_Ushr_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),// 5 -
-          // 16/32bit,
-          // has
-          // ModRM,
-          // 8bit
-          // imm, rm
-          // is dest
+          new X86_Shl_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),
+          // 4 - 16/32bit, has ModRM, 8bit imm, rm is dest
+          new X86_Ushr_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true),
+          // 5 - 16/32bit, has ModRM, 8bit imm, rm is dest
           null, // 6
-          new X86_Shr_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true) // 7 -
-          // 16/32bit,
-          // has
-          // ModRM,
-          // 8bit
-          // imm, rm
-          // is dest
+          new X86_Shr_OpcodeDecoder(_16BIT ? 16 : 32, true, 8, true)
+          // 7 - 16/32bit, has ModRM, 8bit imm, rm is dest
           }),
-      /* 0xC2 */new X86_Ret_OpcodeDecoder(false, 16), // near return, 16bit
-      // immediate
-      /* 0xC3 */new X86_Ret_OpcodeDecoder(false, 0), // near return, no
-      // immediate
+      /* 0xC2 */new X86_Ret_OpcodeDecoder(false, 16),
+      // near return, 16bit immediate
+      /* 0xC3 */new X86_Ret_OpcodeDecoder(false, 0),
+      // near return, no immediate
       /* 0xC4 */null,
       /* 0xC5 */null,
-      /* 0xC6 */new X86_Mov_OpcodeDecoder(8, true, 8, true), // 8bit, has
-      // ModRM, 8bit
-      // imm, rm is dest
+      /* 0xC6 */new X86_Mov_OpcodeDecoder(8, true, 8, true),
+      // 8bit, has ModRM, 8bit imm, rm is dest
       /* 0xC7 */new X86_Mov_OpcodeDecoder(_16BIT ? 16 : 32, true, _16BIT ? 16
           : 32, true), // 16/32bit, has ModRM, 16/32bit imm, rm is dest
       /* 0xC8 */null,
       /* 0xC9 */new X86_Leave_OpcodeDecoder(),
-      /* 0xCA */new X86_Ret_OpcodeDecoder(true, 16), // far return, 16bit
-      // immediate
-      /* 0xCB */new X86_Ret_OpcodeDecoder(true, 0), // far return, no immediate
+      /* 0xCA */new X86_Ret_OpcodeDecoder(true, 16),
+      // far return, 16bit immediate
+      /* 0xCB */new X86_Ret_OpcodeDecoder(true, 0),
+      // far return, no immediate
       /* 0xCC */null,
       /* 0xCD */new X86_Int_OpcodeDecoder(),
       /* 0xCE */null,
@@ -2481,6 +2443,117 @@ class X86_Mov_OpcodeDecoder extends X86_OpcodeDecoder {
    */
   String getOperatorString() {
     return "mov";
+  }
+}
+/**
+ * The decoder for the Mov opcode
+ */
+class X86_MovSeg_OpcodeDecoder extends X86_OpcodeDecoder {
+  /**
+   * Constructor, {@see X86_OpcodeDecoder}
+   */
+  X86_MovSeg_OpcodeDecoder(boolean isMemoryOperandDestination) {
+    super(X86_64 ? 64 : 16, true, 0, isMemoryOperandDestination);
+  }
+  /**
+   * Perform the actual translation
+   * @param translationHelper
+   * @param ps
+   * @param lazy
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immediate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
+   */
+  protected int translate(X862IR translationHelper, ProcessSpace ps,
+      X86_Laziness lazy, int pc, X86_ModRM_Decoder modrm, X86_SIB_Decoder sib,
+      int displacement, int immediateSize, int immediate, int length,
+      X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
+      X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
+    int operandSize = this.operandSize;
+    int addressSize;
+    if (prefix4 == null) {
+      addressSize = _16BIT ? 16 : 32;
+    } else {
+      addressSize = _16BIT ? 32 : 16;
+    }
+
+    X86_DecodedOperand destination;
+    X86_DecodedOperand source = null;
+    if (isMemoryOperandDestination) {
+      destination = modrm.getRM(translationHelper, lazy, sib, displacement,
+          operandSize, addressSize, (prefix2 != null) ? prefix2.getSegment()
+              : X86_Registers.DS);
+      source = modrm.getSReg();
+    } else {
+      destination = modrm.getSReg();
+      source = modrm.getRM(translationHelper, lazy, sib, displacement,
+          operandSize, addressSize, (prefix2 != null) ? prefix2.getSegment()
+              : X86_Registers.DS);
+    }
+
+    OPT_RegisterOperand temp = translationHelper.getTempInt(0);
+    OPT_RegisterOperand sourceOp1 = translationHelper.getTempInt(1);
+    source.readToRegister(translationHelper, lazy, sourceOp1);
+    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+        temp, sourceOp1.copyRO()));
+    destination.writeValue(translationHelper, lazy, temp.copyRO());
+    return pc + length;
+  }
+
+  /**
+   * Disassemble the opcode
+   * @param ps
+   * @param pc the address of the instruction being translated
+   * @param modrm the decoder for any modrm part of the instruction
+   * @param sib the sib decoder for any sib part of the instruction
+   * @param displacement any displacement to be added to the modrm
+   * @param immediateSize what size is the immediate value
+   * @param immedate if immediateSize &gt; 0 then this is the immediate value
+   * @param length the length of the instruction
+   * @param prefix2 a group2 prefix decoder or null
+   * @param prefix3 a group3 prefix decoder or null
+   * @param prefix4 a group4 prefix decoder or null
+   * @param prefix5 a group5 prefix decoder or null
+   */
+  protected String disassemble(ProcessSpace ps, int pc,
+      X86_ModRM_Decoder modrm, X86_SIB_Decoder sib, int displacement,
+      int immediateSize, int immediate, int length,
+      X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
+      X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
+    int operandSize;
+    if (prefix3 == null) {
+      operandSize = this.operandSize;
+    } else if (this.operandSize == 32) {
+      operandSize = 16;
+    } else {
+      operandSize = 32;
+    }
+    char addressPrefix;
+    if (prefix4 == null) {
+      addressPrefix = _16BIT ? ' ' : 'e';
+    } else {
+      addressPrefix = _16BIT ? 'e' : ' ';
+    }
+    // TODO: apply segment override
+    switch (operandSize) {
+    case 8:
+      return "movsb es:" + addressPrefix + "di, ds:" + addressPrefix + "si";
+    case 16:
+      return "movsw es:" + addressPrefix + "di, ds:" + addressPrefix + "si";
+    case 32:
+      return "movsd es:" + addressPrefix + "di, ds:" + addressPrefix + "si";
+    default:
+      DBT_OptimizingCompilerException.UNREACHABLE();
+    return "error";
+    }
   }
 }
 

@@ -40,6 +40,7 @@ final public class X86_LinuxSystemCalls extends LinuxSystemCalls {
     systemCallTable[202] = new LinuxSystemCalls.SysGetEGID();
     systemCallTable[221] = new LinuxSystemCalls.SysFcntl64();
     systemCallTable[252] = new LinuxSystemCalls.SysExitGroup();
+    systemCallTable[243] = new LinuxSystemCalls.NullSystemCall();
   }
   /**
    * The machine for this system given by uname

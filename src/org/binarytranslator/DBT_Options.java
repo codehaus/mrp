@@ -27,7 +27,7 @@ public class DBT_Options {
   /**
    * Are unimplemented system calls are fatal?
    */
-  public final static boolean unimplementedSystemCallsFatal = true;
+  public final static boolean unimplementedSystemCallsFatal = false;
 
   // -oO Translation settings Oo-
   

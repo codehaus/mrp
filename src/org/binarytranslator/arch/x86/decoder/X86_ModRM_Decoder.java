@@ -466,6 +466,13 @@ class X86_ModRM_Decoder extends X86_InstructionDecoder {
   }
 
   /**
+   * Get the segment reg field as a decoded operand
+   */
+  X86_DecodedOperand getSReg() {
+    return X86_DecodedOperand.getSegmentRegister(reg);
+  }
+
+  /**
    * Get the reg/opcode field as an integer
    */
   int getOpcode() {

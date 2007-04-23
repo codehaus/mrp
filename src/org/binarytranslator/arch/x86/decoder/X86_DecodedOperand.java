@@ -49,6 +49,13 @@ abstract class X86_DecodedOperand implements OPT_Operators {
   }
 
   /**
+   * Get a decoded operand for a segment register
+   */
+  static X86_DecodedOperand getSegmentRegister(int reg) {
+    return new X86_SegRegDecodedOperand(reg);
+  }
+
+  /**
    * Get a memory reference to the stack
    */
   static X86_DecodedOperand getStack(int addressSize, int operandSize) {
@@ -146,6 +153,50 @@ final class X86_RegDecodedOperand extends X86_DecodedOperand {
       OPT_RegisterOperand op) {
     OPT_RegisterOperand result = translationHelper.getGPRegister(lazy, reg,
         size);
+    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+        result, op));
+  }
+
+  /**
+   * Read the value as giving an address
+   */
+  void readEffectiveAddress(X862IR translationHelper, X86_Laziness lazy,
+      OPT_RegisterOperand op) {
+    throw new Error("Trying to read the address of a register!");
+  }
+}
+
+/**
+ * Segment Registers
+ */
+final class X86_SegRegDecodedOperand extends X86_DecodedOperand {
+  /**
+   * The register in question
+   */
+  final int reg;
+
+  /**
+   * Constructor
+   */
+  X86_SegRegDecodedOperand(int reg) {
+    this.reg = reg;
+  }
+
+  /**
+   * Read the value into a register
+   */
+  void readToRegister(X862IR translationHelper, X86_Laziness lazy,
+      OPT_RegisterOperand op) {
+    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE, op,
+        translationHelper.getSegRegister(lazy, reg)));
+  }
+
+  /**
+   * Write the given operand to this
+   */
+  void writeValue(X862IR translationHelper, X86_Laziness lazy,
+      OPT_RegisterOperand op) {
+    OPT_RegisterOperand result = translationHelper.getSegRegister(lazy, reg);
     translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
         result, op));
   }

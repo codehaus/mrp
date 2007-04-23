@@ -56,24 +56,24 @@ public class X86_Registers  {
   /**
    * Translate a register number into its 32bit string variant
    */
-  private static final String name64[] = {"rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
+  private static final String[] name64 = {"rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
   /**
    * Translate a register number into its 32bit string variant
    */
-  private static final String name32[] = {"eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"};
+  private static final String[] name32 = {"eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"};
   /**
    * Translate a register number into its 16bit string variant
    */
-  private static final String name16[] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
+  private static final String[] name16 = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
   /**
    * Translate a register number into its 32bit string variant
    */
-  private static final String name8[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
+  private static final String[] name8 = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
 
   /**
    * Array holding the 8 32bit versions of the registers
    */
-  private int gp32[] = new int[8];
+  private int[] gp32 = new int[8];
 
   /**
    * The instruction pointer register
@@ -83,7 +83,7 @@ public class X86_Registers  {
   /**
    * Array holding the 6 segment registers
    */    
-  private short segmentRegister[] = new short[6];
+  private char[] segmentRegister = new char[6];
 
   /*
    * Flags
@@ -405,13 +405,13 @@ public class X86_Registers  {
   /**
    * Read 16 bit segment
    */
-  public short readSeg(int reg) {
+  public char readSeg(int reg) {
     return segmentRegister[reg];
   }
   /**
    * Write a segment register value
    */
-  public void writeSeg(int reg, short val) {
+  public void writeSeg(int reg, char val) {
     segmentRegister[reg] = val;
   }
   /**
