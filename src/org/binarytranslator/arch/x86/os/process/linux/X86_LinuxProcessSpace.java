@@ -160,6 +160,12 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
    * @param address new top of BSS segment
    */
   public void setBrk(int address) {
+    try {
+      memory.ensureMapped(brk, address);
+    } catch (MemoryMapException e) {
+      throw new Error("Error changing top of BSS to address 0x"+Integer.toHexString(address)+
+        " from 0x" + Integer.toHexString(brk), e);
+    }
     brk = address;
   }
 

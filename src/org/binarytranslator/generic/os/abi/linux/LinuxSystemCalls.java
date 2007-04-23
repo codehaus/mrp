@@ -746,15 +746,11 @@ abstract public class LinuxSystemCalls {
   public class SysBrk extends SystemCall {
     public void doSysCall() {
       int brk = arguments.nextInt();
-      
-      if(brk == 0)  {          
-        // Request for the current top of bss.
-        src.setSysCallReturn(src.getBrk());          
-      }
-      else {
-        // Changing the value.
+      if(brk != 0)  {          
+        // Request to set the current top of bss.        
         src.setBrk(brk);
       }
+      src.setSysCallReturn(src.getBrk());          
     }
   }
 

@@ -98,6 +98,24 @@ public class IntAddressedMemory extends CallBasedMemory {
   }
 
   /**
+   * Is the given address mapped into memory?
+   * @param addr to check
+   * @return true => memory is mapped
+   */
+  public boolean isMapped(int addr) {
+    return ((readableMemory[getPTE(addr)] != null) ||
+        (writableMemory[getPTE(addr)] != null) ||
+        (executableMemory[getPTE(addr)] != null));
+  }
+  
+  /**
+   * @return the size of a page
+   */
+  public int getPageSize() {
+    return PAGE_SIZE;
+  }
+  
+  /**
    * Is the given address aligned on a page boundary?
    * 
    * @param addr

@@ -377,7 +377,7 @@ public class LinuxStackInitializer {
       initialStackSize = memory.truncateToNextPage(initialStackSize);
 
       try {
-        memory.map(stackTop - initialStackSize - 8192, initialStackSize + 8192,
+        memory.map(stackTop - initialStackSize - (128*1024), initialStackSize + (128*1024),
             true, true, false); // read/write/no execute
       } catch (MemoryMapException e) {
         // Failing to create the stack is a fatal error
