@@ -540,14 +540,21 @@ public class ARM_Instructions  {
 
       preIndexing = Utils.getBit(instr, 24);
       positiveOffset = Utils.getBit(instr, 23);
-      writeBack = Utils.getBit(instr, 21);
       isLoad = Utils.getBit(instr, 20);
       
       if (Utils.getBit(instr, 26)) {
         //this is an unsigned byte or word transfer
         signExtend = false;
         
-        forceUserMode = !preIndexing && writeBack;
+        //if post-indexing implies writeBack, so set the writeback flag when postindexing is used
+        if (!preIndexing) {
+          writeBack = true;
+          forceUserMode = Utils.getBit(instr, 21);
+        }
+        else {
+          writeBack = Utils.getBit(instr, 21);
+          forceUserMode = false;
+        }
         
         if (Utils.getBit(instr, 22))
           size = TransferSize.Byte;
@@ -567,6 +574,7 @@ public class ARM_Instructions  {
           size = TransferSize.Byte;
         
         signExtend = Utils.getBit(instr, 6);
+        writeBack = Utils.getBit(instr, 21);
         forceUserMode = false;
         
         if (Utils.getBit(instr, 22)) {

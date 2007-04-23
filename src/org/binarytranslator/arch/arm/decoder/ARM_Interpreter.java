@@ -340,6 +340,22 @@ public class ARM_Interpreter implements Interpreter {
         }
       }
     }
+    
+    /** Sets the processor flags according to the result of subtracting <code>rhs</code> from <code>lhs</code>.*/
+    protected final void setFlagsForSub(int lhs, int rhs) {
+
+      if (updateConditionCodes) {
+        if (Rd != 15) {
+          int result = lhs - rhs;
+          boolean carry = !(lhs < rhs);
+          boolean overflow = Utils.signedAddOverflow(lhs, -rhs);
+          regs.setFlags(result < 0, result == 0, carry, overflow);
+        } 
+        else {
+          regs.restoreSPSR2CPSR();
+        }
+      }
+    }
 
     public int getSuccessor(int pc) {
       if (Rd != 15)
@@ -380,7 +396,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Add. <code>Rd = op1 + op2 </code>.*/
-  private class DataProcessing_Add extends DataProcessing {
+  private final class DataProcessing_Add extends DataProcessing {
 
     public DataProcessing_Add(int instr) {
       super(instr);
@@ -397,127 +413,125 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Subtract. <code>Rd = op1 - op2 </code>.*/
-  private final class DataProcessing_Sub extends DataProcessing_Add {
+  private final class DataProcessing_Sub extends DataProcessing {
 
     public DataProcessing_Sub(int instr) {
       super(instr);
     }
-
+    
     @Override
-    protected int resolveOperand2() {
-      return -super.resolveOperand2();
+    public void execute() {
+      int operand1 = resolveOperand1();
+      int operand2 = resolveOperand2();
+      int result = operand1 - operand2;
+
+      regs.set(Rd, result);
+      setFlagsForSub(operand1, operand2);
     }
   }
 
-  /** Reverse subtract. <code>Rd = - op1 + op2</code>.*/
-  private final class DataProcessing_Rsb extends DataProcessing_Add {
+  /** Reverse subtract. <code>Rd = op2 - op1</code>.*/
+  private final class DataProcessing_Rsb extends DataProcessing {
 
     protected DataProcessing_Rsb(int instr) {
       super(instr);
     }
 
     @Override
-    protected int resolveOperand1() {
-      return -super.resolveOperand1();
+    public void execute() {
+      int operand1 = resolveOperand1();
+      int operand2 = resolveOperand2();
+      int result = operand2 - operand1;
+
+      regs.set(Rd, result);
+      setFlagsForSub(operand2, operand1);
     }
   }
 
   /** Add with carry. <code>Rd = op1 + op2 + CARRY</code>.
    * If the carry flag is set, the instruction will add 1 to one of the operands (whichever operands would
-   * not cause an overflow). Then, the normal add-routine is being invoked.  
-   * The class is also used as a base class for the subtract with carry (SBC) and reverse subtract with
-   * carry (RSC) instructions. Therefore, it provides added functionality to optionally negate one or both
-   * of the operands.*/
-  private class DataProcessing_Adc extends DataProcessing_Add {
-
-    /** A cached version of the first operand. A carry might be added to this operand. */
-    protected int cachedOperand1;
-
-    /** A cached version of the second operand. A carry might be added to this operand, if no carry could
-     * be added to the first operand.. */
-    protected int cachedOperand2;
+   * not cause an overflow). Then, the normal add-routine is being invoked. */
+  private final class DataProcessing_Adc extends DataProcessing {
 
     protected DataProcessing_Adc(int instr) {
       super(instr);
     }
 
     @Override
-    protected final int resolveOperand1() {
-      return cachedOperand1;
-    }
-
-    @Override
-    protected final int resolveOperand2() {
-      return cachedOperand2;
-    }
-    
-    /** Shall be overwritten by deriving classes, if they wish the first operand to be negated before
-     *  the addition. */
-    protected boolean negateOperand1() {
-      return false;
-    }
-    
-    /** Shall be overwritten by deriving classes, if they wish the second operand to be negated before
-     *  the addition. */
-    protected boolean negateOperand2() {
-      return false;
-    }
-
-    @Override
     public void execute() {
-      cachedOperand1 = super.resolveOperand1();
-      cachedOperand2 = super.resolveOperand2();
-      
-      if (negateOperand1())
-        cachedOperand1 = -cachedOperand1;
-      
-      if (negateOperand2())
-        cachedOperand2 = -cachedOperand2;
+      int operand1 = resolveOperand1();
+      int operand2 = resolveOperand2();
 
       if (regs.isCarrySet()) {
-        if (cachedOperand1 != Integer.MAX_VALUE) {
-          cachedOperand1++;
-        } else if (cachedOperand2 != Integer.MAX_VALUE) {
-          cachedOperand2++;
+        if (operand1 != Integer.MAX_VALUE) {
+          operand1++;
+        } else if (operand2 != Integer.MAX_VALUE) {
+          operand2++;
         } else {
-          regs.setFlags(cachedOperand1 > 0, cachedOperand1 != 0, true, true);
+          regs.setFlags(operand1 > 0, operand1 != 0, true, true);
           return;
         }
       }
 
-      super.execute();
+      int result = operand1 + operand2;
+
+      regs.set(Rd, result);
+      setFlagsForAdd(operand1, operand2);
     }
   }
 
   /** Subtract with carry. <code>Rd = op1 - op2 + CARRY</code>.*/
-  private class DataProcessing_Sbc extends DataProcessing_Adc {
+  private class DataProcessing_Sbc extends DataProcessing {
 
     protected DataProcessing_Sbc(int instr) {
       super(instr);
     }
+    
+    public void execute() {
+      int operand1 = resolveOperand1();
+      int operand2 = resolveOperand2();
 
-    @Override
-    protected boolean negateOperand2() {
-      return true;
+      if (!regs.isCarrySet()) {
+        if (operand1 != Integer.MIN_VALUE) {
+          operand1--;
+        } else if (operand2 != Integer.MIN_VALUE) {
+          operand2--;
+        } else {
+          //TODO: Remove this exception, when the correct behavior has been verified.
+          throw new RuntimeException("I'm interested in finding a case where this occurs, so this exception is sooner or later going to 'notify' me..");
+          //regs.setFlags(operand1 > 0, operand1 != 0, true, true);
+          //return;
+        }
+      }
+
+      int result = operand1 - operand2;
+
+      regs.set(Rd, result);
+      setFlagsForSub(operand1, operand2);
     }
   }
 
   /** Reserve subtract with carry. <code>Rd = -op1 + op2 + CARRY</code>.*/
-  private class DataProcessing_Rsc extends DataProcessing_Adc {
+  private final class DataProcessing_Rsc extends DataProcessing_Sbc {
 
     protected DataProcessing_Rsc(int instr) {
       super(instr);
     }
-
+    
     @Override
-    protected boolean negateOperand1() {
-      return true;
+    protected int resolveOperand1() {
+      return super.resolveOperand2();
+    }
+    
+    @Override
+    protected int resolveOperand2() {
+      return super.resolveOperand1();
     }
   }
 
   /** Set the flags according to the logical-and of two values. 
    * <code>Flags = op1 & op2</code>*/
-  private class DataProcessing_Tst extends DataProcessing {
+  private final class DataProcessing_Tst extends DataProcessing {
 
     protected DataProcessing_Tst(int instr) {
       super(instr);
@@ -531,7 +545,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Sets the flags according to the exclusive-or of two values.
    * <code>Flags = op1 ^ op2</code> */
-  private class DataProcessing_Teq extends DataProcessing {
+  private final class DataProcessing_Teq extends DataProcessing {
 
     protected DataProcessing_Teq(int instr) {
       super(instr);
@@ -545,7 +559,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Set the flags according to the comparison of two values.
    * <code>Flags = op1 - op2</code> */
-  private class DataProcessing_Cmp extends DataProcessing {
+  private final class DataProcessing_Cmp extends DataProcessing {
 
     protected DataProcessing_Cmp(int instr) {
       super(instr);
@@ -553,13 +567,13 @@ public class ARM_Interpreter implements Interpreter {
 
     @Override
     public void execute() {
-      setFlagsForAdd(resolveOperand1(), -resolveOperand2());
+      setFlagsForSub(resolveOperand1(), resolveOperand2());
     }
   }
 
   /** Set the flags according to the comparison of two values, negating the 2nd value on the way.
    * <code>Flags = op1 + op2</code>. */
-  private class DataProcessing_Cmn extends DataProcessing {
+  private final class DataProcessing_Cmn extends DataProcessing {
 
     protected DataProcessing_Cmn(int instr) {
       super(instr);
@@ -572,7 +586,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Binary or. <code>Rd = op1 | op2</code>. */
-  private class DataProcessing_Orr extends DataProcessing {
+  private final class DataProcessing_Orr extends DataProcessing {
 
     protected DataProcessing_Orr(int instr) {
       super(instr);
@@ -586,7 +600,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
-  private class DataProcessing_Mov extends DataProcessing {
+  private final class DataProcessing_Mov extends DataProcessing {
 
     protected DataProcessing_Mov(int instr) {
       super(instr);
@@ -603,7 +617,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Bit clear. Clear bits in a register by a mask given by a second operand. 
    * <code>Rd =  op1 & (~op2)</code>.*/
-  private class DataProcessing_Bic extends DataProcessing {
+  private final class DataProcessing_Bic extends DataProcessing {
 
     protected DataProcessing_Bic(int instr) {
       super(instr);
@@ -620,7 +634,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Move and negate. Moves an integer between two registers, negating it on the way. 
    * <code>Rd = -op2</code>.*/
-  private class DataProcessing_Mvn extends DataProcessing {
+  private final class DataProcessing_Mvn extends DataProcessing {
 
     protected DataProcessing_Mvn(int instr) {
       super(instr);
@@ -636,7 +650,7 @@ public class ARM_Interpreter implements Interpreter {
   
   /** Count the number of leading zeros in an integer.
    * <code>Rd = Number_Of_Leading_Zeroes(op2) </code> */
-  private class DataProcessing_Clz extends DataProcessing {
+  private final class DataProcessing_Clz extends DataProcessing {
 
     protected DataProcessing_Clz(int instr) {
       super(instr);
@@ -652,7 +666,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Swap a register and a memory value. 
    * TODO: At the moment, Pearcolator does not support any way of locking the memory. However, once it does
    * any other memory accesses should be pending until the swap instruction succeeds.*/
-  private class Swap extends ARM_Instructions.Swap implements
+  private final class Swap extends ARM_Instructions.Swap implements
   ARM_Instruction {
 
     public Swap(int instr) {
@@ -677,7 +691,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Transfer multiple registers at once between the register bank and the memory. */
-  private class BlockDataTransfer extends ARM_Instructions.MultipleDataTransfer
+  private final class BlockDataTransfer extends ARM_Instructions.MultipleDataTransfer
       implements ARM_Instruction {
 
     /** the lowest address that we're reading a register from / writing a register to */
@@ -799,7 +813,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Branch to another instruction address. */
-  private class Branch extends ARM_Instructions.Branch implements
+  private final class Branch extends ARM_Instructions.Branch implements
   ARM_Instruction {
 
     public Branch(int instr) {
@@ -821,7 +835,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Branch to another instruction  address and switch between ARM32 and Thumb code on the way.*/
-  private class BranchExchange extends ARM_Instructions.BranchExchange
+  private final class BranchExchange extends ARM_Instructions.BranchExchange
       implements ARM_Instruction {
 
     public BranchExchange(int instr) {
@@ -876,7 +890,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Multiply two integers into a register, possibly adding the value of a third register on the way. */
-  private class IntMultiply extends ARM_Instructions.IntMultiply implements
+  private final class IntMultiply extends ARM_Instructions.IntMultiply implements
   ARM_Instruction {
 
     protected IntMultiply(int instr) {
@@ -923,7 +937,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Move the value of the program status register into a register. */
-  private class MoveFromStatusRegister extends
+  private final class MoveFromStatusRegister extends
       ARM_Instructions.MoveFromStatusRegister implements
       ARM_Instruction {
 
@@ -949,7 +963,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Invoke a software interrupt. */
-  private class SoftwareInterrupt extends ARM_Instructions.SoftwareInterrupt
+  private final class SoftwareInterrupt extends ARM_Instructions.SoftwareInterrupt
       implements ARM_Instruction {
 
     public SoftwareInterrupt(int instr) {
@@ -968,27 +982,16 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Transfers a single data item (either a byte, half-byte or word) between a register and memory.
    * This operation can either be a load from or a store to memory. */
-  private class SingleDataTransfer extends ARM_Instructions.SingleDataTransfer
+  private final class SingleDataTransfer extends ARM_Instructions.SingleDataTransfer
       implements ARM_Instruction {
 
     public SingleDataTransfer(int instr) {
       super(instr);
     }
-
-    /** Resolves the address of the memory slot, that is involved in the transfer. */
-    private int resolveAddress() {
-
-      //acquire the base address
-      int base = regs.get(Rn);
-      
-      //take ARM's PC offset into account
-      if (Rn == 15)
-        base += 8;
-
-      //if we are not pre-indexing, then just use the base register for the memory access
-      if (!preIndexing)
-        return base;
-      
+    
+    /** Resolves the offset, which is (when post-indexing is not used) to be added to the 
+     * base address to create the final address. */
+    private int resolveOffset() {
       int addrOffset;
 
       switch (offset.getType()) {
@@ -1005,7 +1008,7 @@ public class ARM_Interpreter implements Interpreter {
 
       case ImmediateShiftedRegister:
         addrOffset = regs.get(offset.getRegister());
-        
+
         if (offset.getRegister() == 15)
           addrOffset += 8;
 
@@ -1047,9 +1050,26 @@ public class ARM_Interpreter implements Interpreter {
       }
       
       if (positiveOffset)
-        return base + addrOffset;
+        return addrOffset;
       else
-        return base - addrOffset;
+        return -1 * addrOffset;
+    }
+
+    /** Resolves the address of the memory slot, that is involved in the transfer. */
+    private int resolveAddress() {
+
+      //acquire the base address
+      int base = regs.get(Rn);
+      
+      //take ARM's PC offset into account
+      if (Rn == 15)
+        base += 8;
+
+      //if we are not pre-indexing, then just use the base register for the memory access
+      if (!preIndexing)
+        return base;
+      
+      return base + resolveOffset();
     }
 
     public void execute() {
@@ -1114,15 +1134,15 @@ public class ARM_Interpreter implements Interpreter {
         }
       }
 
-      //should the memory address, which we accessed, be written back into a register? This is used for continuos
-      //memory accesses
+      //should the memory address, which we accessed, be written back into a register? 
+      //This is used for continuous memory accesses
       if (writeBack) {
-        if (preIndexing)
+        if (preIndexing) {
           regs.set(Rn, address);
+        }
         else {
-          //TODO: calculate the post-indexed address
-          //and set it to Rn
-          throw new RuntimeException("Not yet implemented.");
+          //add the offset to the base address and write the result back into Rn
+          regs.set(Rn, address + resolveOffset());
         }
       }
     }
@@ -1138,7 +1158,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Represents an undefined instruction, will throw a runtime error when this instruction
    * is executed. */
-  private class UndefinedInstruction implements ARM_Instruction {
+  private final class UndefinedInstruction implements ARM_Instruction {
 
     private final int instruction;
 
@@ -1159,7 +1179,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
   
-  private class DebugNopInstruction implements ARM_Instruction {
+  private final class DebugNopInstruction implements ARM_Instruction {
 
     public Condition getCondition() {
       return Condition.AL;
