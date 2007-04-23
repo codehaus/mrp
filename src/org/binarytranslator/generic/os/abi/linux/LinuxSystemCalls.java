@@ -27,6 +27,9 @@ abstract public class LinuxSystemCalls {
   
   /** Allows access to the system call's arguments */
   private LinuxSystemCallGenerator.CallArgumentIterator arguments;
+  
+  /** Allows access to a number of operating-system specific structures. */
+  private LinuxStructureFactory structures;
 
   /**
    * Maximum number of system calls
@@ -154,6 +157,8 @@ abstract public class LinuxSystemCalls {
     files.add(System.in);
     files.add(System.out);
     files.add(System.err);
+    
+    structures = new LinuxStructureFactory();
   }
 
   /**
@@ -756,6 +761,12 @@ abstract public class LinuxSystemCalls {
 
   public class SysFstat64 extends SystemCall {
     public void doSysCall() {
+      int fd = arguments.nextInt();
+      
+      LinuxStructureFactory.stat64 buf = structures.new_stat64();
+      buf.read(src.getProcessSpace().memory, arguments.nextInt());
+      
+      System.out.println(buf.toString());
     }
   }
     
@@ -795,6 +806,7 @@ abstract public class LinuxSystemCalls {
           domainName = localhostString.substring(index + 1);
           hostName = localhostString.substring(0,index);
         }
+        
         // Fill in utsname struct - see /usr/include/sys/utsname.h
         memoryWriteString (addr,     getSysName()); // sysname
         memoryWriteString (addr+65,  hostName);     // nodename
