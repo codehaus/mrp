@@ -5,8 +5,17 @@ import org.binarytranslator.generic.memory.Memory;
 /** Namespace for all structures. */
 public class LinuxStructureFactory {
   
-  /** Solution 1 - automatically generated class. Fast, but pretty unflexible.*/
-  public class stat64_2 {
+  public static class stat64_3 {
+    public int st_dev;
+    public short st_mode;
+    
+    /** Implemented with a reflection by a base class*/
+    public void store(Memory m) {}
+    public void read(Memory m) {}
+  }
+  
+  /** Solution 2 - automatically generated class. Fast, but pretty unflexible.*/
+  public static class stat64_2 {
     
     private Memory mem;
     private int addr;
@@ -20,7 +29,7 @@ public class LinuxStructureFactory {
     }
   }
   
-  /** Solution 2 - class members created from factory method. More flexible, but higher overhead. */
+  /** Solution 3 - class members created from factory method. More flexible, but higher overhead. */
   public static class stat64 extends Structure {
     public final _Int st_dev = newInt();
     public final _Short st_mode = newShort();
