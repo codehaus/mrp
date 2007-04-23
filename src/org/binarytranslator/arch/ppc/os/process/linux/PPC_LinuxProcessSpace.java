@@ -50,6 +50,11 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
   private static final int STACK_TOP = 0x80000000;
 
   /**
+   * Auxiliary vector
+   */
+  private int[] auxVector;
+  
+  /**
    * Constructor
    */
   public PPC_LinuxProcessSpace(Loader loader) {
@@ -77,7 +82,7 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
    * Initialise the stack
    */
   private int initialiseStack(Loader loader, int pc) {
-    int[] auxVector = {
+    auxVector = new int[]{
         LinuxStackInitializer.AuxiliaryVectorType.AT_IGNOREPPC,
         LinuxStackInitializer.AuxiliaryVectorType.AT_IGNOREPPC,
         LinuxStackInitializer.AuxiliaryVectorType.AT_IGNOREPPC,
@@ -196,6 +201,10 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
 
   public GdbTarget getGdbTarget() {
     return this;
+  }
+
+  public int[] getAuxVector() {
+    return auxVector;
   }
 
   public int getGDBFrameBaseRegister() {

@@ -13,6 +13,7 @@ import java.io.*;
 import java.net.*;
 
 import org.binarytranslator.generic.fault.BadInstructionException;
+import org.binarytranslator.generic.fault.SegmentationFault;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
@@ -63,6 +64,11 @@ public class GdbController extends
      * Return the address of the current instruction.
      */
     int getCurrentInstructionAddress();
+    
+    /**
+     * Get the auxiliary vector
+     */
+    int[] getAuxVector();
   }
   
 
@@ -480,6 +486,32 @@ public class GdbController extends
         ':', ':' })) {
       // GDB is telling us it will handle symbol queries for us - nice :-)
       replyOK();
+    } else if (doesBufferMatch(2, new byte[] { 'P','a','r','t',':','a','u','x','v',
+        ':','r','e','a','d',':',':'})) {
+      String data = bufferToString(18, dataEnd);
+      int offset = Integer.parseInt(data.substring(0, data.indexOf(',')), 16);
+      int length = Integer.parseInt(data.substring(data.indexOf(',') + 1), 16);
+      int[] auxv = target.getAuxVector();
+      byte[] auxv_asbytes = new byte[auxv.length * 4 * 2];
+      for(int i=0; i < auxv.length; i++) {
+        auxv_asbytes[i*8+1] = intToHex (auxv[i] & 0xF);
+        auxv_asbytes[i*8+0] = intToHex((auxv[i] >>  4) & 0xF);
+        auxv_asbytes[i*8+3] = intToHex((auxv[i] >>  8) & 0xF);
+        auxv_asbytes[i*8+2] = intToHex((auxv[i] >> 12) & 0xF);
+        auxv_asbytes[i*8+5] = intToHex((auxv[i] >> 16) & 0xF);
+        auxv_asbytes[i*8+4] = intToHex((auxv[i] >> 20) & 0xF);
+        auxv_asbytes[i*8+7] = intToHex((auxv[i] >> 24) & 0xF);
+        auxv_asbytes[i*8+6] = intToHex((auxv[i] >> 28) & 0xF);
+      }
+      byte[] command = new byte[Math.min(length*2,auxv_asbytes.length-(offset*2))];
+      for (int i=0; i < command.length; i++) {
+        command[i] = auxv_asbytes[offset*2+i];
+      }
+      if (command.length > 0) {
+        sendCommand(command);
+      } else {
+        replyOK();
+      }
     } else {
       // unrecognized query
       sendCommand(null);
@@ -609,6 +641,10 @@ public class GdbController extends
                 // report that a SIGILL halted the debugger
                 byte command[] = { 'S', '0', '4' };
                 sendCommand(command);
+              } catch (SegmentationFault e) {
+                // report that a SIGSEGV halted the debugger
+                byte command[] = { 'S', '0', 'b' };
+                sendCommand(command);
               }
               break;
             case 'c':
@@ -633,6 +669,10 @@ public class GdbController extends
               } catch (BadInstructionException e) {
                 // report that a SIGILL halted the debugger
                 byte command[] = { 'S', '0', '4' };
+                sendCommand(command);
+              } catch (SegmentationFault e) {
+                // report that a SIGSEGV halted the debugger
+                byte command[] = { 'S', '0', 'b' };
                 sendCommand(command);
               }
               break;

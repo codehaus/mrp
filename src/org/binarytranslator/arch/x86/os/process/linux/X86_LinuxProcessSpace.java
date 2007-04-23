@@ -30,6 +30,11 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
   final LinuxSystemCalls syscalls;
   
   /**
+   * Experimental support for the Linux sysinfo page (use to present sysenter and sysexit system call entry)
+   */
+  private static final boolean useSysInfoPage = false;
+  
+  /**
    * Allows uniform access to the arguments of a system call. We cache this object for reuse.
    */
   private final X86_LinuxSyscallArgumentIterator syscallArgs;
@@ -44,6 +49,11 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
    */
   private static final int STACK_TOP = 0xC0000000;
 
+  /**
+   * Auxiliary vector
+   */
+  private int[] auxVector;
+  
   /**
    * Constructor
    */
@@ -63,39 +73,45 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
     registers.eip = pc;
     this.brk = brk;
     registers.writeGP32(X86_Registers.ESP, initialiseStack(loader, pc));
-    try {
-      memory.map(0xffffe000, 8192, true, true, true);
-    } catch (MemoryMapException e) {
-      throw new Error ("Error creating VDSO page");
+    if (useSysInfoPage) {
+      try {
+        memory.map(0xffffe000, 8192, true, true, true);
+      } catch (MemoryMapException e) {
+        throw new Error ("Error creating VDSO page");
+      }
+      memory.store8(0xffffe400, 0xCD); // INT
+      memory.store8(0xffffe400, 0x80); // 80h    
+      memory.store8(0xffffe400, 0xC3); // RET
     }
-    memory.store8(0xffffe400, 0xCD); // INT
-    memory.store8(0xffffe400, 0x80); // 80h    
-    memory.store8(0xffffe400, 0xC3); // RET
   }
 
   /**
    * Initialise the stack
    */
   private int initialiseStack(Loader loader, int pc) {
-    int[] auxVector = {//LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
-                       //LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR, 0xffffe000,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x78bfbff,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_CLKTCK, 0x64,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, ((ELF_Loader)loader).getProgramHeaderAddress(),
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, ((ELF_Loader)loader).elfHeader.getNumberOfProgramSegmentHeaders(),
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, pc,
+    auxVector = new int[] {
+        LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x078bfbff,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_CLKTCK, 0x64,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, ((ELF_Loader)loader).getProgramHeaderAddress(),
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, ((ELF_Loader)loader).elfHeader.getNumberOfProgramSegmentHeaders(),
+        LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, pc,
 
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_UID, DBT_Options.UID,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_EUID, DBT_Options.UID,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_GID, DBT_Options.GID,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_EGID, DBT_Options.GID,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_UID, DBT_Options.UID,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_EUID, DBT_Options.UID,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_GID, DBT_Options.GID,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_EGID, DBT_Options.GID,
 
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_SECURE, 0,
-                       //LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, LinuxStackInitializer.AuxiliaryVectorType.STACK_TOP - getPlatformString().length,
-                       LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0};
+        LinuxStackInitializer.AuxiliaryVectorType.AT_SECURE, 0,
+        //LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, LinuxStackInitializer.AuxiliaryVectorType.STACK_TOP - getPlatformString().length,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0};
+
+    if (useSysInfoPage) {
+//    LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
+//    LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR, 0xffffe000,
+    }
 
     return LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector);
   }
@@ -149,29 +165,8 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
 
   public void setStackPtr(int ptr) {}
 
-  public int[] getAuxVector() { //ELF_Header header, ELF_ProgramHeaderTable programHeaders) {
-    /*
-    return new int[] {
-      32, 0xffffe400,
-      33, 0xffffe000,
-      ELF_Constants.AT_HWCAP, 0x78bfbff,
-      ELF_Constants.AT_PAGESZ, 0x1000,
-      ELF_Constants.AT_CLKTCK, 0x64,
-      ELF_Constants.AT_PHDR, header.e_phoff - programHeaders.getSegment(0).p_offset + programHeaders.getSegment(0).p_vaddr,
-      ELF_Constants.AT_PHNUM, header.e_phnum,
-      ELF_Constants.AT_BASE, 0x0,
-      ELF_Constants.AT_FLAGS, 0x0,
-      ELF_Constants.AT_ENTRY, header.e_entry,
-      ELF_Constants.AT_UID, ELF_Constants.UID, 
-      ELF_Constants.AT_EUID, ELF_Constants.UID,
-      ELF_Constants.AT_GID, ELF_Constants.GID, 
-      ELF_Constants.AT_EGID, ELF_Constants.GID,
-      ELF_Constants.AT_SECURE, 0,
-      ELF_Constants.AT_PLATFORM, ELF_Constants.STACK_TOP - getPlatformString().length,
-      ELF_Constants.AT_NULL, 0x0,  
-    };
-    */
-    throw new Error("TODO");
+  public int[] getAuxVector() {
+    return auxVector;
   }
 
   public byte[] getPlatformString() {

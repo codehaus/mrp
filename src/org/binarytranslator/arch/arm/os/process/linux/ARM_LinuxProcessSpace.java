@@ -32,6 +32,11 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
    */
   private int brk;
 
+  /**
+   * Auxiliary vector
+   */
+  private int[] auxVector;
+
   public ARM_LinuxProcessSpace() {
     sysCallGenerator = new Legacy(this);
     sysCalls = new ARM_LinuxSystemCalls(sysCallGenerator);
@@ -52,7 +57,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
     this.brk = brk;
 
     // initialize the stack
-    int[] auxVector = {//LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
+    auxVector = new int[]{//LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
         //LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR, 0xffffe000,
         LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x78bfbff,
         LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
@@ -80,4 +85,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
     return null;
   }
 
+  public int[] getAuxVector() {
+    return auxVector;
+  }
 }
