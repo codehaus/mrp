@@ -8,8 +8,11 @@
  */
 package org.binarytranslator.arch.x86.os.abi.linux;
 
+import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
+import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
+import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls.SystemCall;
 
 /**
  * Linux system call handling class
@@ -40,7 +43,7 @@ final public class X86_LinuxSystemCalls extends LinuxSystemCalls {
     systemCallTable[202] = new LinuxSystemCalls.SysGetEGID();
     systemCallTable[221] = new LinuxSystemCalls.SysFcntl64();
     systemCallTable[252] = new LinuxSystemCalls.SysExitGroup();
-    systemCallTable[243] = new LinuxSystemCalls.NullSystemCall();
+    systemCallTable[243] = new SetThreadAreaSystemCall();
   }
   /**
    * The machine for this system given by uname
@@ -356,4 +359,45 @@ final public class X86_LinuxSystemCalls extends LinuxSystemCalls {
       }
     }
   }
+  /**
+   * Set the thread area - Set a Thread Local Storage (TLS) area
+   */
+  public class SetThreadAreaSystemCall extends LinuxSystemCalls.SystemCall {
+    /**
+     * Handle a system call
+     */
+    public void doSysCall() {
+      // Ok, we're faking this call at the moment. It's called by glibc to set
+      // up a TLS area that GS will address. The call will provide -1 asking us
+      // for a GS segment number and to record the base_addr,... for GS.
+      Memory mem = src.getProcessSpace().memory;
+      int user_desc_ptr = arguments.nextInt();
+
+      int user_desc_entry_number = mem.load32(user_desc_ptr);
+      System.err.println("entry number="+user_desc_entry_number);
+      int user_desc_base_addr    = mem.load32(user_desc_ptr+4);
+      System.err.println("base addr="+user_desc_base_addr);
+      int user_desc_limit        = mem.load32(user_desc_ptr+8);
+      System.err.println("limit="+user_desc_limit);
+      int packed                 = mem.load32(user_desc_ptr+12);
+      System.err.println("packed="+packed);
+      
+      boolean user_desc_seg_32bit      =  (packed & 1) != 0;
+      int     user_desc_contents       =  (packed >> 1) & 0x3; 
+      boolean user_desc_read_exec_only = ((packed >> 3) & 0x1) != 0; 
+      boolean user_desc_limit_in_pages = ((packed >> 4) & 0x1) != 0; 
+      boolean user_desc_seg_not_present= ((packed >> 4) & 0x1) != 0;
+      boolean user_desc_useable        = ((packed >> 4) & 0x1) != 0;
+      
+      if (user_desc_entry_number == -1) {
+        user_desc_entry_number = 7;
+        mem.store32(user_desc_ptr, user_desc_entry_number);
+        ((X86_ProcessSpace)src.getProcessSpace()).registers.writeGS_BaseAddr(user_desc_base_addr);
+        src.setSysCallReturn(0);
+      } else {
+        throw new Error("Unexpected use of set_thread_area");
+      }
+    }
+  }
+
 }

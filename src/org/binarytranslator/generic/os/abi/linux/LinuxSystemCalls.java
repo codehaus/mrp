@@ -157,8 +157,6 @@ abstract public class LinuxSystemCalls {
     files.add(System.in);
     files.add(System.out);
     files.add(System.err);
-    
-    structures = new LinuxStructureFactory();
   }
 
   /**
@@ -489,7 +487,7 @@ abstract public class LinuxSystemCalls {
   /**
    * Define the system call interface
    */
-  abstract class SystemCall {
+  public abstract class SystemCall {
     /**
      * Handle a system call
      */
@@ -510,18 +508,6 @@ abstract public class LinuxSystemCalls {
       else {
         throw new Error("System Call " + sysCallToString(src.getSysCallNumber()) + " Unknown");
       }
-    }
-  }
-
-  /**
-   * Null System Call - do nothing just return 0
-   */
-  public class NullSystemCall extends SystemCall {
-    /**
-     * Handle a system call
-     */
-    public void doSysCall() {
-      src.setSysCallReturn(0);
     }
   }
 
@@ -853,7 +839,6 @@ abstract public class LinuxSystemCalls {
           domainName = localhostString.substring(index + 1);
           hostName = localhostString.substring(0,index);
         }
-        
         // Fill in utsname struct - see /usr/include/sys/utsname.h
         memoryWriteString (addr,     getSysName()); // sysname
         memoryWriteString (addr+65,  hostName);     // nodename

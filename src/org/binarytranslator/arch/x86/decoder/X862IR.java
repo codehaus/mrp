@@ -39,7 +39,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
   private static final VM_FieldReference flagZFref;
   private static final VM_FieldReference flagOFref;
   private static final VM_FieldReference flagDFref;
-  
+  private static final VM_FieldReference gsBaseAddrFref;
+  private static final VM_FieldReference mxcsrFref;
   static {
     psTref = VM_TypeReference.findOrCreate(
         VM_BootstrapClassLoader.getBootstrapClassLoader(),
@@ -86,7 +87,15 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     flagDFref = VM_MemberReference.findOrCreate(
         registersTref, VM_Atom.findOrCreateAsciiAtom("flag_DF"),
         VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
-  }
+
+    gsBaseAddrFref = VM_MemberReference.findOrCreate(
+        registersTref, VM_Atom.findOrCreateAsciiAtom("gsBaseAddr"),
+        VM_Atom.findOrCreateAsciiAtom("I")).asFieldReference();
+
+    mxcsrFref = VM_MemberReference.findOrCreate(
+        registersTref, VM_Atom.findOrCreateAsciiAtom("mxcsr"),
+        VM_Atom.findOrCreateAsciiAtom("I")).asFieldReference();
+    }
 
   /**
    * Constructor
@@ -110,11 +119,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
 
   /**
    * Translate the instruction at the given pc
-   * 
-   * @param lazy
-   *          the status of the lazy evaluation
-   * @param pc
-   *          the program counter for the instruction
+   * @param lazy the status of the lazy evaluation
+   * @param pc the program counter for the instruction
    * @return the next instruction address or -1
    */
   protected int translateInstruction(Laziness lazy, int pc) {
@@ -203,11 +209,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
 
   /**
    * Resolve a 32bit register
-   * 
-   * @param laziness
-   *          the lazy state, used to determine register mangling
-   * @param r
-   *          the register to resolve
+   * @param laziness the lazy state, used to determine register mangling
+   * @param r the register to resolve
    */
   private void resolveGPRegister32(X86_Laziness laziness, int r) {
     if (laziness.is32bitRegisterValid(r) == false) {
@@ -250,11 +253,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
 
   /**
    * Read a 32bit register
-   * 
-   * @param laziness
-   *          the lazy state, used to determine register mangling
-   * @param r
-   *          the register to read
+   * @param laziness the lazy state, used to determine register mangling
+   * @param r the register to read
    */
   public OPT_RegisterOperand getSegRegister(X86_Laziness laziness, int r) {
     SegRegInUse[r] = true;
@@ -262,12 +262,34 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
   }
 
   /**
+   * Add a segment base address to the given address
+   * @param segment segment to get base address for
+   * @param address the address to add the value onto
+   */
+  public void addSegmentBaseAddress(int segment, OPT_RegisterOperand address) {
+    switch(segment) {
+    case X86_Registers.GS: {
+      OPT_RegisterOperand temp = getTempInt(9);
+      appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+          temp, new OPT_RegisterOperand(ps_registers, registersTref),
+          new OPT_AddressConstantOperand(gsBaseAddrFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(gsBaseAddrFref),
+          new OPT_TrueGuardOperand()));
+      appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+          address.copyRO(), address.copyRO(), temp.copyRO()));
+      break;
+    }
+    case X86_Registers.FS:
+      throw new Error("Unhandled segment override FS");
+    default:
+      break;
+    }
+  }
+  
+  /**
    * Read a 32bit register
-   * 
-   * @param laziness
-   *          the lazy state, used to determine register mangling
-   * @param r
-   *          the register to read
+   * @param laziness the lazy state, used to determine register mangling
+   * @param r the register to read
    */
   public OPT_RegisterOperand getGPRegister32(X86_Laziness laziness, int r) {
     GP32InUse[r] = true;
@@ -277,11 +299,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
 
   /**
    * Read a 16bit register
-   * 
-   * @param laziness
-   *          the lazy state, used to determine register mangling
-   * @param r
-   *          the register to read
+   * @param laziness the lazy state, used to determine register mangling
+   * @param r the register to read
    */
   public OPT_RegisterOperand getGPRegister16(X86_Laziness laziness, int r) {
     GP32InUse[r] = true;
@@ -324,11 +343,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
 
   /**
    * Read a 8bit register
-   * 
-   * @param laziness
-   *          the lazy state, used to determine register mangling
-   * @param r
-   *          the register to read
+   * @param laziness the lazy state, used to determine register mangling
+   * @param r the register to read
    */
   public OPT_RegisterOperand getGPRegister8(X86_Laziness laziness, int r) {
     int rl, rh; // low and high 8bit registers
@@ -375,11 +391,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
 
   /**
    * Read a 8bit register
-   * 
-   * @param laziness
-   *          the lazy state, used to determine register mangling
-   * @param r
-   *          the register to read
+   * @param laziness the lazy state, used to determine register mangling
+   * @param r the register to read
    */
   public OPT_RegisterOperand getGPRegister(X86_Laziness laziness, int r,
       int size) {
@@ -396,6 +409,14 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     }
   }
 
+  /**
+   * Read the MXCSR register
+   */
+  public OPT_RegisterOperand getMXCSR() {
+    ps_registers_mxcsr_InUse = true;
+    return new OPT_RegisterOperand(ps_registers_mxcsr, VM_TypeReference.Int);
+  }
+  
   // -- status flags
   /**
    * X86 flag register constituants - bit 0 - CF or carry flag
@@ -537,6 +558,16 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
   private OPT_Register ps_registers_gp32;
 
   /**
+   * X87 mxcsr register
+   */
+  private OPT_Register ps_registers_mxcsr;
+
+  /**
+   * Was the register used during the trace?
+   */
+  private boolean ps_registers_mxcsr_InUse;
+
+  /**
    * Fill all the registers from the ProcessSpace, that is take the register
    * values from the process space and place them in the traces registers.
    */
@@ -606,6 +637,21 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       appendInstructionToCurrentBlock(ALoad.create(INT_ALOAD, gp32op,
           ps_registers_gp32Op.copyRO(), new OPT_IntConstantOperand(i),
           new OPT_LocationOperand(VM_TypeReference.Int),
+          new OPT_TrueGuardOperand()));
+    }
+    // Fill MXCSR
+    {
+      OPT_RegisterOperand ps_registers_mxcsr_Op;
+      if (ps_registers_mxcsr == null) {
+        ps_registers_mxcsr_Op = makeTemp(VM_TypeReference.Int);
+        ps_registers_mxcsr = ps_registers_mxcsr_Op.register;
+      } else {
+        ps_registers_mxcsr_Op = new OPT_RegisterOperand(flag_CF, VM_TypeReference.Boolean);
+      }
+      appendInstructionToCurrentBlock(GetField.create(GETFIELD, ps_registers_mxcsr_Op,
+          ps_registersOp.copyRO(),
+          new OPT_AddressConstantOperand(mxcsrFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(mxcsrFref),
           new OPT_TrueGuardOperand()));
     }
     // Fill flags
@@ -716,14 +762,25 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
             new OPT_TrueGuardOperand()));
       }
     }
-    // Spill flags
     OPT_RegisterOperand ps_registersOp =
       new OPT_RegisterOperand(ps_registers, registersTref);
+    // Spill mxcsr
+    {
+      OPT_RegisterOperand ps_registers_mxcsr_Op =
+        new OPT_RegisterOperand(ps_registers_mxcsr, VM_TypeReference.Int);
+      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+          ps_registers_mxcsr_Op, ps_registersOp,
+          new OPT_AddressConstantOperand(mxcsrFref.peekResolvedField().getOffset()),
+          new OPT_LocationOperand(mxcsrFref),
+          new OPT_TrueGuardOperand()));
+    }
+
+    // Spill flags
     {
       OPT_RegisterOperand flag_CF_Op =
         new OPT_RegisterOperand(flag_CF, VM_TypeReference.Boolean);
       appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
-          flag_CF_Op, ps_registersOp,
+          flag_CF_Op, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagCFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagCFref),
           new OPT_TrueGuardOperand()));
@@ -777,9 +834,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
 
   /**
    * Plant instructions modifying a lazy state into one with no laziness
-   * 
-   * @param laziness
-   *          the laziness to modify
+   * @param laziness the laziness to modify
    */
   public void resolveLaziness(Laziness laziness) {
     for (int i = 0; i < GP32.length; i++) {
@@ -807,6 +862,10 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     // ignore GP16 and GP8 registers as they are only created lazily,
     // and so must be in use
 
+    // Add MXCSR
+    if (ps_registers_mxcsr_InUse == false) {
+      unusedRegisterList.add(ps_registers_mxcsr);
+    }
     // Add flags
     if (flag_CF_InUse == false) {
       unusedRegisterList.add(flag_CF);

@@ -85,6 +85,11 @@ public class X86_Registers  {
    */    
   private char[] segmentRegister = new char[6];
 
+  /**
+   * Base address to be added onto gs segment overrides 
+   */
+  private int gsBaseAddr;
+  
   /*
    * Flags
    */
@@ -414,6 +419,14 @@ public class X86_Registers  {
   public void writeSeg(int reg, char val) {
     segmentRegister[reg] = val;
   }
+  
+  /**
+   * Write a segment register value
+   */
+  public void writeGS_BaseAddr(int baseAddr) {
+    gsBaseAddr = baseAddr;
+  }
+  
   /**
    * Read flags
    */

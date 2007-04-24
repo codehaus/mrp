@@ -248,7 +248,7 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
    * The size of the operand
    */
   final int operandSize;
-
+  
   /**
    * Constructor
    */
@@ -271,11 +271,7 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
     this.base = base;
     this.scale = scale;
     this.index = index;
-    if (segment == X86_Registers.GS){
-      this.displacement = displacement + 0xffffe000;
-    } else {
-      this.displacement = displacement;
-    }
+    this.displacement = displacement;
     this.addressSize = addressSize;
     this.operandSize = operandSize;
   }
@@ -285,7 +281,7 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
    */
   void readToRegister(X862IR translationHelper, X86_Laziness lazy,
       OPT_RegisterOperand op) {
-    OPT_RegisterOperand address = translationHelper.getTempInt(9);
+    OPT_RegisterOperand address = translationHelper.getTempInt(8);
     readEffectiveAddress(translationHelper, lazy, address);
     // Perform the load
     switch (operandSize) {
@@ -308,7 +304,7 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
    */
   void writeValue(X862IR translationHelper, X86_Laziness lazy,
       OPT_RegisterOperand op) {
-    OPT_RegisterOperand address = translationHelper.getTempInt(9);
+    OPT_RegisterOperand address = translationHelper.getTempInt(8);
     readEffectiveAddress(translationHelper, lazy, address);
     // Perform the store
     switch (operandSize) {
@@ -356,5 +352,7 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
           address.copyRO(), address.copyRO(), new OPT_IntConstantOperand(
               displacement)));
     }
+    // Add on any base address from a segment override
+    translationHelper.addSegmentBaseAddress(segment, address);
   }
 }
