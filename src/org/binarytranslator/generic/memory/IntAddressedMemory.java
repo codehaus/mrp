@@ -10,6 +10,7 @@ package org.binarytranslator.generic.memory;
 
 import java.io.RandomAccessFile;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.jikesrvm.VM_Configuration;
 
@@ -191,10 +192,21 @@ public class IntAddressedMemory extends CallBasedMemory {
    */
   public int map(int addr, int len, boolean read, boolean write, boolean exec)
       throws MemoryMapException {
-    // Check address is page aligned
+    // Check that the address is page aligned
     if ((addr % PAGE_SIZE) != 0) {
-      MemoryMapException.unalignedAddress(addr);
+      // if it is not, truncate the address down to the next page boundary and
+      // start mapping from there
+      int validPageCount = addr / PAGE_SIZE;
+      int oldStartAddress = addr;
+      addr = validPageCount * PAGE_SIZE;
+
+      if (DBT.VerifyAssertions)
+        DBT._assert(oldStartAddress > addr);
+
+      // we have to map more more memory now to reach the same end address
+      len += (oldStartAddress - addr);
     }
+    
     // Calculate number of pages
     int num_pages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
     // Create memory

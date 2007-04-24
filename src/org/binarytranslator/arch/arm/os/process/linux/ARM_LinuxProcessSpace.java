@@ -28,18 +28,13 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
   private static final int STACK_TOP = 0xC0000000;
 
   /**
-   * The top of the bss segment
-   */
-  private int brk;
-
-  /**
    * Auxiliary vector
    */
   private int[] auxVector;
 
   public ARM_LinuxProcessSpace() {
-    sysCallGenerator = new Legacy(this);
-    sysCalls = new ARM_LinuxSystemCalls(sysCallGenerator);
+    sysCallGenerator = new Legacy(this, 0xEBADADD);
+    sysCalls = new ARM_LinuxSystemCalls(this, sysCallGenerator);
   }
 
   @Override
@@ -54,30 +49,51 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
   @Override
   public void initialise(Loader loader, int pc, int brk) {
     registers.set(ARM_Registers.PC, pc);
-    this.brk = brk;
+    sysCallGenerator.setBrk(brk);
 
     // initialize the stack
-    auxVector = new int[]{//LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO, 0xffffe400,
-        //LinuxStackInitializer.AuxiliaryVectorType.AT_SYSINFO_EHDR, 0xffffe000,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x78bfbff,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_CLKTCK, 0x64,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, ((ELF_Loader)loader).getProgramHeaderAddress(),
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, ((ELF_Loader)loader).elfHeader.getNumberOfProgramSegmentHeaders(),
-        LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
+    auxVector = new int[] {
+        LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x97,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 4096, //0x100
+        LinuxStackInitializer.AuxiliaryVectorType.AT_CLKTCK, 0x17,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, 0x8034,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHENT, 0x20,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, 0x6,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x40000000,
         LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, pc,
-
-        LinuxStackInitializer.AuxiliaryVectorType.AT_UID, DBT_Options.UID,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_EUID, DBT_Options.UID,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_GID, DBT_Options.GID,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_EGID, DBT_Options.GID,
-
-        LinuxStackInitializer.AuxiliaryVectorType.AT_SECURE, 0,
-        //LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, LinuxStackInitializer.AuxiliaryVectorType.STACK_TOP - getPlatformString().length,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0};
+        LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, 0x82b4,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_UID, 0x0, 
+        LinuxStackInitializer.AuxiliaryVectorType.AT_EUID, 0x0, 
+        LinuxStackInitializer.AuxiliaryVectorType.AT_GID, 0x0, 
+        LinuxStackInitializer.AuxiliaryVectorType.AT_EGID, 0x0,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, 0xbffffecd };
 
     registers.set(ARM_Registers.SP, LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector));
+  }
+  
+  public void dumpStack() {
+    //grab the current frame pointer
+    int fp = registers.get(ARM_Registers.FP);
+    
+    //print the current position
+    System.out.println("PC: 0x" + Integer.toHexString(registers.get(ARM_Registers.PC)));
+    
+    //we might be in a leaf function which did not create a stack frame. Check that by
+    //comparing the current link register with the one saved on the first stack frame
+    int saved_lr = memory.load32(fp - 4);
+    int processor_lr = registers.get(ARM_Registers.LR);
+    
+    if (saved_lr != processor_lr) {
+      //we are in a leaf function that did not generate a stack frame. Print out the function address
+      System.out.println("Called from 0x" + Integer.toHexString(processor_lr - 4) + " (Function did not create a stack frame).");
+    }
+    
+    do {
+      saved_lr = memory.load32(fp - 4); //load the link register, so we know where we're called from
+      fp = memory.load32(fp - 12);    //load the previous frame pointer
+      System.out.println("Called from 0x" + Integer.toHexString(saved_lr - 4));
+    }
+    while (fp != 0);
   }
 
   @Override

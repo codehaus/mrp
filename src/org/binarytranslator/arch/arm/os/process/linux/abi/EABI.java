@@ -1,6 +1,7 @@
 package org.binarytranslator.arch.arm.os.process.linux.abi;
 
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
+import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -28,15 +29,16 @@ public class EABI implements LinuxSystemCallGenerator {
   /** The process space that we're running on. */
   private final ARM_LinuxProcessSpace ps;
   private final ArgumentIterator args; 
+  private int brk;
   
-  public EABI(ARM_LinuxProcessSpace ps) {
+  public EABI(ARM_LinuxProcessSpace ps, int brk) {
     this.ps = ps;
+    this.brk = brk;
     this.args = new ArgumentIterator();
   }
 
   public int getBrk() {
-    // TODO Auto-generated method stub
-    throw new RuntimeException("Not yet implemented.");
+    return brk;
   }
 
   public ProcessSpace getProcessSpace() {
@@ -53,8 +55,16 @@ public class EABI implements LinuxSystemCallGenerator {
   }
 
   public void setBrk(int address) {
-//  TODO Auto-generated method stub
-    throw new RuntimeException("Not yet implemented.");
+
+    try {
+      ps.memory.ensureMapped(brk, address);
+    } catch (MemoryMapException e) {
+      throw new Error(String.format(
+          "Error changing top of BSS from 0x%x to address 0x%x", brk, address),
+          e);
+    }
+
+    brk = address;
   }
 
   public void setSysCallError(int r) {

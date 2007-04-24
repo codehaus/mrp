@@ -2,7 +2,7 @@ package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.DBT;
 
-class Utils {
+public class Utils {
 
   /**
    * Checks if a bit is set within a word.
@@ -54,33 +54,124 @@ class Utils {
   
   /** 
    * Returns true, if the addition of both operands as unsigned integers will cause an overflow.
-   * This basically checks <code> operand1 + operand2 &gt; Integer.MAX_VALUE</code>.
+   * At the moment, this converts both values to longs and checks if the 33rd bit (which actually represents the carry)
+   * overflows.
    */
-  static boolean unsignedAddOverflow(int operand1, int operand2) {
-    return operand1 > Integer.MAX_VALUE - operand2; 
+  public static boolean unsignedAddOverflow(int operand1, int operand2) {
+    long value1 = (long)operand1 & 0xFFFFFFFFL;
+    long value2 = (long)operand2 & 0xFFFFFFFFL;
+
+    return ((value1 + value2) & 0x100000000L) != 0;
   }
   
   /** 
-   * Returns true, if the subtraction of both operand1 - operand2 (both unsigned) will be a negative number.
-   * That only happens when <code>operand1 &lt; operand2</code>
+   * Returns true, if the subtraction of both operand1 - operand2 (both unsigned) will issue a borrow.
    */
-  static boolean unsignedSubOverflow(int operand1, int operand2) {
+  public static boolean unsignedSubOverflow(int operand1, int operand2) {
+    operand1 += Integer.MIN_VALUE;
+    operand2 += Integer.MIN_VALUE;
+    
     return operand1 < operand2;
   }
   
   /** 
-   * Returns true, if the addition of both operands as unsigned integers will cause an overflow.
-   * The algorithm for this code was taken from http://msdn2.microsoft.com/en-us/library/ms972705.aspx.
+   * Returns true, if the addition of both operands as signed integers will cause an overflow.
+   * This basically checks <code>operand1 + operand2 &gt; Integer.MAX_VALUE</code>.
    */
-  static boolean signedAddOverflow(int operand1, int operand2) {
-    //overflow can only occur when both signs differ
-    if ((operand1 ^ operand2) >= 0) {
-      return false;
+  public static boolean signedAddOverflow(int operand1, int operand2) {
+    return operand1 > Integer.MAX_VALUE - operand2;
+  }
+  
+  /** 
+   * Returns true, if the subtraction of operand1 from operand (as signed integers)
+   *  will cause an overflow.
+   * This basically checks <code>operand1 - operand2 &lt; Integer.MIN_VALUE</code>.
+   */
+  public static boolean signedSubOverflow(int operand1, int operand2) {
+    // if the MSB is already set in any of the operands, then no overflow can
+    // occur
+    if (operand1 >= 0) {
+      return (operand2 < 0) && ((operand1-operand2) < 0);
+    }
+    else {
+      return (operand2 > 0) && ((operand1-operand2) > 0);
+    }
+  }
+  
+  /** 
+   * Performs a number of sanity tests that make sure that the above functions are working the
+   * manner described before.*/
+  public static void runSanityTests() {
+    if (!Utils.unsignedAddOverflow(1, -1)) {
+      throw new RuntimeException("Error");
     }
     
-    if (operand1 < 0)
-      return operand1 < Integer.MIN_VALUE - operand2;
-    else
-      return Integer.MAX_VALUE - operand1 < operand2;
+    if (!Utils.unsignedAddOverflow(-1, -1)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (!Utils.unsignedAddOverflow(-1, 1)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (Utils.unsignedAddOverflow(10000, 10000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (Utils.unsignedSubOverflow(-1, 1)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (!Utils.unsignedSubOverflow(1, -1)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (Utils.unsignedSubOverflow(-1, -1)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (Utils.unsignedSubOverflow(10, 0)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (!Utils.unsignedSubOverflow(0, 10)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (!Utils.signedAddOverflow(0x70000000, 0x10000000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (Utils.signedAddOverflow(0x90000000, 0x10000000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (!Utils.signedAddOverflow(0x50000000, 0x50000000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (Utils.signedAddOverflow(0x60000000, 0x10000000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (Utils.signedAddOverflow(0x10000000, 0x60000000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (!Utils.signedSubOverflow(0x80000000, 0x30000000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (!Utils.signedSubOverflow(0x30000000, 0x80000000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (!Utils.signedSubOverflow(0, 0x80000000)) {
+      throw new RuntimeException("Error");
+    }
+    
+    if (Utils.signedSubOverflow(0, 0x70000000)) {
+      throw new RuntimeException("Error");
+    }
   }
 }

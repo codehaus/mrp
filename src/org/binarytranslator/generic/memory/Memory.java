@@ -251,4 +251,41 @@ public abstract class Memory {
     throw new Error("Error linking method at " + callAddress
         + " for memory model " + this.getClass());
   }
+  
+  /**
+   * Helper function that prints a hexadecimal version of a memory region. 
+   * Quite useful for debugging. 
+   * @param address
+   *  The address to start printing from.
+   * @param length
+   *  The number of bytes to print from <code>address</code>.
+   * @return
+   *  A string with a hexdecimal representation of that memory region.
+   *  The string is only useful for printing, no assumptions about its format
+   *  shall be made.
+   */
+  public String hexDump(int address, int length) {
+    
+    StringBuilder output = new StringBuilder();
+    int printed = 0;
+    
+    while (printed != length) {
+      
+      //make a line break and print the current address every 8 bytes
+      if (printed % 8 == 0) {
+        if (printed != 0)
+          output.append('\n');
+        
+        output.append("[0x");
+        output.append(Integer.toHexString(address));
+        output.append("] ");
+      }
+      
+      output.append(String.format("%02x", loadUnsigned8(address++)));
+      output.append(' ');
+      printed++;
+    }
+    
+    return output.toString();
+  }
 }

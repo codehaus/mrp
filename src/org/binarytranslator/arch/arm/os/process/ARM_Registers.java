@@ -4,6 +4,7 @@ import org.jikesrvm.VM;
 
 public final class ARM_Registers {
 
+  public final static int FP = 11;
   public final static int SP = 13;
   public final static int LR = 14;
   public final static int PC = 15;

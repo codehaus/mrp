@@ -107,13 +107,13 @@ public class ARM_Interpreter implements Interpreter {
         return regs.isNegativeSet() == regs.isOverflowSet();
         
       case GT:
-        return (regs.isNegativeSet() == regs.isOverflowSet()) && regs.isZeroSet();
+        return (regs.isNegativeSet() == regs.isOverflowSet()) && !regs.isZeroSet();
         
       case HI:
         return regs.isCarrySet() && !regs.isZeroSet();
         
       case LE:
-        return regs.isZeroSet() || (regs.isNegativeSet() == regs.isOverflowSet());
+        return regs.isZeroSet() || (regs.isNegativeSet() != regs.isOverflowSet());
         
       case LS:
         return !regs.isCarrySet() || regs.isZeroSet();
@@ -347,8 +347,8 @@ public class ARM_Interpreter implements Interpreter {
       if (updateConditionCodes) {
         if (Rd != 15) {
           int result = lhs - rhs;
-          boolean carry = !(lhs < rhs);
-          boolean overflow = Utils.signedAddOverflow(lhs, -rhs);
+          boolean carry = !Utils.unsignedSubOverflow(lhs, rhs);
+          boolean overflow = Utils.signedSubOverflow(lhs, rhs);
           regs.setFlags(result < 0, result == 0, carry, overflow);
         } 
         else {

@@ -23,13 +23,13 @@ abstract public class LinuxSystemCalls {
   /**
    * The source of the system calls
    */
-  private LinuxSystemCallGenerator src;
+  protected LinuxSystemCallGenerator src;
   
   /** Allows access to the system call's arguments */
-  private LinuxSystemCallGenerator.CallArgumentIterator arguments;
+  protected LinuxSystemCallGenerator.CallArgumentIterator arguments;
   
   /** Allows access to a number of operating-system specific structures. */
-  private LinuxStructureFactory structures;
+  protected LinuxStructureFactory structures;
 
   /**
    * Maximum number of system calls
@@ -802,9 +802,18 @@ abstract public class LinuxSystemCalls {
       int fd = arguments.nextInt();
       
       LinuxStructureFactory.stat64 buf = structures.new_stat64();
-      buf.read(src.getProcessSpace().memory, arguments.nextInt());
       
-      System.out.println(buf.toString());
+      if (fd == 1) {
+        buf.st_mode = 0x2180;
+        buf.st_rdev = (short)0x8800;
+        buf.__st_ino = buf.st_ino = 2;
+        buf.st_blksize = 0x400;
+      }
+      else 
+        throw new RuntimeException("Unimplemented system call.");
+      
+      buf.write(src.getProcessSpace().memory, arguments.nextInt());
+      src.setSysCallReturn(0);
     }
   }
     
@@ -893,8 +902,9 @@ abstract public class LinuxSystemCalls {
 
       int start = arguments.nextInt();
       int length = arguments.nextInt();
-      throw new Error("TODO!");
-      //src.setSysCallReturn(src.munmap(start, length));
+      
+      src.getProcessSpace().memory.unmap(start, length);
+      src.setSysCallReturn(0);
     }
   }
 

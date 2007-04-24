@@ -10,6 +10,7 @@ package org.binarytranslator;
 
 import java.io.File;
 
+import org.binarytranslator.arch.arm.decoder.Utils;
 import org.binarytranslator.generic.execution.DynamicTranslationController;
 import org.binarytranslator.generic.execution.ExecutionController;
 import org.binarytranslator.generic.execution.GdbController;
@@ -93,16 +94,18 @@ public class Main {
       System.out.println("***** INITIAL PROCESS SPACE *****\n");
       System.out.println(ps);
     }
-    
+
     //Create an execution controller and pass execution on to it
     ExecutionController controller;
     
-    if (DBT_Options.gdbStub) {
+    /*if (DBT_Options.gdbStub) {
       controller = new GdbController(DBT_Options.gdbStubPort, ps);
     }
     else {
       controller = new DynamicTranslationController(ps);
-    }
+    }*/
+    
+    controller = new InterpreterController(ps);
     
     controller.run();
   }
