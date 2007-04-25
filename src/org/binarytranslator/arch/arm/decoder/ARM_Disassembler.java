@@ -185,13 +185,17 @@ public final class ARM_Disassembler {
     }
 
     public void visit(DataProcessing instr) {
-      String mnemonic = instr.getOpcode().name();
+      
+      DataProcessing.Opcode opcode = instr.getOpcode();
+      String mnemonic = opcode.name();
       mnemonic += cond(instr);
 
       String parameters;
-      
-      if (instr.getOpcode() == DataProcessing.Opcode.CMN ||
-          instr.getOpcode() == DataProcessing.Opcode.CMP) {
+
+      if (opcode == DataProcessing.Opcode.CMN ||
+          opcode == DataProcessing.Opcode.CMP ||
+          opcode == DataProcessing.Opcode.TST ||
+          opcode == DataProcessing.Opcode.TEQ) {
         //these functions don't use the destination register and always set the condition codes
         setResult(String.format("%s r%s, %s", mnemonic, instr.getRn(), operand(instr.getOperand2())));
         return;

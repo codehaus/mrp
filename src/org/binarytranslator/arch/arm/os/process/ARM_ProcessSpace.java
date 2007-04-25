@@ -61,7 +61,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   public static ProcessSpace createProcessSpaceFromBinary(Loader loader)
       throws IOException {
     Loader.ABI abi = loader.getABI();
-    if (abi == Loader.ABI.ARM || abi == Loader.ABI.SystemV) {
+    if (abi == Loader.ABI.ARM) {
       report("Creating ARM Linux ABI Process space");
       return new ARM_LinuxProcessSpace();
     } else {

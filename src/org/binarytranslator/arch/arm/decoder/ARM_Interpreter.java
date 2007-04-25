@@ -197,7 +197,7 @@ public class ARM_Interpreter implements Interpreter {
         }
         
         shifterCarryOut = Utils.getBit(value, shiftAmount - 1);
-        return value >>> shiftAmount;
+        return value >> shiftAmount;
 
       case LSL:
 
@@ -237,7 +237,7 @@ public class ARM_Interpreter implements Interpreter {
         }
 
         shifterCarryOut = Utils.getBit(value, shiftAmount - 1);
-        return value >> shiftAmount;
+        return value >>> shiftAmount;
 
       case ROR:
 
@@ -1014,7 +1014,7 @@ public class ARM_Interpreter implements Interpreter {
 
         switch (offset.getShiftType()) {
         case ASR:
-          addrOffset = addrOffset >>> offset.getShiftAmount();
+          addrOffset = addrOffset >> offset.getShiftAmount();
           break;
 
         case LSL:
@@ -1022,7 +1022,7 @@ public class ARM_Interpreter implements Interpreter {
           break;
 
         case LSR:
-          addrOffset = addrOffset >> offset.getShiftAmount();
+          addrOffset = addrOffset >>> offset.getShiftAmount();
           break;
 
         case ROR:

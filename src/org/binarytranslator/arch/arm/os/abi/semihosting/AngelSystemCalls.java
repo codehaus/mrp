@@ -1,14 +1,17 @@
 package org.binarytranslator.arch.arm.os.abi.semihosting;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 
@@ -39,20 +42,21 @@ public class AngelSystemCalls {
   private final ARM_ProcessSpace ps;
   
   /** A mapping from file handles to open files. */
-  private final Map<Integer, RandomAccessFile> files = new HashMap<Integer, RandomAccessFile>();
+  private final Map<Integer, AngelFileStream> files = new HashMap<Integer, AngelFileStream>();
   
   /** The directory in which temporary files are created. Note that the path is expected to end with a path delimiter.*/
   private final static String TEMP_FILE_DIR = "/tmp/";
   
-  /** The file handle that is distributed with the next call to {@link #addFile(RandomAccessFile)}*/
-  private int nextFileHandle = 0;
+  /** The file handle that is distributed with the next call to {@link #addFile(RandomAccessFile)}. 
+   * Valid Angle handles are non-zero values (i.e. >= 1).*/
+  private int nextFileHandle = 1;
   
   /** */
   private AngelSystemCall[] sysCalls;
   
   public AngelSystemCalls(ARM_ProcessSpace ps) {
     this.ps = ps;
-    sysCalls = new AngelSystemCall[0x31];
+    sysCalls = new AngelSystemCall[0x32];
     
     sysCalls[0x1] = new Sys_Open();
     sysCalls[0x2] = new Sys_Close();
@@ -76,6 +80,7 @@ public class AngelSystemCalls {
     sysCalls[0x14] = null; //Another undefined call
     sysCalls[0x15] = new Sys_Get_CmdLine();
     sysCalls[0x16] = new Sys_HeapInfo();
+    sysCalls[0x18] = new Sys_Exit();
     sysCalls[0x30] = new Sys_Elapsed();
     sysCalls[0x31] = new Sys_TickFreq();
   }
@@ -93,20 +98,20 @@ public class AngelSystemCalls {
   }
   
   /** Add a file to the open file table and return its handle. */
-  private int addFile(RandomAccessFile file) {
+  private int addFile(AngelFileStream file) {
     int handle = nextFileHandle++;
     files.put(handle, file);
     return handle;
   }
   
   /** Returns the file associated with an open file handle or null, if that file handle does not exist. */
-  private RandomAccessFile getFile(int handle) {
+  private AngelFileStream getFile(int handle) {
     return files.get(handle);
   }
   
   private boolean closeFile(int handle) {
     try {
-      RandomAccessFile file = files.get(handle);
+      AngelFileStream file = files.get(handle);
       file.close();
       return true;
     }
@@ -115,6 +120,133 @@ public class AngelSystemCalls {
     }
     finally {
       files.remove(handle);
+    }
+  }
+  
+  private interface AngelFileStream {
+    
+    boolean isTty();
+    int getLength();
+    void close();
+    
+    int read() throws IOException;
+    int read(byte[] buffer) throws IOException;
+    
+    void write(int b) throws IOException;
+    void write(byte[] buffer) throws IOException;
+
+    void seek(long pos) throws IOException;
+  }
+  
+  private class ConsoleStream implements AngelFileStream {
+    
+    private String previousInputLine = null;
+
+    public void close() {
+      throw new RuntimeException("The stdin and stdout are not closeable.");
+    }
+
+    public int getLength() {
+      return 0;
+    }
+
+    public boolean isTty() {
+      return false;
+    }
+
+    public int read() throws IOException {
+      return System.in.read();
+    }
+
+    public int read(byte[] buffer) throws IOException {
+      
+      //do we already have unhandled input?
+      if (previousInputLine == null) {
+        //if not, query a line from the prompt
+        
+        previousInputLine = new BufferedReader(new InputStreamReader(System.in)).readLine();
+
+        //don't forget the Angel expects us to submit a carriage return etc. too
+        previousInputLine += "\n\r";
+      }
+        
+      if (DBT.VerifyAssertions) DBT._assert(previousInputLine != null);
+      
+      int bytesToRead = Math.min(previousInputLine.length(), buffer.length);
+      
+      for (int i = 0; i < bytesToRead; i++) {
+        buffer[i] = (byte)previousInputLine.charAt(i);
+      }
+      
+      //if we put the complete line into the buffer, then read a new line the next time
+      if (bytesToRead == previousInputLine.length())
+        previousInputLine = null;
+
+      return bytesToRead;
+    }
+    
+    public void seek(long pos) throws IOException {
+      throw new IOException("The stdin and stdout are not seekable.");
+    }
+
+    public void write(int b) throws IOException {
+      System.out.write(b);
+    }
+
+    public void write(byte[] buffer) throws IOException {
+      System.out.write(buffer);      
+    }
+  }
+  
+  private class FileStream implements AngelFileStream {
+    
+    private final RandomAccessFile file;
+    
+    public FileStream(RandomAccessFile file) {
+      this.file = file;
+    }
+
+    public void close() {
+      try {
+        file.close();
+      } 
+      catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    public int getLength() {
+      try {
+        return (int)file.length();
+      } 
+      catch (IOException e) {
+        e.printStackTrace();
+        return 0;
+      }
+    }
+
+    public boolean isTty() {
+      return false;
+    }
+
+    public int read() throws IOException {
+      return file.read();
+    }
+
+    public int read(byte[] buffer) throws IOException {
+      return file.read(buffer);
+    }
+
+    public void seek(long pos) throws IOException {
+     file.seek(pos); 
+    }
+
+    public void write(int b) throws IOException {
+     file.write(b); 
+    }
+
+    public void write(byte[] buffer) throws IOException {
+      file.write(buffer);
     }
   }
   
@@ -149,18 +281,29 @@ public class AngelSystemCalls {
     @Override
     public void execute() {
       int ptrParamBlock = ps.registers.get(1);
-      int ptrBuffer = ps.memory.loadUnsigned8(ptrParamBlock);
-      int fileMode = ps.memory.loadUnsigned8(ptrParamBlock + 4);
-      int length = ps.memory.loadUnsigned8(ptrParamBlock + 8);
+      int ptrBuffer = ps.memory.load32(ptrParamBlock);
+      int fileMode = ps.memory.load32(ptrParamBlock + 4);
+      int length = ps.memory.load32(ptrParamBlock + 8);
       
       String fileName = readString(ptrBuffer, length);
 
       try {
-        String openMode = (fileMode >= 4) ? "rw" : "w";
-        RandomAccessFile file = new RandomAccessFile(fileName, openMode);
+        AngelFileStream stream;
+        
+        //Angel uses a special file called ":tt" to denote stdin / stdout
+        if (fileName.equals(":tt")) {
+          //we're supposed to open the console
+          stream = new ConsoleStream();
+        }
+        else {
+          //we're supposed to open a file
+          String openMode = (fileMode >= 4) ? "rw" : "w";
+          RandomAccessFile file = new RandomAccessFile(fileName, openMode);
+          stream = new FileStream(file);
+        }
         
         //return the file's index within this table as a file handle
-        setReturn(addFile(file));
+        setReturn(addFile(stream));
         
       } catch (FileNotFoundException e) {
         
@@ -187,7 +330,9 @@ public class AngelSystemCalls {
     public void execute() {
       int ptrCharToOutput = ps.registers.get(1);
       char output = (char)ps.memory.loadUnsigned8(ptrCharToOutput);
-      consoleOutput.print(output);
+      
+      if (output != 0)
+        consoleOutput.print(output);
     }
   }
   
@@ -196,7 +341,6 @@ public class AngelSystemCalls {
     @Override
     public void execute() {
       int ptrOutput = ps.registers.get(1);
-      
       char output = (char)ps.memory.loadUnsigned8(ptrOutput++);
       
       while (output != 0) {
@@ -216,12 +360,16 @@ public class AngelSystemCalls {
       int length     = ps.memory.load32(ptrParamBlock + 8);
       
       try {
-        RandomAccessFile file = getFile(fileHandle);
+        AngelFileStream file = getFile(fileHandle);
         
-        while (length != 0) {
-          file.writeByte(ps.memory.loadUnsigned8(ptrBuffer++));
-          length--;
-        }
+        //first try to read the whole buffer from memory
+        byte[] buf = new byte[length];
+        
+        for (int i = 0; i < length; i++)
+          buf[i] = (byte)ps.memory.loadUnsigned8(ptrBuffer++);
+        
+        file.write(buf);
+        length = 0;
       }
       catch (Exception e) {}
       
@@ -239,7 +387,7 @@ public class AngelSystemCalls {
       int ptrBuffer  = ps.memory.load32(ptrParamBlock + 4);
       int length     = ps.memory.load32(ptrParamBlock + 8);
       
-      RandomAccessFile file = getFile(fileHandle);
+      AngelFileStream file = getFile(fileHandle);
       
       //fail with EOF if the handle is invalid. Angel does not provide any facilities to
       //notify about an invalid handle
@@ -248,21 +396,28 @@ public class AngelSystemCalls {
         return;
       }
       
-      int leftToRead = length;
-      while (leftToRead-- != 0) {
-        try {
-          ps.memory.store8(ptrBuffer++, file.readByte()); 
+      byte buf[] = new byte[length];
+      try {
+        int bytesRead = file.read(buf);
+        
+        //store the retrieved info into the buffer
+        for (int i = 0; i < bytesRead; i++)
+          ps.memory.store8(ptrBuffer++, buf[i]);
+        
+        if (bytesRead == length) {
+          setReturn(0);
         }
-        catch (Exception e) {
-          //did we read any values at all?
-          if (leftToRead == length) {
-            setReturn(length); //no, then fail with eof
-            return;
-          }
+        else {
+          setReturn(bytesRead + 2*length);
         }
+        
+      } catch (IOException e1) {
+        e1.printStackTrace();
+        
+        //due to us not having a better return code, just return EOF.
+        setReturn(length);
+        return;
       }
-      
-      setReturn(length + leftToRead); //otherwise return that we partially filled the buffer
     }
   }
   
@@ -303,11 +458,10 @@ public class AngelSystemCalls {
       int ptrParamBlock = ps.registers.get(1);
       int fileHandle = ps.memory.load32(ptrParamBlock);
       
-      RandomAccessFile file = getFile(fileHandle);
+      AngelFileStream file = getFile(fileHandle);
       
       if (file != null) {
-        //TODO: Check if the file is an interactive device and return 1 in that case.
-        setReturn(0);
+        setReturn( file.isTty() ? 1 : 0 );
       }
       else {
         setReturn(-1);
@@ -323,11 +477,12 @@ public class AngelSystemCalls {
       int fileHandle = ps.memory.load32(ptrParamBlock);
       int absolutePosition = ps.memory.load32(ptrParamBlock + 4);
       
-      RandomAccessFile file = getFile(fileHandle);
+      AngelFileStream file = getFile(fileHandle);
+      
       try {
         file.seek(absolutePosition);
         setReturn(0);
-      } catch (Exception e) {
+      } catch (Exception e) { //this path also catches null-pointer exceptions, in case an invalid handle is given
         setReturn(-1);
       }
     }
@@ -340,12 +495,12 @@ public class AngelSystemCalls {
       int ptrParamBlock = ps.registers.get(1);
       int fileHandle = ps.memory.load32(ptrParamBlock);
       
-      RandomAccessFile file = getFile(fileHandle);
+      AngelFileStream file = getFile(fileHandle);
       
       try {
-        setReturn((int)file.length());
+        setReturn(file.getLength());
       }
-      catch (Exception e) {
+      catch (Exception e) {  //this path also catches null-pointer exceptions, in case an invalid handle is given
         setReturn(-1);
       }
     }
@@ -515,5 +670,14 @@ public class AngelSystemCalls {
     public void execute() {
       setReturn(1000000000); //Return that ticks are measured in nanoseconds
     }
+  }
+  
+  class Sys_Exit extends AngelSystemCall {
+
+    @Override
+    public void execute() {
+      ps.finished = true;
+    }
+    
   }
 }

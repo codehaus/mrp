@@ -13,7 +13,7 @@ import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 /**
  * Captures exceptions that can occur during memory mangement
  */
-final public class MemoryMapException extends Exception {
+final public class MemoryMapException extends RuntimeException {
   /**
    * Attempt to allocate on a non-page boundary
    */
