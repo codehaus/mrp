@@ -11,7 +11,6 @@ package org.binarytranslator.generic.memory;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
-import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.vmInterface.TranslationHelper;
 import org.jikesrvm.compilers.opt.ir.OPT_Operand;
@@ -79,6 +78,22 @@ public class DebugMemory extends Memory {
   private static final int getPTE(int address) {
     return address >>> OFFSET_BITS;
   }
+  
+  /**
+   * Ensure memory between start and end is mapped
+   * @param startAddr starting address for mapped memory
+   * @param endAddr ending address for mapped memory
+   */
+  @Override
+  public void ensureMapped(int startAddr, int endAddr) throws MemoryMapException {
+    startAddr = truncateToPage(startAddr);
+    endAddr = truncateToNextPage(endAddr);
+    for (;startAddr < endAddr; startAddr += getPageSize()) {
+      if (!isMapped(startAddr)) {
+        map(startAddr, getPageSize(), true, true, true);
+      }
+    }
+  }
 
   /**
    * Find free consecutive pages
@@ -120,11 +135,16 @@ public class DebugMemory extends Memory {
    *          is the page writable
    * @param exec
    *          is the page executable
+   * @return
+   *          The start address of the mapped memory.
    */
   public int map(int addr, int len, boolean read, boolean write, boolean exec)
       throws MemoryMapException {
     // Check that the address is page aligned
     if ((addr % PAGE_SIZE) != 0) {
+      MemoryMapException.unalignedAddress(addr);
+      
+      /*
       // if it is not, truncate the address down to the next page boundary and
       // start mapping from there
       int validPageCount = addr / PAGE_SIZE;
@@ -135,7 +155,7 @@ public class DebugMemory extends Memory {
         DBT._assert(oldStartAddress > addr);
 
       // we have to map more more memory now to reach the same end address
-      len += (oldStartAddress - addr);
+      len += (oldStartAddress - addr);*/
     }
     
     // Create memory
@@ -196,12 +216,6 @@ public class DebugMemory extends Memory {
     if ((addr % PAGE_SIZE) != 0) {
       MemoryMapException.unalignedAddress(addr);
     }
-    // Check file offset is page aligned
-    /*
-    if ((offset % PAGE_SIZE) != 0) {
-      MemoryMapException.unalignedFileOffset(offset);
-    }
-    */
     
     // Calculate number of pages
     int num_pages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
@@ -257,30 +271,24 @@ public class DebugMemory extends Memory {
             throw new Error("Memory map of already mapped location addr=0x"
                 + Integer.toHexString(addr) + " len=" + len);
           }
-          // Allocate page
-          if (read && write) {
-            readableMemory[pte + i] = file.getChannel().map(
-                FileChannel.MapMode.READ_WRITE, offset + (i * PAGE_SIZE),
-                PAGE_SIZE).array();
-            writableMemory[pte + i] = readableMemory[pte + i];
-            if (exec) {
-              executableMemory[pte + i] = readableMemory[pte + i];
-            }
-          } else if (read) {
-            readableMemory[pte + i] = file.getChannel().map(
-                FileChannel.MapMode.READ_ONLY, offset + (i * PAGE_SIZE),
-                PAGE_SIZE).array();
-            if (exec) {
-              executableMemory[pte + i] = readableMemory[pte + i];
-            }
-          } else if (exec) {
-            executableMemory[pte + i] = file.getChannel().map(
-                FileChannel.MapMode.READ_ONLY, offset + (i * PAGE_SIZE),
-                PAGE_SIZE).array();
-          } else {
-            throw new Error("Unable to map address 0x"
-                + Integer.toHexString(addr) + " with permissions "
-                + (read ? "r" : "-") + (write ? "w" : "-") + (exec ? "x" : "-"));
+          
+          byte[] page;
+          
+          if (write)
+            page = file.getChannel().map(FileChannel.MapMode.READ_WRITE, offset + (i * PAGE_SIZE), PAGE_SIZE).array();
+          else
+            page = file.getChannel().map(FileChannel.MapMode.READ_ONLY, offset + (i * PAGE_SIZE), PAGE_SIZE).array();
+          
+          if (write) {
+            writableMemory[pte + i] = page;
+          }
+          
+          if (read) {
+            readableMemory[pte + 1] = page;
+          }
+          
+          if (exec) {
+            executableMemory[pte + i] = page;
           }
         }
       }

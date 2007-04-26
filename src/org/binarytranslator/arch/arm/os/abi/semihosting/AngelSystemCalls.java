@@ -167,7 +167,7 @@ public class AngelSystemCalls {
         previousInputLine = new BufferedReader(new InputStreamReader(System.in)).readLine();
 
         //don't forget the Angel expects us to submit a carriage return etc. too
-        previousInputLine += "\n\r";
+        previousInputLine += "\n";
       }
         
       if (DBT.VerifyAssertions) DBT._assert(previousInputLine != null);
@@ -344,7 +344,10 @@ public class AngelSystemCalls {
       char output = (char)ps.memory.loadUnsigned8(ptrOutput++);
       
       while (output != 0) {
-        consoleOutput.print(output);
+        
+        if (output != 13)
+          consoleOutput.print(output);
+        
         output = (char)ps.memory.loadUnsigned8(ptrOutput++);
       }
     }
@@ -427,6 +430,10 @@ public class AngelSystemCalls {
     public void execute() {
       try {
         int value = consoleInput.read();
+        
+        //skip #13, because that's what Angel seems to do.
+        while (value == 13)
+          value = consoleInput.read();
         
         if (value == -1)
           throw new RuntimeException("Unable to read further characters from console");

@@ -58,13 +58,13 @@ public final class ARM_Registers {
    * This flag from the CPSR denotes whether IRQs are currently accepted by the
    * processor.
    */
-  private boolean flagIRQsDisabled = false;
+  private boolean flagIRQsDisabled = true;
 
   /**
    * This flag from the CPSR denotes whether FIQs are currently accepted by the
    * processor.
    */
-  private boolean flagFIQsDisabled = false;
+  private boolean flagFIQsDisabled = true;
 
   /**
    * The operating mode from the CPSR register. Note that only the bottom five
@@ -119,18 +119,63 @@ public final class ARM_Registers {
     regs[reg] = value;
   }
   
-  public void switchOperatingMode(OperatingMode newMode) {
+  /**
+   * Switches the current processor operating mode to <code>newMode</code>, by loading the appropriate
+   * register layout for the mode and changing the processor's OperatingMode flag.
+   * During this process, the SPSR of the newMode is replaced with the CPSR of the current mode.
+   * 
+   * @param newMode
+   *  The operating mode that shall switch to.
+   */
+  public void switchOperatingModeAndStoreSPSR(OperatingMode newMode) {
     
+    //get the previous SPSR
     int previous_cpsr = getCPSR();
+    
+    //change the current operating mode
+    switchOperatingMode(newMode);
+    
+    setSPSR(previous_cpsr);
+  }
+
+  /** 
+   * Sets the current operating mode and loads the register layout for that mode.
+   * However, the CPSR is not pushed into the new mode's SPSR.
+   * 
+   * @param newMode
+   *  The operating mode to switch to.
+   */
+  public void switchOperatingMode(OperatingMode newMode) {
+    //perform the actual mode switch
+    setRegisterLayout(newMode);
+    operatingMode = newMode;
+  }
+  
+  /**
+   * Sets the processor's operating mode without changing the register layout.
+   * This is useful in certain situations, where a command just "fakes" to be in another mode
+   * so that the memory is fooled.
+   * 
+   * @param newMode
+   */
+  public void setOperatingModeWithoutRegisterLayout(OperatingMode newMode) {
+    operatingMode = newMode;
+  }
+  
+  /**
+   * Sets the layout of the ARM registers to the layout expected in <code>newMode</code>.
+   * 
+   * @param newMode
+   *  The mode for which the register layout shall be constructed.
+   */
+  private void setRegisterLayout(OperatingMode newMode) {
     
     //if we're either not switching to a new mode or if we're switching between SYS and USR mode, then
     //take a special fast-path
     if (newMode == operatingMode || 
         ((operatingMode == OperatingMode.USR || newMode == OperatingMode.SYS) &&
          (operatingMode == OperatingMode.SYS || newMode == OperatingMode.USR))) {
-      //we don't need to do anything in this case, except for copying the CPSR to the SPSR
-      operatingMode = newMode;
-      setSPSR(previous_cpsr);
+      //we don't need to do anything in this case
       return;
     }
     
@@ -196,7 +241,7 @@ public final class ARM_Registers {
       regs[11] = shadowRegisters[shadowOffset++];
       regs[12] = shadowRegisters[shadowOffset++];
     }
-    else if (operatingMode == OperatingMode.USR) {
+    else if (newMode == OperatingMode.USR) {
       //skip these shadow registers for now
       shadowOffset += 5;
     }
@@ -204,14 +249,30 @@ public final class ARM_Registers {
     //now load the remaining r13 and r14 registers
     regs[13] = shadowRegisters[shadowOffset++];
     regs[14] = shadowRegisters[shadowOffset];
-    
-    //perform the actual mode switch
-    operatingMode = newMode;
-    
-    //save the previous CPSR as the current SPSR
-    setSPSR(previous_cpsr);
   }
   
+  /**
+   * Overwrites the SPSR of the current mode with the supplied value. 
+   * 
+   * @param newSPSR
+   *  The new value, which will replace the current SPSR.
+   */
+  public void setSPSR(int newSPSR) {
+    //save the previous CPSR as the current SPSR
+    if (operatingMode == OperatingMode.USR || operatingMode == OperatingMode.SYS) {
+      //these modes don't have a SPSR, so ignore them
+      return;
+    }
+    
+    shadowRegisters[operatingMode.SHADOW_OFFSET + SPSR_OFFSET] = newSPSR;
+  }
+  
+  /**
+   * Returns the current operating mode.
+   */
+  public OperatingMode getOperatingMode() {
+    return operatingMode;
+  }
 
   /**
    * Restores the saved program status register of the current operating mode to the CPSR, 
@@ -220,7 +281,17 @@ public final class ARM_Registers {
   public void restoreSPSR2CPSR() {
     if (VM.VerifyAssertions) VM._assert(operatingMode != OperatingMode.USR);
     
-    setFlagsFromCPSR(getSPSR());
+    setCPSR(getSPSR());
+  }
+  
+  /**
+   * Used to control the processor flag which says if the the processor is accepting interrupt requests.
+   *  
+   * @param enabled
+   *  Set to true to enable interrupts or false otherwise.
+   */
+  public void setInterruptsEnabled(boolean enabled) {
+    flagIRQsDisabled = !enabled;
   }
 
   /**
@@ -246,20 +317,6 @@ public final class ARM_Registers {
     
     return shadowRegisters[operatingMode.SHADOW_OFFSET + SPSR_OFFSET];
   }
-  
-  /**
-   * Set's the current mode's Saved Program status register. 
-   * @param newSPSR
-   */
-  public void setSPSR(int newSPSR) {
-    
-    if (operatingMode == OperatingMode.USR || operatingMode == OperatingMode.SYS) {
-      //these modes don't have a SPSR, so ignore them
-      return;
-    }
-    
-    shadowRegisters[operatingMode.SHADOW_OFFSET + SPSR_OFFSET] = newSPSR;
-  }
 
   /**
    * Restores the processor state to the state saved within the given CPSR.
@@ -267,9 +324,9 @@ public final class ARM_Registers {
    * @param cpsr
    *          ARM CPSR register content
    */
-  public void setFlagsFromCPSR(int cpsr) {
+  public void setCPSR(int cpsr) {
     
-    //extract teh differnet flags from the PSR
+    //extract the different flags from the PSR
     flagNegative = (cpsr & 0x80000000) != 0; //bit 31
     flagZero = (cpsr & 0x40000000) != 0; //bit 30
     flagCarry = (cpsr & 0x20000000) != 0; //bit 29
@@ -285,6 +342,7 @@ public final class ARM_Registers {
     for (OperatingMode opMode : OperatingMode.values())
       if (opMode.PSR_IDENTIFIER == mode) {
         switchOperatingMode(opMode);
+        break;
       }
     
     if (DBT.VerifyAssertions) DBT._assert(operatingMode.PSR_IDENTIFIER == mode);

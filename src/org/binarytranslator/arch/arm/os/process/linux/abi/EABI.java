@@ -68,13 +68,11 @@ public class EABI implements LinuxSystemCallGenerator {
   }
 
   public void setSysCallError(int r) {
-    // TODO Auto-generated method stub
-    throw new RuntimeException("Not yet implemented.");
+    ps.registers.set(0, -r);
   }
 
   public void setSysCallReturn(int r) {
-    // TODO Auto-generated method stub
-    throw new RuntimeException("Not yet implemented.");
+    ps.registers.set(0, r);
   }
   
   /** An argument iterator that hides the layout of syscall arguments on the ARM architecture */

@@ -6,8 +6,7 @@ import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 
 public class ARM_LinuxSystemCalls extends LinuxSystemCalls {
   
-  private final ARM_LinuxProcessSpace ps;
-  
+
   public ARM_LinuxSystemCalls(ARM_LinuxProcessSpace ps, LinuxSystemCallGenerator src) {
     super(src);
 
@@ -25,6 +24,7 @@ public class ARM_LinuxSystemCalls extends LinuxSystemCalls {
     systemCallTable[91] = new LinuxSystemCalls.SysMunmap();
     systemCallTable[122] = new LinuxSystemCalls.SysUname();
     systemCallTable[146] = new LinuxSystemCalls.SysWriteV();
+    systemCallTable[195] = new LinuxSystemCalls.SysStat64();
     systemCallTable[197] = new LinuxSystemCalls.SysFstat64();
     systemCallTable[199] = new LinuxSystemCalls.SysGetEUID();
     systemCallTable[200] = new LinuxSystemCalls.SysGetEGID();
@@ -32,8 +32,7 @@ public class ARM_LinuxSystemCalls extends LinuxSystemCalls {
     systemCallTable[202] = new LinuxSystemCalls.SysGetEGID();
     systemCallTable[221] = new LinuxSystemCalls.SysFcntl64();
     systemCallTable[252] = new LinuxSystemCalls.SysExitGroup();
-    
-    this.ps = ps;
+
   }
   
   @Override

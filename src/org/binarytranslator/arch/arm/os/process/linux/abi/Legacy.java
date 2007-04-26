@@ -84,8 +84,7 @@ public class Legacy implements LinuxSystemCallGenerator {
   }
 
   public void setSysCallError(int r) {
-//  TODO Auto-generated method stub
-    throw new RuntimeException("Not yet implemented.");
+    ps.registers.set(0, -r);
   }
 
   public void setSysCallReturn(int value) {

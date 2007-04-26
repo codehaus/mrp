@@ -7,6 +7,7 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.DataProcessing.Opc
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
+import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
 import org.binarytranslator.generic.decoder.Interpreter;
 
 import com.sun.org.apache.bcel.internal.generic.InstructionFactory;
@@ -46,6 +47,288 @@ public class ARM_Interpreter implements Interpreter {
     }
     
     return instruction;
+  }
+  
+  
+  private abstract static class ResolvedOperand {
+    
+    protected int value;
+    
+    public static ResolvedOperand resolveWithShifterCarryOut(ARM_Registers regs, OperandWrapper operand) {
+      ResolvedOperand result = new ResolvedOperand_WithShifterCarryOut(regs, operand);
+      return result;
+    }
+    
+    public static int resolve(ARM_Registers regs, OperandWrapper operand) {
+      ResolvedOperand result = new ResolvedOperand_WithoutShifterCarryOut(regs, operand);
+      return result.getValue();
+    }
+    
+    public final int getValue() {
+      return value;
+    }
+    
+    public abstract boolean getShifterCarryOut();
+    
+    private static class ResolvedOperand_WithoutShifterCarryOut 
+    extends ResolvedOperand{
+    
+    private ResolvedOperand_WithoutShifterCarryOut(ARM_Registers regs, OperandWrapper operand) {
+      _resolve(regs, operand);
+    }
+    
+    public boolean getShifterCarryOut() {
+      throw new RuntimeException("This class does not provide a shifter carry out value.");
+    }
+    
+    private void _resolve(ARM_Registers regs, OperandWrapper operand) {
+
+      switch (operand.getType()) {
+      case Immediate:
+        value = operand.getImmediate();
+        return;
+
+      case Register:
+        int reg = operand.getRegister();
+        
+        //mind the arm pc offset
+        value = regs.get(reg);
+        
+        if (reg == 15)
+          value += 8;
+        
+        return;
+
+      case RegisterShiftedRegister:
+      case ImmediateShiftedRegister:
+        value = resolveShift(regs, operand);
+        return;
+
+      case PcRelative:
+        value = regs.get(ARM_Registers.PC) + 8 + operand.getOffset();
+        break;
+        
+      default:
+        throw new RuntimeException("Unexpected wrapped operand type: "
+            + operand.getType());
+      }
+    }
+    
+    /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
+     * and set the result of the barrel shifter accordingly. */
+    private final int resolveShift(ARM_Registers regs, OperandWrapper operand) {
+      if (DBT.VerifyAssertions) 
+          DBT._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister ||
+                      operand.getType() == OperandWrapper.Type.RegisterShiftedRegister);
+
+      int value = regs.get(operand.getRegister());
+      
+      //consider the "usual" ARM program counter offset
+      if (operand.getRegister() == ARM_Registers.PC)
+        value += 8;
+      
+      byte shiftAmount;
+
+      if (operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister)
+        shiftAmount = operand.getShiftAmount();
+      else {
+        shiftAmount = (byte) (regs.get(operand.getShiftingRegister()) & 0xF);
+      }
+
+      switch (operand.getShiftType()) {
+      case ASR:
+
+        if (shiftAmount >= 32) {
+          return Utils.getBit(value, 31) ? 0xFFFFFFFF : 0;
+        }
+        return value >> shiftAmount;
+
+      case LSL:
+
+        if (shiftAmount >= 32) {
+          return 0;
+        }
+
+        return value << shiftAmount;
+
+      case LSR:
+
+        if (shiftAmount >= 32) {
+          return 0;
+        }
+
+        return value >>> shiftAmount;
+
+      case ROR:
+        return Integer.rotateRight(value, shiftAmount);
+
+      case RRE:
+        if (regs.isCarrySet())
+          return (value >> 1) | 0x80000000;
+        else
+          return value >> 1;
+
+      default:
+        throw new RuntimeException("Unexpected shift type: "
+            + operand.getShiftType());
+      }
+    }
+  }
+    
+    private static class ResolvedOperand_WithShifterCarryOut 
+      extends ResolvedOperand{
+      
+      private boolean shifterCarryOut;
+      
+      private ResolvedOperand_WithShifterCarryOut(ARM_Registers regs, OperandWrapper operand) {
+        _resolve(regs, operand);
+      }
+      
+      public boolean getShifterCarryOut() {
+        return shifterCarryOut;
+      }
+      
+      private void _resolve(ARM_Registers regs, OperandWrapper operand) {
+
+        switch (operand.getType()) {
+        case Immediate:
+          value = operand.getImmediate();
+
+          if (operand.getShiftAmount() == 0)
+            shifterCarryOut = regs.isCarrySet();
+          else
+            shifterCarryOut = (value & 0x80000000) != 0;
+          
+          return;
+
+        case Register:
+          shifterCarryOut = regs.isCarrySet();
+          int reg = operand.getRegister();
+          
+          //mind the arm pc offset
+          value = regs.get(reg);
+          
+          if (reg == 15)
+            value += 8;
+          
+          return;
+
+        case RegisterShiftedRegister:
+        case ImmediateShiftedRegister:
+          value = resolveShift(regs, operand);
+          return;
+
+        case PcRelative:
+          throw new RuntimeException("This operand type does not produce a shifter carry out.");
+          
+        default:
+          throw new RuntimeException("Unexpected wrapped operand type: "
+              + operand.getType());
+        }
+      }
+      
+      /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
+       * and set the result of the barrel shifter accordingly. */
+      private final int resolveShift(ARM_Registers regs, OperandWrapper operand) {
+        if (DBT.VerifyAssertions) 
+            DBT._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister ||
+                        operand.getType() == OperandWrapper.Type.RegisterShiftedRegister);
+
+        int value = regs.get(operand.getRegister());
+        
+        //consider the "usual" ARM program counter offset
+        if (operand.getRegister() == ARM_Registers.PC)
+          value += 8;
+        
+        byte shiftAmount;
+
+        if (operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister)
+          shiftAmount = operand.getShiftAmount();
+        else {
+          shiftAmount = (byte) (regs.get(operand.getShiftingRegister()) & 0xF);
+        }
+
+        switch (operand.getShiftType()) {
+        case ASR:
+
+          if (shiftAmount >= 32) {
+            shifterCarryOut = Utils.getBit(value, 31);
+            return shifterCarryOut ? 0xFFFFFFFF : 0;
+          }
+
+          if (shiftAmount == 0) {
+            shifterCarryOut = regs.isCarrySet();
+            return value;
+          }
+          
+          shifterCarryOut = Utils.getBit(value, shiftAmount - 1);
+          return value >> shiftAmount;
+
+        case LSL:
+
+          if (shiftAmount > 32) {
+            shifterCarryOut = false;
+            return 0;
+          }
+
+          if (shiftAmount == 32) {
+            shifterCarryOut = Utils.getBit(value, 31);
+            return 0;
+          }
+
+          if (shiftAmount == 0) {
+            shifterCarryOut = regs.isCarrySet();
+            return value;
+          }
+
+          shifterCarryOut = Utils.getBit(value, 32 - shiftAmount);
+          return value << shiftAmount;
+
+        case LSR:
+
+          if (shiftAmount > 32) {
+            shifterCarryOut = false;
+            return 0;
+          }
+          
+          if (shiftAmount == 32) {
+            shifterCarryOut = Utils.getBit(value, 31);
+            return 0;
+          }
+
+          if (shiftAmount == 0) {
+            shifterCarryOut = regs.isCarrySet();
+            return value;
+          }
+
+          shifterCarryOut = Utils.getBit(value, shiftAmount - 1);
+          return value >>> shiftAmount;
+
+        case ROR:
+
+          if (shiftAmount == 0) {
+            shifterCarryOut = regs.isCarrySet();
+            return value;
+          } 
+          else {
+            shifterCarryOut = Utils.getBit(value, shiftAmount & 0x1F);
+            return Integer.rotateRight(value, shiftAmount);
+          }
+
+        case RRE:
+          shifterCarryOut = (value & 0x1) != 0;
+
+          if (regs.isCarrySet())
+            return (value >> 1) | 0x80000000;
+          else
+            return value >> 1;
+
+        default:
+          throw new RuntimeException("Unexpected shift type: "
+              + operand.getShiftType());
+        }
+      }
+    }
   }
   
   /** All ARM interpreter instructions implement this interface. */
@@ -164,104 +447,7 @@ public class ARM_Interpreter implements Interpreter {
 
     /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
      * and set the result of the barrel shifter accordingly. */
-    private final int resolveShift(OperandWrapper operand) {
-      if (DBT.VerifyAssertions) 
-          DBT._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister ||
-                      operand.getType() == OperandWrapper.Type.RegisterShiftedRegister);
 
-      int value = regs.get(operand.getRegister());
-      
-      //consider the "usual" ARM program counter offset
-      if (operand.getRegister() == ARM_Registers.PC)
-        value += 8;
-      
-      byte shiftAmount;
-
-      if (operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister)
-        shiftAmount = operand.getShiftAmount();
-      else {
-        shiftAmount = (byte) (regs.get(operand.getShiftingRegister()) & 0xF);
-      }
-
-      switch (operand.getShiftType()) {
-      case ASR:
-
-        if (shiftAmount >= 32) {
-          shifterCarryOut = Utils.getBit(value, 31);
-          return shifterCarryOut ? 0xFFFFFFFF : 0;
-        }
-
-        if (shiftAmount == 0) {
-          shifterCarryOut = regs.isCarrySet();
-          return value;
-        }
-        
-        shifterCarryOut = Utils.getBit(value, shiftAmount - 1);
-        return value >> shiftAmount;
-
-      case LSL:
-
-        if (shiftAmount > 32) {
-          shifterCarryOut = false;
-          return 0;
-        }
-
-        if (shiftAmount == 32) {
-          shifterCarryOut = Utils.getBit(value, 31);
-          return 0;
-        }
-
-        if (shiftAmount == 0) {
-          shifterCarryOut = regs.isCarrySet();
-          return value;
-        }
-
-        shifterCarryOut = Utils.getBit(value, 32 - shiftAmount);
-        return value << shiftAmount;
-
-      case LSR:
-
-        if (shiftAmount > 32) {
-          shifterCarryOut = false;
-          return 0;
-        }
-        
-        if (shiftAmount == 32) {
-          shifterCarryOut = Utils.getBit(value, 31);
-          return 0;
-        }
-
-        if (shiftAmount == 0) {
-          shifterCarryOut = regs.isCarrySet();
-          return value;
-        }
-
-        shifterCarryOut = Utils.getBit(value, shiftAmount - 1);
-        return value >>> shiftAmount;
-
-      case ROR:
-
-        if (shiftAmount == 0) {
-          shifterCarryOut = regs.isCarrySet();
-          return value;
-        } else {
-          shifterCarryOut = Utils.getBit(value, shiftAmount & 0x1F);
-          return Integer.rotateRight(value, shiftAmount);
-        }
-
-      case RRE:
-        shifterCarryOut = (value & 0x1) != 0;
-
-        if (regs.isCarrySet())
-          return (value >> 1) | 0x80000000;
-        else
-          return value >> 1;
-
-      default:
-        throw new RuntimeException("Unexpected shift type: "
-            + operand.getShiftType());
-      }
-    }
 
     /** Returns the value of operand 1 of the data processing instruction. This is always a register value.
      * However, deriving classes may alter this behavior, for example to return a negative register
@@ -277,38 +463,9 @@ public class ARM_Interpreter implements Interpreter {
 
     /** Returns the value of the rhs-operand of the data processing instruction. */
     protected int resolveOperand2() {
-      int value;
-
-      switch (operand2.getType()) {
-      case Immediate:
-        value = operand2.getImmediate();
-
-        if (operand2.getShiftAmount() == 0)
-          shifterCarryOut = regs.isCarrySet();
-        else
-          shifterCarryOut = (value & 0x80000000) != 0;
-        
-        return value;
-
-      case Register:
-        shifterCarryOut = regs.isCarrySet();
-        int reg = operand2.getRegister();
-        
-        //mind the arm pc offset
-        if (reg == 15)
-          return regs.get(reg) + 8;
-        else
-          return regs.get(operand2.getRegister());
-
-      case RegisterShiftedRegister:
-      case ImmediateShiftedRegister:
-        return resolveShift(operand2);
-
-      case PcRelative:
-      default:
-        throw new RuntimeException("Unexpected wrapped operand type: "
-            + operand2.getType());
-      }
+      ResolvedOperand resolvedOperand2 = ResolvedOperand.resolveWithShifterCarryOut(regs, operand2);
+      shifterCarryOut = resolvedOperand2.getShifterCarryOut();
+      return resolvedOperand2.getValue();
     }
 
     public abstract void execute();
@@ -675,17 +832,26 @@ public class ARM_Interpreter implements Interpreter {
 
     public void execute() {
       int memAddr = regs.get(Rn);
-
+      
       //swap exchanges the value of a memory address with the value in a register
-      int tmp = ps.memory.load32(memAddr);
-      ps.memory.store16(memAddr, regs.get(Rm));
-
-      //according to the ARM architecture reference, the value loaded from a memory address is rotated
-      //according to the number of ones in the first two bits of the address
-      regs.set(Rd, Integer.rotateRight(tmp, (memAddr & 0x3) * 8));
+      if (swapByte) {
+        int tmp = ps.memory.load32(memAddr);
+        ps.memory.store32(memAddr, regs.get(Rm));
+        
+        //according to the ARM architecture reference, the value loaded from a memory address is rotated
+        //by the number of ones in the first two bits of the address
+        regs.set(Rd, Integer.rotateRight(tmp, (memAddr & 0x3) * 8));
+      }
+      else {
+        int tmp = ps.memory.loadUnsigned8(memAddr);
+        ps.memory.store8(memAddr, regs.get(Rm) & 0xFF);
+        regs.set(Rm, tmp);
+      }
     }
 
     public int getSuccessor(int pc) {
+      //according to the ARM Architecture reference, using the pc as Rd yields an undefined
+      //result. Therefore, we can safely assume that this instruction never equals a branch
       return pc + 4;
     }
   }
@@ -740,10 +906,18 @@ public class ARM_Interpreter implements Interpreter {
         } else {
           //pre-indexing, forward reading
           //no need to adjust the start address
-          
         }
       }
       int nextAddress = startAddress;
+      
+      OperatingMode previousMode = ps.registers.getOperatingMode();
+      
+      //if we should transfer the user mode registers...
+      if (forceUser) {
+        //... then change the current register map, but do NOT change the current processor mode
+        ps.registers.switchOperatingMode(OperatingMode.USR);
+        ps.registers.setOperatingModeWithoutRegisterLayout(previousMode);
+      }
 
       //are we supposed to load or store multiple registers?
       if (isLoad) {
@@ -761,8 +935,22 @@ public class ARM_Interpreter implements Interpreter {
           int newpc = ps.memory.load32(nextAddress);
           regs.set(ARM_Registers.PC, newpc & 0xFFFFFFFE);
 
-          //shall we switch to thumb mode
-          regs.setThumbMode((newpc & 0x1) != 0);
+          if (forceUser) {
+            //when we are transferring the PC with a forced-user transfer, then we also want to
+            //restore the CPSR from the SPSR.
+            //However, at the moment our register layout is different from our operating mode.
+            //Therefore, sync both first by switching the operating mode to user (which is what our register layout
+            //is anyway).
+            regs.setOperatingModeWithoutRegisterLayout(OperatingMode.USR);
+            regs.restoreSPSR2CPSR();
+            
+            //there is no write-back for this instruction.
+            return;
+          }
+          else {
+            //shall we switch to thumb mode
+            regs.setThumbMode((newpc & 0x1) != 0);
+          }
         }
       } else {
         int nextReg = 0;
@@ -778,6 +966,12 @@ public class ARM_Interpreter implements Interpreter {
           nextAddress += 4;
           ps.memory.store32(nextAddress, regs.get(15) + 8);
         }
+      }
+
+      //restore the register layout, if we were transferring the user mode registers
+      if (forceUser) {
+        ps.registers.setOperatingModeWithoutRegisterLayout(OperatingMode.USR);
+        ps.registers.switchOperatingMode(previousMode);
       }
 
       if (writeBack) {
@@ -961,6 +1155,68 @@ public class ARM_Interpreter implements Interpreter {
       return pc + 4;
     }
   }
+  
+  private final class MoveToStatusRegister extends
+    ARM_Instructions.MoveToStatusRegister implements
+      ARM_Instruction {
+
+    public MoveToStatusRegister(int instr) {
+      super(instr);
+    }
+
+    public void execute() {
+      //this variable is going to receive the new psr, which we will set
+      int new_psr = ResolvedOperand.resolve(regs, sourceOperand);
+      
+      //are we currently in a privileged mode?
+      boolean inPrivilegedMode = (regs.getOperatingMode() != ARM_Registers.OperatingMode.USR);
+      
+      //this variable receives the psr that we're replacing
+      int old_psr;
+      
+      //get the currect value for old_psr
+      if (transferSavedPSR) {
+        //if the current mode does not have a SPSR, then do nothing
+        if (inPrivilegedMode && regs.getOperatingMode() != ARM_Registers.OperatingMode.SYS)
+          return;
+        
+        old_psr = regs.getSPSR();
+      }
+      else {
+        old_psr = regs.getCPSR();
+      }
+
+      //create a new CPSR value according to what pieces of the CPSR we are actually required to set
+      if (!transferControl || !inPrivilegedMode) {
+        new_psr &= 0xFFFFFF00;
+        new_psr |= (old_psr & 0xFF);
+      }
+      
+      if (!transferExtension || !inPrivilegedMode) {
+        new_psr &= 0xFFFF00FF;
+        new_psr |= (old_psr & 0xFF00);
+      }
+      
+      if (!transferStatus || !inPrivilegedMode) {
+        new_psr &= 0xFF00FFFF;
+        new_psr |= (old_psr & 0xFF0000);
+      }
+      
+      if (!transferFlags) {
+        new_psr &= 0x00FFFFFF;
+        new_psr |= (old_psr & 0xFF000000);
+      }
+      
+      if (transferSavedPSR)
+        regs.setSPSR(new_psr);
+      else
+        regs.setCPSR(new_psr);
+    }
+
+    public int getSuccessor(int pc) {
+      return pc+4;
+    }
+  }
 
   /** Invoke a software interrupt. */
   private final class SoftwareInterrupt extends ARM_Instructions.SoftwareInterrupt
@@ -992,63 +1248,8 @@ public class ARM_Interpreter implements Interpreter {
     /** Resolves the offset, which is (when post-indexing is not used) to be added to the 
      * base address to create the final address. */
     private int resolveOffset() {
-      int addrOffset;
+      int addrOffset = ResolvedOperand.resolve(regs, offset);
 
-      switch (offset.getType()) {
-      case Immediate:
-        addrOffset = offset.getImmediate();
-        break;
-
-      case Register:
-        addrOffset = regs.get(offset.getRegister());
-        if (offset.getRegister() == ARM_Registers.PC) {
-          addrOffset += 8;
-        }
-        break;
-
-      case ImmediateShiftedRegister:
-        addrOffset = regs.get(offset.getRegister());
-
-        if (offset.getRegister() == 15)
-          addrOffset += 8;
-
-        switch (offset.getShiftType()) {
-        case ASR:
-          addrOffset = addrOffset >> offset.getShiftAmount();
-          break;
-
-        case LSL:
-          addrOffset = addrOffset << offset.getShiftAmount();
-          break;
-
-        case LSR:
-          addrOffset = addrOffset >>> offset.getShiftAmount();
-          break;
-
-        case ROR:
-          addrOffset = Integer.rotateRight(addrOffset, offset.getShiftAmount());
-          break;
-
-        case RRE:
-          if (regs.isCarrySet())
-            addrOffset = (addrOffset >> 1) | 0x80000000;
-          else
-            addrOffset = addrOffset >> 1;
-          break;
-
-        default:
-          throw new RuntimeException("Unexpected shift type: "
-              + offset.getShiftType());
-        }
-        break;
-
-      case PcRelative:
-      case RegisterShiftedRegister:
-      default:
-        throw new RuntimeException("Unexpected operand type: "
-            + offset.getType());
-      }
-      
       if (positiveOffset)
         return addrOffset;
       else
@@ -1073,11 +1274,12 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
-      //should we simulate a user-mode memory access?
+      //should we simulate a user-mode memory access? If yes, store the current mode and fake a switch
+      //to user mode.
+      OperatingMode previousMode = null;
       if (forceUserMode) {
-        //TODO: Implement user mode memory access
-        throw new RuntimeException(
-            "Forced user mode memory access is not yet supported.");
+        previousMode = ps.registers.getOperatingMode();
+        ps.registers.setOperatingModeWithoutRegisterLayout(ARM_Registers.OperatingMode.USR);
       }
 
       //get the address of the memory, that we're supposed access
@@ -1088,11 +1290,12 @@ public class ARM_Interpreter implements Interpreter {
         int value;
 
         switch (size) {
-        case Byte:
-          if (signExtend)
-            value = ps.memory.loadSigned8(address);
-          else
-            value = ps.memory.loadUnsigned8(address);
+        
+        case Word:
+          value = ps.memory.load32(address);
+          
+          //according to the ARM reference, the last two bits cause the value to be right-rotated
+          value = Integer.rotateRight(value, (address & 0x3) * 8);
           break;
 
         case HalfWord:
@@ -1102,8 +1305,11 @@ public class ARM_Interpreter implements Interpreter {
             value = ps.memory.loadUnsigned16(address);
           break;
 
-        case Word:
-          value = ps.memory.load32(address);
+        case Byte:
+          if (signExtend)
+            value = ps.memory.loadSigned8(address);
+          else
+            value = ps.memory.loadUnsigned8(address);
           break;
 
         default:
@@ -1112,27 +1318,33 @@ public class ARM_Interpreter implements Interpreter {
 
         //finally, write the variable into a register
         regs.set(Rd, value);
-      } else {
+      } 
+      else {
         //we are store a value from a register to memory.
         int value = regs.get(Rd);
 
         switch (size) {
-        case Byte:
-          ps.memory.store8(address, value);
-          break;
-
-        case HalfWord:
-          ps.memory.store16(address, value);
-          break;
-
         case Word:
-          ps.memory.store32(address, value);
+          ps.memory.store32(address & 0xFFFFFFFE, value);
+          break;
+          
+        case HalfWord:
+          ps.memory.store16(address, value & 0xFFFF);
+          break;
+          
+        case Byte:
+          ps.memory.store8(address, value & 0xFF);
           break;
 
         default:
           throw new RuntimeException("Unexpected memory size: " + size);
         }
       }
+      
+      //if we were writing in user mode, then switch back to our previous operating mode
+      if (forceUserMode) {
+        ps.registers.setOperatingModeWithoutRegisterLayout(previousMode);
+      }      
 
       //should the memory address, which we accessed, be written back into a register? 
       //This is used for continuous memory accesses
@@ -1160,14 +1372,11 @@ public class ARM_Interpreter implements Interpreter {
    * is executed. */
   private final class UndefinedInstruction implements ARM_Instruction {
 
-    private final int instruction;
-
     public UndefinedInstruction(int instr) {
-      this.instruction = instr;
     }
 
     public void execute() {
-      throw new RuntimeException("Undefined instruction: " + instruction);
+      ps.doUndefinedInstruction();
     }
 
     public int getSuccessor(int pc) {
@@ -1235,7 +1444,6 @@ public class ARM_Interpreter implements Interpreter {
         return new DataProcessing_Teq(instr);
       case TST:
         return new DataProcessing_Tst(instr);
-        
       case CLZ:
         return new DataProcessing_Clz(instr);
 
@@ -1283,6 +1491,7 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public ARM_Instruction createLongMultiply(int instr) {
+      //TODO: Implement multiplications with longs
       throw new RuntimeException("Long Multiplications are not yet supported.");
     }
 
@@ -1291,9 +1500,7 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public ARM_Instruction createMoveToStatusRegister(int instr) {
-      //TODO: Implement Register -> CPSR transfers
-      throw new RuntimeException(
-          "Modifying the status register using MSR is not yet supported.");
+      return new MoveToStatusRegister(instr);
     }
 
     public ARM_Instruction createSingleDataTransfer(int instr) {

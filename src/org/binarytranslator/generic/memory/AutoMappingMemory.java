@@ -60,8 +60,8 @@ public class AutoMappingMemory extends Memory {
       return mem.load32(addr);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 4);
-      return load32(addr);
+      mem.ensureMapped(addr, addr + 4);
+      return mem.load32(addr);
     }
   }
 
@@ -70,8 +70,8 @@ public class AutoMappingMemory extends Memory {
       return mem.loadInstruction32(addr);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 4);
-      return loadInstruction32(addr);
+      mem.ensureMapped(addr, addr + 4);
+      return mem.loadInstruction32(addr);
     }
   }
 
@@ -80,7 +80,7 @@ public class AutoMappingMemory extends Memory {
       return mem.loadInstruction8(addr);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 1);
+      mem.ensureMapped(addr, addr + 1);
       return mem.loadInstruction8(addr);
     }
   }
@@ -90,7 +90,7 @@ public class AutoMappingMemory extends Memory {
       return mem.loadSigned16(addr);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 2);
+      mem.ensureMapped(addr, addr + 2);
       return mem.loadSigned16(addr);
     }
   }
@@ -100,7 +100,7 @@ public class AutoMappingMemory extends Memory {
       return mem.loadSigned8(addr);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 1);
+      mem.ensureMapped(addr, addr + 1);
       return mem.loadSigned8(addr);
     }
   }
@@ -110,7 +110,7 @@ public class AutoMappingMemory extends Memory {
       return mem.loadUnsigned16(addr);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 2);
+      mem.ensureMapped(addr, addr + 2);
       return mem.loadUnsigned16(addr);
     }
   }
@@ -120,7 +120,7 @@ public class AutoMappingMemory extends Memory {
       return mem.loadUnsigned8(addr);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 1);
+      mem.ensureMapped(addr, addr + 1);
       return mem.loadUnsigned8(addr);
     }
   }
@@ -138,7 +138,7 @@ public class AutoMappingMemory extends Memory {
       mem.store16(addr, value);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 2);
+      mem.ensureMapped(addr, addr + 2);
       mem.store16(addr, value);
     }
   }
@@ -148,7 +148,7 @@ public class AutoMappingMemory extends Memory {
       mem.store32(addr, value);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 4);
+      mem.ensureMapped(addr, addr + 4);
       mem.store32(addr, value);
     }
   }
@@ -158,7 +158,7 @@ public class AutoMappingMemory extends Memory {
       mem.store8(addr, value);
     }
     catch (Exception e) {
-      ensureMapped(addr, addr + 1);
+      mem.ensureMapped(addr, addr + 1);
       mem.store8(addr, value);
     }
   }

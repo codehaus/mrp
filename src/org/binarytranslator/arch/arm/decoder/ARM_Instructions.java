@@ -1157,7 +1157,7 @@ public class ARM_Instructions  {
       sourceOperand = OperandWrapper.decodeDataProcessingOperand(instr);
     }
     
-    /** Identifies the PSR that is to be transferred: true for the SPSR, false for the CPSR. */
+    /** Identifies the PSR that is to be overwritten: true for the SPSR, false for the CPSR. */
     public final boolean transferSavedPSR() {
       return transferSavedPSR;
     }

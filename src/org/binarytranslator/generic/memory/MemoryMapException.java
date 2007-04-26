@@ -13,21 +13,20 @@ import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 /**
  * Captures exceptions that can occur during memory mangement
  */
-final public class MemoryMapException extends RuntimeException {
-  /**
-   * Attempt to allocate on a non-page boundary
-   */
-  private static final int UNALIGNED_ADDRESS = 1;
-
-  /**
-   * Attempt to allocate from a file on an unaligned file offset
-   */
-  private static final int UNALIGNED_FILE_OFFSET = 2;
+final public class MemoryMapException 
+  extends RuntimeException {
+  
+  public enum Reason {
+    /** Attempt to allocate on a non-page boundary */
+    UNALIGNED_ADDRESS,
+    /** Attempt to allocate from a file on an unaligned file offset */
+    UNALIGNED_FILE_OFFSET
+  }
 
   /**
    * The type of this memory map exception
    */
-  private int type;
+  private Reason reason;
 
   /**
    * The file offset or address that was unaligned
@@ -38,36 +37,37 @@ final public class MemoryMapException extends RuntimeException {
    * Throw an unaligned address memory map exception
    */
   static void unalignedAddress(int addr) throws MemoryMapException {
-    throw new MemoryMapException((long) addr, UNALIGNED_ADDRESS);
+    throw new MemoryMapException((long) addr, Reason.UNALIGNED_ADDRESS);
   }
 
   /**
    * Throw an unaligned file offset memory map exception
    */
   static void unalignedFileOffset(long offset) throws MemoryMapException {
-    throw new MemoryMapException(offset, UNALIGNED_FILE_OFFSET);
+    throw new MemoryMapException(offset, Reason.UNALIGNED_FILE_OFFSET);
   }
 
   /**
    * Constructor
    */
-  private MemoryMapException(long addr, int type) {
+  private MemoryMapException(long addr, Reason reason) {
     offsetOrAddress = addr;
-    this.type = type;
+    this.reason = reason;
   }
 
   /**
    * String representation of exception
    */
   public String toString() {
-    switch (type) {
+    switch (reason) {
     case UNALIGNED_ADDRESS:
-      return "Unaligned memory map address: 0x"
-          + Integer.toHexString((int) offsetOrAddress);
+      return String.format("Unaligned memory map address: 0x%x", offsetOrAddress);
+      
     case UNALIGNED_FILE_OFFSET:
-      return "Unaligned file offset: " + offsetOrAddress;
+      return String.format("Unaligned file offset: 0x%x", offsetOrAddress);
+      
+    default:
+      throw new RuntimeException("Unexpected MemoryMapException Reason: " + reason);
     }
-    DBT_OptimizingCompilerException.UNREACHABLE();
-    return null;
   }
 }

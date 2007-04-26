@@ -53,8 +53,34 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
       setCurrentInstructionAddress(getCurrentInstructionAddress() + 4);
     }
     else {
-      throw new RuntimeException("Non-Angel system calls are not yet supported.");
+      //switch the operating mode to Supervisor
+      registers.switchOperatingModeAndStoreSPSR(ARM_Registers.OperatingMode.SVC);
+      registers.setInterruptsEnabled(false);
+      
+      //put the return address into the link register
+      registers.set(ARM_Registers.LR, getCurrentInstructionAddress() + 4);
+      
+      //jump to the respective SWI handler
+      setCurrentInstructionAddress(0x8);
     }
+  }
+  
+  /**
+   * This implementation of the undefined instruction handler behaves as
+   * the ARM processor would: It switches the operating mode,
+   * jumps to the undefined instruction handler and tries to execute the instruction 
+   * stored there.
+   */
+  @Override
+  public void doUndefinedInstruction() {
+    registers.switchOperatingModeAndStoreSPSR(ARM_Registers.OperatingMode.SVC);
+    registers.setInterruptsEnabled(false);
+    
+    //put the return address into the link register
+    registers.set(ARM_Registers.LR, getCurrentInstructionAddress() + 4);
+    
+    //jump to the respective SWI handler
+    setCurrentInstructionAddress(0x4);
   }
   
   @Override

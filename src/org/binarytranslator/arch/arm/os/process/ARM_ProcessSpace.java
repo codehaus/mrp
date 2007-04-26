@@ -111,4 +111,15 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   public String toString() {
     return registers.toString();
   }
+  
+  /**
+   * ARM undefined instruction handler. This method is called when the ARM processor
+   * is asked to execute an undefined instruction. By default, this throws a runtime exception.
+   * 
+   * However, derived classes may re-implement this behaviour to achieve full system emulation.
+   *
+   */
+  public void doUndefinedInstruction() {
+    throw new RuntimeException("Undefined instruction at 0x" + Integer.toHexString(getCurrentInstructionAddress()));
+  }
 }

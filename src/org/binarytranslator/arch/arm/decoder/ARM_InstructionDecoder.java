@@ -69,7 +69,8 @@ public class ARM_InstructionDecoder {
           return factory.createMoveFromStatusRegister(instr);
       }
       
-      if (bits_7_4 == 1 && ((instr & 0x01F00000) == 0x01200000)) {
+      if (((bits_7_4 & 0xD) == 1) && ((instr & 0x01F00000) == 0x01200000)) {
+        //bits 7-4 == 1 || bits 7-4 == 3 
         //Utils.getBit(instr, 24) == true && Utils.getBit(instr, 23) == false && Utils.getBit(instr, 22) == false && Utils.getBit(instr, 21) == true && Utils.getBit(instr, 20) == false
         return factory.createBranchExchange(instr);
       }

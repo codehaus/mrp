@@ -357,7 +357,7 @@ public final class ARM_Disassembler {
     public void visit(BranchExchange instr) {
 
       String mnemonic = instr.link ? "BLX" : "BX";
-      setResult(String.format("%s%s #%d", mnemonic, cond(instr), operand(instr
+      setResult(String.format("%s%s #%s", mnemonic, cond(instr), operand(instr
           .target())));
     }
 

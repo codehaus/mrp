@@ -71,6 +71,24 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
     registers.set(ARM_Registers.SP, LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector));
   }
   
+  @Override
+  protected String[] getEnvironmentVariables() {
+    return new String[]   { "PWD=/root",
+                            "PS1=\\h:\\w\\$", 
+                            "USER=root",
+                            "MAIL=/var/mail/root",
+                            "LANG=C",
+                            "SSH_CLIENT=130.88.199.8 54342 22",
+                            "LOGNAME=root",
+                            "SHLVL=1",
+                            "SHELL=/bin/bash",
+                            "HOME=/root",
+                            "TERM=xterm",
+                            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11",
+                            "SSH_TTY=/dev/pts/1",
+                            "_=/usr/bin/env" };
+  }
+  
   public void dumpStack() {
     //grab the current frame pointer
     int fp = registers.get(ARM_Registers.FP);
