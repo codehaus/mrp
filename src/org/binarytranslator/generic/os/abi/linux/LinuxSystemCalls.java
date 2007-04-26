@@ -8,11 +8,22 @@
  */
 package org.binarytranslator.generic.os.abi.linux;
 
-import java.io.*;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
-import java.util.ArrayList;
+import org.binarytranslator.generic.os.abi.linux.files.ConsoleIn;
+import org.binarytranslator.generic.os.abi.linux.files.ConsoleOut;
+import org.binarytranslator.generic.os.abi.linux.files.HostFile;
+import org.binarytranslator.generic.os.abi.linux.files.OpenFile;
+import org.binarytranslator.generic.os.abi.linux.files.OpenFileList;
+import org.binarytranslator.generic.os.abi.linux.files.ReadableFile;
+import org.binarytranslator.generic.os.abi.linux.files.WriteableFile;
+import org.binarytranslator.generic.os.abi.linux.files.OpenFileList.InvalidFileDescriptor;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -30,6 +41,9 @@ abstract public class LinuxSystemCalls {
   
   /** Allows access to a number of operating-system specific structures. */
   protected LinuxStructureFactory structures;
+  
+  /** List of currently opened files. */
+  private OpenFileList openFiles;
 
   /**
    * Maximum number of system calls
@@ -65,11 +79,6 @@ abstract public class LinuxSystemCalls {
    */
   protected abstract String getMachine();
 
-  /**
-   * List of (RandomAccessFile(s)) files currently open
-   */
-  private ArrayList<Object> files;
-  
   
   /**
   * Load an ASCIIZ string from the memory of the system call
@@ -105,44 +114,7 @@ abstract public class LinuxSystemCalls {
       m.store8(address + data.length(), (byte) 0);
     }
   }
-  
-  /**
-   * Convert integer file descriptor into Java RandomAccessFile
-   */
-  private RandomAccessFile getRAFile(int fd) {
-    return (RandomAccessFile)files.get(fd);
-  }
-  /**
-   * Append the given file to the files list returning the location
-   */
-  private int appendRAFile(RandomAccessFile raFile) {
-    // replace an unused entry if possible
-    for (int i=3; i < files.size(); i++) {
-      if(files.get(i) == null) {
-        files.set(i, raFile);
-        return i;
-      }
-    }
-    // not possible so append to end
-    files.add(raFile);
-    return files.size() - 1;
-  }
-  /**
-   * Remove the file for the given file descriptor
-   */
-  private void removeRAFile(int fd) {
-    // check descriptor is valid
-    if((fd > 0) && (fd < files.size())) {
-      // can we remove it from the end of the list?
-      if (fd == (files.size() - 1)) {
-        files.remove(fd);
-      }
-      else {
-        // no. set it to null
-        files.set(fd, null);
-      }
-    }
-  }
+
   /**
    * Constructor
    */
@@ -153,10 +125,17 @@ abstract public class LinuxSystemCalls {
     for(int i=0; i < MAX_SYSCALLS; i++) {
       systemCallTable[i] = USC;
     }
-    files = new ArrayList<Object>();
-    files.add(System.in);
-    files.add(System.out);
-    files.add(System.err);
+    
+    openFiles = new OpenFileList();
+    
+    if (openFiles.open(new ConsoleIn(), 0) != 0 ||
+        openFiles.open(new ConsoleOut(System.out), 1) != 1 ||
+        openFiles.open(new ConsoleOut(System.err), 2) != 2) {
+      
+      throw new RuntimeException("File descriptors for standard streams could not be assigned correctly.");
+    }
+
+    structures = new LinuxStructureFactory();
   }
 
   /**
@@ -175,10 +154,6 @@ abstract public class LinuxSystemCalls {
    * function
    */
   abstract public String sysCallToString(int syscall);
-
-  /*
-   * ABI constants
-   */
 
   /**
    * Class capturing errno constants
@@ -476,13 +451,13 @@ abstract public class LinuxSystemCalls {
     public final static int PROT_WRITE=0x2;
     /** Page can be executed */
     public final static int PROT_EXEC=0x4;
-
+    /** Map pages that are shared between processes */
+    public final static int MAP_SHARED = 0x1;
+    /** Map pages without sharing them */
+    public final static int MAP_PRIVATE = 0x2;
     /** Don't use a file */
     public final static int MAP_ANONYMOUS=0x20;
   }
-  /*
-   * Local classes
-   */
 
   /**
    * Define the system call interface
@@ -531,43 +506,26 @@ abstract public class LinuxSystemCalls {
       int count = arguments.nextInt();
       
       Memory mem = src.getProcessSpace().memory;
-
-      if(fd == 0) { // read from stdin
-        byte[] b = new byte[256];
-        try {
-          int len = System.in.read(b);
-          for (int i=0; i < len; i++) {
-            mem.store32(buf + i, b[i]);
-          }
-          src.setSysCallReturn(len);
-        }
-        catch(IOException e) {
-          src.setSysCallError(errno.EIO);
-          //cr |= PPC_errno.CR0_SO;
-        }
+      
+      try {
+        //get the file from the file descriptor table
+        ReadableFile file = openFiles.getRead(fd);
+        byte[] buffer = new byte[count];
+        
+        //try to fill the buffer from the file
+        int readBytes = file.read(buffer);
+        
+        //copy the filled buffer into the memory
+        for (int i = 0; i < readBytes; i++)
+          mem.store8(buf++, buffer[i]);
+        
+        src.setSysCallReturn(readBytes);
       }
-      else {
-        RandomAccessFile raFile = getRAFile(fd);        
-        if(raFile == null) {
-          src.setSysCallError(errno.EBADF);
-        } else {
-          // Where to put the data
-          int addr = buf;
-          // Copy from file into buffer.
-          int b = 0; // Number of bytes read.          
-          int i;
-          try {
-            while((b < count) && ((i = raFile.read()) != -1)) {
-              byte by = (byte)i;              
-              b++;
-              mem.store8(addr++, by);
-            }
-            src.setSysCallReturn(b); // Return number of bytes read.
-          }
-          catch(IOException e) {
-            src.setSysCallReturn(errno.EIO);
-          }
-        }
+      catch (InvalidFileDescriptor e) {
+        src.setSysCallError(errno.EBADF);
+      }
+      catch (Exception e) {
+        src.setSysCallError(errno.EIO);
       }
     }
   }
@@ -582,44 +540,25 @@ abstract public class LinuxSystemCalls {
       int count = arguments.nextInt();
       
       Memory mem = src.getProcessSpace().memory;
-
-      if(fd == 1) { // stdout       
-        for(int c = 0 ; c < count; c++) {
-          System.out.print((char) mem.loadUnsigned8(buf + c));
-        }
-        src.setSysCallReturn(count);       
-      } else if(fd == 2) { // sterr
-        for(int c = 0 ; c < count ; c++) {
-          System.err.print((char) mem.loadUnsigned8(buf + c));
-        }
+      
+      try {
+        //get the file from the file descriptor table
+        WriteableFile file = openFiles.getWrite(fd);
+        
+        //load the supplied buffer from memory
+        byte[] buffer = new byte[count];
+        for (int i = 0; i < count; i++)
+          buffer[i] = (byte)mem.loadUnsigned8(buf++);
+        
+        //write that buffer to the file
+        file.write(buffer);
         src.setSysCallReturn(count);
-      } else {
-        // Check that fd is a valid file descriptor.
-        RandomAccessFile raFile = getRAFile(fd);
-        if(raFile == null) {
-          src.setSysCallReturn(errno.EBADF);
-        } else {
-          // Where to get the data.
-          int addr = buf;
-      
-          // Copy from buffer into file.
-          int b; //  Number of bytes written.
-          byte by;
-      
-          try {
-            for(b = 1 ; b <= count ; b++) {
-              by = (byte) mem.loadUnsigned8(addr++);
-              raFile.write(by);
-            }         
-            // Return number of bytes written, having accounted for b
-            // being incremented once too many at the end of the
-            // writing
-            src.setSysCallReturn(b-1);
-          }
-          catch(IOException e) {
-            src.setSysCallReturn(errno.EIO);
-          }
-        }    
+      }
+      catch (InvalidFileDescriptor e) {
+        src.setSysCallError(errno.EBADF);
+      }
+      catch (Exception e) {
+        src.setSysCallError(errno.EIO);
       }
     }
   }
@@ -633,45 +572,36 @@ abstract public class LinuxSystemCalls {
       int vector = arguments.nextInt();
       int count = arguments.nextInt();
       Memory mem = src.getProcessSpace().memory;
-
-      if((fd == 1)||(fd == 2)) { // stdout || stderr
-        PrintStream out = (fd == 1) ? System.out : System.err;
-        int base = mem.load32(vector);
-        int len  = mem.load32(vector+4);
-        int currentVector = 0;
-        int curVectorPos = 0;
-        for(int c = 0 ; c < count; c++) {
-          if(curVectorPos == len) {
-            currentVector++;
-            base = mem.load32(vector+(currentVector*8));
-            len  = mem.load32(vector+(currentVector*8)+4);
-            curVectorPos = 0;
-          }
-          out.print((char) mem.loadUnsigned8(base + curVectorPos));
-          curVectorPos++;
-        }
-        src.setSysCallReturn(count);       
-      } else {
-        try {
-          RandomAccessFile out = getRAFile(fd);
+      
+      try {
+        //get the file from the file descriptor table
+        WriteableFile file = openFiles.getWrite(fd);
+        int bytesWritten = 0;
+        
+        //for each of the supplied buffers...
+        for (int n = 0; n < count; n++) {
+          //get the base address & length for the current buffer
           int base = mem.load32(vector);
-          int len  = mem.load32(vector+4);
-          int currentVector = 0;
-          int curVectorPos = 0;
-          for(int c = 0 ; c < count; c++) {
-            if(curVectorPos == len) {
-              currentVector++;
-              base = mem.load32(vector+(currentVector*8));
-              len  = mem.load32(vector+(currentVector*8)+4);
-              curVectorPos = 0;
-            }
-            out.write((int)mem.loadUnsigned8(base + curVectorPos));
-            curVectorPos++;
-          }
-          src.setSysCallReturn(count);
-        } catch(IOException e) {
-          throw new Error("TODO - set error correctly", e);
+          int len  = mem.load32(vector + 4);
+          vector += 8;
+          
+          //read the buffer from memory
+          byte[] buffer = new byte[len];
+          for (int i = 0; i < count; i++)
+            buffer[i] = (byte)mem.loadUnsigned8(base + i);
+          
+          //and write it to the file
+          file.write(buffer);
+          bytesWritten += len;
         }
+        
+        src.setSysCallReturn(bytesWritten);
+      }
+      catch (InvalidFileDescriptor e) {
+        src.setSysCallError(errno.EBADF);
+      }
+      catch (Exception e) {
+        src.setSysCallError(errno.EIO);
       }
     }
   }
@@ -695,28 +625,36 @@ abstract public class LinuxSystemCalls {
         // O_CREAT specified. If O_EXCL also specified, we require
         // that the file does not already exist
         src.setSysCallError(errno.EEXIST);
+        return;
       }
       else if(((flags & fcntl.O_CREAT) != 0) && !testFile.exists()) {
         // O_CREAT not specified. We require that the file exists.    
         src.setSysCallError(errno.ENOENT);
+        return;
       }
-      else {
-        // we have not found an error, so we go ahead and try to open the file  
-        try {
-          RandomAccessFile raFile;
-          if((flags & 0x3) == fcntl.O_RDONLY) {
-            raFile = new RandomAccessFile(fileName, "r");
-          }
-          else {
-            // NB Java RandomAccessFile has no write only
-            raFile = new RandomAccessFile(fileName, "rw"); 
-          }
-          src.setSysCallReturn(appendRAFile(raFile));
+
+      // we have not found an error, so we go ahead and try to open the file  
+      try {
+        RandomAccessFile raFile;
+        int fd;
+        
+        if((flags & 0x3) == fcntl.O_RDONLY) {
+          raFile = new RandomAccessFile(fileName, "r");
+          fd = openFiles.open( HostFile.forReading(raFile) );
         }
-        catch(FileNotFoundException e) {
-          throw new Error("File not found: " + fileName + " " + e);
+        else {
+          // NB Java RandomAccessFile has no write only
+          raFile = new RandomAccessFile(fileName, "rw"); 
+          fd = openFiles.open( HostFile.forWriting(raFile) );
         }
+        src.setSysCallReturn(fd);
       }
+      catch(FileNotFoundException e) {
+        System.err.println("Open tried to open non-existent file: " + fileName);
+        src.setSysCallError(errno.ENOENT);
+        return;
+      }
+
       // NOT YET HANDLING ALL THE flags OPTIONS (IW have included
       // TRUNC & APPEND but not properly!)
       if((flags & ~(fcntl.O_WRONLY | fcntl.O_RDWR | fcntl.O_CREAT | fcntl.O_EXCL | fcntl.O_TRUNC |
@@ -731,19 +669,16 @@ abstract public class LinuxSystemCalls {
   public class SysClose extends SystemCall {
     public void doSysCall() {
       int fd = arguments.nextInt();
-      RandomAccessFile raFile = getRAFile(fd);
-      // Check that fd is a valid file descriptor
-      if(raFile == null) {
-        src.setSysCallError(errno.EBADF);
-      } else {
-        try {
-          raFile.close();
       
-          src.setSysCallReturn(0); // return success code
-        } catch(IOException e) {
-          src.setSysCallReturn(errno.EIO);
-          //cr |= PPC_errno.CR0_SO;
-        }
+      try {
+        OpenFile f = openFiles.get(fd);
+        f.close();
+      }
+      catch (InvalidFileDescriptor e) {
+        src.setSysCallError(errno.EBADF);
+      }
+      catch (IOException e) {
+        src.setSysCallError(errno.EIO);
       }
     }
   }
@@ -789,7 +724,7 @@ abstract public class LinuxSystemCalls {
       
       LinuxStructureFactory.stat64 buf = structures.new_stat64();
       
-      if (fd == 1) {
+      if (fd == 0 || fd == 1 || fd == 2) {
         buf.st_mode = 0x2180;
         buf.st_rdev = (short)0x8800;
         buf.__st_ino = buf.st_ino = 2;
@@ -801,6 +736,21 @@ abstract public class LinuxSystemCalls {
       buf.write(src.getProcessSpace().memory, arguments.nextInt());
       src.setSysCallReturn(0);
     }
+  }
+  
+  public class SysStat64 extends SystemCall {
+
+    @Override
+    public void doSysCall() {
+      int ptrFilename = arguments.nextInt();
+      int ptrStruct64 = arguments.nextInt();
+      
+      String filename = memoryReadString(ptrFilename);
+      
+      if (DBT_Options.debugSyscallMore) System.err.println("Stat64() denies existance of file: " + filename);
+      src.setSysCallError(errno.ENOENT);
+    }
+    
   }
     
   public class SysFcntl64 extends SystemCall {
@@ -839,6 +789,7 @@ abstract public class LinuxSystemCalls {
           domainName = localhostString.substring(index + 1);
           hostName = localhostString.substring(0,index);
         }
+        
         // Fill in utsname struct - see /usr/include/sys/utsname.h
         memoryWriteString (addr,     getSysName()); // sysname
         memoryWriteString (addr+65,  hostName);     // nodename
@@ -858,20 +809,31 @@ abstract public class LinuxSystemCalls {
   public class SysMmap extends SystemCall {
     public void doSysCall() {
 
-      int start = arguments.nextInt();
+      int addr = arguments.nextInt();
       int length = arguments.nextInt();
       int prot = arguments.nextInt();
       int flags = arguments.nextInt();
       int fd = arguments.nextInt();
       int offset = arguments.nextInt();
+      
       if((flags & mman.MAP_ANONYMOUS) != 0 ) {
+        
+        if ((flags & mman.MAP_SHARED) != 0)
+          throw new Error("Mapping of shared pages is currently not supported.");
+        
+        //Anonymous private mappings just request memory.
+        //Ignore the file descriptor and offset, map the required amount of memory and
+        //return the address of the mapped memory;
+        addr = 0;
+        
         try {
           Memory mem = src.getProcessSpace().memory;
+          addr = mem.map(addr, length,
+                        (prot & mman.PROT_READ) != 0,
+                        (prot & mman.PROT_WRITE) != 0,
+                        (prot & mman.PROT_EXEC) != 0);
    
-          src.setSysCallReturn(       mem.map(start, length,
-                                             (prot & mman.PROT_READ) != 0,
-                                             (prot & mman.PROT_WRITE) != 0,
-                                             (prot & mman.PROT_EXEC) != 0));
+          src.setSysCallReturn(addr);
         }
         catch (MemoryMapException e) {
           throw new Error("Error in mmap", e);
