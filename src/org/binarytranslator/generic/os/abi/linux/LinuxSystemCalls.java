@@ -44,12 +44,15 @@ abstract public class LinuxSystemCalls {
   protected LinuxStructureFactory structures;
 
   /** List of currently opened files. */
-  private OpenFileList openFiles;
+  protected OpenFileList openFiles;
+  
+  /** The top of the bss segment */
+  protected int brk;
 
   /**
    * Maximum number of system calls
    */
-  private static final int MAX_SYSCALLS = 294;
+  protected static final int MAX_SYSCALLS = 294;
 
   /**
    * Array to de-multiplex Linux system calls. NB we will have to
@@ -89,7 +92,7 @@ abstract public class LinuxSystemCalls {
    * @param address where to read
    * @return the String read
    */
-  private String memoryReadString(int address) {
+  protected String memoryReadString(int address) {
     Memory m = src.getProcessSpace().memory;
 
     StringBuffer str = new StringBuffer();
@@ -106,7 +109,7 @@ abstract public class LinuxSystemCalls {
    * @param address where to read
    * @param data the String to write
    */
-  public void memoryWriteString(int address, String data) {
+  protected void memoryWriteString(int address, String data) {
     Memory m = src.getProcessSpace().memory;
 
     if (data != null) {
@@ -116,6 +119,17 @@ abstract public class LinuxSystemCalls {
 
       m.store8(address + data.length(), (byte) 0);
     }
+  }
+  
+  /**
+   * Sets up the linux operating space
+   *      
+   * @param brk
+   * the initial value for the top of BSS
+   */
+  public void initialize(int brk) {
+    LinuxSystemCalls.this.brk = brk;
+    src.getProcessSpace().memory.ensureMapped(brk, brk+1);
   }
 
   /**
@@ -397,12 +411,14 @@ abstract public class LinuxSystemCalls {
 
   public class SysBrk extends SystemCall {
     public void doSysCall() {
-      int brk = arguments.nextInt();
-      if (brk != 0) {
+      int newBrk = arguments.nextInt();
+      if (newBrk != 0) {
         // Request to set the current top of bss.        
-        src.setBrk(brk);
+        brk = newBrk;
+        src.getProcessSpace().memory.ensureMapped(brk, brk+1);
       }
-      src.setSysCallReturn(src.getBrk());
+      
+      src.setSysCallReturn(brk);
     }
   }
 

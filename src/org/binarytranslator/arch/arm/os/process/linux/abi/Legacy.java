@@ -4,7 +4,6 @@ import org.binarytranslator.DBT;
 import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoder;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
-import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -32,28 +31,9 @@ public class Legacy implements LinuxSystemCallGenerator {
    *  system call */
   private final ArgumentIterator syscallArgs;
   
-  private int brk;
-
-  
-  public Legacy(ARM_LinuxProcessSpace ps, int brk) {
+  public Legacy(ARM_LinuxProcessSpace ps) {
     this.ps = ps;
-    this.brk = brk;
     syscallArgs = new ArgumentIterator();
-  }
-
-  public int getBrk() {
-    return brk;
-  }
-  
-  public void setBrk(int address) {
-    try {
-      ps.memory.ensureMapped(brk, address);
-    } catch (MemoryMapException e) {
-      throw new Error("Error changing top of BSS to address 0x"+Integer.toHexString(address)+
-        " from 0x" + Integer.toHexString(brk), e);
-    }
-    
-    brk = address;
   }
 
   public ProcessSpace getProcessSpace() {

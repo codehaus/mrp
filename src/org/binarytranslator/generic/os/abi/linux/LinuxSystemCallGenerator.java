@@ -8,7 +8,6 @@
  */
 package org.binarytranslator.generic.os.abi.linux;
 
-import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
@@ -52,27 +51,7 @@ public interface LinuxSystemCallGenerator {
 	* @param r the error value
 	*/
   public void setSysCallError(int r);
-  /**
-	* Write to the memory of the system call generator a 32bit value
-	* @param address where to write
-	* @param data value to store
-	*/
-  
-  /**
-   * Returns the process space that this call originated from.
-   */
+
+  /** Returns the process space that this call originated from.*/
   public ProcessSpace getProcessSpace();
-  
-  /**
-	* Get the top of the BSS segment (the heap that reside below the
-	* stack in memory)
-	* @return top of BSS segment
-	*/
-  public int getBrk();
-  /**
-	* Set the top of the BSS segment (the heap that reside below the
-	* stack in memory)
-	* @param address new top of BSS segment
-	*/
-  public void setBrk(int address);
  }

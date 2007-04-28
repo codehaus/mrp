@@ -40,11 +40,6 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
   private final X86_LinuxSyscallArgumentIterator syscallArgs;
 
   /**
-   * The top of the bss segment
-   */
-  private int brk;
-
-  /**
    * The top of the stack
    */
   private static final int STACK_TOP = 0xC0000000;
@@ -71,7 +66,7 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
    */
   public void initialise(Loader loader, int pc, int brk) {
     registers.eip = pc;
-    this.brk = brk;
+    
     registers.writeGP32(X86_Registers.ESP, initialiseStack(loader, pc));
     if (useSysInfoPage) {
       try {
@@ -83,6 +78,8 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
       memory.store8(0xffffe400, 0x80); // 80h    
       memory.store8(0xffffe400, 0xC3); // RET
     }
+    
+    syscalls.initialize(brk);
   }
 
   /**
@@ -144,29 +141,6 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
 
   public void setSysCallError(int r) {    
     registers.writeGP32(X86_Registers.EAX, -r);
-  }
-
-  /**
-   * Get the top of the BSS segment (the heap that reside below the
-   * stack in memory)
-   * @return top of BSS segment
-   */
-  public int getBrk() {
-    return brk;
-  }
-  /**
-   * Set the top of the BSS segment (the heap that reside below the
-   * stack in memory)
-   * @param address new top of BSS segment
-   */
-  public void setBrk(int address) {
-    try {
-      memory.ensureMapped(brk, address);
-    } catch (MemoryMapException e) {
-      throw new Error("Error changing top of BSS to address 0x"+Integer.toHexString(address)+
-        " from 0x" + Integer.toHexString(brk), e);
-    }
-    brk = address;
   }
 
   public void setStackPtr(int ptr) {}

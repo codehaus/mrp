@@ -40,11 +40,6 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
   final PPC_LinuxSyscallArgumentIterator syscallArgs;
 
   /**
-   * The top of the bss segment
-   */
-  private int brk;
-
-  /**
    * The top of the stack
    */
   private static final int STACK_TOP = 0x80000000;
@@ -74,8 +69,8 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
    */
   public void initialise(Loader loader, int pc, int brk) {
     this.pc = pc;
-    this.brk = brk;
     this.r1 = initialiseStack(loader, pc);
+    syscalls.initialize(brk);
   }
 
   /**
@@ -176,27 +171,6 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
   public void setSysCallError(int r) {
     r3 = r;
     setCR_bit(0, true);
-  }
-
-  /**
-   * Get the top of the BSS segment (the heap that reside below the stack in
-   * memory)
-   * 
-   * @return top of BSS segment
-   */
-  public int getBrk() {
-    return brk;
-  }
-
-  /**
-   * Set the top of the BSS segment (the heap that reside below the stack in
-   * memory)
-   * 
-   * @param address
-   *          new top of BSS segment
-   */
-  public void setBrk(int address) {
-    brk = address;
   }
 
   public GdbTarget getGdbTarget() {

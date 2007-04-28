@@ -1,6 +1,5 @@
 package org.binarytranslator.arch.arm.os.process.linux;
 
-import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.abi.linux.ARM_LinuxSystemCalls;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
@@ -10,7 +9,6 @@ import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
-import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
 
 public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
 
@@ -33,7 +31,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
   private int[] auxVector;
 
   public ARM_LinuxProcessSpace() {
-    sysCallGenerator = new Legacy(this, 0xEBADADD);
+    sysCallGenerator = new Legacy(this);
     sysCalls = new ARM_LinuxSystemCalls(this, sysCallGenerator);
   }
 
@@ -49,7 +47,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
   @Override
   public void initialise(Loader loader, int pc, int brk) {
     registers.set(ARM_Registers.PC, pc);
-    sysCallGenerator.setBrk(brk);
+    sysCalls.initialize(brk);
 
     // initialize the stack
     auxVector = new int[] {
