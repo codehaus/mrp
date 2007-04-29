@@ -132,7 +132,7 @@ public class ARM_Interpreter implements Interpreter {
       if (operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister)
         shiftAmount = operand.getShiftAmount();
       else {
-        shiftAmount = (byte) (regs.get(operand.getShiftingRegister()) & 0xF);
+        shiftAmount = (byte) (regs.get(operand.getShiftingRegister()));
       }
 
       switch (operand.getShiftType()) {
@@ -245,7 +245,7 @@ public class ARM_Interpreter implements Interpreter {
         if (operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister)
           shiftAmount = operand.getShiftAmount();
         else {
-          shiftAmount = (byte) (regs.get(operand.getShiftingRegister()) & 0xF);
+          shiftAmount = (byte) (regs.get(operand.getShiftingRegister()));
         }
 
         switch (operand.getShiftType()) {
@@ -437,17 +437,9 @@ public class ARM_Interpreter implements Interpreter {
   private abstract class DataProcessing extends ARM_Instructions.DataProcessing
       implements ARM_Instruction {
 
-    /** Most data processing instructions may set the carry flag according to the barrel shifter's carry
-     * out value. The (supposed) value of the barrel shifter is stored within this variable. */
-    protected boolean shifterCarryOut;
-
     protected DataProcessing(int instr) {
       super(instr);
     }
-
-    /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
-     * and set the result of the barrel shifter accordingly. */
-
 
     /** Returns the value of operand 1 of the data processing instruction. This is always a register value.
      * However, deriving classes may alter this behavior, for example to return a negative register
@@ -463,24 +455,10 @@ public class ARM_Interpreter implements Interpreter {
 
     /** Returns the value of the rhs-operand of the data processing instruction. */
     protected int resolveOperand2() {
-      ResolvedOperand resolvedOperand2 = ResolvedOperand.resolveWithShifterCarryOut(regs, operand2);
-      shifterCarryOut = resolvedOperand2.getShifterCarryOut();
-      return resolvedOperand2.getValue();
+      return ResolvedOperand.resolve(regs, operand2);
     }
 
     public abstract void execute();
-
-    /** Sets the condition field for logical operations. */
-    protected final void setFlagsForLogicalOperator(int result) {
-
-      if (updateConditionCodes) {
-        if (Rd != 15) {
-          regs.setFlags(result < 0, result == 0, shifterCarryOut);
-        } else {
-          regs.restoreSPSR2CPSR();
-        }
-      }
-    }
 
     /** Sets the processor flags according to the result of adding <code>lhs</code> and <code>rhs</code>.*/
     protected final void setFlagsForAdd(int lhs, int rhs) {
@@ -521,9 +499,40 @@ public class ARM_Interpreter implements Interpreter {
         return -1;
     }
   }
+  
+  private abstract class DataProcessing_Logical extends DataProcessing {
+    
+    /** Most data processing instructions may set the carry flag according to the barrel shifter's carry
+     * out value. The value of the barrel shifter is stored within this variable. */
+    protected boolean shifterCarryOut;
+
+    protected DataProcessing_Logical(int instr) {
+      super(instr);
+    }
+    
+    /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
+     * and set the result of the barrel shifter accordingly. */
+    protected int resolveOperand2() {
+      ResolvedOperand operand = ResolvedOperand.resolveWithShifterCarryOut(regs, operand2);
+      shifterCarryOut = operand.getShifterCarryOut();
+      return operand.getValue();
+    }
+
+    /** Sets the condition field for logical operations. */
+    protected final void setFlagsForLogicalOperator(int result) {
+
+      if (updateConditionCodes) {
+        if (Rd != 15) {
+          regs.setFlags(result < 0, result == 0, shifterCarryOut);
+        } else {
+          regs.restoreSPSR2CPSR();
+        }
+      }
+    }  
+  }
 
   /** Binary and. <code>Rd = op1 & op2 </code>.*/
-  private final class DataProcessing_And extends DataProcessing {
+  private final class DataProcessing_And extends DataProcessing_Logical {
 
     protected DataProcessing_And(int instr) {
       super(instr);
@@ -538,7 +547,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Exclusive or. <code>Rd = op1 ^ op2 </code>.*/
-  private final class DataProcessing_Eor extends DataProcessing {
+  private final class DataProcessing_Eor extends DataProcessing_Logical {
 
     protected DataProcessing_Eor(int instr) {
       super(instr);
@@ -688,7 +697,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Set the flags according to the logical-and of two values. 
    * <code>Flags = op1 & op2</code>*/
-  private final class DataProcessing_Tst extends DataProcessing {
+  private final class DataProcessing_Tst extends DataProcessing_Logical {
 
     protected DataProcessing_Tst(int instr) {
       super(instr);
@@ -702,7 +711,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Sets the flags according to the exclusive-or of two values.
    * <code>Flags = op1 ^ op2</code> */
-  private final class DataProcessing_Teq extends DataProcessing {
+  private final class DataProcessing_Teq extends DataProcessing_Logical {
 
     protected DataProcessing_Teq(int instr) {
       super(instr);
@@ -743,7 +752,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Binary or. <code>Rd = op1 | op2</code>. */
-  private final class DataProcessing_Orr extends DataProcessing {
+  private final class DataProcessing_Orr extends DataProcessing_Logical {
 
     protected DataProcessing_Orr(int instr) {
       super(instr);
@@ -757,7 +766,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
-  private final class DataProcessing_Mov extends DataProcessing {
+  private final class DataProcessing_Mov extends DataProcessing_Logical {
 
     protected DataProcessing_Mov(int instr) {
       super(instr);
@@ -774,7 +783,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Bit clear. Clear bits in a register by a mask given by a second operand. 
    * <code>Rd =  op1 & (~op2)</code>.*/
-  private final class DataProcessing_Bic extends DataProcessing {
+  private final class DataProcessing_Bic extends DataProcessing_Logical {
 
     protected DataProcessing_Bic(int instr) {
       super(instr);
@@ -791,7 +800,7 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Move and negate. Moves an integer between two registers, negating it on the way. 
    * <code>Rd = -op2</code>.*/
-  private final class DataProcessing_Mvn extends DataProcessing {
+  private final class DataProcessing_Mvn extends DataProcessing_Logical {
 
     protected DataProcessing_Mvn(int instr) {
       super(instr);
