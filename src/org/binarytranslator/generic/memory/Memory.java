@@ -224,7 +224,7 @@ public abstract class Memory {
    * @param src the register that holds the value to store
    * @param addr the address of the value to store
    */
-  public abstract void translateStore8(OPT_Operand addr, OPT_RegisterOperand src);
+  public abstract void translateStore8(OPT_Operand addr, OPT_Operand src);
 
   /**
    * Generate the IR code for a 16bit store
@@ -232,7 +232,7 @@ public abstract class Memory {
    * @param addr the address of the value to store
    */
   public abstract void translateStore16(OPT_Operand addr,
-      OPT_RegisterOperand src);
+      OPT_Operand src);
 
   /**
    * Generate the IR code for a 32bit store
@@ -240,7 +240,7 @@ public abstract class Memory {
    * @param addr the address of the value to store
    */
   public abstract void translateStore32(OPT_Operand addr,
-      OPT_RegisterOperand src);
+      OPT_Operand src);
 
   /**
    * Get method reference if linking a call

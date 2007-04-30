@@ -559,19 +559,19 @@ public class DebugMemory extends Memory {
   }
 
   @Override
-  public void translateStore16(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore16(OPT_Operand addr, OPT_Operand src) {
     throw new UnsupportedOperationException();
     
   }
 
   @Override
-  public void translateStore32(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore32(OPT_Operand addr, OPT_Operand src) {
     throw new UnsupportedOperationException();
     
   }
 
   @Override
-  public void translateStore8(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore8(OPT_Operand addr, OPT_Operand src) {
     throw new UnsupportedOperationException();
     
   }

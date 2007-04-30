@@ -318,7 +318,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    *          the address of the value to store
    */
   private void translateStore(VM_Method storeMethod, int bcIndex,
-      OPT_Operand addr, OPT_RegisterOperand src) {
+      OPT_Operand addr, OPT_Operand src) {
     OPT_Instruction s = Call.create(CALL, null, null, null, null, 3);
     VM_MethodReference storeMethRef = storeMethod.getMemberRef()
         .asMethodReference();
@@ -344,7 +344,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore8(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore8(OPT_Operand addr, OPT_Operand src) {
     translateStore(store8, DBT_Trace.MEMORY_STORE8, addr, src);
   }
 
@@ -356,7 +356,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore16(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore16(OPT_Operand addr, OPT_Operand src) {
     translateStore(store16, DBT_Trace.MEMORY_STORE16, addr, src);
   }
 
@@ -368,7 +368,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore32(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore32(OPT_Operand addr, OPT_Operand src) {
     translateStore(store32, DBT_Trace.MEMORY_STORE32, addr, src);
   }
 

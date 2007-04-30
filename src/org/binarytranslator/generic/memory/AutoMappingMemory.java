@@ -192,17 +192,17 @@ public class AutoMappingMemory extends Memory {
     throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
   }
 
-  public void translateStore16(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore16(OPT_Operand addr, OPT_Operand src) {
     //mem.translateStore16(addr, src);
     throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
   }
 
-  public void translateStore32(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore32(OPT_Operand addr, OPT_Operand src) {
     //mem.translateStore32(addr, src);
     throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
   }
 
-  public void translateStore8(OPT_Operand addr, OPT_RegisterOperand src) {
+  public void translateStore8(OPT_Operand addr, OPT_Operand src) {
     //mem.translateStore8(addr, src);
     throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
   }
