@@ -441,9 +441,7 @@ public class ARM_Interpreter implements Interpreter {
       super(instr);
     }
 
-    /** Returns the value of operand 1 of the data processing instruction. This is always a register value.
-     * However, deriving classes may alter this behavior, for example to return a negative register
-     * value for a RSB instruction. */
+    /** Returns the value of operand 1 of the data processing instruction. This is always a register value. */
     protected int resolveOperand1() {
 
       if (Rn == ARM_Registers.PC) {
@@ -635,6 +633,9 @@ public class ARM_Interpreter implements Interpreter {
           operand2++;
         } else {
           regs.setFlags(operand1 > 0, operand1 != 0, true, true);
+          
+          //set the result to any of the operands
+          regs.set(Rd, operand1);
           return;
         }
       }
@@ -666,6 +667,7 @@ public class ARM_Interpreter implements Interpreter {
           //TODO: Remove this exception, when the correct behavior has been verified.
           throw new RuntimeException("I'm interested in finding a case where this occurs, so this exception is sooner or later going to 'notify' me..");
           //regs.setFlags(operand1 > 0, operand1 != 0, true, true);
+          //regs.set(Rd, operand1);
           //return;
         }
       }
@@ -843,7 +845,7 @@ public class ARM_Interpreter implements Interpreter {
       int memAddr = regs.get(Rn);
       
       //swap exchanges the value of a memory address with the value in a register
-      if (swapByte) {
+      if (!swapByte) {
         int tmp = ps.memory.load32(memAddr);
         ps.memory.store32(memAddr, regs.get(Rm));
         
@@ -853,8 +855,8 @@ public class ARM_Interpreter implements Interpreter {
       }
       else {
         int tmp = ps.memory.loadUnsigned8(memAddr);
-        ps.memory.store8(memAddr, regs.get(Rm) & 0xFF);
-        regs.set(Rm, tmp);
+        ps.memory.store8(memAddr, regs.get(Rm));
+        regs.set(Rd, tmp);
       }
     }
 
@@ -942,7 +944,6 @@ public class ARM_Interpreter implements Interpreter {
         if (transferPC) {
           nextAddress += 4;
           int newpc = ps.memory.load32(nextAddress);
-          regs.set(ARM_Registers.PC, newpc & 0xFFFFFFFE);
 
           if (forceUser) {
             //when we are transferring the PC with a forced-user transfer, then we also want to
@@ -953,11 +954,18 @@ public class ARM_Interpreter implements Interpreter {
             regs.setOperatingModeWithoutRegisterLayout(OperatingMode.USR);
             regs.restoreSPSR2CPSR();
             
+            if (regs.getThumbMode())
+              newpc = newpc & 0xFFFFFFFE;
+            else
+              newpc = newpc & 0xFFFFFFFC;
+            
+            regs.set(ARM_Registers.PC, newpc);
             //there is no write-back for this instruction.
             return;
           }
           else {
             //shall we switch to thumb mode
+            regs.set(ARM_Registers.PC, newpc & 0xFFFFFFFE);
             regs.setThumbMode((newpc & 0x1) != 0);
           }
         }
@@ -1024,12 +1032,9 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
-      //remember the previous address, taking ARM's register offset into account
-      int previousAddress = regs.get(ARM_Registers.PC);
-
       //if we're supposed to link, then write the previous address into the link register
       if (link)
-        regs.set(ARM_Registers.LR, previousAddress + 4);
+        regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + 4);
     }
 
     public int getSuccessor(int pc) {
@@ -1102,25 +1107,16 @@ public class ARM_Interpreter implements Interpreter {
 
     public void execute() {
       //get the two operands
+      //we don't need to consider that any operand might be the PC, because the ARM
+      //Ref. manual specifies the usage of the PC has undefined results in this operation
       int operand1 = regs.get(Rm);
       int operand2 = regs.get(Rs);
       
-      //if any of the operands is the PC, consider ARM's PC offset
-      if (Rm == ARM_Registers.PC)
-        operand1 += 8;
-      
-      if (Rs == ARM_Registers.PC)
-        operand2 += 8;
-      
       //calculate the result
-      int result = regs.get(Rm) * regs.get(Rs);
+      int result = operand1 * operand2;
 
       if (accumulate) {
         result += regs.get(Rn);
-        
-        //also consider ARM's PC offset when adding the accumulate register
-        if (Rn == ARM_Registers.PC)
-          result += 8;
       }
 
       //and finally, update the register map
@@ -1132,10 +1128,56 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public int getSuccessor(int pc) {
-      if (Rd != ARM_Registers.PC)
-        return pc + 4;
-      else
-        return -1;
+      return pc + 4;
+    }
+  }
+  
+  /** Multiply two longs into a register, possibly adding the value of a third register on the way. */
+  private final class LongMultiply extends ARM_Instructions.LongMultiply implements
+  ARM_Instruction {
+
+    protected LongMultiply(int instr) {
+      super(instr);
+    }
+
+    public void execute() {
+
+      // get the two operands
+      // We don't need to consider that any operand might be the PC, because the
+      // ARM Ref. manual specifies the usage of the PC has undefined results in this
+      // operation
+      long operand1 = regs.get(Rm);
+      long operand2 = regs.get(Rs);
+      
+      //get rid of the signs, if we're supposed to do unsigned multiplication
+      if (unsigned) {
+        operand1 = operand1 & 0xFFFFFFFF;
+        operand2 = operand2 & 0xFFFFFFFF;
+      }
+
+      // calculate the result
+      long result = operand1 * operand2;
+
+      if (accumulate) {
+        //treat the register as an unsigned value
+        long operand = regs.get(getRdLow());
+        operand &= 0xFFFFFFFF;
+        result += operand; 
+
+        result += regs.get(getRdHigh()) << 32;
+      }
+
+      // and finally, update the register map
+      regs.set(getRdLow(), (int) result);
+      regs.set(getRdHigh(), (int) (result >>> 32));
+
+      if (updateConditionCodes) {
+        regs.setFlags(result < 0, result == 0);
+      }
+    }
+
+    public int getSuccessor(int pc) {
+      return pc + 4;
     }
   }
 
@@ -1338,11 +1380,11 @@ public class ARM_Interpreter implements Interpreter {
           break;
           
         case HalfWord:
-          ps.memory.store16(address, value & 0xFFFF);
+          ps.memory.store16(address, value);
           break;
           
         case Byte:
-          ps.memory.store8(address, value & 0xFF);
+          ps.memory.store8(address, value);
           break;
 
         default:
@@ -1500,8 +1542,7 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public ARM_Instruction createLongMultiply(int instr) {
-      //TODO: Implement multiplications with longs
-      throw new RuntimeException("Long Multiplications are not yet supported.");
+      return new LongMultiply(instr);
     }
 
     public ARM_Instruction createMoveFromStatusRegister(int instr) {
