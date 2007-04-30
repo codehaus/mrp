@@ -32,7 +32,7 @@ public final class ARM_Registers {
   
   /** As mentioned above, each mode has its SPSR stored as the third element within the {@link #shadowRegisters}
    *  table. This constant is a "human-redable" representation of this offset. */
-  private final int SPSR_OFFSET = 2;
+  private final static int SPSR_OFFSET = 2;
 
   /**
    * The negative flag from the CPSR.
@@ -356,6 +356,15 @@ public final class ARM_Registers {
    */
   public void setThumbMode(boolean enable) {
     thumbMode = enable;
+  }
+  
+  /**
+   * Returns true if the processor is currently in Thumb mode, false otherwise.
+   * @return
+   *  Processor in thumb mode?
+   */
+  public boolean getThumbMode() {
+    return thumbMode;
   }
   
   /**

@@ -10,6 +10,8 @@ import org.binarytranslator.generic.decoder.Laziness;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_FieldReference;
 import org.jikesrvm.classloader.VM_MemberReference;
+import org.jikesrvm.classloader.VM_Method;
+import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.ir.*;
 
@@ -133,6 +135,27 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     regUsed[r] = true;
     return new OPT_RegisterOperand(regMap[r], VM_TypeReference.Int);
   }
+  
+  public OPT_RegisterOperand getCarryFlag() {
+    //TODO: Implement
+    throw new RuntimeException("Not yet implemented");
+  }
+  
+  public OPT_RegisterOperand getZeroFlag() {
+    //TODO: Implement
+    throw new RuntimeException("Not yet implemented");
+  }
+  
+  public OPT_RegisterOperand getNegativeFlag() {
+    //TODO: Implement
+    throw new RuntimeException("Not yet implemented");
+  }
+  
+  public OPT_RegisterOperand getOverflowFlag() {
+    //TODO: Implement
+    throw new RuntimeException("Not yet implemented");
+  }
+  
 
   @Override
   protected OPT_Register[] getUnusedRegisters() {
@@ -183,4 +206,41 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     //ARM_InstructionDecoder.translateInstruction(this,
     //    (ARM_ProcessSpace) ps, (ARM_Laziness) lazy, pc);
   }
+  
+  /**
+   * Adds code to the current block that will rotate <code>rotatedOperand</code> by
+   * <code>rotation</code> and stores the rotated integer into <code>result</code>.
+   * @param result
+   *  The register into which the rotated value is stored.
+   * @param rotatedOperand
+   *  The operand which is to be rotated.
+   * @param rotation
+   *  The amount of rotation that is to be applied to the operand.
+   */
+  public void appendRotateRight(OPT_RegisterOperand result, OPT_Operand rotatedOperand, OPT_Operand rotation) {
+    VM_TypeReference IntegerType = VM_TypeReference
+        .findOrCreate(Integer.class);
+
+    VM_MethodReference rotateRightMethodRef = VM_MemberReference
+        .findOrCreate(IntegerType,
+            VM_Atom.findOrCreateAsciiAtom("rotateRight"),
+            VM_Atom.findOrCreateAsciiAtom("(II)I")).asMethodReference();
+
+    VM_Method rotateRightMethod = rotateRightMethodRef.resolve();
+
+    OPT_Instruction s = Call.create(CALL, null, null, null, null, 2);
+    OPT_MethodOperand methOp = OPT_MethodOperand
+        .STATIC(rotateRightMethod);
+
+    Call.setParam(s, 1, rotatedOperand);
+    Call.setParam(s, 2, rotation);
+    Call.setResult(s, result);
+    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setMethod(s, methOp);
+    Call.setAddress(s, new OPT_AddressConstantOperand(rotateRightMethod
+        .getOffset()));
+
+    appendInstructionToCurrentBlock(s);
+  }
+
 }
