@@ -35,6 +35,32 @@ public class ARM_Translator implements OPT_Operators {
     this.ps = ps;
     this.arm2ir = arm2ir;
   }
+  
+  private OPT_Instruction createCallToRegisters(String methodName, String signature, int numParameters) {
+
+    VM_TypeReference RegistersType = VM_TypeReference
+        .findOrCreate(ARM_Registers.class);
+
+    VM_MethodReference methodRef = VM_MemberReference
+        .findOrCreate(RegistersType,
+            VM_Atom.findOrCreateAsciiAtom(methodName),
+            VM_Atom.findOrCreateAsciiAtom(signature)).asMethodReference();
+
+    VM_Method method = methodRef.resolve();
+
+    OPT_Instruction call = Call.create(CALL, null, null, null, null, numParameters + 1);
+    OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(methodRef, method);
+    
+    OPT_RegisterOperand thisOperand = arm2ir.getArmRegistersReference();
+
+    Call.setParam(call, 0, thisOperand);
+    Call.setGuard(call, new OPT_TrueGuardOperand());
+    Call.setMethod(call, methOp);
+    Call.setAddress(call, new OPT_AddressConstantOperand(method
+        .getOffset()));
+
+    return call;
+  }
 
 
   private abstract static class ResolvedOperand {
@@ -43,7 +69,7 @@ public class ARM_Translator implements OPT_Operators {
 
     protected ARM_Translator translator;
 
-    public static ResolvedOperand resolveWithShifterCarryOut(
+    public static ResolvedOperand resolveAndStoreShifterCarryOutToCarry(
         ARM_Translator translator, OperandWrapper operand) {
       throw new RuntimeException("Not yet implemented");
     }
@@ -58,8 +84,6 @@ public class ARM_Translator implements OPT_Operators {
     public final OPT_Operand getValue() {
       return value;
     }
-
-    public abstract OPT_Operand getShifterCarryOut();
 
     protected OPT_RegisterOperand getTempInt() {
       return translator.arm2ir.getTempInt(0);
@@ -77,11 +101,6 @@ public class ARM_Translator implements OPT_Operators {
           OperandWrapper operand) {
         this.translator = translator;
         _resolve(operand);
-      }
-
-      public OPT_Operand getShifterCarryOut() {
-        throw new RuntimeException(
-            "This class does not provide a shifter carry out value.");
       }
 
       private void _resolve(OperandWrapper operand) {
@@ -159,8 +178,9 @@ public class ARM_Translator implements OPT_Operators {
         switch (operand.getShiftType()) {
         case ASR:
           /*
-           * if (shiftAmout >= 32) { value = shiftedOperand >> 31; else value =
-           * shiftedOperand >> shiftAmount;
+           * if (shiftAmout >= 32) { value = shiftedOperand >> 31; shiftedOperand >> 1; } 
+           * else 
+           * value = shiftedOperand >> shiftAmount;
            */
           ifBlock = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           elseBlock = translator.arm2ir.createBlockAfterCurrent();
@@ -172,16 +192,20 @@ public class ARM_Translator implements OPT_Operators {
               OPT_BranchProfileOperand.unlikely()));
           currentBlock.insertOut(ifBlock);
 
+          //shift
           translator.arm2ir.setCurrentBlock(ifBlock);
           translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
               INT_SHR, resultRegister, shiftedOperand,
               new OPT_IntConstantOperand(31)));
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
+              INT_SHR, resultRegister, shiftedOperand,
+              new OPT_IntConstantOperand(1)));
 
           translator.arm2ir.setCurrentBlock(elseBlock);
           translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
               INT_SHR, resultRegister, shiftedOperand, shiftAmount));
 
-          return resultRegister;
+          break;
 
         case LSL:
           /*
@@ -206,7 +230,7 @@ public class ARM_Translator implements OPT_Operators {
           translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
               INT_SHL, resultRegister, shiftedOperand, shiftAmount));
 
-          return resultRegister;
+          break;
 
         case LSR:
 
@@ -232,7 +256,7 @@ public class ARM_Translator implements OPT_Operators {
           translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
               INT_USHR, resultRegister, shiftedOperand, shiftAmount));
 
-          return resultRegister;
+          break;
 
         case ROR:
           /*
@@ -244,14 +268,190 @@ public class ARM_Translator implements OPT_Operators {
         case RRE:
           /*
            * if (regs.isCarrySet()) return (resultRegister >> 1) | 0x80000000;
-           * else return resultRegister >> 1;
+           * else return resultRegister >>> 1;
            */
 
-          // resultRegister = resultRegister >> 1
+          // resultRegister = resultRegister >>> 1
           translator.arm2ir.appendInstructionToCurrentBlock(Unary.create(
               INT_USHR_ACC, resultRegister, new OPT_IntConstantOperand(1)));
 
+          //conditionally, set resultRegister = resultRegister | 0x80000000;
           ifBlock = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          ifBlock.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(
+              INT_IFCMP, getTempValidation(), translator.arm2ir.getCarryFlag(),
+              new OPT_IntConstantOperand(1), OPT_ConditionOperand
+                  .EQUAL(), ifBlock.makeJumpTarget(),
+              OPT_BranchProfileOperand.unlikely()));
+          currentBlock.insertOut(ifBlock);
+
+          translator.arm2ir.setCurrentBlock(ifBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Unary.create(
+              INT_OR_ACC, resultRegister, new OPT_IntConstantOperand(0x80000000)));
+
+          break;
+
+        default:
+          throw new RuntimeException("Unexpected shift type: "
+              + operand.getShiftType());
+        }
+        
+        translator.arm2ir.setCurrentBlock(nextBlock);
+        return resultRegister;
+      }
+    }
+    
+    
+
+
+    
+
+    private static class ResolvedOperand_WithShifterCarryOut extends
+        ResolvedOperand {
+
+      private ResolvedOperand_WithShifterCarryOut(ARM_Translator translator,
+          OperandWrapper operand) {
+        this.translator = translator;
+        _resolve(operand);
+      }
+      private void _resolve(OperandWrapper operand) {
+
+        switch (operand.getType()) {
+        case Immediate:
+          value = new OPT_IntConstantOperand(operand.getImmediate());
+          
+          if (operand.getShiftAmount() != 0) {            
+            OPT_RegisterOperand carryFlag = translator.arm2ir.getCarryFlag();
+            OPT_Operand shifterCarryOut = new OPT_IntConstantOperand(((operand.getImmediate() & 0x80000000) != 0) ? 1 : 0);
+            
+            //otherwise there is no shifter carry out
+            translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, carryFlag, shifterCarryOut));
+          }          
+          return;
+
+        case Register:
+          //in this case, there is no special shifter carry out (i.e. it equals the carry flag).
+          int reg = operand.getRegister();
+
+          if (reg == 15) {
+            // mind the ARM pc offset
+            value = new OPT_IntConstantOperand(translator.pc + 8);
+            return;
+          }
+
+          value = translator.arm2ir.getRegister(reg);
+          return;
+
+        case RegisterShiftedRegister:
+        case ImmediateShiftedRegister:
+          value = resolveShift(operand);
+          return;
+
+        case PcRelative:
+          throw new RuntimeException("This operand type does not produce a shifter carry out.");
+
+        default:
+          throw new RuntimeException("Unexpected wrapped operand type: "
+              + operand.getType());
+        }
+      }
+      
+      /**
+       * Translates a bit test, where bit <code>shifterResultBit</code> is tested within <code>value</code> and the result
+       * is put into the carry flag If <code>shifterResultBit</code> is less than 0, the carry is not changed.
+       *  
+       */
+      private void translateShifterCarryOut(OPT_Operand value, OPT_Operand shifterResultBit) {
+        
+        OPT_RegisterOperand carryFlag = translator.arm2ir.getCarryFlag();
+        
+        
+        OPT_RegisterOperand tmp = getTempInt();
+        translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+            tmp, shifterResultBit, new OPT_IntConstantOperand(1)));
+        translator.arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+            BOOLEAN_CMP_INT, carryFlag, value, tmp.copyRO(), OPT_ConditionOperand.BIT_TEST(), new OPT_BranchProfileOperand()));
+      }
+
+      /**
+      * If the given OperandWrapper involves shifting a register, then this
+      * function will decoder the shift and set the result of the barrel shifter
+      * accordingly.
+      */
+      private final OPT_Operand resolveShift(OperandWrapper operand) {
+        if (DBT.VerifyAssertions)
+          DBT
+              ._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister
+                  || operand.getType() == OperandWrapper.Type.RegisterShiftedRegister);
+
+        // consider the "usual" ARM program counter offset
+        OPT_Operand shiftedOperand;
+        if (operand.getRegister() == 15)
+          shiftedOperand = new OPT_IntConstantOperand(translator.pc + 8);
+        else
+          shiftedOperand = translator.arm2ir.getRegister(operand.getRegister());
+
+        OPT_Operand shiftAmount;
+
+        if (operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister) {
+          // the amount of shift is a constant
+          shiftAmount = new OPT_IntConstantOperand(operand.getShiftAmount());
+        } else {
+          // the amount of shifting is determined by a register
+          shiftAmount = translator.arm2ir.getRegister(operand
+              .getShiftingRegister());
+        }
+
+        OPT_BasicBlock currentBlock = translator.arm2ir.getCurrentBlock();
+        OPT_BasicBlock nextBlock = translator.arm2ir.getNextBlock();
+
+        OPT_BasicBlock ifBlock;
+        OPT_BasicBlock elseBlock;
+
+        OPT_RegisterOperand resultRegister = getTempInt();
+
+        switch (operand.getShiftType()) {
+        case ASR:
+          /*
+           * if (shiftAmout >= 32) { value = shiftedOperand >> 31; shiftedOperand >> 1; }
+           * else 
+           * value = shiftedOperand >> shiftAmount;
+           */
+          ifBlock = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          ifBlock.insertOut(nextBlock);
+          elseBlock = translator.arm2ir.createBlockAfterCurrent();
+          
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(
+              INT_IFCMP, getTempValidation(), shiftAmount,
+              new OPT_IntConstantOperand(32), OPT_ConditionOperand
+                  .GREATER_EQUAL(), ifBlock.makeJumpTarget(),
+              new OPT_BranchProfileOperand()));
+          currentBlock.insertOut(ifBlock);
+
+          //shift twice to simulate arithmetic shift-right by 32
+          //circumvents java doing (shiftAmount MOD 32). 
+          translator.arm2ir.setCurrentBlock(ifBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
+              INT_SHR, resultRegister, shiftedOperand,
+              new OPT_IntConstantOperand(31)));
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
+              INT_SHR, resultRegister, shiftedOperand,
+              new OPT_IntConstantOperand(1)));
+
+          translator.arm2ir.setCurrentBlock(elseBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
+              INT_SHR, resultRegister, shiftedOperand, shiftAmount));
+          translateShifterCarryOut(resultRegister, shiftAmount);
+
+          break;
+
+        case LSL:
+          /*
+           * if (shiftAmout >= 32) { value = 0; else value = shiftedOperand <<
+           * shiftAmount;
+           */
+          ifBlock = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          elseBlock = translator.arm2ir.createBlockAfterCurrent();
           ifBlock.insertOut(nextBlock);
           translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(
               INT_IFCMP, getTempValidation(), shiftAmount,
@@ -262,17 +462,99 @@ public class ARM_Translator implements OPT_Operators {
 
           translator.arm2ir.setCurrentBlock(ifBlock);
           translator.arm2ir.appendInstructionToCurrentBlock(Unary.create(
+              INT_MOVE, resultRegister, new OPT_IntConstantOperand(0)));
+
+          translator.arm2ir.setCurrentBlock(elseBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
+              INT_SHL, resultRegister, shiftedOperand, shiftAmount));
+
+          break;
+
+        case LSR:
+
+          /*
+           * if (shiftAmout >= 32) { value = 0; else value = shiftedOperand >>>
+           * shiftAmount;
+           */
+          ifBlock = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          elseBlock = translator.arm2ir.createBlockAfterCurrent();
+          ifBlock.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(
+              INT_IFCMP, getTempValidation(), shiftAmount,
+              new OPT_IntConstantOperand(32), OPT_ConditionOperand
+                  .GREATER_EQUAL(), ifBlock.makeJumpTarget(),
+              OPT_BranchProfileOperand.unlikely()));
+          currentBlock.insertOut(ifBlock);
+
+          translator.arm2ir.setCurrentBlock(ifBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Unary.create(
+              INT_MOVE, resultRegister, new OPT_IntConstantOperand(0)));
+
+          translator.arm2ir.setCurrentBlock(elseBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
+              INT_USHR, resultRegister, shiftedOperand, shiftAmount));
+
+          break;
+
+        case ROR:
+          /*
+           * return Integer.rotateRight(value, shiftAmount);
+           */
+          translator.arm2ir.appendRotateRight(resultRegister, shiftedOperand,
+              shiftAmount);
+          return resultRegister;
+
+        case RRE:
+          /*
+           * if (regs.isCarrySet()) return (resultRegister >> 1) | 0x80000000;
+           * else return resultRegister >>> 1;
+           */
+
+          // resultRegister = resultRegister >>> 1
+          translator.arm2ir.appendInstructionToCurrentBlock(Unary.create(
+              INT_USHR_ACC, resultRegister, new OPT_IntConstantOperand(1)));
+
+          ifBlock = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          ifBlock.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(
+              INT_IFCMP, getTempValidation(), translator.arm2ir.getCarryFlag(),
+              new OPT_IntConstantOperand(1), OPT_ConditionOperand
+                  .EQUAL(), ifBlock.makeJumpTarget(),
+              OPT_BranchProfileOperand.unlikely()));
+          currentBlock.insertOut(ifBlock);
+
+          translator.arm2ir.setCurrentBlock(ifBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Unary.create(
               INT_AND_ACC, resultRegister, new OPT_IntConstantOperand(
                   0x80000000)));
 
-          return resultRegister;
+          break;
 
         default:
           throw new RuntimeException("Unexpected shift type: "
               + operand.getShiftType());
         }
+        
+        translator.arm2ir.setCurrentBlock(nextBlock);
+        return resultRegister;
       }
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
   }
 
   /** All ARM interpreter instructions implement this interface. */
@@ -298,67 +580,158 @@ public class ARM_Translator implements OPT_Operators {
     }
     
     public void translate() {
-      throw new RuntimeException("Not yet implemented");
-    }
-
-    public Condition getCondition() {
-      return conditionalInstruction.getCondition();
-    }
-    
-   /** Return true if the condition required by the conditional instruction is fulfilled, false otherwise.*/
-    private boolean isConditionTrue() {
+      //conditionals are implemented easily: if the condition does not hold, then just
+      //jump to the block following the conditional instruction
+      OPT_BasicBlock nextInstruction = arm2ir.getNextBlock();
+      arm2ir.getCurrentBlock().insertOut(nextInstruction);
+      
+      OPT_BasicBlock currentInstruction = arm2ir.createBlockAfterCurrent();
+      
       switch (conditionalInstruction.getCondition()) {
       case AL:
         throw new RuntimeException("ARM32 instructions with a condition of AL (always) should not be decorated with a ConditionalDecorator.");
         
       case CC:
-        return !regs.isCarrySet();
+        //return !regs.isCarrySet();
+        translateCondition(nextInstruction, arm2ir.getCarryFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        break;
         
       case CS:
-        return regs.isCarrySet();
+        //return regs.isCarrySet();
+        translateCondition(nextInstruction, arm2ir.getCarryFlag(), OPT_ConditionOperand.EQUAL());
+        break;
         
       case EQ:
-        return regs.isZeroSet();
+        //return regs.isZeroSet();
+        translateCondition(nextInstruction, arm2ir.getZeroFlag(), OPT_ConditionOperand.EQUAL());
+        break;
         
       case GE:
-        return regs.isNegativeSet() == regs.isOverflowSet();
+        //return regs.isNegativeSet() == regs.isOverflowSet();
+        translateCondition(nextInstruction, arm2ir.getNegativeFlag(), OPT_ConditionOperand.EQUAL(), arm2ir.getOverflowFlag());
+        break;
         
       case GT:
-        return (regs.isNegativeSet() == regs.isOverflowSet()) && !regs.isZeroSet();
+        translateCondition_GT(nextInstruction);
+        break;
         
       case HI:
-        return regs.isCarrySet() && !regs.isZeroSet();
+        translateCondition_HI(nextInstruction);
+        break;
         
       case LE:
-        return regs.isZeroSet() || (regs.isNegativeSet() != regs.isOverflowSet());
+        translateCondition_LE(nextInstruction);
+        break;
         
       case LS:
-        return !regs.isCarrySet() || regs.isZeroSet();
+        translateCondition_LS(nextInstruction);
+        break;
         
       case LT:
-        return regs.isNegativeSet() != regs.isOverflowSet();
+        //return regs.isNegativeSet() != regs.isOverflowSet();
+        translateCondition(nextInstruction, arm2ir.getNegativeFlag(), OPT_ConditionOperand.NOT_EQUAL(), arm2ir.getOverflowFlag());
+        break;
         
       case MI:
-        return regs.isNegativeSet();
+        //return regs.isNegativeSet();
+        translateCondition(nextInstruction, arm2ir.getNegativeFlag(), OPT_ConditionOperand.EQUAL());
+        break;
         
       case NE:
-        return !regs.isZeroSet();
+        //return !regs.isZeroSet();
+        translateCondition(nextInstruction, arm2ir.getZeroFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        break;
         
       case NV:
-        return false;
+        //never execute this instruction
+        translateCondition(nextInstruction, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL());
+        break;
         
       case PL:
-        return !regs.isNegativeSet();
+        //return !regs.isNegativeSet();
+        translateCondition(nextInstruction, arm2ir.getNegativeFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        break;
         
       case VC:
-        return !regs.isOverflowSet();
+        //return !regs.isOverflowSet();
+        translateCondition(nextInstruction, arm2ir.getOverflowFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        break;
         
       case VS:
-        return regs.isOverflowSet();
+        //return regs.isOverflowSet();
+        translateCondition(nextInstruction, arm2ir.getOverflowFlag(), OPT_ConditionOperand.EQUAL());
+        break;
         
         default:
           throw new RuntimeException("Unexpected condition code: " + conditionalInstruction.getCondition());
       }
+      
+      arm2ir.setCurrentBlock(currentInstruction);
+    }
+    
+    private void translateCondition(OPT_BasicBlock nextInstruction, OPT_Operand operand, OPT_ConditionOperand condition) {
+      translateCondition(nextInstruction, operand, condition, new OPT_IntConstantOperand(1));
+    }
+    
+    private void translateCondition(OPT_BasicBlock nextInstruction, OPT_Operand lhs, OPT_ConditionOperand condition, OPT_Operand rhs) {
+      
+      condition = condition.flipCode();
+      arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(9), lhs, rhs, condition, nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+    }
+    
+    private void translateCondition_HI(OPT_BasicBlock nextInstruction) {
+      //return regs.isCarrySet() && !regs.isZeroSet();
+      OPT_Operand carry = arm2ir.getCarryFlag();
+      OPT_Operand zero = arm2ir.getCarryFlag();
+      OPT_RegisterOperand result = arm2ir.getTempValidation(9);
+      
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp2.create(BOOLEAN_CMP2_INT_OR, result, carry,
+          new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      
+      arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(8), result, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+    }
+    
+    private void translateCondition_LS(OPT_BasicBlock nextInstruction) {
+      //return !regs.isCarrySet() || regs.isZeroSet();
+      OPT_Operand carry = arm2ir.getCarryFlag();
+      OPT_Operand zero = arm2ir.getCarryFlag();
+      OPT_RegisterOperand result = arm2ir.getTempValidation(9);
+      
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, result, carry,
+          new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      
+      arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(8), result, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+    }
+    
+    private void translateCondition_GT(OPT_BasicBlock nextInstruction) {
+      //return (regs.isNegativeSet() == regs.isOverflowSet()) && !regs.isZeroSet();
+      OPT_Operand negative = arm2ir.getNegativeFlag();
+      OPT_Operand overflow = arm2ir.getOverflowFlag();
+      OPT_Operand zero = arm2ir.getCarryFlag();
+      OPT_RegisterOperand result = arm2ir.getTempValidation(9);
+      
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp2.create(BOOLEAN_CMP2_INT_OR, result, negative,
+          overflow, OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      
+      arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(8), result, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+    }
+    
+    private void translateCondition_LE(OPT_BasicBlock nextInstruction) {
+      //return regs.isZeroSet() || (regs.isNegativeSet() != regs.isOverflowSet());
+      OPT_Operand negative = arm2ir.getNegativeFlag();
+      OPT_Operand overflow = arm2ir.getOverflowFlag();
+      OPT_Operand zero = arm2ir.getCarryFlag();
+      OPT_RegisterOperand result = arm2ir.getTempValidation(9);
+      
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, result, negative,
+          overflow, OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      
+      arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(8), result, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+    }
+
+
+    public Condition getCondition() {
+      return conditionalInstruction.getCondition();
     }
     
     @Override
@@ -390,79 +763,100 @@ public class ARM_Translator implements OPT_Operators {
       return ResolvedOperand.resolve(ARM_Translator.this, operand2);
     }
     
-    /** Returns teh register into which the result of a data processing operation shall be stored. */
+    /** Returns the register into which the result of a data processing operation shall be stored. */
     protected OPT_RegisterOperand getResultRegister() {
       return arm2ir.getRegister(Rd);
-    }
-    
-    /** Sets the result of an operation. */
-    protected void setResult(OPT_RegisterOperand result) {
-      if (Rd == 15) {
-        //TODO: This is a jump, handle it accordingly
-        throw new RuntimeException("Not yet implemented");
-      }
-    }
+    } 
 
     public abstract void translate();
 
     /** Sets the processor flags according to the result of adding <code>lhs</code> and <code>rhs</code>.*/
-    protected final void setFlagsForAdd(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
+    protected final void setAddResult(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
 
       if (updateConditionCodes) {
         if (Rd != 15) {
-
-          //set the carry flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getCarryFlag(), lhs, rhs, OPT_ConditionOperand.CARRY_FROM_ADD(), new OPT_BranchProfileOperand()));
-          
-          //set the overflow flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getOverflowFlag(), lhs, rhs, OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
-          
-          //set the negative flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-          
-          //set the zero flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+          setAddFlags(result, lhs, rhs);
         } 
         else {
-          //TODO: Implement this
-          regs.restoreSPSR2CPSR();
-          throw new RuntimeException("Not yet implemented");
+          OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
+          arm2ir.appendInstructionToCurrentBlock(s);
         }
       }
+      
+      if (Rd == 15)
+        arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, result);
+    }
+
+    /**
+     * Sets the flags according to the result of an add operation.
+     * @param result
+     *  The result of the add operation.
+     * @param lhs
+     *  The left-hand-side operator.
+     * @param rhs
+     *  The add's right-hand-side operator.
+     */
+    protected void setAddFlags(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
+      //set the carry flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getCarryFlag(), lhs, rhs, OPT_ConditionOperand.CARRY_FROM_ADD(), new OPT_BranchProfileOperand()));
+      
+      //set the overflow flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getOverflowFlag(), lhs, rhs, OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
+      
+      //set the negative flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
+      
+      //set the zero flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
     }
     
     /** Sets the processor flags according to the result of subtracting <code>rhs</code> from <code>lhs</code>.*/
-    protected final void setFlagsForSub(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
+    protected final void setSubResult(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
 
       if (updateConditionCodes) {
         if (Rd != 15) {
-          //set the carry flag to not(Borrow)
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getCarryFlag(), lhs, rhs, OPT_ConditionOperand.BORROW_FROM_SUB(), new OPT_BranchProfileOperand()));
-          arm2ir.appendInstructionToCurrentBlock(Unary.create(BOOLEAN_NOT, arm2ir.getCarryFlag(), arm2ir.getCarryFlag()));
-          
-          //set the overflow flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getOverflowFlag(), lhs, rhs, OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
-          
-          //set the negative flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-          
-          //set the zero flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+          setSubFlags(result, lhs, rhs);
         } 
         else {
-          //TODO: Implement this
-          regs.restoreSPSR2CPSR();
-          throw new RuntimeException("Not yet implemented");
+          OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
+          arm2ir.appendInstructionToCurrentBlock(s);
         }
       }
+      
+      if (Rd == 15)
+        arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, result);
+    }
+
+    /**
+     * Sets the processor flags according to the result of a sub operation.
+     * @param result
+     *  The result of the sub operation.
+     * @param lhs
+     *  The sub's left-hand-side operator.
+     * @param rhs
+     *  The sub's right-hand-side operator.
+     */
+    protected void setSubFlags(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
+      //set the carry flag to not(Borrow)
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getCarryFlag(), lhs, rhs, OPT_ConditionOperand.BORROW_FROM_SUB(), new OPT_BranchProfileOperand()));
+      arm2ir.appendInstructionToCurrentBlock(Unary.create(BOOLEAN_NOT, arm2ir.getCarryFlag(), arm2ir.getCarryFlag()));
+      
+      //set the overflow flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getOverflowFlag(), lhs, rhs, OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
+      
+      //set the negative flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
+      
+      //set the zero flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
     }
 
     public int getSuccessor(int pc) {
@@ -475,47 +869,56 @@ public class ARM_Translator implements OPT_Operators {
   
   private abstract class DataProcessing_Logical extends DataProcessing {
     
-    /** Most data processing instructions may set the carry flag according to the barrel shifter's carry
-     * out value. The (supposed) value of the barrel shifter is stored within this variable. */
-    protected OPT_Operand shifterCarryOut;
     
     protected DataProcessing_Logical(int instr) {
       super(instr);
     }
     
-    /** 
-     * Returns the value of the rhs-operand of the data processing instruction. 
-     * This function also retrieves a value for the shifter carry out, which may be set when resolving
-     * the 2nd operand.*/
+    /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
+     * and set the result of the barrel shifter accordingly. However, the shifter carry out is only calculated, when
+     * the condition codes are to be modified by this function (because otherwise it won't be used anyway).*/
     protected OPT_Operand resolveOperand2() {
-      ResolvedOperand resolvedOperand2 = ResolvedOperand.resolveWithShifterCarryOut(ARM_Translator.this, operand2);
-      shifterCarryOut = resolvedOperand2.getShifterCarryOut();
-      return resolvedOperand2.getValue();
+      
+      if (updateConditionCodes) {
+        ResolvedOperand resolvedOperand2 = ResolvedOperand.resolveAndStoreShifterCarryOutToCarry(ARM_Translator.this, operand2);
+        return resolvedOperand2.getValue();
+      }
+      else {
+        return super.resolveOperand2();
+      }
     }
     
     /** Sets the condition field for logical operations. */
-    protected final void setFlagsForLogicalOperator(OPT_Operand result) {
+    protected final void setLogicalResult(OPT_Operand result) {
 
       if (updateConditionCodes) {
         if (Rd != 15) {
-          //TODO: Find an equivalent for BOOLEAN_MOVE
-          arm2ir.appendInstructionToCurrentBlock(Unary.create(BOOLEAN_NOT, arm2ir.getCarryFlag(), shifterCarryOut));
-          arm2ir.appendInstructionToCurrentBlock(Unary.create(BOOLEAN_NOT, arm2ir.getCarryFlag(), arm2ir.getCarryFlag()));
-          
-          //set the negative flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-          
-          //set the zero flag
-          arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
-              BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));          
-
+          setLogicalFlags(result);          
         } else {
-          //TODO: Implement this
-          regs.restoreSPSR2CPSR();
-          throw new RuntimeException("Not yet implemented");
+          OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
+          arm2ir.appendInstructionToCurrentBlock(s);
         }
       }
+      
+      if (Rd == 15)
+        arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, result);
+    }
+
+    /**
+     * Sets the flags according to the result of a logical operation.
+     * @param result
+     *  The result of the logical operation
+     */
+    protected void setLogicalFlags(OPT_Operand result) {
+      //the shifter carry out has already been set during the resolve-phase
+      
+      //set the negative flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
+      
+      //set the zero flag
+      arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(
+          BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
     }
   }
 
@@ -532,8 +935,7 @@ public class ARM_Translator implements OPT_Operators {
       
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, result, resolveOperand1(), resolveOperand2()));
       
-      setFlagsForLogicalOperator(result);
-      setResult(result);
+      setLogicalResult(result);
     }
   }
 
@@ -550,8 +952,7 @@ public class ARM_Translator implements OPT_Operators {
       
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_XOR, result, resolveOperand1(), resolveOperand2()));
       
-      setFlagsForLogicalOperator(result);
-      setResult(result);
+      setLogicalResult(result);
     }
   }
 
@@ -570,8 +971,7 @@ public class ARM_Translator implements OPT_Operators {
       
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, result, operand1, operand2));
       
-      setFlagsForAdd(result, operand1, operand2);
-      setResult(result);
+      setAddResult(result, operand1, operand2);
     }
   }
 
@@ -590,8 +990,7 @@ public class ARM_Translator implements OPT_Operators {
       
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, result, operand1, operand2));
       
-      setFlagsForSub(result, operand1, operand2);
-      setResult(result);
+      setSubResult(result, operand1, operand2);
     }
   }
 
@@ -610,8 +1009,7 @@ public class ARM_Translator implements OPT_Operators {
       
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, result, operand2, operand1));
       
-      setFlagsForSub(result, operand2, operand1);
-      setResult(result);
+      setSubResult(result, operand2, operand1);
     }
   }
 
@@ -732,7 +1130,7 @@ public class ARM_Translator implements OPT_Operators {
     public void translate() {
       OPT_RegisterOperand result = arm2ir.getTempInt(0);
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, result, resolveOperand1(), resolveOperand2()));
-      setFlagsForLogicalOperator(result);
+      setLogicalFlags(result);
     }
   }
 
@@ -748,7 +1146,7 @@ public class ARM_Translator implements OPT_Operators {
     public void translate() {
       OPT_RegisterOperand result = arm2ir.getTempInt(0);
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_XOR, result, resolveOperand1(), resolveOperand2()));
-      setFlagsForLogicalOperator(result);
+      setLogicalFlags(result);
     }
   }
 
@@ -766,7 +1164,7 @@ public class ARM_Translator implements OPT_Operators {
       OPT_Operand operand2 = resolveOperand2();
       OPT_RegisterOperand result = arm2ir.getTempInt(0);
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, result, operand1, operand2));      
-      setFlagsForSub(result, operand1, operand2);
+      setSubFlags(result, operand1, operand2);
     }
   }
 
@@ -784,7 +1182,7 @@ public class ARM_Translator implements OPT_Operators {
       OPT_Operand operand2 = resolveOperand2();
       OPT_RegisterOperand result = arm2ir.getTempInt(0);
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, result, operand1, operand2));      
-      setFlagsForAdd(result, operand1, operand2);
+      setAddFlags(result, operand1, operand2);
     }
   }
 
@@ -802,8 +1200,7 @@ public class ARM_Translator implements OPT_Operators {
       OPT_RegisterOperand result = getResultRegister();
       
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, result, operand1, operand2));
-      setFlagsForLogicalOperator(result);
-      setResult(result);
+      setLogicalResult(result);
     }
   }
 
@@ -820,9 +1217,7 @@ public class ARM_Translator implements OPT_Operators {
       OPT_RegisterOperand result = getResultRegister();
       
       arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, result, operand));
-      
-      setResult(result);
-      setFlagsForLogicalOperator(result);
+      setLogicalResult(result);
     }
   }
 
@@ -844,13 +1239,12 @@ public class ARM_Translator implements OPT_Operators {
       OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
       arm2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, tmp, operand2));
       arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, result, operand1, tmp));
-      setFlagsForLogicalOperator(result);
-      setResult(result);
+      setLogicalResult(result);
     }
   }
 
   /** Move and negate. Moves an integer between two registers, negating it on the way. 
-   * <code>Rd = -op2</code>.*/
+   * <code>Rd = ~op2</code>.*/
   private final class DataProcessing_Mvn extends DataProcessing_Logical {
 
     protected DataProcessing_Mvn(int instr) {
@@ -861,7 +1255,7 @@ public class ARM_Translator implements OPT_Operators {
     public void translate() {
       OPT_RegisterOperand result = getResultRegister();
       arm2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, result, resolveOperand2()));
-      setFlagsForLogicalOperator(result);
+      setLogicalResult(result);
     }
   }
   
@@ -875,7 +1269,7 @@ public class ARM_Translator implements OPT_Operators {
 
     @Override
     public void translate() {
-      
+      //Call Integer.numberOfLeadingZeros() to obtain the result of this operation
       OPT_RegisterOperand result = getResultRegister();
 
       VM_TypeReference IntegerType = VM_TypeReference
@@ -899,7 +1293,6 @@ public class ARM_Translator implements OPT_Operators {
           .getOffset()));
 
       arm2ir.appendInstructionToCurrentBlock(s);
-      setResult(result);
     }
   }
 
@@ -1144,7 +1537,7 @@ public class ARM_Translator implements OPT_Operators {
         arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + 4)));
       }
       
-      arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, new OPT_IntConstantOperand(pc+8 + getOffset()));
+      arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, new OPT_IntConstantOperand(pc + 8 + getOffset()));
     }
 
     public int getSuccessor(int pc) {
@@ -1161,43 +1554,51 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public void translate() {
-      //TODO: Implement
-      throw new RuntimeException("Not yet implemented");
       
-      /*
       //remember the previous address
-      int previousAddress = regs.get(ARM_Registers.PC) + 8;
-      
-      //are we supposed to jump to thumb (thumb=true) or ARM32 (thumb=false)?
-      boolean thumb;
+      int previousAddress = pc + 8;
       
       //the address of the instruction we're jumping to
-      int targetAddress;
+      OPT_Operand targetAddress;
+      
+      //1 if we're supposed to switch to thumb mode after this call, 0 otherwise
+      OPT_Operand enableThumb;
 
       switch (target.getType()) {
       case PcRelative:
-        targetAddress = previousAddress + target.getOffset();
-        thumb = true;
+        targetAddress = new OPT_IntConstantOperand(previousAddress + target.getOffset());
+        
+        //Call regs.setThumbMode(true) to enable thumb execution
+        enableThumb = new OPT_IntConstantOperand(1);
         break;
 
       case Register:
-        targetAddress = regs.get(target.getRegister());
-        thumb = (targetAddress & 0x1) != 0;
-        targetAddress = targetAddress & 0xFFFFFFFE;
+        OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
+        arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tmp, arm2ir.getRegister(target.getRegister()), new OPT_IntConstantOperand(0xFFFFFFFE) ));
+        targetAddress = tmp;
+        
+        OPT_RegisterOperand tmp2 = arm2ir.getTempInt(1);
+        arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tmp2, arm2ir.getRegister(target.getRegister()), new OPT_IntConstantOperand(0x1) ));
+        enableThumb = tmp2;
         break;
 
       default:
         throw new RuntimeException("Unexpected Operand type: "
             + target.getType());
       }
-
-      //jump to the new address
-      regs.set(ARM_Registers.PC, targetAddress);
-      regs.setThumbMode(thumb);
-
-      //if we're supposed to link, then write the previous address into the link register
-      if (link)
-        regs.set(ARM_Registers.LR, previousAddress - 4);*/
+      
+      //write the next address into the link register, if requested so.
+      if (link) {
+        arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(previousAddress - 4)));
+      }
+      
+      //set the correct processor mode (thumb or not)
+      OPT_Instruction s = createCallToRegisters("setThumbMode", "(Z)V", 1);
+      Call.setParam(s, 1, enableThumb);
+      arm2ir.appendInstructionToCurrentBlock(s);
+      
+      //jump to the target address
+      arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, targetAddress);
     }
 
     public int getSuccessor(int pc) {
@@ -1322,15 +1723,22 @@ public class ARM_Translator implements OPT_Operators {
 
     public void translate() {
 
-      throw new RuntimeException("Not yet implemented");
-      /*
+      //write the current flags back to the registers class
+      arm2ir.spillAllFlags(lazy);
+      
+      OPT_RegisterOperand psrValue = arm2ir.getRegister(Rd);
+      OPT_Instruction call;
+      
       //do we have to transfer the saved or the current PSR?
       if (transferSavedPSR) {
-        regs.set(Rd, regs.getSPSR());
-      } 
+         call = createCallToRegisters("getSPSR", "()V", 0);
+      }
       else {
-        regs.set(Rd, regs.getCPSR());
-      }*/
+        call = createCallToRegisters("getCPSR", "()V", 0);
+      }
+      
+      Call.setResult(call, psrValue);
+      arm2ir.appendInstructionToCurrentBlock(call);
     }
 
     public int getSuccessor(int pc) {
@@ -1350,7 +1758,12 @@ public class ARM_Translator implements OPT_Operators {
     public void translate() {
       
       //TODO: implement
-      throw new RuntimeException("Not yet implemented");
+      //throw new RuntimeException("Not yet implemented");
+      
+      //this variable is going to receive the new psr, which we will set
+      OPT_Operand new_psr = ResolvedOperand.resolve(ARM_Translator.this, sourceOperand);
+            
+      
       
       /*
       //this variable is going to receive the new psr, which we will set
@@ -1472,13 +1885,21 @@ public class ARM_Translator implements OPT_Operators {
     public void translate() {
       //should we simulate a user-mode memory access? If yes, store the current mode and fake a switch
       //to user mode.
-      OperatingMode previousMode = null;
+      
+      //stores the current operating mode
+      OPT_RegisterOperand currentOperatingMode = null;
+      
       if (forceUserMode) {
-        //TODO: implement
-        previousMode = ps.registers.getOperatingMode();
-        ps.registers.setOperatingModeWithoutRegisterLayout(ARM_Registers.OperatingMode.USR);
+        OPT_Instruction call_getOperatingMode = createCallToRegisters("getOperatingMode", "()A", 0);
+        currentOperatingMode = arm2ir.getTempOperatingMode();
         
-        throw new RuntimeException("Not yet implemented");
+        Call.setResult(call_getOperatingMode, currentOperatingMode);
+        arm2ir.appendInstructionToCurrentBlock(call_getOperatingMode);
+        
+        OPT_Instruction call_setOperatingModeWithoutRegisterLayout = createCallToRegisters("setOperatingModeWithoutRegisterLayout", "(A)", 1);
+        Call.setParam(call_setOperatingModeWithoutRegisterLayout, 1, arm2ir.getTempOperatingMode(OperatingMode.USR));
+        
+        arm2ir.appendInstructionToCurrentBlock(call_setOperatingModeWithoutRegisterLayout);
       }
 
       //get the address of the memory, that we're supposed access
@@ -1546,9 +1967,9 @@ public class ARM_Translator implements OPT_Operators {
       
       //if we were writing in user mode, then switch back to our previous operating mode
       if (forceUserMode) {
-        //TODO: implement
-        ps.registers.setOperatingModeWithoutRegisterLayout(previousMode);
-        throw new RuntimeException("Not yet implemented");
+        OPT_Instruction call_setOperatingModeWithoutRegisterLayout = createCallToRegisters("setOperatingModeWithoutRegisterLayout", "(A)", 1);
+        Call.setParam(call_setOperatingModeWithoutRegisterLayout, 1, currentOperatingMode);
+        arm2ir.appendInstructionToCurrentBlock(call_setOperatingModeWithoutRegisterLayout);        
       }      
 
       //should the memory address, which we accessed, be written back into a register? 
@@ -1562,7 +1983,6 @@ public class ARM_Translator implements OPT_Operators {
         else {
           //add the offset to the base address and write the result back into Rn
           OPT_Operand resolvedOffset = resolveOffset();
-
           arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, writeBackTarget, address, resolvedOffset));
         }
       }

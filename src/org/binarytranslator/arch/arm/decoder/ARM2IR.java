@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
+import org.binarytranslator.arch.arm.os.process.ARM_Registers;
+import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
 import org.binarytranslator.generic.decoder.DecoderUtils;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.jikesrvm.classloader.VM_Atom;
@@ -47,8 +49,8 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
 
   static {
     psTref = VM_TypeReference.findOrCreate(ARM_ProcessSpace.class);
-
-    registersFref = VM_MemberReference
+    
+    registersFref = VM_FieldReference
         .findOrCreate(
             psTref,
             VM_Atom.findOrCreateAsciiAtom("registers"),
@@ -82,10 +84,52 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
   protected Laziness createInitialLaziness() {
     return new ARM_Laziness();
   }
-
-  @Override
-  protected void fillAllRegisters() {
+  
+  private VM_TypeReference OperatingMode_TypeRef = null;
+  
+  /**
+   * Returns a register operand for values of type <code>OperatingMode</code>.
+   * @return
+   */
+  public OPT_RegisterOperand getTempOperatingMode() {
+    if (OperatingMode_TypeRef == null) {
+      OperatingMode_TypeRef = VM_TypeReference.findOrCreate(ARM_Registers.OperatingMode.class);
+    }
     
+    return gc.temps.makeTemp(OperatingMode_TypeRef);
+  }
+  
+  /**
+   * Returns an register operand that is equivalent to the given operating mode.
+   */
+  public OPT_RegisterOperand getTempOperatingMode(OperatingMode mode) {
+    //We are going to insert a GETFIELD, which will grab the appropriate OperatingMode static instance from
+    //the OperatingMode class.
+    OPT_RegisterOperand result = getTempOperatingMode();
+    
+    //the type reference should have been initialized by the previous call to getTempOperatingMode.
+    //For the sake of defensive programming, we are doing it again here...
+    if (OperatingMode_TypeRef == null) {
+      OperatingMode_TypeRef = VM_TypeReference.findOrCreate(ARM_Registers.OperatingMode.class);
+    }
+
+    //grab the field reference to the corresponding field
+    VM_FieldReference requestedMode_FieldReference = VM_FieldReference.findOrCreate(OperatingMode_TypeRef, VM_Atom.findOrCreateAsciiAtom(mode.name()), VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/arm/os/process/ARM_Registers/OperatingMode;")).asFieldReference();
+    
+    //Finally, use a getfield to grab the (static) member field 
+    appendInstructionToCurrentBlock(GetField.create(GETFIELD, result,
+        null, new OPT_AddressConstantOperand(requestedMode_FieldReference
+            .peekResolvedField().getOffset()), new OPT_LocationOperand(
+                requestedMode_FieldReference), new OPT_TrueGuardOperand()));
+    
+    return result;
+  }
+  
+  /**
+   * Returns a RegisterOperand that contains a reference to the currently used ARM_Registers instance.
+   * Use this reference when calling functions on ARM_Registers.
+   */
+  public OPT_RegisterOperand getArmRegistersReference() {
     OPT_RegisterOperand ps_registersOp;
     
     if (ps_registers != null) {
@@ -99,6 +143,32 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     else {
       ps_registersOp = new OPT_RegisterOperand(ps_registers, registersTref);
     }
+    
+    return ps_registersOp;
+  }
+  
+  /**
+   * Writes all current flag values back to their respective registers
+   */
+  public void spillAllFlags(Laziness lazyState) {
+    
+    //first resolve the current lazy state (i.e. calculate the values of registers that are not yet resolved)
+    resolveLaziness(lazyState);
+    
+    //TODO: Implement
+    throw new RuntimeException("Not yet implemented");
+  }
+  
+  public void fillAllFlags() {
+    //TODO: Implement
+    throw new RuntimeException("Not yet implemented");
+  }
+
+  @Override
+  protected void fillAllRegisters() {
+    
+    //get an operand that contains a reference to the current ps.registers field.
+    OPT_RegisterOperand ps_registersOp = getArmRegistersReference();
 
     // Get the array of general purpose registers
     OPT_RegisterOperand ps_registers_regsOp;
