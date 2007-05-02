@@ -166,7 +166,7 @@ public class ARM_Interpreter implements Interpreter {
         if (regs.isCarrySet())
           return (value >> 1) | 0x80000000;
         else
-          return value >> 1;
+          return value >>> 1;
 
       default:
         throw new RuntimeException("Unexpected shift type: "
@@ -321,7 +321,7 @@ public class ARM_Interpreter implements Interpreter {
           if (regs.isCarrySet())
             return (value >> 1) | 0x80000000;
           else
-            return value >> 1;
+            return value >>> 1;
 
         default:
           throw new RuntimeException("Unexpected shift type: "
@@ -509,11 +509,18 @@ public class ARM_Interpreter implements Interpreter {
     }
     
     /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
-     * and set the result of the barrel shifter accordingly. */
+     * and set the result of the barrel shifter accordingly. However, the shifter carry out is only calculated, when
+     * the condition codes are to be modified by this function (because otherwise it won't be used anyway).*/
     protected int resolveOperand2() {
-      ResolvedOperand operand = ResolvedOperand.resolveWithShifterCarryOut(regs, operand2);
-      shifterCarryOut = operand.getShifterCarryOut();
-      return operand.getValue();
+      
+      if (updateConditionCodes) {
+        ResolvedOperand operand = ResolvedOperand.resolveWithShifterCarryOut(regs, operand2);
+        shifterCarryOut = operand.getShifterCarryOut();
+        return operand.getValue();
+      }
+      else {
+        return super.resolveOperand2();
+      }
     }
 
     /** Sets the condition field for logical operations. */
@@ -801,7 +808,7 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Move and negate. Moves an integer between two registers, negating it on the way. 
-   * <code>Rd = -op2</code>.*/
+   * <code>Rd = ~op2</code>.*/
   private final class DataProcessing_Mvn extends DataProcessing_Logical {
 
     protected DataProcessing_Mvn(int instr) {
