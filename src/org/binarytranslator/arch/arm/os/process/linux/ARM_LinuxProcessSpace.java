@@ -58,10 +58,6 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHENT, 0x20,
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, 0x6,
         LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x40000000,
-        /*LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, 0x8034,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHENT, 0x20,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, 0x6,*/
-        LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x00000000,
         LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, 0x82b4,
         LinuxStackInitializer.AuxiliaryVectorType.AT_UID, 0x0, 
