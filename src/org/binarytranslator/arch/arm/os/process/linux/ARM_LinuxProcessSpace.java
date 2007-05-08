@@ -9,6 +9,7 @@ import org.binarytranslator.generic.os.abi.linux.LinuxStackInitializer;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
 
 public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
 
@@ -54,9 +55,12 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
         LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x97,
         LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 4096, //0x100
         LinuxStackInitializer.AuxiliaryVectorType.AT_CLKTCK, 0x17,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, 0x8034,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHENT, 0x20,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, 0x6,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR,
+        ((ELF_Loader)loader).getProgramHeaderAddress(),
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM,
+        ((ELF_Loader)loader).getNumberOfProgramSegmentHeaders(),
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHENT,
+        ((ELF_Loader)loader).getProgramSegmentHeaderSize(),
         LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x40000000,
         LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, 0x82b4,
@@ -64,7 +68,7 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
         LinuxStackInitializer.AuxiliaryVectorType.AT_EUID, 0x0, 
         LinuxStackInitializer.AuxiliaryVectorType.AT_GID, 0x0, 
         LinuxStackInitializer.AuxiliaryVectorType.AT_EGID, 0x0,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, 0xbffffecd,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PLATFORM, 0xbffffecd, 
         LinuxStackInitializer.AuxiliaryVectorType.AT_NULL, 0x0 };
 
     registers.set(ARM_Registers.SP, LinuxStackInitializer.stackInit(memory, STACK_TOP, getEnvironmentVariables(), auxVector));

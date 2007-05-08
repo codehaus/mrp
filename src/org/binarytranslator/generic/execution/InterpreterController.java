@@ -14,7 +14,7 @@ public class InterpreterController extends ExecutionController {
     Interpreter interpreter = ps.createInstructionInterpreter();
     
     int pc = ps.getCurrentInstructionAddress();
-    
+
     while (!ps.finished) {
       
       Interpreter.Instruction instruction = interpreter.decode(pc);

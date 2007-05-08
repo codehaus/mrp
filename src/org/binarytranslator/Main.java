@@ -106,7 +106,7 @@ public class Main {
     }*/
     
     controller = new InterpreterController(ps);
-    
     controller.run();
+    System.out.println("\nProgram has finished.");
   }
 }

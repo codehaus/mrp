@@ -10,6 +10,9 @@ package org.binarytranslator.generic.os.loader.elf;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.security.InvalidParameterException;
+import java.util.ArrayList;
+import java.util.WeakHashMap;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
@@ -18,27 +21,22 @@ import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
-public class ELF_Loader extends Loader {
+public class ELF_File {
 
   /**
    * Wrapper class used for reading the ELF file with the required endianness
    */
-  private ELF_BinaryReader reader;
-  
-  /**
-   * Field holding identity information
-   */
-  private ELF_Identity identity;
+  private BinaryReader reader;
 
   /**
    * Header of ELF file
    */
-  public ELF_Header elfHeader;
+  private Header header;
 
   /**
    * Program segment headers
    */
-  private ELF_ProgramSegmentHeader segmentHeaders[];
+  private SegmentHeader segmentHeaders[];
 
   /**
    * Debug information
@@ -53,7 +51,7 @@ public class ELF_Loader extends Loader {
   /**
    * Reader for byte and multibyte values respecting endianness.
    */
-  private abstract static class ELF_BinaryReader {
+  private abstract static class BinaryReader {
     
     /** File to read from */
     protected RandomAccessFile rFile;
@@ -68,7 +66,7 @@ public class ELF_Loader extends Loader {
      * @return
      *  An ELF_BinaryReader, that hides the details of the byte order.
      */
-    public static ELF_BinaryReader create(ELF_Identity.ByteOrder byteOrder, RandomAccessFile file) {
+    public static BinaryReader create(ELF_Identity.ByteOrder byteOrder, RandomAccessFile file) {
       
       if (byteOrder == ELF_Identity.ByteOrder.BigEndian)
         return new NonSwappingReader(file); 
@@ -76,14 +74,19 @@ public class ELF_Loader extends Loader {
         return new ByteSwappingReader(file);
     }
 
-    /** Hide the constructor, because this class shall only be instantiated by using the factory method {@link #create(org.binarytranslator.generic.os.loader.elf.ELF_Loader.ELF_Header.ByteOrder, RandomAccessFile)}. */
-    private ELF_BinaryReader(RandomAccessFile rFile) {
+    /** Hide the constructor, because this class shall only be instantiated by using the factory method {@link #create(org.binarytranslator.generic.os.loader.elf.ELF_Loader.Header.ByteOrder, RandomAccessFile)}. */
+    private BinaryReader(RandomAccessFile rFile) {
       this.rFile = rFile;
     }
     
     /** Seek to location from beginning of file */
     void seek(long pos) throws IOException {
       rFile.seek(pos);
+    }
+    
+    /** Reads a single byte from an ELF file. */
+    public byte readByte() throws IOException {
+      return rFile.readByte();
     }
     
     /** Read an integer from the file. This function is supposed to hide the difference between little and big endian reads. */
@@ -93,7 +96,7 @@ public class ELF_Loader extends Loader {
     public abstract short readShort() throws IOException;
     
     /** Reader that performs byte swaps for each int/short read. */
-    private static class ByteSwappingReader extends ELF_BinaryReader {
+    private static class ByteSwappingReader extends BinaryReader {
       
       ByteSwappingReader(RandomAccessFile rFile) {
         super(rFile);
@@ -123,7 +126,7 @@ public class ELF_Loader extends Loader {
     }
     
     /** Reader that does not perform any byte swaps.*/
-    private static class NonSwappingReader extends ELF_BinaryReader {
+    private static class NonSwappingReader extends BinaryReader {
 
       NonSwappingReader(RandomAccessFile rFile) {
         super(rFile);
@@ -140,31 +143,55 @@ public class ELF_Loader extends Loader {
       }
     }
   }
+  
+  /**
+   * Returns an Object representation of this ELF's header file.
+   */
+  public Header getHeader() {
+    return header;
+  }
+  
+  /** Returns an array of program segment headers within this elf.*/
+  public SegmentHeader[] getProgramSegmentHeaders() {
+    return segmentHeaders;
+  }
+  
+  /** Returns the dynamic section, which is identifed by the PT_DYNAMIC segment header. */
+  public DynamicSection getDynamicSection() throws IOException {
+    
+    for (ELF_File.SegmentHeader segment : segmentHeaders)
+      if (segment.p_type == ELF_File.SegmentHeader.PT_DYNAMIC) {
+        return segment.asDynamicSection();
+      }
+    
+    return null;
+  }
 
   /**
-   * Main entry point that loads the binary
+   * Reads an ELF File from a binary.
    * @param filename the program file name
-   * @return process space containing loaded binary
+   * @return An object representation of the ELF file
    */
-  public ProcessSpace readBinary(String filename) throws IOException {
+  public ELF_File(String filename) throws IOException {
     report("Opening File: " + filename);
     RandomAccessFile rFile = new RandomAccessFile(filename, "r");
     
-    // Identification is in bytes and therefore is endian agnostic
-    identity = new ELF_Identity(rFile);
+    // Read the ELF Header, which will also provide us with a reader object, that hides ELF endianness
+    header = new Header(rFile);
+    reader = header.getReader();
     
-    // Set up reader to handle endianness for the rest of the file
-    reader = ELF_BinaryReader.create(identity.byteOrder, rFile);
-
-    elfHeader = new ELF_Header(reader); // NB also sets up reader
     report("ELF header read successfully");
 
-    ProcessSpace ps = ProcessSpace.createProcessSpaceFromBinary(this);
-    report("Created process space of type " + ps.getClass());
-
+    //read the program segment headers
     report("Reading program segment headers");
-    segmentHeaders = readHeaders();
+    segmentHeaders = new SegmentHeader[header.getNumberOfProgramSegmentHeaders()];
+    reader.seek(header.getProgramSegmentHeaderOffset());
+    
+    for (int i = 0; i < segmentHeaders.length; i++) {
+      segmentHeaders[i] = new SegmentHeader(reader);
+    }
 
+    /*
     report("Creating program segments");
     for (int i = 0; i < segmentHeaders.length; i++) {
       report("Creating: " + segmentHeaders[i]);
@@ -182,7 +209,7 @@ public class ELF_Loader extends Loader {
         + Integer.toHexString(brk));
     ps.initialise(this, elfHeader.getEntryPoint(), brk);
 
-    return ps;
+    return ps;*/
   }
 
   /**
@@ -214,38 +241,30 @@ public class ELF_Loader extends Loader {
   }
 
   /**
-   * Read and construct the program segment headers
-   */
-  private ELF_ProgramSegmentHeader[] readHeaders() throws IOException {
-    ELF_ProgramSegmentHeader segmentHeaders[] = new ELF_ProgramSegmentHeader[elfHeader
-        .getNumberOfProgramSegmentHeaders()];
-    reader.seek(elfHeader.getProgramSegmentHeaderOffset());
-    for (int i = 0; i < segmentHeaders.length; i++) {
-      segmentHeaders[i] = new ELF_ProgramSegmentHeader();
-    }
-    return segmentHeaders;
-  }
-
-  @Override
-  public ABI getABI() {
-    return identity.getABI();
-  }
-  
-  @Override
-  public ISA getISA() {
-    return elfHeader.getISA();
-  }
-
-  /**
    * Where did the program header get loaded in memory?
    */
   public int getProgramHeaderAddress() {
-    return elfHeader.e_phoff - segmentHeaders[0].p_offset + segmentHeaders[0].p_vaddr;
+    return segmentHeaders[0].p_vaddr;
+    //return header.e_phoff - segmentHeaders[0].p_offset + segmentHeaders[0].p_vaddr;
   }
 
   /** An interface for enums where each value is identified by an identifier.*/
   private static interface IdentifiedEnum {
     int getIdentifier();
+  }
+  
+  /** Returns the segment that the given virtual address belongs to. */
+  public SegmentHeader virtualAddressToSegment(int virtualAddress) {
+    
+    for (int i = 0; i < segmentHeaders.length; i++) {
+      int offsetWithinSegment = (virtualAddress - segmentHeaders[i].p_vaddr);
+      
+      if (offsetWithinSegment > 0 && offsetWithinSegment < segmentHeaders[i].p_memsz) {
+        return segmentHeaders[i];
+      }
+    }
+    
+    return null;
   }
   
   /** 
@@ -264,6 +283,8 @@ public class ELF_Loader extends Loader {
    */
   @SuppressWarnings("unused")
   private static class ELF_Identity {
+    
+    private BinaryReader reader;
     
     /** Represents acceptable ELF address sizes. */
     private enum AddressSize implements IdentifiedEnum {
@@ -366,24 +387,30 @@ public class ELF_Loader extends Loader {
       if (rFile.skipBytes(8) != 8) {
         throw new IOException("ELF file is too short.");
       }
+      
+      reader = BinaryReader.create(byteOrder, rFile);
     }
 
-    public ABI getABI() 
+    public Loader.ABI getABI() 
     {
       //read the OS ABI
       switch (abi) {
         case ELFOSABI_SYSTEMV:
-          return ABI.SystemV;
+          return Loader.ABI.SystemV;
           
         case ELFOSABI_LINUX:
-          return ABI.Linux;
+          return Loader.ABI.Linux;
           
         case ELFOSABI_ARM:
-          return ABI.ARM;
+          return Loader.ABI.ARM;
         
         default:
-          return ABI.Undefined;
+          return Loader.ABI.Undefined;
       }
+    }
+    
+    protected BinaryReader getReader() {
+      return reader;
     }
   }
 
@@ -391,7 +418,7 @@ public class ELF_Loader extends Loader {
    * Class to read and hold ELF header information
    */
   @SuppressWarnings("unused")
-  public static class ELF_Header {
+  public static class Header extends ELF_Identity {
 
     /** A list of possible object file types. */
     enum ObjectFileType implements IdentifiedEnum {
@@ -511,7 +538,11 @@ public class ELF_Loader extends Loader {
     /**
      * Construct/read ELF header
      */
-    ELF_Header(ELF_BinaryReader reader) {
+    Header(RandomAccessFile file) throws IOException {
+      super(file);
+      
+      BinaryReader reader = getReader();
+      
       try {
         // Read in rest of header
         e_type = getEnumFromIdentifier(ObjectFileType.class, reader.readShort());
@@ -545,7 +576,7 @@ public class ELF_Loader extends Loader {
     /**
      * What is the offset in the file of the program headers
      */
-    int getProgramSegmentHeaderOffset() {
+    public int getProgramSegmentHeaderOffset() {
       return e_phoff;
     }
 
@@ -566,24 +597,24 @@ public class ELF_Loader extends Loader {
     /**
      * Return the entry point of the binary
      */
-    int getEntryPoint() {
+    public int getEntryPoint() {
       return e_entry;
     }
         
     /** Maps the ISA specified within the ELF file to an ISA supported by Pearcolator. */
-    public ISA getISA() {
+    public Loader.ISA getISA() {
       switch (e_machine) {
         case EM_ARM:
-          return ISA.ARM;
+          return Loader.ISA.ARM;
           
         case EM_386:
-          return ISA.X86;
+          return Loader.ISA.X86;
           
         case EM_PPC:
-          return ISA.PPC;
+          return Loader.ISA.PPC;
           
         default:
-          return ISA.Undefined;
+          return Loader.ISA.Undefined;
       }
     }
   }
@@ -629,6 +660,506 @@ public class ELF_Loader extends Loader {
       return description;
     }
   }
+  
+  public class StringTable {
+    
+    /** Every string that has been resolved is cached in this map to allow faster retrieval for the next time. */
+    private WeakHashMap<Integer, String> cachedStrings = new WeakHashMap<Integer, String>();
+    
+    /** A buffer that holds the table's contents*/
+    private byte[] buffer;
+    
+    public StringTable(int virtualAddress, int size) throws IOException {
+      
+      //initialize the buffer
+      buffer = new byte[size];
+      
+      //find the segment within which the string table resides
+      SegmentHeader strTableSeg = virtualAddressToSegment(virtualAddress);
+      
+      if (strTableSeg == null)
+        throw new IOException("Unable to locate the segment within which the string table resides.");
+      
+      int offsetWithinSegment = virtualAddress - strTableSeg.p_vaddr;
+      reader.seek(strTableSeg.p_offset + offsetWithinSegment);
+      
+      int readBytes = reader.rFile.read(buffer);
+      
+      if (readBytes != buffer.length)
+        throw new IOException("Unable to read string table from file.");
+    }
+    
+    /** Looks a string table entry up by address. */
+    public String lookup(int index) {
+      if (index >= buffer.length)
+        throw new IndexOutOfBoundsException("Invalid string table index: " + index);
+      
+      String result = cachedStrings.get(index);
+      
+      if (result != null)
+        return result;
+      
+      int nextIndex = index;
+      
+      result = "";
+      byte b = (byte)buffer[nextIndex++];
+      
+      while (b != 0) {
+        result += (char)b;
+        b = (byte)buffer[nextIndex++];
+      }
+      
+      //cache the string that we just found
+      cachedStrings.put(index, result);
+      
+      //and return the result
+      return result;
+    }
+  }
+  
+  public class SymbolHashTable {
+    private final SymbolTable symTab;
+    private final StringTable strTab;
+    
+    private final int buckets[];
+    private final int chains[];
+    
+    public SymbolHashTable(SymbolTable symTab, StringTable strTab, int virtualAddress) throws IOException {
+      this.symTab = symTab;
+      this.strTab = strTab;
+      
+      //find the hash table within the file
+      SegmentHeader segment = virtualAddressToSegment(virtualAddress);
+      
+      if (segment == null)
+        throw new IOException("Unable to locate the segment within which the hash table resides."); 
+      
+      int offsetWithinSegment = virtualAddress - segment.p_vaddr;
+      reader.seek(segment.p_offset + offsetWithinSegment);
+      
+      //load the hash table from the file
+      int bucketCount = reader.readInt();
+      int chainCount = reader.readInt();
+      
+      buckets = new int[bucketCount];
+      chains = new int[chainCount];
+      
+      for (int i = 0; i < bucketCount; i++)
+        buckets[i] = reader.readInt();
+
+      for (int i = 0; i < chainCount; i++)
+        chains[i] = reader.readInt();
+    }
+    
+    public SymbolTable.Entry lookup(String symbol) throws IOException {
+      int hash = getElfHash(symbol);
+      
+      //what is the index of that symbol in the symbol table?
+      int symbolIndex = buckets[hash % buckets.length];
+      
+      while (symbolIndex != SymbolTable.STN_UNDEF) {
+        //get the symbol that we retrieved from the hash table
+        SymbolTable.Entry entry = symTab.getEntry(symbolIndex);
+        String curSymbolname = strTab.lookup(entry.nameIdx);
+        
+        //is that the symbol we're looking for?
+        if (curSymbolname.equals(symbol))
+          return entry;
+        
+        //if not, follow the chain to the next symbol
+        symbolIndex = chains[symbolIndex];
+      }
+      
+      //obviously, we couldn't find this symbol
+      return null;
+    }
+
+    private int getElfHash(String symbol) {
+
+      int h = 0;
+      int g = 0;
+      int nextChar = 0;
+
+      while (nextChar < symbol.length()) {
+        h = (h << 4) + (byte) symbol.charAt(nextChar++);
+
+        g = h & 0xf0000000;
+        if (g != 0)
+          h ^= g >>> 24;
+
+        h &= ~g;
+      }
+      
+      return h;
+    }
+    
+    
+  }
+  
+  public class SymbolTable {
+    
+    /** The undefined symbol index. */
+    public final static int STN_UNDEF = 0;
+    
+    /** Symbol binding values. All other values are processor-dependant. */
+    public final static byte STB_LOCAL = 0;
+    public final static byte STB_GLOBAL = 1;
+    public final static byte STB_WEAK = 2;
+    
+    /** Symbol types. */
+    public final static byte STT_NOTYPE = 0;
+    public final static byte STT_OBJECT = 1;
+    public final static byte STT_FUNC = 2;
+    public final static byte STT_SECTION = 3;
+    public final static byte STT_FILE = 4;
+    
+    /** Some section indices have special meanings: */
+    public final static short SHN_ABS = (short)0xfff1;
+    public final static short SHN_COMMON = (short)0xfff2;
+    public final static short SHN_UNDEF = 0;
+    
+    public class Entry {
+      public final int nameIdx;
+      public final int value;
+      public final int size;
+      public final byte binding;
+      public final byte type;
+      public final short sectionIndex;
+      
+      public Entry(int nameIdx, int value, int size, byte binding, byte type, short sectionIndex) {
+        this.nameIdx = nameIdx;
+        this.value = value;
+        this.size = size;
+        this.binding = binding;
+        this.type = type;
+        this.sectionIndex = sectionIndex;
+      }
+      
+      final boolean isUndefined() {
+        return sectionIndex == SHN_UNDEF;
+      }
+    }
+    
+    /** Every symbol that has been retrieved previously is cached in this map to allow faster access for the next time. */
+    private WeakHashMap<Integer, Entry> cachedSymbols = new WeakHashMap<Integer, Entry>();
+    
+    /** Offset at which the symbol table starts within the file. */
+    private final int fileOffset;
+    
+    /** size of a single entry within the symbol table */
+    private final int entrySize;
+    
+    public SymbolTable(int virtualAddress, int entrySize) throws IOException {
+      SegmentHeader segment = virtualAddressToSegment(virtualAddress);
+      int offset = virtualAddress - segment.p_vaddr;
+      
+      fileOffset = segment.p_offset + offset;
+      this.entrySize = entrySize;
+    }
+    
+    public Entry getEntry(int index) throws IOException {
+      
+      //check if we already have cached version of this symbol
+      Entry result = cachedSymbols.get(index);
+      
+      if (result != null)
+        return result;
+      
+      //no, we have to read it from the file
+      reader.seek(fileOffset + entrySize * index);
+      
+      int name = reader.readInt();
+      int addr = reader.readInt();
+      int size = reader.readInt();
+      byte info = reader.readByte();
+      reader.readByte(); //skip an empty byte
+      short sectionIndex = reader.readShort();
+      
+      //create the requested entry...
+      result = new Entry(name, addr, size, (byte)(info >>> 4), (byte)(info & 0xF), sectionIndex);
+      
+      //cache it for the next time
+      cachedSymbols.put(index, result);
+
+      return result;
+    }
+  }
+  
+  public class RelocationTable {
+    
+    public final ArrayList<Entry> entries;
+    public final boolean hasAddends;
+    
+    public class Entry {
+      public final int offset;
+      public final int symbolIndex;
+      public final byte relocationType;
+      public final int addend;
+      
+      public Entry(int offset, int symbolindex, byte relocationType, int addend) {
+        this.offset = offset;
+        this.symbolIndex = symbolindex;
+        this.relocationType = relocationType;
+        this.addend = addend;
+      }
+      
+      @Override
+      public String toString() {
+        return String.format("Offset: %d, Symbol: %d, Type: %d, Addend: %d", offset, symbolIndex, relocationType, addend);
+      }
+    }
+    
+    public RelocationTable(int virtualAddress, int tableSize, int entrySize, boolean hasAddends) throws IOException {
+      
+      //check the parameters
+      if (tableSize < 0 || entrySize < 0) {
+        throw new InvalidParameterException("Cannot create relocation section from invalid section sizes.");
+      }
+      
+      this.entries = new ArrayList<Entry>();
+      this.hasAddends = hasAddends;
+      
+      //find the segment within which the string table resides
+      SegmentHeader strTableSeg = virtualAddressToSegment(virtualAddress);
+      
+      if (strTableSeg == null)
+        throw new IOException("Unable to locate the segment within which the relocation section resides.");
+      
+      int offsetWithinSegment = virtualAddress - strTableSeg.p_vaddr;
+      virtualAddress = strTableSeg.p_offset + offsetWithinSegment; 
+      
+      while (tableSize >= entrySize) {
+        reader.seek(virtualAddress);
+        
+        //read a single relocation entry 
+        int offset = reader.readInt();
+        int info = reader.readInt();
+        int addend = 0;
+        
+        if (hasAddends)
+          addend = reader.readInt();
+        
+        //add it to the list of relocation entries
+        entries.add(new Entry(offset, info >>> 8, (byte)(info & 0xFF), addend));
+        
+        //skip to the next entry
+        virtualAddress += entrySize;
+        tableSize -= entrySize;
+      }
+    }
+    
+    @Override
+    public String toString() {
+      String result = "";
+      
+      for (int i = 0; i < entries.size(); i++)
+        result += entries.get(i).toString() + "\n";
+      
+      return result;
+    }
+  }
+  
+  public class DynamicSection {
+    public final static int DT_NULL = 0;
+    public final static int DT_NEEDED = 1;
+    public final static int DT_PLTRELSZ = 2;
+    public final static int DT_PLTGOT = 3;
+    public final static int DT_HASH = 4;
+    public final static int DT_STRTAB = 5;
+    public final static int DT_SYMTAB = 6;
+    public final static int DT_RELA = 7;
+    public final static int DT_RELASZ = 8;
+    public final static int DT_RELAENT = 9;
+    public final static int DT_STRSZ = 10;
+    public final static int DT_SYMENT = 11;
+    public final static int DT_INIT = 12;
+    public final static int DT_FINI = 13;
+    public final static int DT_SONAME = 14;
+    public final static int DT_RPATH = 15;
+    public final static int DT_SYMBOLIC = 16;
+    public final static int DT_REL = 17;
+    public final static int DT_RELSZ = 18;
+    public final static int DT_RELENT = 19;
+    public final static int DT_PLTREL = 20;
+    public final static int DT_DEBUG = 21;
+    public final static int DT_TEXTREL = 22;
+    public final static int DT_JMPREL = 23;
+    public final static int DT_BIND_NOW = 24;
+    
+    public class Entry {
+      public final int type;
+      public final int value;
+      
+      private Entry(int type, int value) {
+        this.type = type;
+        this.value = value;
+      }
+      
+      @Override
+      public String toString() {
+        return String.format("Type: %d, Value: 0x%x", type, value);
+      }
+    }
+    
+    /** the entries within the dynamic section */
+    private ArrayList<Entry> entries = new ArrayList<Entry>();
+    
+    /** the string table referenced by the dynamic section */
+    private StringTable strTab;
+    
+    /** The symbol table referenced by this dynamic section. */
+    private SymbolTable symTab;
+    
+    /** The hash table referenced by this dynamic section. */
+    private SymbolHashTable hashTab;
+    
+    /** The relA section (if present) that is referenced within this dynamic section */
+    private RelocationTable relaTab;
+    
+    /** The rel section (if present) that is referenced within this dynamic section */
+    private RelocationTable relTab;
+    
+    public DynamicSection(SegmentHeader segment) throws IOException {
+      
+      if (segment.p_type != SegmentHeader.PT_DYNAMIC)
+        throw new InvalidParameterException("segment is not of type PT_DYNAMIC.");
+      
+      reader.seek(segment.p_offset);
+      Entry entry;
+      
+      do {
+        int type = reader.readInt();
+        int value = reader.readInt();
+        
+        entry = new Entry(type, value);
+        entries.add(entry);
+      }
+      while (entry.type != DT_NULL);
+    }
+    
+    public Entry getEntryByType(int type) {
+      for(Entry entry : entries)
+        if (entry.type == type)
+          return entry;
+      
+      return null;
+    }
+    
+    public Entry[] getEntriesByType(int type) {
+      ArrayList<Entry> matches = new ArrayList<Entry>();
+      
+      for(Entry entry : entries)
+        if (entry.type == type)
+          matches.add(entry);
+      
+      Entry[] result = new Entry[matches.size()];
+      return matches.toArray(result);
+    }
+    
+    public SymbolHashTable findHashTable() throws IOException {
+      if (hashTab != null)
+        return hashTab;
+      
+      Entry tabLocation = getEntryByType(DT_HASH);
+      
+      SymbolTable symTab = findSymbolTable();
+      StringTable strTab = findStringTable();
+      
+      if (symTab == null || strTab == null || tabLocation == null)
+        return null;
+      
+      hashTab = new SymbolHashTable(symTab, strTab, tabLocation.value);
+      return hashTab;
+    }
+    
+    public SymbolTable findSymbolTable() throws IOException {
+      
+      if (symTab != null)
+        return symTab;
+      
+      Entry tabLocation = getEntryByType(DT_SYMTAB);
+      Entry entrySize = getEntryByType(DT_SYMENT);
+      
+      if (tabLocation == null || entrySize == null)
+        return null;
+      
+      symTab = new SymbolTable(tabLocation.value, entrySize.value); 
+      return symTab; 
+    }
+    
+    public StringTable findStringTable() throws IOException {
+      
+      if (strTab != null)
+        return strTab;
+      
+      Entry tabLocation = getEntryByType(DT_STRTAB);
+      Entry tabSize = getEntryByType(DT_STRSZ);
+      
+      if (tabLocation == null || tabSize == null)
+        return null;
+      
+      strTab = new StringTable(tabLocation.value, tabSize.value); 
+      return strTab;
+    }
+    
+    public RelocationTable findJmpRelTable() throws IOException {
+
+      Entry tabLocation = getEntryByType(DT_JMPREL);
+      Entry tabSize = getEntryByType(DT_PLTRELSZ);
+      Entry entrySize = getEntryByType(DT_RELENT);
+      Entry entryType = getEntryByType(DT_PLTREL);
+      
+      if (tabLocation == null || tabSize == null || entrySize == null | entryType == null)
+        return null;
+           
+      relaTab = new RelocationTable(tabLocation.value, tabSize.value, entrySize.value, entryType.value == DT_RELA); 
+      
+      return relaTab;
+    }
+    
+    public RelocationTable findRelaTable() throws IOException {
+      
+      if (relaTab != null)
+        return relaTab;
+      
+      Entry tabLocation = getEntryByType(DT_RELA);
+      Entry tabSize = getEntryByType(DT_RELASZ);
+      Entry entrySize = getEntryByType(DT_RELAENT);
+      
+      if (tabLocation == null || tabSize == null || entrySize == null)
+        return null;
+      
+      relaTab = new RelocationTable(tabLocation.value, tabSize.value, entrySize.value, true); 
+      
+      return relaTab;
+    }
+    
+    public RelocationTable findRelTable() throws IOException {
+      
+      if (relTab != null)
+        return relTab;
+      
+      Entry tabLocation = getEntryByType(DT_REL);
+      Entry tabSize = getEntryByType(DT_RELSZ);
+      Entry entrySize = getEntryByType(DT_RELENT);
+      
+      if (tabLocation == null || tabSize == null || entrySize == null)
+        return null;
+      
+      relTab = new RelocationTable(tabLocation.value, tabSize.value, entrySize.value, false);
+      return relTab;
+    }
+    
+    @Override
+    public String toString() {
+      String result = "";
+      
+      for(Entry entry : entries)
+        result = result + entry.toString() + "\n";
+      
+      return result;
+    }
+  }
 
   /**
    * Header representing a segment in the process (e.g. stack, heap, code aka
@@ -636,52 +1167,52 @@ public class ELF_Loader extends Loader {
    * literature, but they don't represent programs, rather separate segments.
    */
   @SuppressWarnings("unused")
-  class ELF_ProgramSegmentHeader {
+  public class SegmentHeader {
     /**
      * Type of the segment
      */
-    private final int p_type;
+    public final int p_type;
 
     /**
      * Null header, contains no data and can be ignored
      */
-    private static final int PT_NULL = 0;
+    public static final int PT_NULL = 0;
 
     /**
      * A loadable segment
      */
-    private static final int PT_LOAD = 1;
+    public static final int PT_LOAD = 1;
 
     /**
      * Segment containing dynamic linking information
      */
-    private static final int PT_DYNAMIC = 2;
+    public static final int PT_DYNAMIC = 2;
 
     /**
      * A segment containing a string to invoke as interpreter for this file
      */
-    private static final int PT_INTERP = 3;
+    public static final int PT_INTERP = 3;
 
     /**
      * A segment describing the location and size of auxiliary information
      */
-    private static final int PT_NOTE = 4;
+    public static final int PT_NOTE = 4;
 
     /**
      * A reserved segment type with unspecified semantics
      */
-    private static final int PT_SHLIB = 5;
+    public static final int PT_SHLIB = 5;
 
     /**
      * A segment describing the ELF's header, present once before any loadable
      * segments
      */
-    private static final int PT_PHDR = 6;
+    public static final int PT_PHDR = 6;
 
     /**
      * Thread local storage (TLS) segment
      */
-    private static final int PT_TLS = 7;
+    public static final int PT_TLS = 7;
 
 
     /**
@@ -691,22 +1222,22 @@ public class ELF_Loader extends Loader {
     /**
      * SUN unwind table segment
      */
-    private static final int PT_SUNW_UNWIND = 0x6464e550;
+    public static final int PT_SUNW_UNWIND = 0x6464e550;
 
     /**
      * GCC .eh_frame_hdr segment
      */
-    private static final int PT_GNU_EH_FRAME = 0x6474e550;
+    public static final int PT_GNU_EH_FRAME = 0x6474e550;
 
     /**
      * Indicates stack executability
      */
-    private static final int PT_GNU_STACK = 0x6474e551;
+    public static final int PT_GNU_STACK = 0x6474e551;
 
     /**
      * Read-only after relocation
      */
-    private static final int PT_GNU_RELRO = 0x6474e552;
+    public static final int PT_GNU_RELRO = 0x6474e552;
 
     /**
      * Start of SUN reserved segments
@@ -716,23 +1247,23 @@ public class ELF_Loader extends Loader {
      * The array element has the same attributes as a PT_LOAD element and is
      * used to describe a .SUNW_bss section.
      */
-    private static final int PT_SUNWBSS = 0x6ffffffa;
+    public static final int PT_SUNWBSS = 0x6ffffffa;
 
     /**
      * Describes a process stack. Only one PT_SUNWSTACK element can exist. Only
      * access permissions, as defined in the p_flags field, are meaningful.
      */
-    private static final int PT_SUNWSTACK = 0x6ffffffb;
+    public static final int PT_SUNWSTACK = 0x6ffffffb;
 
     /**
      * Reserved for internal use by dtrace
      */
-    private static final int PT_SUNWDTRACE = 0x6ffffffc;
+    public static final int PT_SUNWDTRACE = 0x6ffffffc;
 
     /**
      * Specifies hardware capability requirements
      */
-    private static final int PT_SUNWCAP = 0x6ffffffd;
+    public static final int PT_SUNWCAP = 0x6ffffffd;
 
     /**
      * End of SUN reserved segments
@@ -746,47 +1277,47 @@ public class ELF_Loader extends Loader {
     /**
      * Offset of first byte of segment data in file
      */
-    private final int p_offset;
+    public final int p_offset;
 
     /**
      * Virtual address of first byte in segment
      */
-    private final int p_vaddr;
+    public final int p_vaddr;
 
     /**
      * Corresponding physical addressed used by some systems
      */
-    private final int p_paddr;
+    public int p_paddr;
 
     /**
      * Size of segment in file
      */
-    private final int p_filesz;
+    public final int p_filesz;
 
     /**
      * Size of segment in memory
      */
-    private final int p_memsz;
+    public final int p_memsz;
 
     /**
      * Read/Write/Execute flags for segment in memory
      */
-    private final int p_flags;
+    public int p_flags;
 
     /**
      * Executable flag
      */
-    private static final int PF_X = 0x1;
+    public static final int PF_X = 0x1;
 
     /**
      * Writable flag
      */
-    private static final int PF_W = 0x2;
+    public  static final int PF_W = 0x2;
 
     /**
      * Readable flag
      */
-    private static final int PF_R = 0x4;
+    public  static final int PF_R = 0x4;
 
     /**
      * OS specific reserved bits
@@ -809,7 +1340,7 @@ public class ELF_Loader extends Loader {
     /**
      * Construct a program segment header reading in from the reader
      */
-    private ELF_ProgramSegmentHeader() throws IOException {
+    private SegmentHeader(BinaryReader reader) throws IOException {
       p_type = reader.readInt();
       p_offset = reader.readInt();
       p_vaddr = reader.readInt();
@@ -819,25 +1350,35 @@ public class ELF_Loader extends Loader {
       p_flags = reader.readInt();
       p_align = reader.readInt();
       // Move file onto next program segment header offset
-      reader.rFile.skipBytes(elfHeader.getProgramSegmentHeaderSize() - 32);
+      reader.rFile.skipBytes(header.getProgramSegmentHeaderSize() - 32);
+    }
+    
+    public DynamicSection asDynamicSection() throws IOException {
+      return new DynamicSection(this);
+    }
+    
+    void create(ProcessSpace ps) {
+      create(ps, 0);
     }
 
     /**
      * Load/create the program segment
      */
-    void create(ProcessSpace ps) {
+    void create(ProcessSpace ps, int offset) {
       switch (p_type) {
       case PT_NULL: // Null header, contains no data and can be ignored
         break;
+      
       case PT_LOAD: // A loadable segment
         try {
-          createSegment(ps.memory, reader.rFile, p_offset, p_vaddr, p_filesz,
+          createSegment(ps.memory, reader.rFile, p_offset, p_vaddr + offset, p_filesz,
               p_memsz, (p_flags & PF_R) != 0, (p_flags & PF_W) != 0,
               (p_flags & PF_X) != 0);
         } catch (MemoryMapException e) {
           throw new Error("Error in creating: " + this, e);
         }
         break;
+      case PT_PHDR:
       case PT_NOTE: // A segment describing the location and size of auxiliary
                     // information
         // ignore
@@ -852,10 +1393,11 @@ public class ELF_Loader extends Loader {
                       // for this file
       case PT_DYNAMIC: // Segment containing dynamic linking information
       case PT_SHLIB: // A reserved segment type with unspecified semantics
-      case PT_PHDR: // A segment describing the ELF's header; present once
+      //case PT_PHDR: // A segment describing the ELF's header; present once
                     // before any loadable segments
       default:
-        throw new Error("Segment type " + toString() + " not yet supported");
+        return;
+        //throw new Error("Segment type " + toString() + " not yet supported");
       }
     }
 

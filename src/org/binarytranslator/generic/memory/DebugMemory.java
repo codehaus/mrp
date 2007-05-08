@@ -11,6 +11,7 @@ package org.binarytranslator.generic.memory;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.vmInterface.TranslationHelper;
 import org.jikesrvm.compilers.opt.ir.OPT_Operand;
@@ -219,10 +220,12 @@ public class DebugMemory extends Memory {
     
     // Calculate number of pages
     int num_pages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
+    
     // Find address if not specified
-    if (addr == 0) {
+    /*if (addr == 0) {
       addr = findFreePages(num_pages);
-    }
+    }*/
+    
     if (DBT_Options.debugMemory) {
       System.err.println("Mapping file " + file + " offset=" + offset
           + " addr=0x" + Integer.toHexString(addr) + " len=" + len
@@ -236,15 +239,30 @@ public class DebugMemory extends Memory {
         // Sub-optimal
         file.seek(offset);
         for (int i = 0; i < num_pages; i++) {
+          
+          byte page[];
+          
           // Check pages aren't already allocated
           if ((readableMemory[pte + i] != null)
               || (writableMemory[pte + i] != null)
               || (executableMemory[pte + i] != null)) {
+            
+            /*page = readableMemory[pte + i];
+            
+            if (page == null)
+              page = writableMemory[pte + i];
+            
+            if (page == null)
+              page = executableMemory[pte + i];
+            
+            if (DBT.VerifyAssertions) DBT._assert(page != null);*/
+            
             throw new Error("Memory map of already mapped location addr=0x"
                 + Integer.toHexString(addr) + " len=" + len);
           }
-          // Allocate page
-          byte page[] = new byte[PAGE_SIZE];
+          else
+            page = new byte[PAGE_SIZE]; //Allocate page
+          
           if (i == 0) { // first read, start from offset upto a page length
             file.read(page, getOffset(addr), PAGE_SIZE - getOffset(addr));
           } else if (i == (num_pages - 1)) { // last read
@@ -252,6 +270,7 @@ public class DebugMemory extends Memory {
           } else {
             file.read(page);
           }
+          
           if (read) {
             readableMemory[pte + i] = page;
           }
@@ -272,6 +291,8 @@ public class DebugMemory extends Memory {
                 + Integer.toHexString(addr) + " len=" + len);
           }
           
+          System.out.println("Unexpected page mapping!!!!!!!!!!!!!!!!!!!!");
+          
           byte[] page;
           
           if (write)
@@ -284,7 +305,7 @@ public class DebugMemory extends Memory {
           }
           
           if (read) {
-            readableMemory[pte + 1] = page;
+            readableMemory[pte + i] = page;
           }
           
           if (exec) {

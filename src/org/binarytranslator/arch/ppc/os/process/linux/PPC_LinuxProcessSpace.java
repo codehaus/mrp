@@ -102,9 +102,9 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR,
         ((ELF_Loader)loader).getProgramHeaderAddress(),
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM,
-        ((ELF_Loader)loader).elfHeader.getNumberOfProgramSegmentHeaders(),
+        ((ELF_Loader)loader).getNumberOfProgramSegmentHeaders(),
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHENT,
-        ((ELF_Loader)loader).elfHeader.getProgramSegmentHeaderSize(),
+        ((ELF_Loader)loader).getProgramSegmentHeaderSize(),
 
         //LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,

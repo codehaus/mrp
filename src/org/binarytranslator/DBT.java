@@ -17,7 +17,7 @@ import org.vmmagic.pragma.Uninterruptible;
  */
 public final class DBT {
   /** Should the following assertion be checked? */
-  public static final boolean VerifyAssertions = VM.VerifyAssertions;
+  public static final boolean VerifyAssertions = true;
 
   /**
    * Assert the following condition is true, if false then fail with stack trace
@@ -27,9 +27,11 @@ public final class DBT {
     if (!VerifyAssertions) {
       // Checking an assertion in a production build is a bad idea
       fail("Assertion checked when assertions should be disabled.\n"
-          + "Please guard the assertion with DBT.VerifyAssertions");
+          + "Please guard the assertion with DBT.VerifyAssertions.");
     } else {
-      VM._assert(cond);
+      //VM._assert(cond);
+      if (!cond)
+        throw new RuntimeException("Assertion failed.");
     }
   }
 

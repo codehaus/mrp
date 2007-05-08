@@ -91,7 +91,7 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
         LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
         LinuxStackInitializer.AuxiliaryVectorType.AT_CLKTCK, 0x64,
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHDR, ((ELF_Loader)loader).getProgramHeaderAddress(),
-        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, ((ELF_Loader)loader).elfHeader.getNumberOfProgramSegmentHeaders(),
+        LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, ((ELF_Loader)loader).getNumberOfProgramSegmentHeaders(),
         LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, pc,
