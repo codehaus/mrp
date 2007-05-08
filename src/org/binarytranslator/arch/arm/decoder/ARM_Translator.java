@@ -265,7 +265,7 @@ public class ARM_Translator implements OPT_Operators {
           translator.arm2ir.appendRotateRight(resultRegister, shiftedOperand, shiftAmount);
           return resultRegister;
 
-        case RRE:
+        case RRX:
           /*
            * if (regs.isCarrySet()) return (resultRegister >> 1) | 0x80000000;
            * else return resultRegister >>> 1;
@@ -504,7 +504,7 @@ public class ARM_Translator implements OPT_Operators {
               shiftAmount);
           return resultRegister;
 
-        case RRE:
+        case RRX:
           /*
            * if (regs.isCarrySet()) return (resultRegister >> 1) | 0x80000000;
            * else return resultRegister >>> 1;

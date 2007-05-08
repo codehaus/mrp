@@ -162,7 +162,7 @@ public class ARM_Interpreter implements Interpreter {
       case ROR:
         return Integer.rotateRight(value, shiftAmount);
 
-      case RRE:
+      case RRX:
         if (regs.isCarrySet())
           return (value >> 1) | 0x80000000;
         else
@@ -315,7 +315,7 @@ public class ARM_Interpreter implements Interpreter {
             return Integer.rotateRight(value, shiftAmount);
           }
 
-        case RRE:
+        case RRX:
           shifterCarryOut = (value & 0x1) != 0;
 
           if (regs.isCarrySet())

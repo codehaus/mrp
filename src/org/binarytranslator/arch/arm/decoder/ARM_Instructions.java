@@ -92,8 +92,7 @@ public class ARM_Instructions  {
   }
   
   /** Base class for multiply operations. */
-  protected abstract static class MultiplyTemplate 
-    extends ThreeRegistersTemplate {
+  protected abstract static class MultiplyTemplate extends Instruction {
 
     /** @see #updateConditionCodes() */
     protected final boolean updateConditionCodes;
@@ -103,13 +102,25 @@ public class ARM_Instructions  {
     
     /** @see #getRs() */
     protected final byte Rs;
+    
+    /** @see #getRn() */
+    protected final byte Rn;
+    
+    /** @see #getRm() */
+    protected final byte Rm;
+    
+    /** @see #getRd() */
+    protected final byte Rd; 
 
     protected MultiplyTemplate(int instr) {
       super(instr);
       
       updateConditionCodes = Utils.getBit(instr, 20);
       accumulate = Utils.getBit(instr, 21);
+      Rd = (byte) Utils.getBits(instr, 16, 19);
+      Rn = (byte) Utils.getBits(instr, 12, 15);
       Rs = (byte) Utils.getBits(instr, 8, 11);
+      Rm = (byte) Utils.getBits(instr, 0, 3);
     }
 
     /** Returns true, if the condition codes shall be updated by the result of this operation. */
@@ -125,6 +136,21 @@ public class ARM_Instructions  {
     /** Returns the register number of the Rs operand register. */
     public final byte getRs() {
       return Rs;
+    }
+    
+    /** Returns the register number of the Rm operand register. */
+    public final byte getRm() {
+      return Rm;
+    }
+    
+    /** Returns the register number of the Rn operand register. */
+    public final byte getRn() {
+      return Rn;
+    }
+    
+    /** Returns the register number of the Rd destination register. */
+    public final byte getRd() {
+      return Rd;
     }
   }
   
@@ -172,7 +198,7 @@ public class ARM_Instructions  {
       LSR,
       ASR,
       ROR,
-      RRE
+      RRX
     }
     
     /** Creates an operand wrapper around a 12 bit immediate value. */
@@ -229,7 +255,7 @@ public class ARM_Instructions  {
           
           if (shift == ShiftType.ROR) {
             //However, if the shift type was RotateRight, then ARM meant do a RotateRightExtend by 1
-            return new RegisterShiftImmediateOperand(shiftedRegister, shift, (byte)1);
+            return new RegisterShiftImmediateOperand(shiftedRegister, ShiftType.RRX, (byte)1);
           }
           
           //in all other cases, an immediate of zero denotes a shift by 32
@@ -591,7 +617,7 @@ public class ARM_Instructions  {
       }
       
       //this instruction variant yields an undefined result
-      if (DBT.VerifyAssertions) DBT._assert(Rd != 15 || !writeBack);
+      if (DBT.VerifyAssertions) DBT._assert(Rd != Rn || !writeBack);
     }
     
     /** Returns true, if this memory access shall be treated as if it had been done in user mode. */
@@ -650,7 +676,6 @@ public class ARM_Instructions  {
       if (DBT.VerifyAssertions) DBT._assert((accumulate || Rn == 0) && Rd != 15);
     }
 
-    @Override
     public void visit(ARM_InstructionVisitor visitor) {
       visitor.visit(this);
     }
@@ -668,7 +693,7 @@ public class ARM_Instructions  {
       unsigned = Utils.getBit(instr, 22);
       
       //check for instruction combinations that show undefined behaviour on ARM
-      if (DBT.VerifyAssertions) DBT._assert((accumulate || Rn == 0) && Rd != 15);
+      if (DBT.VerifyAssertions) DBT._assert(Rd != 15);
     }
     
     /** Long multiplication stores its result in two registers. This function gets the register which receives the high int. */
@@ -686,7 +711,6 @@ public class ARM_Instructions  {
       return unsigned;
     }
 
-    @Override
     public void visit(ARM_InstructionVisitor visitor) {
       visitor.visit(this);
     }
