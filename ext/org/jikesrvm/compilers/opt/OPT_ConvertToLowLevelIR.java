@@ -8,16 +8,145 @@
  */
 package org.jikesrvm.compilers.opt;
 
-import org.jikesrvm.*;
+import org.jikesrvm.VM;
+import static org.jikesrvm.VM_Constants.LOG_BYTES_IN_ADDRESS;
+import static org.jikesrvm.VM_Constants.LOG_BYTES_IN_INT;
+import static org.jikesrvm.VM_Constants.NEEDS_DYNAMIC_LINK;
+import static org.jikesrvm.VM_Constants.TIB_IMT_TIB_INDEX;
+import static org.jikesrvm.VM_Constants.TIB_ITABLES_TIB_INDEX;
+import org.jikesrvm.classloader.VM_Class;
+import org.jikesrvm.classloader.VM_Field;
+import org.jikesrvm.classloader.VM_InterfaceInvocation;
+import org.jikesrvm.classloader.VM_InterfaceMethodSignature;
+import org.jikesrvm.classloader.VM_Method;
+import org.jikesrvm.classloader.VM_Type;
+import org.jikesrvm.classloader.VM_TypeReference;
+import static org.jikesrvm.compilers.opt.OPT_Constants.RUNTIME_SERVICES_BCI;
+import org.jikesrvm.compilers.opt.ir.ALoad;
+import org.jikesrvm.compilers.opt.ir.AStore;
+import org.jikesrvm.compilers.opt.ir.Binary;
+import org.jikesrvm.compilers.opt.ir.BoundsCheck;
+import org.jikesrvm.compilers.opt.ir.BooleanCmp;
+import org.jikesrvm.compilers.opt.ir.BooleanCmp2;
+import org.jikesrvm.compilers.opt.ir.CacheOp;
+import org.jikesrvm.compilers.opt.ir.Call;
+import org.jikesrvm.compilers.opt.ir.GetField;
+import org.jikesrvm.compilers.opt.ir.GetStatic;
+import org.jikesrvm.compilers.opt.ir.Goto;
+import org.jikesrvm.compilers.opt.ir.GuardedUnary;
+import org.jikesrvm.compilers.opt.ir.IfCmp;
+import org.jikesrvm.compilers.opt.ir.IfCmp2;
+import org.jikesrvm.compilers.opt.ir.InlineGuard;
+import org.jikesrvm.compilers.opt.ir.Load;
+import org.jikesrvm.compilers.opt.ir.LookupSwitch;
+import org.jikesrvm.compilers.opt.ir.LowTableSwitch;
+import org.jikesrvm.compilers.opt.ir.OPT_AddressConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_BasicBlock;
+import org.jikesrvm.compilers.opt.ir.OPT_BranchOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_BranchProfileOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_IR;
+import org.jikesrvm.compilers.opt.ir.OPT_IRTools;
+import org.jikesrvm.compilers.opt.ir.OPT_Instruction;
+import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_LocationOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_MethodOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operand;
+import org.jikesrvm.compilers.opt.ir.OPT_Operator;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.ARRAYLENGTH;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.BOOLEAN_CMP_INT;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.BOOLEAN_CMP2_INT_AND_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.BOOLEAN_CMP2_INT_OR_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.BOUNDS_CHECK_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.BYTE_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.BYTE_ASTORE_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.BYTE_LOAD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.BYTE_STORE;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.CALL;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.CALL_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.CHECKCAST_NOTNULL_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.CHECKCAST_UNRESOLVED_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.CHECKCAST_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.DOUBLE_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.DOUBLE_ASTORE_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.DOUBLE_LOAD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.DOUBLE_STORE;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.FLOAT_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.FLOAT_ASTORE_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.FLOAT_LOAD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.FLOAT_STORE;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.GETFIELD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.GETSTATIC_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.GET_CLASS_OBJECT_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.GET_CLASS_TIB;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.GET_OBJ_TIB;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.GET_TYPE_FROM_TIB;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.GOTO;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.IG_CLASS_TEST_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.IG_METHOD_TEST_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INSTANCEOF_NOTNULL_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INSTANCEOF_UNRESOLVED_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INSTANCEOF_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_2ADDRSigExt;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_2ADDRZerExt;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_ADD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_AND;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_OR;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_ASTORE_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_IFCMP;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_IFCMP2;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_LOAD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_SHL;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_STORE;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.INT_ZERO_CHECK_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.LONG_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.LONG_ASTORE_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.LONG_LOAD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.LONG_STORE;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.LONG_ZERO_CHECK_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.LOOKUPSWITCH;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.LOOKUPSWITCH_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.LOWTABLESWITCH;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.MUST_IMPLEMENT_INTERFACE_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.OBJARRAY_STORE_CHECK_NOTNULL_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.OBJARRAY_STORE_CHECK_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.PUTFIELD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.PUTSTATIC_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.REF_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.REF_ASTORE_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.REF_IFCMP;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.REF_LOAD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.REF_STORE;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.RESOLVE;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.RESOLVE_MEMBER_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.SHORT_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.SHORT_ASTORE_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.SHORT_LOAD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.SHORT_STORE;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.SYSCALL_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.TABLESWITCH_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.TRAP_IF;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.UBYTE_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.UBYTE_LOAD;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.USHORT_ALOAD_opcode;
+import static org.jikesrvm.compilers.opt.ir.OPT_Operators.USHORT_LOAD;
+import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_TIBConstantOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_TrapCodeOperand;
+import org.jikesrvm.compilers.opt.ir.OPT_TypeOperand;
+import org.jikesrvm.compilers.opt.ir.PutField;
+import org.jikesrvm.compilers.opt.ir.PutStatic;
+import org.jikesrvm.compilers.opt.ir.Store;
+import org.jikesrvm.compilers.opt.ir.TableSwitch;
+import org.jikesrvm.compilers.opt.ir.TrapIf;
+import org.jikesrvm.compilers.opt.ir.Unary;
+import org.jikesrvm.compilers.opt.ir.ZeroCheck;
+import org.jikesrvm.memorymanagers.mminterface.MM_Constants;
 import org.jikesrvm.runtime.VM_Entrypoints;
 import org.jikesrvm.runtime.VM_Magic;
-import org.jikesrvm.classloader.*;
-import org.jikesrvm.compilers.opt.ir.*;
-import org.jikesrvm.memorymanagers.mminterface.MM_Constants;
-import static org.jikesrvm.compilers.opt.ir.OPT_Operators.*;
-import static org.jikesrvm.compilers.opt.OPT_Constants.*;
-import static org.jikesrvm.VM_Constants.*;
-import org.vmmagic.unboxed.*;
+import org.vmmagic.unboxed.Address;
+import org.vmmagic.unboxed.Offset;
 
 /**
  * Converts all remaining instructions with HIR-only operators into 
@@ -369,7 +498,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
         LookupSwitch.setBranchProfile(l, i, 
                                       TableSwitch.getClearBranchProfile(s,i));
       }
-      s.insertFront(l);
+      s.insertAfter(l);
       return s.remove();
     }
     OPT_RegisterOperand reg = val.asRegister();
@@ -854,7 +983,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
                          IC(methOp.getMemberRef().getId()));
           vp.position = v.position;
           vp.bcIndex = RUNTIME_SERVICES_BCI;
-          v.insertBack(vp);
+          v.insertBefore(vp);
           callHelper(vp, ir);
           Call.setAddress(v, realAddrReg.copyD2U());
           return v;
@@ -873,7 +1002,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
                          RHStib, IC(methOp.getTarget().getDeclaringClass().getInterfaceId()));
           fi.position = v.position;
           fi.bcIndex = RUNTIME_SERVICES_BCI;
-          v.insertBack(fi);
+          v.insertBefore(fi);
           callHelper(fi, ir);
           OPT_RegisterOperand address = 
             InsertLoadOffset(v, ir, REF_LOAD,
@@ -959,7 +1088,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
                                            OPT_Operand o1, 
                                            OPT_Operand o2) {
     OPT_RegisterOperand t = ir.regpool.makeTemp(type);
-    s.insertBack(Binary.create(operator, t, o1, o2));
+    s.insertBefore(Binary.create(operator, t, o1, o2));
     return t.copyD2U();
   }
 
@@ -977,7 +1106,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
                                           VM_TypeReference type, 
                                           OPT_Operand o1) {
     OPT_RegisterOperand t = ir.regpool.makeTemp(type);
-    s.insertBack(Unary.create(operator, t, o1));
+    s.insertBefore(Unary.create(operator, t, o1));
     return t.copyD2U();
   }
 
@@ -997,7 +1126,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
                                                  OPT_Operand o1, 
                                                  OPT_Operand guard) {
     OPT_RegisterOperand t = ir.regpool.makeTemp(type);
-    s.insertBack(GuardedUnary.create(operator, t, o1, guard));
+    s.insertBefore(GuardedUnary.create(operator, t, o1, guard));
     return t.copyD2U();
   }
 
@@ -1119,7 +1248,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
     OPT_RegisterOperand regTarget = ir.regpool.makeTemp(type);
     OPT_Instruction s2 = Load.create(operator, regTarget, reg2, offset, 
                                      loc, guard);
-    s.insertBack(s2);
+    s.insertBefore(s2);
     return regTarget.copyD2U();
   }
 
@@ -1141,7 +1270,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
     OPT_RegisterOperand res = 
       ir.regpool.makeTemp(VM_TypeReference.JavaLangObjectArray);
     OPT_Instruction s2 = GuardedUnary.create(GET_OBJ_TIB, res, obj, guard);
-    s.insertBack(s2);
+    s.insertBefore(s2);
     return res.copyD2U();
   }
 
@@ -1162,7 +1291,7 @@ public abstract class OPT_ConvertToLowLevelIR extends OPT_IRTools {
     } else if (!t.isResolved()) {
       OPT_RegisterOperand res = 
         ir.regpool.makeTemp(VM_TypeReference.JavaLangObjectArray);
-      s.insertBack(Unary.create(GET_CLASS_TIB, res, type));
+      s.insertBefore(Unary.create(GET_CLASS_TIB, res, type));
       return res.copyD2U();
     } else {
       return new OPT_TIBConstantOperand(t);      
