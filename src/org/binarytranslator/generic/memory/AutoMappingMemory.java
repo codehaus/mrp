@@ -4,8 +4,6 @@ import java.io.RandomAccessFile;
 
 import org.binarytranslator.vmInterface.TranslationHelper;
 import org.jikesrvm.classloader.VM_MethodReference;
-import org.jikesrvm.compilers.opt.ir.OPT_Operand;
-import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
 
 /**
  * A memory implementation that will automatically map pages into memory, as soon
@@ -19,11 +17,13 @@ import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
  * @author Michael Baer
  *
  */
-public class AutoMappingMemory extends Memory {
+public class AutoMappingMemory extends CallBasedMemory {
   
   private Memory mem;
   
   public AutoMappingMemory(Memory memoryImplementation) {
+    super(AutoMappingMemory.class);
+    
     this.mem = memoryImplementation;
   }
 
@@ -165,46 +165,6 @@ public class AutoMappingMemory extends Memory {
 
   public String toString() {
     return mem.toString();
-  }
-
-  public void translateLoad32(OPT_Operand addr, OPT_RegisterOperand dest) {
-    //mem.translateLoad32(addr, dest);
-    throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
-  }
-
-  public void translateLoadSigned16(OPT_Operand addr, OPT_RegisterOperand dest) {
-    //mem.translateLoadSigned16(addr, dest);
-    throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
-  }
-
-  public void translateLoadSigned8(OPT_Operand addr, OPT_RegisterOperand dest) {
-    //mem.translateLoadSigned8(addr, dest);
-    throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
-  }
-
-  public void translateLoadUnsigned16(OPT_Operand addr, OPT_RegisterOperand dest) {
-    //mem.translateLoadUnsigned16(addr, dest);
-    throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
-  }
-
-  public void translateLoadUnsigned8(OPT_Operand addr, OPT_RegisterOperand dest) {
-    //mem.translateLoadUnsigned8(addr, dest);
-    throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
-  }
-
-  public void translateStore16(OPT_Operand addr, OPT_Operand src) {
-    //mem.translateStore16(addr, src);
-    throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
-  }
-
-  public void translateStore32(OPT_Operand addr, OPT_Operand src) {
-    //mem.translateStore32(addr, src);
-    throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
-  }
-
-  public void translateStore8(OPT_Operand addr, OPT_Operand src) {
-    //mem.translateStore8(addr, src);
-    throw new RuntimeException("Automatic mapping of pages during binary translation is currently not provided.");
   }
 
   public int truncateToNextPage(int addr) {
