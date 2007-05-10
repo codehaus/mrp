@@ -2,6 +2,7 @@ package org.binarytranslator.arch.arm.os.process;
 
 import java.io.IOException;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.arch.arm.decoder.ARM2IR;
 import org.binarytranslator.arch.arm.decoder.ARM_Interpreter;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
@@ -47,8 +48,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    * @return a HIR generator
    */
   public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
-    System.out.println("Executing instr: " + memory.load32(0));
-    throw new RuntimeException("Not yet implemented");
+    return new ARM2IR(context);
   }
 
   /**

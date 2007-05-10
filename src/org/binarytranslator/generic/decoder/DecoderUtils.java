@@ -447,6 +447,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * @return the next block
    */
   public OPT_BasicBlock getNextBlock() {
+    
     return nextBlock;
   }
 

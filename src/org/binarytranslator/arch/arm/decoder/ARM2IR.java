@@ -20,10 +20,22 @@ import org.jikesrvm.compilers.opt.ir.*;
 public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
 
   /** Mapping of ARM registers to HIR registers */
-  protected OPT_Register regMap[] = new OPT_Register[16];
+  private OPT_Register regMap[] = new OPT_Register[16];
+  
+  /** The ARM carry flag. */
+  private OPT_Register carryFlag;
+  
+  /** The ARM zero flag. */
+  private OPT_Register zeroFlag;
+  
+  /** The ARM negative flag. */
+  private OPT_Register negativeFlag;
+  
+  /** The ARM overflow flag. */
+  private OPT_Register overflowFlag;
   
   /** Set to true for each register that is in use during the current trace */
-  protected boolean regUsed[] = new boolean[16];
+  private boolean regUsed[] = new boolean[16];
 
   /** Type reference to the ARM process space */
   private static final VM_TypeReference psTref;
@@ -38,7 +50,19 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
   private static final VM_FieldReference registers_regs_Fref;
   
   /** A type reference to the ARM registers array within the ARM_Registers class */
-  private static final VM_TypeReference registers_regs_Tref;  
+  private static final VM_TypeReference registers_regs_Tref;
+  
+  /** A field reference to the carry flag within the ARM registers. */
+  private static final VM_FieldReference registers_carryFlag_Fref;
+  
+  /** A field reference to the zero flag within the ARM registers. */
+  private static final VM_FieldReference registers_zeroFlag_Fref;
+  
+  /** A field reference to the negative flag within the ARM registers. */
+  private static final VM_FieldReference registers_negativeFlag_Fref;
+  
+  /** A field reference to the overflow flag within the ARM registers. */
+  private static final VM_FieldReference registers_overflowFlag_Fref;
   
   /** A register holding a reference to ps.registers */
   private OPT_Register ps_registers;
@@ -46,7 +70,9 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
   /** A register holding a reference to ps.registers.regs */
   private OPT_Register ps_registers_regs;
   
-
+  /** The class performing the actual translation of the bytecode. */
+  private final ARM_Translator translator;
+  
   static {
     psTref = VM_TypeReference.findOrCreate(ARM_ProcessSpace.class);
     
@@ -73,11 +99,40 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     registers_regs_Tref = registers_regs_Fref.getFieldContentsType();
     
     if (DBT.VerifyAssertions) DBT._assert(registers_regs_Tref != null);
+    
+    registers_carryFlag_Fref = VM_MemberReference
+    .findOrCreate(registersTref,
+                    VM_Atom.findOrCreateAsciiAtom("flagCarry"),
+                    VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+    
+    if (DBT.VerifyAssertions) DBT._assert(registers_carryFlag_Fref != null);
+    
+    registers_zeroFlag_Fref = VM_MemberReference
+    .findOrCreate(registersTref,
+                    VM_Atom.findOrCreateAsciiAtom("flagZero"),
+                    VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+    
+    if (DBT.VerifyAssertions) DBT._assert(registers_zeroFlag_Fref != null);
+    
+    registers_negativeFlag_Fref = VM_MemberReference
+    .findOrCreate(registersTref,
+                    VM_Atom.findOrCreateAsciiAtom("flagNegative"),
+                    VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+    
+    if (DBT.VerifyAssertions) DBT._assert(registers_negativeFlag_Fref != null);
+    
+    registers_overflowFlag_Fref = VM_MemberReference
+    .findOrCreate(registersTref,
+                    VM_Atom.findOrCreateAsciiAtom("flagOverflow"),
+                    VM_Atom.findOrCreateAsciiAtom("Z")).asFieldReference();
+    
+    if (DBT.VerifyAssertions) DBT._assert(registers_overflowFlag_Fref != null);
   }
   
 
   public ARM2IR(OPT_GenerationContext context) {
     super(context);
+    translator = new ARM_Translator((ARM_ProcessSpace)ps, this);
   }
 
   @Override
@@ -132,7 +187,7 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
   public OPT_RegisterOperand getArmRegistersReference() {
     OPT_RegisterOperand ps_registersOp;
     
-    if (ps_registers != null) {
+    if (ps_registers == null) {
       ps_registersOp = gc.temps.makeTemp(registersTref);
       ps_registers = ps_registersOp.register;
       appendInstructionToCurrentBlock(GetField.create(GETFIELD, ps_registersOp,
@@ -154,14 +209,49 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     
     //first resolve the current lazy state (i.e. calculate the values of registers that are not yet resolved)
     resolveLaziness(lazyState);
+  }
+  
+  private void spillAllFlags() {
+
+    OPT_RegisterOperand ps_registersOp = getArmRegistersReference();
     
-    //TODO: Implement
-    throw new RuntimeException("Not yet implemented");
+    //store the carry flag
+    OPT_RegisterOperand flag = new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
+    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_carryFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_carryFlag_Fref), new OPT_TrueGuardOperand()) );
+    
+    //store the negative flag
+    flag = new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
+    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_negativeFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_negativeFlag_Fref), new OPT_TrueGuardOperand()) );
+    
+    //store the zero flag
+    flag = new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
+    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_zeroFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_zeroFlag_Fref), new OPT_TrueGuardOperand()) );
+
+    //store the overflow flag
+    flag = new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
+    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_overflowFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_overflowFlag_Fref), new OPT_TrueGuardOperand()) );
   }
   
   public void fillAllFlags() {
-    //TODO: Implement
-    throw new RuntimeException("Not yet implemented");
+
+    //get an operand that contains a reference to the current ps.registers field.
+    OPT_RegisterOperand ps_registersOp = getArmRegistersReference();
+
+    //get the carry flag
+    OPT_RegisterOperand flag = new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
+    appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_carryFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_carryFlag_Fref), new OPT_TrueGuardOperand()) );
+    
+    //get the negative flag
+    flag = new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
+    appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_negativeFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_negativeFlag_Fref), new OPT_TrueGuardOperand()) );
+    
+    //get the zero flag
+    flag = new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
+    appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_zeroFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_zeroFlag_Fref), new OPT_TrueGuardOperand()) );
+    
+    //get the overflow flag
+    flag = new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
+    appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_overflowFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_overflowFlag_Fref), new OPT_TrueGuardOperand()) );    
   }
 
   @Override
@@ -199,6 +289,9 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
           new OPT_LocationOperand(VM_TypeReference.Int),
           new OPT_TrueGuardOperand()));
     }
+    
+    //fill all flags from the process space
+    fillAllFlags();
   }
   
   public OPT_RegisterOperand getRegister(int r) {
@@ -207,26 +300,21 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
   }
   
   public OPT_RegisterOperand getCarryFlag() {
-    //TODO: Implement
-    throw new RuntimeException("Not yet implemented");
+    return new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
   }
   
   public OPT_RegisterOperand getZeroFlag() {
-    //TODO: Implement
-    throw new RuntimeException("Not yet implemented");
+    return new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
   }
   
   public OPT_RegisterOperand getNegativeFlag() {
-    //TODO: Implement
-    throw new RuntimeException("Not yet implemented");
+    return new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
   }
   
   public OPT_RegisterOperand getOverflowFlag() {
-    //TODO: Implement
-    throw new RuntimeException("Not yet implemented");
+    return new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
   }
   
-
   @Override
   protected OPT_Register[] getUnusedRegisters() {
     
@@ -268,13 +356,17 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
             new OPT_TrueGuardOperand()));
       }
     }
+    
+    //spill all flags to the process space
+    spillAllFlags();
   }
 
   @Override
   protected int translateInstruction(Laziness lazy, int pc) {
-    return 0xEBADC0DE;
-    //ARM_InstructionDecoder.translateInstruction(this,
-    //    (ARM_ProcessSpace) ps, (ARM_Laziness) lazy, pc);
+    System.out.println("Translating address: 0x" + Integer.toHexString(pc));
+    System.out.println("Instruction: " + ARM_Disassembler.disassemble(pc, ps));
+    
+    return translator.translateInstruction(pc, (ARM_Laziness)lazy);
   }
   
   /**

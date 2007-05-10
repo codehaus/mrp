@@ -470,7 +470,7 @@ public class DebugMemory extends Memory {
    * @return the result
    */
   public int load32(int addr) {
-    return (loadSigned8(addr + 3) << 24) | (loadUnsigned8(addr + 2) << 16)
+    return (loadUnsigned8(addr + 3) << 24) | (loadUnsigned8(addr + 2) << 16)
         | (loadUnsigned8(addr + 1) << 8) | loadUnsigned8(addr);
   }
 

@@ -9,8 +9,6 @@ import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.memory.AutoMappingMemory;
 import org.binarytranslator.generic.os.loader.Loader;
-import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 
 public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   
@@ -22,12 +20,6 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
     //make sure that pages of memory are automatically mapped in as they are requested.
     memory = new AutoMappingMemory(memory);
   }
-
-  @Override
-  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) 
-  {
-    throw new UnsupportedOperationException("Not yet implemented.");
-  }
   
   @Override
   public void doSysCall() {
@@ -37,9 +29,7 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
     ARM_Instructions.Instruction instr = ARM_InstructionDecoder.decode(instruction);
     
     if (DBT.VerifyAssertions) {
-      if (!(instr instanceof ARM_Instructions.SoftwareInterrupt)) {
-        throw new Error("The current instruction is not a valid system call.");
-      }
+      DBT._assert(instr instanceof ARM_Instructions.SoftwareInterrupt);
     }
     
     //Thumb system calls start from 0, while ARM calls start from 0x900000.

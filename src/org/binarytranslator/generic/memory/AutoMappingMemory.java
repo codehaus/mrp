@@ -2,8 +2,6 @@ package org.binarytranslator.generic.memory;
 
 import java.io.RandomAccessFile;
 
-import org.binarytranslator.vmInterface.TranslationHelper;
-import org.jikesrvm.classloader.VM_MethodReference;
 
 /**
  * A memory implementation that will automatically map pages into memory, as soon
@@ -31,20 +29,12 @@ public class AutoMappingMemory extends CallBasedMemory {
     return mem.equals(arg0);
   }
 
-  public VM_MethodReference getMethodRef(int callAddress) {
-    return mem.getMethodRef(callAddress);
-  }
-
   public int getPageSize() {
     return mem.getPageSize();
   }
 
   public int hashCode() {
     return mem.hashCode();
-  }
-
-  public void initTranslate(TranslationHelper helper) {
-    mem.initTranslate(helper);
   }
 
   public boolean isMapped(int addr) {

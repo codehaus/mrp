@@ -272,7 +272,7 @@ public class ARM_Interpreter implements Interpreter {
           }
 
           if (shiftAmount == 32) {
-            shifterCarryOut = Utils.getBit(value, 31);
+            shifterCarryOut = (value & 0x1) != 0;
             return 0;
           }
 
@@ -311,7 +311,7 @@ public class ARM_Interpreter implements Interpreter {
             return value;
           } 
           else {
-            shifterCarryOut = Utils.getBit(value, shiftAmount & 0x1F);
+            shifterCarryOut = Utils.getBit(value, (shiftAmount-1) & 0x1F);
             return Integer.rotateRight(value, shiftAmount);
           }
 
