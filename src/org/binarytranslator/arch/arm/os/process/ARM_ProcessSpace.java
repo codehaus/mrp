@@ -3,6 +3,7 @@ package org.binarytranslator.arch.arm.os.process;
 import java.io.IOException;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.decoder.ARM2IR;
+import org.binarytranslator.arch.arm.decoder.ARM_Disassembler;
 import org.binarytranslator.arch.arm.decoder.ARM_Interpreter;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
@@ -95,7 +96,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    */
   @Uninterruptible
   public String disassembleInstruction(int pc) {
-    return "TODO";
+    return ARM_Disassembler.disassemble(pc, this).asString();
   }
   
   /**

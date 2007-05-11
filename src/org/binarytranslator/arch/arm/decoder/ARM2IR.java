@@ -209,6 +209,7 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     
     //first resolve the current lazy state (i.e. calculate the values of registers that are not yet resolved)
     resolveLaziness(lazyState);
+    spillAllFlags();
   }
   
   private void spillAllFlags() {
@@ -236,6 +237,13 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
 
     //get an operand that contains a reference to the current ps.registers field.
     OPT_RegisterOperand ps_registersOp = getArmRegistersReference();
+    
+    if (carryFlag == null) {
+      carryFlag = gc.temps.getReg(VM_TypeReference.Boolean);
+      negativeFlag = gc.temps.getReg(VM_TypeReference.Boolean);
+      zeroFlag = gc.temps.getReg(VM_TypeReference.Boolean);
+      overflowFlag = gc.temps.getReg(VM_TypeReference.Boolean);
+    }
 
     //get the carry flag
     OPT_RegisterOperand flag = new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
@@ -364,9 +372,31 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
   @Override
   protected int translateInstruction(Laziness lazy, int pc) {
     System.out.println("Translating address: 0x" + Integer.toHexString(pc));
-    System.out.println("Instruction: " + ARM_Disassembler.disassemble(pc, ps));
+    System.out.println("Instruction: " + ARM_Disassembler.disassemble(pc, ps).asString());
     
-    return translator.translateInstruction(pc, (ARM_Laziness)lazy);
+    OPT_BasicBlock curBlock = getCurrentBlock();
+    
+    int nextAddr = translator.translateInstruction(pc, (ARM_Laziness)lazy);
+    
+    if (nextAddr == -1) {
+      printNextBlocks(curBlock, 5);
+    }
+    
+    return nextAddr;
+  }
+  
+  /**
+   * Prints the given BasicBlock and the <code>count</code> blocks following it in code order.
+   * @param block
+   * @param count
+   */
+  private void printNextBlocks(OPT_BasicBlock block, int count) {
+    do 
+    {
+      block.printExtended();
+      block = block.nextBasicBlockInCodeOrder();
+    }
+    while (block != null && count-- > 0);
   }
   
   /**
@@ -394,8 +424,8 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     OPT_MethodOperand methOp = OPT_MethodOperand
         .STATIC(rotateRightMethod);
 
-    Call.setParam(s, 1, rotatedOperand);
-    Call.setParam(s, 2, rotation);
+    Call.setParam(s, 0, rotatedOperand);
+    Call.setParam(s, 1, rotation);
     Call.setResult(s, result);
     Call.setGuard(s, new OPT_TrueGuardOperand());
     Call.setMethod(s, methOp);

@@ -84,6 +84,11 @@ public final class ARM_Disassembler {
     public String asString() {
       return instruction;
     }
+    
+    @Override
+    public String toString() {
+      return asString();
+    }
 
     /** @see DisassembledInstruction#getSuccessor(int) */
     public int getSuccessor(int pc) {

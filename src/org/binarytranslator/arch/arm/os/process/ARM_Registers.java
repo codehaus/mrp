@@ -433,4 +433,29 @@ public final class ARM_Registers {
   public boolean isNegativeSet() {
     return flagNegative;
   }
+  
+  /** Returns a string representation of the values in the ARM registers. */
+  @Override
+  public String toString() {
+
+    StringBuilder result = new StringBuilder();
+    for (int i = 0; i < regs.length; i++) {
+      result.append('r');
+      result.append(i);
+      result.append(": x");
+      result.append(Integer.toHexString(regs[i]));
+      result.append(", ");
+    }
+
+    result.append("C:");
+    result.append(flagCarry ? '1' : '0');
+    result.append(", Z:");
+    result.append(flagZero ? '1' : '0');
+    result.append(", N:");
+    result.append(flagNegative ? '1' : '0');
+    result.append(", O:");
+    result.append(flagOverflow ? '1' : '0');
+
+    return result.toString();
+  }
 }
