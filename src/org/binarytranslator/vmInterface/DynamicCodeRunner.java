@@ -41,7 +41,7 @@ public class DynamicCodeRunner {
     // Useful when debugging in GDB:
     if (DBT_Options.debugRuntime) {
       VM.sysWriteln(ps.toString());
-      ps.dumpStack(20);
+      //ps.dumpStack(20);
       VM.sysWrite("Running PC=");
       VM.sysWriteHex(ps.getCurrentInstructionAddress());
       VM.sysWrite(" ");
