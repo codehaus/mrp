@@ -371,17 +371,8 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
 
   @Override
   protected int translateInstruction(Laziness lazy, int pc) {
-    System.out.println("Translating address: 0x" + Integer.toHexString(pc));
-    System.out.println("Instruction: " + ARM_Disassembler.disassemble(pc, ps).asString());
     
-    OPT_BasicBlock curBlock = getCurrentBlock();
-    
-    int nextAddr = translator.translateInstruction(pc, (ARM_Laziness)lazy);
-    
-    if (nextAddr == -1) {
-      printNextBlocks(curBlock, 5);
-    }
-    
+    int nextAddr = translator.translateInstruction(pc, (ARM_Laziness)lazy);    
     return nextAddr;
   }
   
@@ -390,7 +381,7 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
    * @param block
    * @param count
    */
-  private void printNextBlocks(OPT_BasicBlock block, int count) {
+  public void printNextBlocks(OPT_BasicBlock block, int count) {
     do 
     {
       block.printExtended();

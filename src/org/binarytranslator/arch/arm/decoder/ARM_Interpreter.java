@@ -639,7 +639,7 @@ public class ARM_Interpreter implements Interpreter {
         } else if (operand2 != Integer.MAX_VALUE) {
           operand2++;
         } else {
-          regs.setFlags(operand1 > 0, operand1 != 0, true, true);
+          regs.setFlags(true, true, true, true);
           
           //set the result to any of the operands
           regs.set(Rd, operand1);
