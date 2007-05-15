@@ -8,6 +8,7 @@
  */
 package org.binarytranslator.generic.os.abi.linux;
 
+import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
@@ -19,6 +20,11 @@ import org.binarytranslator.generic.os.abi.linux.files.OpenFileList;
 import org.binarytranslator.generic.os.abi.linux.files.ReadableFile;
 import org.binarytranslator.generic.os.abi.linux.files.WriteableFile;
 import org.binarytranslator.generic.os.abi.linux.files.OpenFileList.InvalidFileDescriptor;
+import org.binarytranslator.generic.os.abi.linux.filesystem.FileProvider;
+import org.binarytranslator.generic.os.abi.linux.filesystem.HostFileSystem;
+import org.binarytranslator.generic.os.abi.linux.filesystem.ReadonlyFilesystem;
+import org.binarytranslator.generic.os.abi.linux.filesystem.TempFileSystem;
+import org.binarytranslator.generic.os.abi.linux.filesystem.FileProvider.FileMode;
 import org.binarytranslator.generic.os.abi.linux.LinuxConstants.*;
 
 import java.io.File;
@@ -45,6 +51,9 @@ abstract public class LinuxSystemCalls {
 
   /** List of currently opened files. */
   protected OpenFileList openFiles;
+  
+  /** List of currently opened files. */
+  protected FileProvider filesystem;
   
   /** The top of the bss segment */
   protected int brk;
@@ -144,15 +153,31 @@ abstract public class LinuxSystemCalls {
 
     openFiles = new OpenFileList();
 
-    if (openFiles.open(new ConsoleIn(), 0) != 0
-        || openFiles.open(new ConsoleOut(System.out), 1) != 1
-        || openFiles.open(new ConsoleOut(System.err), 2) != 2) {
+    if (openFiles.add(new ConsoleIn(), 0) != 0
+        || openFiles.add(new ConsoleOut(System.out), 1) != 1
+        || openFiles.add(new ConsoleOut(System.err), 2) != 2) {
 
       throw new RuntimeException(
           "File descriptors for standard streams could not be assigned correctly.");
     }
 
     structures = new LinuxStructureFactory();
+    filesystem = buildFileSystem();
+  }
+  
+  /**
+   * This method creates a virtual file system for this linux host. Override it, to create a specific file systems
+   * for an architecture. 
+   * 
+   * The standard implementation mounts the host's file system readonly but enables writes to the host's temp directory.
+   * @return
+   *  A {@link FileProvider} that will be used to access the file system for this host.
+   */
+  protected FileProvider buildFileSystem() {
+    FileProvider fs = new HostFileSystem(null);
+    fs = new ReadonlyFilesystem(fs); 
+    fs = new TempFileSystem(fs);
+    return fs;
   }
 
   /**
@@ -318,42 +343,51 @@ abstract public class LinuxSystemCalls {
       // Examine the flags argument and open read or read-write
       // accordingly. args[0] points to the file name.   
       String fileName = memoryReadString(pathname);
+      
+      FileMode mode;
 
-      // Create a File object so we can test for the existance and
-      // properties of the file.
-      File testFile = new File(fileName);
-
-      if (((flags & fcntl.O_CREAT) != 0) && ((flags & fcntl.O_EXCL) != 0)
-          && testFile.exists()) {
-        // O_CREAT specified. If O_EXCL also specified, we require
-        // that the file does not already exist
-        src.setSysCallError(errno.EEXIST);
-        return;
-      } else if (((flags & fcntl.O_CREAT) != 0) && !testFile.exists()) {
-        // O_CREAT not specified. We require that the file exists.    
-        src.setSysCallError(errno.ENOENT);
-        return;
-      }
-
-      // we have not found an error, so we go ahead and try to open the file  
-      try {
-        RandomAccessFile raFile;
-        int fd;
-
-        if ((flags & 0x3) == fcntl.O_RDONLY) {
-          raFile = new RandomAccessFile(fileName, "r");
-          fd = openFiles.open(HostFile.forReading(raFile));
-        } else {
-          // NB Java RandomAccessFile has no write only
-          raFile = new RandomAccessFile(fileName, "rw");
-          fd = openFiles.open(HostFile.forWriting(raFile));
+      //shall we create the target file?
+      if ((flags & fcntl.O_CREAT) != 0) {
+        //We want to create a file. This also implies that we're gonna write to it
+        mode = FileMode.WriteCreate;
+        if (DBT.VerifyAssertions) DBT._assert((flags & 0x3) != fcntl.O_RDONLY);
+        
+        //Yes, we want to create that file. Do we demand that it does not yet exist?
+        if ((flags & fcntl.O_EXCL) != 0) {
+          //check if it does not exist by trying to open it
+          OpenFile testfile = filesystem.openFile(fileName, FileMode.Read);
+          
+          if (testfile != null) {
+            //the file we're trying to create already exists. With O_EXCL, this is an error condition.
+            src.setSysCallError(errno.EEXIST);
+            try {
+              testfile.close();
+            } catch (IOException e) {}
+            
+            return;
+          }
         }
-        src.setSysCallReturn(fd);
-      } catch (FileNotFoundException e) {
-        System.err.println("Open tried to open non-existent file: " + fileName);
+      }
+      else {
+        //we shall not create the file. Check if we're supposed to open it for reading, though
+        if ((flags & 0x3) == fcntl.O_RDONLY)
+          mode = FileMode.Read;
+        else
+          mode = FileMode.Write;
+      }
+      
+      OpenFile file = filesystem.openFile(fileName, mode);
+      
+      //did we successfully open the file?
+      if (file == null) {
+        //if not, return with an error
         src.setSysCallError(errno.ENOENT);
         return;
       }
+      
+      //otherwise add it to the list of open files and return a handle to the file
+      int fd = openFiles.add(file);
+      src.setSysCallReturn(fd);
 
       // NOT YET HANDLING ALL THE flags OPTIONS (IW have included
       // TRUNC & APPEND but not properly!)

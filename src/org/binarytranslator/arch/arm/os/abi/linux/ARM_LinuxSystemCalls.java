@@ -3,6 +3,7 @@ package org.binarytranslator.arch.arm.os.abi.linux;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
+import org.binarytranslator.generic.os.abi.linux.filesystem.FileProvider;
 
 public class ARM_LinuxSystemCalls extends LinuxSystemCalls {
   
@@ -32,12 +33,10 @@ public class ARM_LinuxSystemCalls extends LinuxSystemCalls {
     systemCallTable[202] = new LinuxSystemCalls.SysGetEGID();
     systemCallTable[221] = new LinuxSystemCalls.SysFcntl64();
     systemCallTable[252] = new LinuxSystemCalls.SysExitGroup();
-
   }
   
   @Override
   public void doSysCall() {
-
     super.doSysCall();
   }
 
@@ -45,6 +44,12 @@ public class ARM_LinuxSystemCalls extends LinuxSystemCalls {
   protected String getMachine() {
     //TODO: Grab this from a real machine
     return "ARM";
+  }
+  
+  @Override
+  protected FileProvider buildFileSystem() {
+    ARM_ProcFileSystem fs = new ARM_ProcFileSystem(super.buildFileSystem());
+    return fs;
   }
 
   @Override

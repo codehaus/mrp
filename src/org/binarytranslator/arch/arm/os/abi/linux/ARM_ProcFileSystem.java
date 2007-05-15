@@ -1,0 +1,29 @@
+package org.binarytranslator.arch.arm.os.abi.linux;
+
+import org.binarytranslator.generic.os.abi.linux.files.FixedContentFile;
+import org.binarytranslator.generic.os.abi.linux.files.ReadableFile;
+import org.binarytranslator.generic.os.abi.linux.filesystem.FileProvider;
+import org.binarytranslator.generic.os.abi.linux.filesystem.ProcFileSystem;
+
+public class ARM_ProcFileSystem extends ProcFileSystem {
+
+  public ARM_ProcFileSystem(FileProvider nextProvider) {
+    super(nextProvider);
+  }
+
+  @Override
+  protected ReadableFile openCpuInfo() {
+    
+    String output = "";
+    output +=  "Processor       : XScale-IOP80321 rev 2 (v5l)\n";
+    output += "BogoMIPS        : 599.65\n";
+    output += "Features        : swp half thumb fastmult edsp\n";
+    output += "\n";
+    output += "Hardware        : Iyonix\n";
+    output += "Revision        : 0000\n";
+    output += "Serial          : 0000000000000000\n";
+
+    return new FixedContentFile(output);
+  }
+
+}

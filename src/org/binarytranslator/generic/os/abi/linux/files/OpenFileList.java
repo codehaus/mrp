@@ -27,7 +27,7 @@ public class OpenFileList {
    * @return
    *  The file descriptor that identifies this file.
    */
-  public int open(OpenFile file) {
+  public int add(OpenFile file) {
     int handle = nextFileHandle++;
     files.put(nextFileHandle, file);
     
@@ -47,7 +47,7 @@ public class OpenFileList {
    * @return
    *  The file descriptor that identifies this file.
    */
-  public int open(OpenFile file, int preferredFd) {
+  public int add(OpenFile file, int preferredFd) {
     if (files.get(preferredFd) != null) {
       preferredFd = nextFileHandle++;
     }
