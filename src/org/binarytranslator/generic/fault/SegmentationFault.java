@@ -12,7 +12,7 @@ package org.binarytranslator.generic.fault;
  * @author Ian Rogers
  */
 public class SegmentationFault extends RuntimeException {
-  private final int address;
+  protected final int address;
   /**
    * Constructor
    */
