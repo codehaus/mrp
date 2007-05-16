@@ -15,7 +15,7 @@ public class ARM_ProcFileSystem extends ProcFileSystem {
   protected ReadableFile openCpuInfo() {
     
     String output = "";
-    output +=  "Processor       : XScale-IOP80321 rev 2 (v5l)\n";
+    output += "Processor       : XScale-IOP80321 rev 2 (v5l)\n";
     output += "BogoMIPS        : 599.65\n";
     output += "Features        : swp half thumb fastmult edsp\n";
     output += "\n";

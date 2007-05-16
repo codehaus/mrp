@@ -426,4 +426,20 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     appendInstructionToCurrentBlock(s);
   }
 
+  protected void appendBitTest(OPT_RegisterOperand target, OPT_Operand wordToTest, OPT_Operand bit) {
+    if (DBT.VerifyAssertions) DBT._assert(wordToTest != target && bit != target);
+  
+    appendInstructionToCurrentBlock(Binary.create(OPT_Operators.INT_SHL, target, new OPT_IntConstantOperand(1), bit));
+    appendInstructionToCurrentBlock(Binary.create(OPT_Operators.INT_AND, target, wordToTest, target));
+    appendInstructionToCurrentBlock(BooleanCmp.create(OPT_Operators.BOOLEAN_CMP_INT, target, target, new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand()));
+  }
+
+  protected void appendBitTest(OPT_RegisterOperand target, OPT_Operand wordToTest, int bit) {
+    if (DBT.VerifyAssertions) DBT._assert(wordToTest != target);
+    if (DBT.VerifyAssertions) DBT._assert(bit <= 31 && bit >= 0);
+    
+    appendInstructionToCurrentBlock(Binary.create(OPT_Operators.INT_AND, target, wordToTest, new OPT_IntConstantOperand(1 << bit)));
+    appendInstructionToCurrentBlock(BooleanCmp.create(OPT_Operators.BOOLEAN_CMP_INT, target, target, new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand()));
+  }
+
 }

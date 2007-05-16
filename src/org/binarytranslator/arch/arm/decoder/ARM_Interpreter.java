@@ -654,7 +654,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
-  /** Subtract with carry. <code>Rd = op1 - op2 + CARRY</code>.*/
+  /** Subtract with carry. <code>Rd = op1 - op2 - NOT(CARRY)</code>.*/
   private class DataProcessing_Sbc extends DataProcessing {
 
     protected DataProcessing_Sbc(int instr) {
@@ -668,8 +668,8 @@ public class ARM_Interpreter implements Interpreter {
       if (!regs.isCarrySet()) {
         if (operand1 != Integer.MIN_VALUE) {
           operand1--;
-        } else if (operand2 != Integer.MIN_VALUE) {
-          operand2--;
+        } else if (operand2 != Integer.MAX_VALUE) {
+          operand2++;
         } else {
           //TODO: Remove this exception, when the correct behavior has been verified.
           throw new RuntimeException("I'm interested in finding a case where this occurs, so this exception is sooner or later going to 'notify' me..");
@@ -686,7 +686,7 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
 
-  /** Reserve subtract with carry. <code>Rd = -op1 + op2 + CARRY</code>.*/
+  /** Reserve subtract with carry. <code>Rd = -op1 + op2 - NOT(CARRY)</code>.*/
   private final class DataProcessing_Rsc extends DataProcessing_Sbc {
 
     protected DataProcessing_Rsc(int instr) {

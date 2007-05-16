@@ -143,7 +143,7 @@ public class AngelSystemCalls {
     private String previousInputLine = null;
 
     public void close() {
-      throw new RuntimeException("The stdin and stdout are not closeable.");
+      throw new RuntimeException("Stdin and stdout are not closeable.");
     }
 
     public int getLength() {

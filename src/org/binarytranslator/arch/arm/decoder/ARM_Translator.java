@@ -78,8 +78,7 @@ public class ARM_Translator implements OPT_Operators {
 
     return call;
   }
-
-
+  
   private abstract static class ResolvedOperand {
 
     protected OPT_Operand value;
@@ -155,8 +154,7 @@ public class ARM_Translator implements OPT_Operators {
        */
       private final OPT_Operand resolveShift(OperandWrapper operand) {
         if (DBT.VerifyAssertions)
-          DBT
-              ._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister
+          DBT._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister
                   || operand.getType() == OperandWrapper.Type.RegisterShiftedRegister);
 
         // consider the "usual" ARM program counter offset
@@ -173,29 +171,72 @@ public class ARM_Translator implements OPT_Operators {
           shiftAmount = new OPT_IntConstantOperand(operand.getShiftAmount());
         } else {
           // the amount of shifting is determined by a register
-          shiftAmount = translator.arm2ir.getRegister(operand
-              .getShiftingRegister());
+          shiftAmount = translator.arm2ir.getRegister(operand.getShiftingRegister());
+          OPT_RegisterOperand shiftAmountAsByte = translator.arm2ir.getTempInt(7);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, shiftAmountAsByte, shiftAmount, new OPT_IntConstantOperand(0xFF)));
+          shiftAmount = shiftAmountAsByte;
         }
 
         OPT_RegisterOperand resultRegister = translator.arm2ir.getTempInt(9);
+        OPT_RegisterOperand validation = translator.arm2ir.getTempValidation(0);
+        
+        OPT_BasicBlock nextBlock = translator.arm2ir.createBlockAfterCurrent();
+        OPT_BasicBlock curBlock = translator.arm2ir.getCurrentBlock();
+        OPT_BasicBlock block1, block2;
 
         switch (operand.getShiftType()) {
         case ASR:
           /*
            * shiftedOperand >> shiftAmount;
            */
+          block2 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          
+          //current block
+          curBlock.deleteNormalOut();
+          curBlock.insertOut(block1);
+          curBlock.insertOut(block2);
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER_EQUAL(), block2.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          
+          //block 1 - normal case
+          translator.arm2ir.setCurrentBlock(block1);
+          block1.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, resultRegister, shiftedOperand, shiftAmount));
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
+          
+          //block 2 - shift >= 32
+          translator.arm2ir.setCurrentBlock(block2);
+          block2.insertOut(nextBlock);
           translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
-              INT_SHR, resultRegister, shiftedOperand, shiftAmount));
-
-          return resultRegister;
+              INT_SHR, resultRegister, shiftedOperand, new OPT_IntConstantOperand(31)));
+          break;
 
         case LSL:
           /*
            * value = shiftedOperand << shiftAmount;
            */
-          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
-              INT_SHL, resultRegister, shiftedOperand, shiftAmount));
-          return resultRegister;
+          block2 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          
+          
+          //current block
+          curBlock.deleteNormalOut();
+          curBlock.insertOut(block1);
+          curBlock.insertOut(block2);
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER_EQUAL(), block2.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          
+          //block 1 - normal case
+          translator.arm2ir.setCurrentBlock(block1);
+          block1.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, resultRegister, shiftedOperand, shiftAmount));
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
+          
+          
+          //block 2 - shift >= 32
+          translator.arm2ir.setCurrentBlock(block2);
+          block2.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, resultRegister, new OPT_IntConstantOperand(0)) );
+          break;
 
         case LSR:
 
@@ -203,57 +244,63 @@ public class ARM_Translator implements OPT_Operators {
            * value = shiftedOperand >>> shiftAmount;
  
            */
-          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
-              INT_USHR, resultRegister, shiftedOperand, shiftAmount));
-
-          return resultRegister;
+          block2 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          
+          
+          //current block
+          curBlock.deleteNormalOut();
+          curBlock.insertOut(block1);
+          curBlock.insertOut(block2);
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER_EQUAL(), block2.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          
+          //block 1 - normal case
+          translator.arm2ir.setCurrentBlock(block1);
+          block1.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, resultRegister, shiftedOperand, shiftAmount));
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
+          
+          //block 2 - shift >= 32
+          translator.arm2ir.setCurrentBlock(block2);
+          block2.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, resultRegister, new OPT_IntConstantOperand(0)) );
+          break;
 
         case ROR:
           /*
            * return Integer.rotateRight(value, shiftAmount);
            */
           translator.arm2ir.appendRotateRight(resultRegister, shiftedOperand, shiftAmount);
-          return resultRegister;
+          break;
 
         case RRX:
           /*
            * result = shiftedOperand >>> 1;
            * if (regs.isCarrySet()) result |= 0x80000000;
            */
-
-          // resultRegister = shiftedOperand >>> 1
-          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
-              INT_USHR, resultRegister, shiftedOperand, new OPT_IntConstantOperand(1)));
-
-          //conditionally, set resultRegister = resultRegister | 0x80000000;
-          OPT_BasicBlock curBlock = translator.arm2ir.getCurrentBlock();
           
-          OPT_BasicBlock nextBlock = translator.arm2ir.createBlockAfterCurrent();
-          OPT_BasicBlock block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
 
-          //Current block
+          // Current block
+          curBlock.deleteNormalOut();
+          curBlock.insertOut(nextBlock);
           curBlock.insertOut(block1);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(
-              INT_IFCMP, translator.arm2ir.getTempValidation(0), translator.arm2ir.getCarryFlag(),
-              new OPT_IntConstantOperand(1), OPT_ConditionOperand
-                  .EQUAL(), block1.makeJumpTarget(),
-              new OPT_BranchProfileOperand()));
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, resultRegister, shiftedOperand, new OPT_IntConstantOperand(1)));
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, translator.arm2ir.getTempValidation(0), translator.arm2ir.getCarryFlag(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.NOT_EQUAL(), nextBlock.makeJumpTarget(), new OPT_BranchProfileOperand()));
           
           //Block 1
           translator.arm2ir.setCurrentBlock(block1);
           block1.insertOut(nextBlock);
-
-          translator.arm2ir.appendInstructionToCurrentBlock(BinaryAcc.create(
-              INT_OR_ACC, resultRegister, new OPT_IntConstantOperand(0x80000000)));
-          
-          translator.arm2ir.setCurrentBlock(nextBlock);
-          translator.arm2ir.setNextBlock(translator.arm2ir.createBlockAfterCurrent());
-          return resultRegister;
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, resultRegister, resultRegister, new OPT_IntConstantOperand(0x80000000)));
+          break;
 
         default:
           throw new RuntimeException("Unexpected shift type: "
               + operand.getShiftType());
         }
+        
+        translator.arm2ir.setCurrentBlock(nextBlock);
+        return resultRegister;
       }
     }
     
@@ -337,8 +384,10 @@ public class ARM_Translator implements OPT_Operators {
           shiftAmount = new OPT_IntConstantOperand(operand.getShiftAmount());
         } else {
           // the amount of shifting is determined by a register
-          shiftAmount = translator.arm2ir.getRegister(operand
-              .getShiftingRegister());
+          shiftAmount = translator.arm2ir.getRegister(operand.getShiftingRegister());
+          OPT_RegisterOperand shiftAmountAsByte = translator.arm2ir.getTempInt(7);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, shiftAmountAsByte, shiftAmount, new OPT_IntConstantOperand(0xFF)));
+          shiftAmount = shiftAmountAsByte;
         }
 
         OPT_RegisterOperand resultRegister = translator.arm2ir.getTempInt(8);
@@ -347,136 +396,186 @@ public class ARM_Translator implements OPT_Operators {
         
         OPT_BasicBlock nextBlock = translator.arm2ir.createBlockAfterCurrent();
         OPT_BasicBlock curBlock = translator.arm2ir.getCurrentBlock();
-        OPT_BasicBlock block1, block2, block3;
+        OPT_BasicBlock block1, block2, block3, block4, block5, block6;
 
         switch (operand.getShiftType()) {
         case ASR:
-          /*
-           * shiftedOperand >> shiftAmount;
-           * 
-           * if (shiftAmount != 0) {
-           *  shiftAmount = MIN(shiftAmount, 32);
-           *  carry = shiftedOperand[shiftAmount]
-           * }
-           */
-          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
-              INT_SHR, resultRegister, shiftedOperand, shiftAmount));
-          
+          block4 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block3 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block2 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           
           //current block
+          curBlock.deleteNormalOut();
           curBlock.insertOut(block1);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), nextBlock.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          curBlock.insertOut(block4);
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), block4.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
           
-          //block 1
+          //block 1 - shift != 0
           translator.arm2ir.setCurrentBlock(block1);
           block1.insertOut(block2);
           block1.insertOut(block3);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER(), block3.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER_EQUAL(), block3.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
           
-          //block 2
+          //block 2 - shift < 32 && shift != 0
           translator.arm2ir.setCurrentBlock(block2);
           block2.insertOut(nextBlock);
-          translator.arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT, getShifterCarryOutTarget(), shiftedOperand, shiftAmount, OPT_ConditionOperand.BIT_TEST(), new OPT_BranchProfileOperand()) );
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, resultRegister, shiftedOperand, shiftAmount) );
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, tmp, shiftAmount, new OPT_IntConstantOperand(-1)) );
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, tmp);
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
           
-          //block 3
+          //block 3 - shift >= 32
           translator.arm2ir.setCurrentBlock(block3);
           block3.insertOut(nextBlock);
-          translator.arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT, getShifterCarryOutTarget(), shiftedOperand, new OPT_IntConstantOperand(32), OPT_ConditionOperand.BIT_TEST(), new OPT_BranchProfileOperand()) );
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, 31);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_MUL, resultRegister, getShifterCarryOutTarget(), new OPT_IntConstantOperand(-1)) ); //creates either 0xFFFFFFFF if the bit is set, or 0 otherwise
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
           
-
+          //block 4 - shift == 0
+          translator.arm2ir.setCurrentBlock(block4);
+          block4.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, resultRegister, shiftedOperand));
           break;
 
         case LSL:
           /*
            * value = shiftedOperand << shiftAmount;
            */
-          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
-              INT_SHL, resultRegister, shiftedOperand, shiftAmount));
-          
+          block6 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          block5 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          block4 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block3 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block2 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           
           //current block
+          curBlock.deleteNormalOut();
+          curBlock.insertOut(block6);
           curBlock.insertOut(block1);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), nextBlock.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), block6.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
           
-          //block 1
+          //block 1 - shift != 0
           translator.arm2ir.setCurrentBlock(block1);
           block1.insertOut(block2);
           block1.insertOut(block3);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER(), block3.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER_EQUAL(), block3.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
           
-          //block 2
+          //block 2 - Shift != 0 && Shift < 32
           translator.arm2ir.setCurrentBlock(block2);
           block2.insertOut(nextBlock);
-          translator.arm2ir.appendInstructionToCurrentBlock( Binary.create(INT_SUB, tmp, new OPT_IntConstantOperand(32), shiftAmount) );
-          translator.arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT, getShifterCarryOutTarget(), shiftedOperand, tmp, OPT_ConditionOperand.BIT_TEST(), new OPT_BranchProfileOperand()) );
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, tmp, new OPT_IntConstantOperand(32), shiftAmount) );
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, tmp);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, resultRegister, shiftedOperand, shiftAmount));
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
           
-          //block 3
+          //block 3 - Shift >= 32
           translator.arm2ir.setCurrentBlock(block3);
-          block3.insertOut(nextBlock);
-          translator.arm2ir.appendInstructionToCurrentBlock( Move.create(INT_MOVE, getShifterCarryOutTarget(), new OPT_IntConstantOperand(0)) );
-
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, resultRegister, new OPT_IntConstantOperand(0)) );
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.EQUAL(), block5.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          block3.insertOut(block4);
+          block3.insertOut(block5);
+          
+          //block 4 - Shift > 32
+          translator.arm2ir.setCurrentBlock(block4);
+          block4.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, getShifterCarryOutTarget(), new OPT_IntConstantOperand(0)) );
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
+                    
+          //block 5 - Shift == 32
+          translator.arm2ir.setCurrentBlock(block5);
+          block5.insertOut(nextBlock);
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, 0);
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
+          
+          //block 6 - shift == 0
+          translator.arm2ir.setCurrentBlock(block6);
+          block6.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, resultRegister, shiftedOperand));
           break;
 
         case LSR:
 
           /*
            * value = shiftedOperand >>> shiftAmount;
- 
            */
-          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
-              INT_USHR, resultRegister, shiftedOperand, shiftAmount));
-
+          block6 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          block5 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
+          block4 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block3 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block2 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           
           //current block
+          curBlock.deleteNormalOut();
+          curBlock.insertOut(block6);
           curBlock.insertOut(block1);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), nextBlock.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), block6.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
           
-          //block 1
+          //block 1 - shift != 0
           translator.arm2ir.setCurrentBlock(block1);
           block1.insertOut(block2);
           block1.insertOut(block3);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER(), block3.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.GREATER_EQUAL(), block3.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
           
-          //block 2
+          //block 2 - Shift != 0 && Shift < 32
           translator.arm2ir.setCurrentBlock(block2);
           block2.insertOut(nextBlock);
-          translator.arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT, getShifterCarryOutTarget(), shiftedOperand, shiftAmount, OPT_ConditionOperand.BIT_TEST(), new OPT_BranchProfileOperand()) );
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, tmp, shiftAmount, new OPT_IntConstantOperand(-1)));
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, tmp);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, resultRegister, shiftedOperand, shiftAmount));
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
           
-          //block 3
+          //block 3 - Shift >= 32
           translator.arm2ir.setCurrentBlock(block3);
-          block3.insertOut(nextBlock);
-          translator.arm2ir.appendInstructionToCurrentBlock( Move.create(INT_MOVE, getShifterCarryOutTarget(), new OPT_IntConstantOperand(0)) );
-
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, resultRegister, new OPT_IntConstantOperand(0)) );
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(32), OPT_ConditionOperand.EQUAL(), block5.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          block3.insertOut(block4);
+          block3.insertOut(block5);
+          
+          //block 4 - Shift > 32
+          translator.arm2ir.setCurrentBlock(block4);
+          block4.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, getShifterCarryOutTarget(), new OPT_IntConstantOperand(0)) );
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
+                    
+          //block 5 - Shift == 32
+          translator.arm2ir.setCurrentBlock(block5);
+          block5.insertOut(nextBlock);
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, 31);
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
+          
+          //block 6 - shift == 0
+          translator.arm2ir.setCurrentBlock(block6);
+          block6.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, resultRegister, shiftedOperand));
           break;
 
         case ROR:
           /*
            * return Integer.rotateRight(value, shiftAmount);
            */
-          translator.arm2ir.appendRotateRight(resultRegister, shiftedOperand, shiftAmount);
-          
+          block2 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
           
           //current block
+          curBlock.deleteNormalOut();
           curBlock.insertOut(block1);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), nextBlock.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
+          curBlock.insertOut(block2);
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, validation, shiftAmount, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), block2.makeJumpTarget(), OPT_BranchProfileOperand.unlikely()));
           
           //block 1
           translator.arm2ir.setCurrentBlock(block1);
           block1.insertOut(nextBlock);
-          translator.arm2ir.appendInstructionToCurrentBlock( Binary.create(INT_SUB, tmp, shiftAmount, new OPT_IntConstantOperand(1)) );
-          translator.arm2ir.appendInstructionToCurrentBlock( Binary.create(INT_AND, tmp, shiftAmount, new OPT_IntConstantOperand(0x1F)) );
-          translator.arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT, getShifterCarryOutTarget(), shiftedOperand, tmp, OPT_ConditionOperand.BIT_TEST(), new OPT_BranchProfileOperand()) );
+          translator.arm2ir.appendRotateRight(resultRegister, shiftedOperand, shiftAmount);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, tmp, shiftAmount, new OPT_IntConstantOperand(-1)) );
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tmp, tmp, new OPT_IntConstantOperand(0x1F)) );
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, tmp);
+          translator.arm2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock.makeJumpTarget()));
           
+          //block 2
+          translator.arm2ir.setCurrentBlock(block2);
+          translator.arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, resultRegister, shiftedOperand));
           break;
 
         case RRX:
@@ -484,30 +583,23 @@ public class ARM_Translator implements OPT_Operators {
            * value = shiftedOperand >>> 1;
            * if (regs.isCarrySet()) value |= 0x80000000;
            */
-
-          // resultRegister = shiftedOperand >>> 1
-          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(
-              INT_USHR, resultRegister, shiftedOperand, new OPT_IntConstantOperand(1)));
-          translator.arm2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT, getShifterCarryOutTarget(), shiftedOperand, new OPT_IntConstantOperand(1), OPT_ConditionOperand.BIT_TEST(), new OPT_BranchProfileOperand()) );
-
-          //conditionally, set resultRegister = resultRegister | 0x80000000;
           block1 = translator.arm2ir.createBlockAfterCurrentNotInCFG();
 
-          //Current block
+          //Current Block
+          curBlock.deleteNormalOut();
           curBlock.insertOut(block1);
-          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(
-              INT_IFCMP, translator.arm2ir.getTempValidation(0), translator.arm2ir.getCarryFlag(),
-              new OPT_IntConstantOperand(1), OPT_ConditionOperand
-                  .EQUAL(), block1.makeJumpTarget(),
-              new OPT_BranchProfileOperand()));
+          curBlock.insertOut(nextBlock);
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, resultRegister, shiftedOperand, new OPT_IntConstantOperand(1)));       
+          translator.arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, translator.arm2ir.getTempValidation(0), translator.arm2ir.getCarryFlag(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.NOT_EQUAL(), nextBlock.makeJumpTarget(), new OPT_BranchProfileOperand()));
           
           //Block 1
           translator.arm2ir.setCurrentBlock(block1);
           block1.insertOut(nextBlock);
-
-          translator.arm2ir.appendInstructionToCurrentBlock(BinaryAcc.create(
-              INT_OR_ACC, resultRegister, new OPT_IntConstantOperand(0x80000000)));
+          translator.arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, resultRegister, resultRegister, new OPT_IntConstantOperand(0x80000000)));
           
+          //nextBlock
+          translator.arm2ir.setCurrentBlock(nextBlock);
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, 0);
           break;
 
         default:
@@ -516,7 +608,6 @@ public class ARM_Translator implements OPT_Operators {
         }
 
         translator.arm2ir.setCurrentBlock(nextBlock);
-        translator.arm2ir.setNextBlock( translator.arm2ir.createBlockAfterCurrent() );
         return resultRegister;
       }
     }
@@ -1030,24 +1121,22 @@ public class ARM_Translator implements OPT_Operators {
       OPT_BasicBlock addWithCarry = arm2ir.createBlockAfterCurrentNotInCFG();
 
       //Is the carry set at all? if not, just jump to addWithoutCarry
-      arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, result, operand1));
+      arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, result, operand1, operand2));
       arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), arm2ir.getCarryFlag(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), addWithoutCarry.makeJumpTarget(), new OPT_BranchProfileOperand()));
       arm2ir.getCurrentBlock().insertOut(addWithCarry);
      
       //Yes, the carry flag is set. Pre-increase the result by one to account for the carry.
       arm2ir.setCurrentBlock(addWithCarry);
-      arm2ir.appendInstructionToCurrentBlock(BinaryAcc.create(INT_ADD_ACC, result, new OPT_IntConstantOperand(1)));
+      arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, result, result, new OPT_IntConstantOperand(1)));
       addWithCarry.insertOut(addWithoutCarry);
 
       //Finally, add the second operands to the result
-      arm2ir.setCurrentBlock(addWithoutCarry);
-      arm2ir.appendInstructionToCurrentBlock(BinaryAcc.create(INT_ADD_ACC, result, operand2));
-      
+      arm2ir.setCurrentBlock(addWithoutCarry);  
       setAddResult(result, operand1, operand2);
     }
   }
 
-  /** Subtract with carry. <code>Rd = op1 - op2 + CARRY</code>.*/
+  /** Subtract with carry. <code>Rd = op1 - op2 - NOT(CARRY)</code>.*/
   private class DataProcessing_Sbc extends DataProcessing {
 
     protected DataProcessing_Sbc(int instr) {
@@ -1063,24 +1152,22 @@ public class ARM_Translator implements OPT_Operators {
       OPT_BasicBlock subWithCarry = arm2ir.createBlockAfterCurrentNotInCFG();
 
       //Is the carry set? if yes, just jump to subWithoutCarry
-      arm2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, result, operand1));
+      arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, result, operand1, operand2));
       arm2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), arm2ir.getCarryFlag(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), subWithoutCarry.makeJumpTarget(), new OPT_BranchProfileOperand()));
       arm2ir.getCurrentBlock().insertOut(subWithCarry);
      
       //No, the carry flag is not set. That means, we have to use the carry within the subtraction (weird arm logic).
       arm2ir.setCurrentBlock(subWithCarry);
-      arm2ir.appendInstructionToCurrentBlock(BinaryAcc.create(INT_SUB_ACC, result, new OPT_IntConstantOperand(1)));
+      arm2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, result, result, new OPT_IntConstantOperand(1)));
       subWithCarry.insertOut(subWithoutCarry);
 
       //Finally, subtract the second operands from the result
       arm2ir.setCurrentBlock(subWithoutCarry);
-      arm2ir.appendInstructionToCurrentBlock(BinaryAcc.create(INT_SUB_ACC, result, operand2));
-      
       setSubResult(result, operand1, operand2);
     }
   }
 
-  /** Reserve subtract with carry. <code>Rd = -op1 + op2 + CARRY</code>.*/
+  /** Reserve subtract with carry. <code>Rd = -op1 + op2 - NOT(CARRY)</code>.*/
   private final class DataProcessing_Rsc extends DataProcessing_Sbc {
 
     protected DataProcessing_Rsc(int instr) {
