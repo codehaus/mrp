@@ -51,6 +51,10 @@ public class OpenFileList {
     if (files.get(preferredFd) != null) {
       preferredFd = nextFileHandle++;
     }
+    else {
+      if (preferredFd >= nextFileHandle)
+        nextFileHandle = preferredFd + 1;
+    }
     
     files.put(preferredFd, file);
     return preferredFd;

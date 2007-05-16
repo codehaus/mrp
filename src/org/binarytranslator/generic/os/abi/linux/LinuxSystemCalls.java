@@ -8,13 +8,19 @@
  */
 package org.binarytranslator.generic.os.abi.linux;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
+import org.binarytranslator.generic.os.abi.linux.LinuxConstants.errno;
+import org.binarytranslator.generic.os.abi.linux.LinuxConstants.fcntl;
+import org.binarytranslator.generic.os.abi.linux.LinuxConstants.mman;
 import org.binarytranslator.generic.os.abi.linux.files.ConsoleIn;
 import org.binarytranslator.generic.os.abi.linux.files.ConsoleOut;
-import org.binarytranslator.generic.os.abi.linux.files.HostFile;
 import org.binarytranslator.generic.os.abi.linux.files.OpenFile;
 import org.binarytranslator.generic.os.abi.linux.files.OpenFileList;
 import org.binarytranslator.generic.os.abi.linux.files.ReadableFile;
@@ -25,14 +31,6 @@ import org.binarytranslator.generic.os.abi.linux.filesystem.HostFileSystem;
 import org.binarytranslator.generic.os.abi.linux.filesystem.ReadonlyFilesystem;
 import org.binarytranslator.generic.os.abi.linux.filesystem.TempFileSystem;
 import org.binarytranslator.generic.os.abi.linux.filesystem.FileProvider.FileMode;
-import org.binarytranslator.generic.os.abi.linux.LinuxConstants.*;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 /**
  * Linux system call handling class
@@ -344,6 +342,9 @@ abstract public class LinuxSystemCalls {
       // accordingly. args[0] points to the file name.   
       String fileName = memoryReadString(pathname);
       
+      if (DBT_Options.debugSyscall)
+        System.err.println("Program tries to open: " + fileName);
+      
       FileMode mode;
 
       //shall we create the target file?
@@ -459,6 +460,7 @@ abstract public class LinuxSystemCalls {
   public class SysFstat64 extends SystemCall {
     public void doSysCall() {
       int fd = arguments.nextInt();
+      int structAddr = arguments.nextInt();
 
       LinuxStructureFactory.stat64 buf = structures.new_stat64();
 
@@ -467,10 +469,22 @@ abstract public class LinuxSystemCalls {
         buf.st_rdev = (short) 0x8800;
         buf.__st_ino = buf.st_ino = 2;
         buf.st_blksize = 0x400;
-      } else
-        throw new RuntimeException("Unimplemented system call.");
+      } else {
+        
+        try {
+          //get the file from the file descriptor table
+          OpenFile file = openFiles.get(fd);
+          OpenFile.Info info = file.getFileInfo();
 
-      buf.write(src.getProcessSpace().memory, arguments.nextInt());
+          buf.st_size = info.size;
+        } catch (InvalidFileDescriptor e) {
+          src.setSysCallError(errno.EBADF);
+        } catch (Exception e) {
+          src.setSysCallError(errno.EIO);
+        }
+      }
+
+      buf.write(src.getProcessSpace().memory, structAddr);
       src.setSysCallReturn(0);
     }
   }

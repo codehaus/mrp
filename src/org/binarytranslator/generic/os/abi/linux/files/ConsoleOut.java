@@ -21,4 +21,8 @@ public class ConsoleOut implements WriteableFile {
   public void close() throws IOException {
     //no-op
   }
+
+  public Info getFileInfo() {
+    return null;
+  }
 }

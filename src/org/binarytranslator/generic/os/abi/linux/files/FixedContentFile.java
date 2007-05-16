@@ -48,4 +48,8 @@ public class FixedContentFile implements ReadableFile {
     //no-op
   }
 
+  public Info getFileInfo() {
+    return new Info(data.length);
+  }
+
 }

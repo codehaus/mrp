@@ -15,4 +15,8 @@ public class ConsoleIn implements ReadableFile {
     //no-op
   }
 
+  public Info getFileInfo() {
+    return null;
+  }
+
 }

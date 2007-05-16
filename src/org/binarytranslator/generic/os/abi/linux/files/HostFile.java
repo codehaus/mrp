@@ -47,4 +47,9 @@ public class HostFile implements OpenFile {
       file.write(bytes);
     }
   }
+
+  public Info getFileInfo() throws IOException {
+    
+    return new Info((int)file.length());
+  }
 }
