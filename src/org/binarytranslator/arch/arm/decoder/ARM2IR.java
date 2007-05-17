@@ -376,20 +376,6 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
   }
   
   /**
-   * Prints the given BasicBlock and the <code>count</code> blocks following it in code order.
-   * @param block
-   * @param count
-   */
-  public void printNextBlocks(OPT_BasicBlock block, int count) {
-    do 
-    {
-      block.printExtended();
-      block = block.nextBasicBlockInCodeOrder();
-    }
-    while (block != null && count-- > 0);
-  }
-  
-  /**
    * Adds code to the current block that will rotate <code>rotatedOperand</code> by
    * <code>rotation</code> and stores the rotated integer into <code>result</code>.
    * @param result

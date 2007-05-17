@@ -105,9 +105,9 @@ public class DBT_Options {
   public static boolean debugInstr = true;
 
   /**
-   * In PPC2IR, print information about lazy resolution...
+   * Print information about the lazy resolution of branch addresses...
    */
-  public final static boolean debugLazy = false;
+  public static boolean debugBranchResolution = true;
 
   /**
    * In PPC2IR, print cfg.
@@ -213,6 +213,8 @@ public class DBT_Options {
       debugInstr = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:debugRuntime")) {
       debugRuntime = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:debugBranchResolution")) {
+      debugBranchResolution = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscall")) {
       debugSyscall = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscallMore")) {

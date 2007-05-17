@@ -238,7 +238,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
         do {
           resolveGoto();
           resolveIfCmp();
-        } while (((unresolvedGoto.size() == 0) && (unresolvedIfCmp.size() == 0)) == false);
+        } while ((unresolvedGoto.size() != 0) || (unresolvedIfCmp.size() != 0));
       } else {
         resolveGoto();
         resolveIfCmp();
@@ -304,6 +304,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
             setReturnValueResolveLazinessAndBranchToFinish(lazy,
                 new OPT_IntConstantOperand(pc));
           }
+
           break;
         }
 
@@ -594,6 +595,10 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
     OPT_BasicBlock target = findMapping(targetPC, targetLaziness);
     
     if (target != null) { 
+      
+      if (DBT_Options.debugBranchResolution) 
+        System.out.println(String.format("Found precompiled mapping for pc 0x%x: %s", targetPC, target));
+      
       jump = Goto.create(GOTO, target.makeJumpTarget());
       getCurrentBlock().insertOut(target);
     }
@@ -622,18 +627,17 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
     
     OPT_BasicBlock targetBB = resolveJumpTarget(targetPc, lazyStateAtJump);
     
-    if (DBT_Options.debugLazy) {
+    if (DBT_Options.debugBranchResolution) {
       report("Resolving goto " + lazyStateAtJump.makeKey(targetPc) + " " + targetBB);
     }
 
     // Fix up instruction
     Goto.setTarget(gotoInstr, targetBB.makeJumpTarget());
-    gotoInstr.getBasicBlock().deleteNormalOut();
     gotoInstr.getBasicBlock().insertOut(targetBB);
     
     if (DBT.VerifyAssertions) DBT._assert(gotoInstr.getBasicBlock().getNumberOfNormalOut() == 1);
     
-    if (DBT_Options.debugLazy) {
+    if (DBT_Options.debugBranchResolution) {
       report("Properly resolving goto in block "
           + gotoInstr.getBasicBlock() + " to " + lazyStateAtJump.makeKey(targetPc) + " "
           + targetBB);
@@ -661,6 +665,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
       //In Single instruction mode, the target block just ends the trace
       if (currentBlock.getNumberOfRealInstructions() != 0) {
         currentBlock = createBlockAfterCurrentNotInCFG();
+        System.out.println("Resolving branch to next block.");
       }
 
       targetBB = currentBlock;
@@ -1330,6 +1335,22 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
   /** Make a temporary register */
   public OPT_RegisterOperand makeTemp(VM_TypeReference type) {
     return gc.temps.makeTemp(type);
+  }
+  
+  /**
+   * Prints the given BasicBlock and the <code>count</code> blocks following it in code order.
+   * @param block
+   *  The basic block that shall be printed.
+   * @param count
+   *  The number of blocks following <code>block</code> that shall be printed.
+   */
+  public void printNextBlocks(OPT_BasicBlock block, int count) {
+    do 
+    {
+      block.printExtended();
+      block = block.nextBasicBlockInCodeOrder();
+    }
+    while (block != null && count-- > 0);
   }
   
   /** Report some debug output */
