@@ -16,8 +16,9 @@ import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.ir.*;
 
 import java.io.RandomAccessFile;
+
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.memory.IntAddressedMemory;
-import org.binarytranslator.vmInterface.TranslationHelper;
 
 /**
  * IntAddressedPreSwappedMemory:
@@ -375,7 +376,7 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
    * Generate memory prologue,... for the beignning of a trace. e.g. Loading the
    * page table into a register
    */
-  public void initTranslate(TranslationHelper helper) {
+  public void initTranslate(AbstractCodeTranslator helper) {
     super.initTranslate(helper);
     vpnReg = helper.makeTemp(VM_TypeReference.Int).register;
     offsetReg = helper.makeTemp(VM_TypeReference.Int).register;
@@ -387,7 +388,7 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
         VM_Atom.findOrCreateAsciiAtom("[[I")).asFieldReference();
     OPT_RegisterOperand memoryArrayOp = helper
         .makeTemp(VM_TypeReference.ObjectReferenceArray);
-    helper.appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+    helper.appendInstruction(GetField.create(GETFIELD,
         memoryArrayOp, new OPT_RegisterOperand(memory, memoryType),
         new OPT_AddressConstantOperand(memoryArrayRef.peekResolvedField()
             .getOffset()), new OPT_LocationOperand(memoryArrayRef),
@@ -397,7 +398,7 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     memoryArrayRef = VM_MemberReference.findOrCreate(memoryType,
         VM_Atom.findOrCreateAsciiAtom("writableMemory"),
         VM_Atom.findOrCreateAsciiAtom("[[I")).asFieldReference();
-    helper.appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+    helper.appendInstruction(GetField.create(GETFIELD,
         memoryArrayOp.copyRO(), new OPT_RegisterOperand(memory, memoryType),
         new OPT_AddressConstantOperand(memoryArrayRef.peekResolvedField()
             .getOffset()), new OPT_LocationOperand(memoryArrayRef),
@@ -419,29 +420,29 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Extract the memory page number from addr.
     OPT_RegisterOperand vpnRegOp = new OPT_RegisterOperand(vpnReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, vpnRegOp,
+    helper.appendInstruction(Binary.create(INT_USHR, vpnRegOp,
         addr, new OPT_IntConstantOperand(OFFSET_BITS)));
 
     // Extract the location of the address within the page.
     OPT_RegisterOperand offsetRegOp = new OPT_RegisterOperand(offsetReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND, offsetRegOp,
+    helper.appendInstruction(Binary.create(INT_AND, offsetRegOp,
         addr.copyRO(), new OPT_IntConstantOperand(PAGE_SIZE - 1)));
 
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, offsetRegOp
+    helper.appendInstruction(Binary.create(INT_USHR, offsetRegOp
         .copyRO(), offsetRegOp.copyRO(), new OPT_IntConstantOperand(2)));
 
     // Retrieve the int[] for the correct page into pageReg.
     OPT_RegisterOperand pageRegOp = new OPT_RegisterOperand(pageReg,
         VM_TypeReference.IntArray);
-    helper.appendInstructionToCurrentBlock(ALoad.create(REF_ALOAD, pageRegOp,
+    helper.appendInstruction(ALoad.create(REF_ALOAD, pageRegOp,
         new OPT_RegisterOperand(readableMemoryReg,
             VM_TypeReference.ObjectReferenceArray), vpnRegOp.copyRO(),
         new OPT_LocationOperand(VM_TypeReference.IntArray),
         new OPT_TrueGuardOperand()));
 
     // Copy to reg from the correct array element.
-    helper.appendInstructionToCurrentBlock(ALoad.create(INT_ALOAD, dest,
+    helper.appendInstruction(ALoad.create(INT_ALOAD, dest,
         pageRegOp.copyRO(), offsetRegOp.copyRO(), new OPT_LocationOperand(
             VM_TypeReference.Int), new OPT_TrueGuardOperand()));
   }
@@ -460,15 +461,15 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Load as 32-bit then mask out what we need
     translateAlignedLoad32(addr, dest);
     // addr = (addr & 0x3) * 8
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+    helper.appendInstruction(Binary.create(INT_AND,
         addr.copyRO(), addr.copyRO(), new OPT_IntConstantOperand(3)));
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SHL,
+    helper.appendInstruction(Binary.create(INT_SHL,
         addr.copyRO(), addr.copyRO(), new OPT_IntConstantOperand(3)));
     // rD <<= addr
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SHL,
+    helper.appendInstruction(Binary.create(INT_SHL,
         dest.copyRO(), dest.copyRO(), addr.copyRO()));
     // rD >>>= 24
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, dest
+    helper.appendInstruction(Binary.create(INT_USHR, dest
         .copyRO(), dest.copyRO(), new OPT_IntConstantOperand(24)));
   }
 
@@ -486,17 +487,17 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Load as 32-bit then mask out what we need
     translateAlignedLoad32(addr, dest);
     // addr = (3 - (addr & 0x3)) * 8
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+    helper.appendInstruction(Binary.create(INT_AND,
         addr.copyRO(), addr.copyRO(), new OPT_IntConstantOperand(3)));
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SUB,
+    helper.appendInstruction(Binary.create(INT_SUB,
         addr.copyRO(), new OPT_IntConstantOperand(3), addr.copyRO()));
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SHL,
+    helper.appendInstruction(Binary.create(INT_SHL,
         addr.copyRO(), addr.copyRO(), new OPT_IntConstantOperand(3)));
     // rD >>>= addr
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, dest
+    helper.appendInstruction(Binary.create(INT_USHR, dest
         .copyRO(), dest.copyRO(), addr.copyRO()));
     // rD &= 0xff
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+    helper.appendInstruction(Binary.create(INT_AND,
         dest.copyRO(), dest.copyRO(), new OPT_IntConstantOperand(0xff)));
   }
 
@@ -521,10 +522,10 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Compute tempReg = addr & 3
     OPT_RegisterOperand tempRegOp = new OPT_RegisterOperand(tempReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempRegOp,
+    helper.appendInstruction(Binary.create(INT_AND, tempRegOp,
         addr.copyRO(), new OPT_IntConstantOperand(0x3)));
     // Create if (addr & 3) == 3 goto aligned3
-    helper.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, null,
+    helper.appendInstruction(IfCmp.create(INT_IFCMP, null,
         tempRegOp.copyRO(), new OPT_IntConstantOperand(0x3),
         OPT_ConditionOperand.EQUAL(), aligned3.makeJumpTarget(), helper
             .getConditionalBranchProfileOperand(false)));
@@ -533,15 +534,15 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     helper.setCurrentBlock(aligned);
     translateAlignedLoad32(addr, dest);
     // tempReg = (addr & 0x3) * 8
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempRegOp
+    helper.appendInstruction(Binary.create(INT_SHL, tempRegOp
         .copyRO(), tempRegOp.copyRO(), new OPT_IntConstantOperand(3)));
     // rD <<= tempReg
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SHL,
+    helper.appendInstruction(Binary.create(INT_SHL,
         dest.copyRO(), dest.copyRO(), tempRegOp.copyRO()));
     // rD >>= 16
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SHR,
+    helper.appendInstruction(Binary.create(INT_SHR,
         dest.copyRO(), dest.copyRO(), new OPT_IntConstantOperand(16)));
-    helper.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock
+    helper.appendInstruction(Goto.create(GOTO, nextBlock
         .makeJumpTarget()));
     aligned.deleteNormalOut();
     aligned.insertOut(nextBlock);
@@ -573,10 +574,10 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Compute tempReg = addr & 3
     OPT_RegisterOperand tempRegOp = new OPT_RegisterOperand(tempReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempRegOp,
+    helper.appendInstruction(Binary.create(INT_AND, tempRegOp,
         addr.copyRO(), new OPT_IntConstantOperand(0x3)));
     // Create if (addr & 3) == 3 goto aligned3
-    helper.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, null,
+    helper.appendInstruction(IfCmp.create(INT_IFCMP, null,
         tempRegOp.copyRO(), new OPT_IntConstantOperand(0x3),
         OPT_ConditionOperand.EQUAL(), aligned3.makeJumpTarget(), helper
             .getConditionalBranchProfileOperand(false)));
@@ -585,17 +586,17 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     helper.setCurrentBlock(aligned);
     translateAlignedLoad32(addr, dest);
     // tempReg = (2 - (addr & 0x3)) * 8
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SUB, tempRegOp
+    helper.appendInstruction(Binary.create(INT_SUB, tempRegOp
         .copyRO(), new OPT_IntConstantOperand(2), tempRegOp.copyRO()));
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempRegOp
+    helper.appendInstruction(Binary.create(INT_SHL, tempRegOp
         .copyRO(), tempRegOp.copyRO(), new OPT_IntConstantOperand(3)));
     // rD >>>= tempReg
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, dest
+    helper.appendInstruction(Binary.create(INT_USHR, dest
         .copyRO(), dest.copyRO(), tempRegOp.copyRO()));
     // rD &= 0xffff
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+    helper.appendInstruction(Binary.create(INT_AND,
         dest.copyRO(), dest.copyRO(), new OPT_IntConstantOperand(0xffff)));
-    helper.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock
+    helper.appendInstruction(Goto.create(GOTO, nextBlock
         .makeJumpTarget()));
     aligned.deleteNormalOut();
     aligned.insertOut(nextBlock);
@@ -625,10 +626,10 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Compute tempReg = addr & 3
     OPT_RegisterOperand tempRegOp = new OPT_RegisterOperand(tempReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempRegOp,
+    helper.appendInstruction(Binary.create(INT_AND, tempRegOp,
         addr.copyRO(), new OPT_IntConstantOperand(0x3)));
     // Create if (addr & 3) == 3 goto aligned3
-    helper.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, null,
+    helper.appendInstruction(IfCmp.create(INT_IFCMP, null,
         tempRegOp.copyRO(), new OPT_IntConstantOperand(0), OPT_ConditionOperand
             .NOT_EQUAL(), aligned123.makeJumpTarget(), helper
             .getConditionalBranchProfileOperand(false)));
@@ -636,7 +637,7 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Create aligned code
     helper.setCurrentBlock(aligned);
     translateAlignedLoad32(addr, dest);
-    helper.appendInstructionToCurrentBlock(Goto.create(GOTO, nextBlock
+    helper.appendInstruction(Goto.create(GOTO, nextBlock
         .makeJumpTarget()));
     aligned.deleteNormalOut();
     aligned.insertOut(nextBlock);
@@ -661,29 +662,29 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Extract the memory page number from addr.
     OPT_RegisterOperand vpnRegOp = new OPT_RegisterOperand(vpnReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, vpnRegOp,
+    helper.appendInstruction(Binary.create(INT_USHR, vpnRegOp,
         addr, new OPT_IntConstantOperand(OFFSET_BITS)));
 
     // Extract the location of the address within the page.
     OPT_RegisterOperand offsetRegOp = new OPT_RegisterOperand(offsetReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND, offsetRegOp,
+    helper.appendInstruction(Binary.create(INT_AND, offsetRegOp,
         addr.copyRO(), new OPT_IntConstantOperand(PAGE_SIZE - 1)));
 
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, offsetRegOp
+    helper.appendInstruction(Binary.create(INT_USHR, offsetRegOp
         .copyRO(), offsetRegOp.copyRO(), new OPT_IntConstantOperand(2)));
 
     // Retrieve the int[] for the correct page into pageReg.
     OPT_RegisterOperand pageRegOp = new OPT_RegisterOperand(pageReg,
         VM_TypeReference.IntArray);
-    helper.appendInstructionToCurrentBlock(ALoad.create(REF_ALOAD, pageRegOp,
+    helper.appendInstruction(ALoad.create(REF_ALOAD, pageRegOp,
         new OPT_RegisterOperand(writableMemoryReg,
             VM_TypeReference.ObjectReferenceArray), vpnRegOp.copyRO(),
         new OPT_LocationOperand(VM_TypeReference.IntArray),
         new OPT_TrueGuardOperand()));
 
     // Copy to reg from the correct array element.
-    helper.appendInstructionToCurrentBlock(ALoad.create(INT_ALOAD, dest,
+    helper.appendInstruction(ALoad.create(INT_ALOAD, dest,
         pageRegOp.copyRO(), offsetRegOp.copyRO(), new OPT_LocationOperand(
             VM_TypeReference.Int), new OPT_TrueGuardOperand()));
   }
@@ -702,29 +703,29 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
     // Extract the memory page number from addr.
     OPT_RegisterOperand vpnRegOp = new OPT_RegisterOperand(vpnReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, vpnRegOp,
+    helper.appendInstruction(Binary.create(INT_USHR, vpnRegOp,
         addr, new OPT_IntConstantOperand(OFFSET_BITS)));
 
     // Extract the location of the address within the page.
     OPT_RegisterOperand offsetRegOp = new OPT_RegisterOperand(offsetReg,
         VM_TypeReference.Int);
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_AND, offsetRegOp,
+    helper.appendInstruction(Binary.create(INT_AND, offsetRegOp,
         addr.copyRO(), new OPT_IntConstantOperand(PAGE_SIZE - 1)));
 
-    helper.appendInstructionToCurrentBlock(Binary.create(INT_USHR, offsetRegOp
+    helper.appendInstruction(Binary.create(INT_USHR, offsetRegOp
         .copyRO(), offsetRegOp.copyRO(), new OPT_IntConstantOperand(2)));
 
     // Retrieve the int[] for the correct page into pageReg.
     OPT_RegisterOperand pageRegOp = new OPT_RegisterOperand(pageReg,
         VM_TypeReference.IntArray);
-    helper.appendInstructionToCurrentBlock(ALoad.create(REF_ALOAD, pageRegOp,
+    helper.appendInstruction(ALoad.create(REF_ALOAD, pageRegOp,
         new OPT_RegisterOperand(writableMemoryReg,
             VM_TypeReference.ObjectReferenceArray), vpnRegOp.copyRO(),
         new OPT_LocationOperand(VM_TypeReference.IntArray),
         new OPT_TrueGuardOperand()));
 
     // Copy to reg from the correct array element.
-    helper.appendInstructionToCurrentBlock(ALoad.create(INT_ASTORE, src,
+    helper.appendInstruction(ALoad.create(INT_ASTORE, src,
         pageRegOp.copyRO(), offsetRegOp.copyRO(), new OPT_LocationOperand(
             VM_TypeReference.Int), new OPT_TrueGuardOperand()));
   }

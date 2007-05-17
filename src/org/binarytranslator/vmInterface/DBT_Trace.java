@@ -8,7 +8,7 @@
  */
 package org.binarytranslator.vmInterface;
 
-import org.binarytranslator.generic.decoder.DecoderUtils;
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DummyDynamicCodeRunner;
 import org.binarytranslator.DBT;
@@ -19,7 +19,6 @@ import org.jikesrvm.classloader.VM_Class;
 import org.jikesrvm.classloader.VM_MemberReference;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_BytecodeStream;
-import org.jikesrvm.runtime.VM_Magic;
 import org.jikesrvm.runtime.VM_Statics;
 import org.jikesrvm.runtime.VM_DynamicLink;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
@@ -223,18 +222,18 @@ public final class DBT_Trace extends VM_NormalMethod {
   public void getDynamicLink(VM_DynamicLink dynamicLink, int bcIndex) {
     switch (bcIndex) {
     case DO_SYSCALL:
-      dynamicLink.set(DecoderUtils.sysCallMethod.getMemberRef()
+      dynamicLink.set(AbstractCodeTranslator.sysCallMethod.getMemberRef()
           .asMethodReference(), JBC_invokevirtual);
       break;
     case RECORD_BRANCH:
-      dynamicLink.set(DecoderUtils.recordUncaughtBranchMethod.getMemberRef()
+      dynamicLink.set(AbstractCodeTranslator.recordUncaughtBranchMethod.getMemberRef()
           .asMethodReference(), JBC_invokevirtual);
       break;
     case BAD_INSTRUCTION_NEW:
       DBT.fail("Todo: dynamic linking for new bad instruction exception");
       break;
     case BAD_INSTRUCTION_INIT:
-      dynamicLink.set(DecoderUtils.badInstrKlassInitMethod.getMemberRef()
+      dynamicLink.set(AbstractCodeTranslator.badInstrKlassInitMethod.getMemberRef()
           .asMethodReference(), JBC_invokespecial);
       break;
     case MEMORY_STORE8:

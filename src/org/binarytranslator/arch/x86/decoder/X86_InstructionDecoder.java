@@ -753,7 +753,7 @@ class X86_BadInstructionDecoder extends X86_InstructionDecoder {
    */
   public int translate(X862IR translationHelper, ProcessSpace ps,
       X86_Laziness lazy, int pc) {
-    translationHelper.plantThrowBadInstruction(lazy, pc);
+    translationHelper.appendThrowBadInstruction(lazy, pc);
     return -1;
   }
 }
@@ -1097,11 +1097,11 @@ class X86_Rep_PrefixDecoder extends X86_Group1PrefixDecoder {
     OPT_RegisterOperand ecx = translationHelper.getGPRegister(lazy,
         X86_Registers.ECX, 32);
 
-    translationHelper.appendInstructionToCurrentBlock(
+    translationHelper.appendInstruction(
         Binary.create(INT_ADD, ecx, ecx.copyRO(), new OPT_IntConstantOperand(-1)));
 
     OPT_RegisterOperand guardResult = translationHelper.getTempValidation(0);
-    translationHelper.appendInstructionToCurrentBlock(
+    translationHelper.appendInstruction(
         IfCmp.create(INT_IFCMP, guardResult, ecx.copyRO(), new OPT_IntConstantOperand(0),
             OPT_ConditionOperand.NOT_EQUAL(), instructionBlock.makeJumpTarget(),
             OPT_BranchProfileOperand.likely()));
@@ -1738,7 +1738,7 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
     if (operator != INT_MOVE) {
       OPT_RegisterOperand sourceOp2 = translationHelper.getTempInt(2);
       destination.readToRegister(translationHelper, lazy, sourceOp2);
-      translationHelper.appendInstructionToCurrentBlock(Binary.create(operator,
+      translationHelper.appendInstruction(Binary.create(operator,
           temp, sourceOp2.copyRO(), sourceOp1.copyRO()));
       setCarryFlag(translationHelper, temp.copyRO(), sourceOp2.copyRO(),
           sourceOp1.copyRO());
@@ -1748,7 +1748,7 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
           sourceOp1.copyRO());
     } else {
       // Nothing to do for a move
-      translationHelper.appendInstructionToCurrentBlock(Move.create(operator,
+      translationHelper.appendInstruction(Move.create(operator,
           temp, sourceOp1.copyRO()));
     }
     if (!discardResult) {
@@ -1771,7 +1771,7 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         carry, new OPT_IntConstantOperand(0)));
   }
 
@@ -1782,7 +1782,7 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
       OPT_RegisterOperand result) {
     OPT_RegisterOperand sign = translationHelper.getSignFlag();
     // sign := result < 0
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, sign, result, new OPT_IntConstantOperand(0),
         OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
   }
@@ -1794,7 +1794,7 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
       OPT_RegisterOperand result) {
     OPT_RegisterOperand sign = translationHelper.getZeroFlag();
     // zero := result == 0
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, sign, result, new OPT_IntConstantOperand(0),
         OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
   }
@@ -1807,7 +1807,7 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand overflow = translationHelper.getOverflowFlag();
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         overflow, new OPT_IntConstantOperand(0)));
   }
 
@@ -2247,7 +2247,7 @@ class X86_Adc_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, carry, source1, source2, OPT_ConditionOperand
             .CARRY_FROM_ADD(), new OPT_BranchProfileOperand()));
   }
@@ -2260,7 +2260,7 @@ class X86_Adc_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand overflow = translationHelper.getOverflowFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, overflow, source1, source2, OPT_ConditionOperand
             .OVERFLOW_FROM_ADD(), new OPT_BranchProfileOperand()));
   }
@@ -2299,7 +2299,7 @@ class X86_Add_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, carry, source1, source2, OPT_ConditionOperand
             .CARRY_FROM_ADD(), new OPT_BranchProfileOperand()));
   }
@@ -2312,7 +2312,7 @@ class X86_Add_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand overflow = translationHelper.getOverflowFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, overflow, source1, source2, OPT_ConditionOperand
             .OVERFLOW_FROM_ADD(), new OPT_BranchProfileOperand()));
   }
@@ -2378,7 +2378,7 @@ class X86_Cmp_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, carry, source1, source2, OPT_ConditionOperand
             .BORROW_FROM_SUB(), new OPT_BranchProfileOperand()));
   }
@@ -2391,7 +2391,7 @@ class X86_Cmp_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand overflow = translationHelper.getOverflowFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, overflow, source1, source2, OPT_ConditionOperand
             .OVERFLOW_FROM_SUB(), new OPT_BranchProfileOperand()));
   }
@@ -2473,7 +2473,7 @@ class X86_CmpXChg_OpcodeDecoder extends X86_OpcodeDecoder {
     destination.readToRegister(translationHelper, lazy, oldValue);
     OPT_RegisterOperand expected = translationHelper.getGPRegister(lazy, X86_Registers.EAX, operandSize);
     
-    translationHelper.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+    translationHelper.appendInstruction(CondMove.create(INT_COND_MOVE,
         newValue.copyRO(),
         expected, oldValue.copyRO(), OPT_ConditionOperand.EQUAL(),
         newValue.copyRO(), oldValue.copyRO()
@@ -2588,7 +2588,7 @@ class X86_MovSeg_OpcodeDecoder extends X86_OpcodeDecoder {
     OPT_RegisterOperand temp = translationHelper.getTempInt(0);
     OPT_RegisterOperand sourceOp1 = translationHelper.getTempInt(1);
     source.readToRegister(translationHelper, lazy, sourceOp1);
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         temp, sourceOp1.copyRO()));
     destination.writeValue(translationHelper, lazy, temp.copyRO());
     return pc + length;
@@ -2725,14 +2725,14 @@ class X86_Movs_OpcodeDecoder extends X86_OpcodeDecoder {
     default:
       DBT_OptimizingCompilerException.UNREACHABLE();
     }
-    translationHelper.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+    translationHelper.appendInstruction(CondMove.create(INT_COND_MOVE,
         temp.copyRO(), translationHelper.getDirectionFlag(), new OPT_IntConstantOperand(0),
         OPT_ConditionOperand.EQUAL(), upIncrement, downIncrement));
     
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+    translationHelper.appendInstruction(Binary.create(INT_ADD,
         esi.copyRO(), esi.copyRO(), temp.copyRO()));
 
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+    translationHelper.appendInstruction(Binary.create(INT_ADD,
         edi.copyRO(), edi.copyRO(), temp.copyRO()));
 
     return pc + length;
@@ -2954,9 +2954,9 @@ class X86_Shl_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
     OPT_RegisterOperand temp = translationHelper.getTempInt(9);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+    translationHelper.appendInstruction(Binary.create(INT_ADD,
         temp, source2, new OPT_IntConstantOperand(1)));
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, carry, source1, temp.copyRO(), OPT_ConditionOperand
             .BIT_TEST(), new OPT_BranchProfileOperand()));
   }
@@ -3004,9 +3004,9 @@ class X86_Shr_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
     OPT_RegisterOperand temp = translationHelper.getTempInt(9);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+    translationHelper.appendInstruction(Binary.create(INT_ADD,
         temp, source2, new OPT_IntConstantOperand(1)));
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, carry, source1, temp.copyRO(), OPT_ConditionOperand
             .BIT_TEST(), new OPT_BranchProfileOperand()));
   }
@@ -3045,7 +3045,7 @@ class X86_Sbb_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, carry, source1, source2, OPT_ConditionOperand
             .BORROW_FROM_SUB(), new OPT_BranchProfileOperand()));
   }
@@ -3058,7 +3058,7 @@ class X86_Sbb_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand overflow = translationHelper.getOverflowFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, overflow, source1, source2, OPT_ConditionOperand
             .OVERFLOW_FROM_SUB(), new OPT_BranchProfileOperand()));
   }
@@ -3097,7 +3097,7 @@ class X86_Sub_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, carry, source1, source2, OPT_ConditionOperand
             .BORROW_FROM_SUB(), new OPT_BranchProfileOperand()));
   }
@@ -3110,7 +3110,7 @@ class X86_Sub_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand result, OPT_RegisterOperand source1,
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand overflow = translationHelper.getOverflowFlag();
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, overflow, source1, source2, OPT_ConditionOperand
             .OVERFLOW_FROM_SUB(), new OPT_BranchProfileOperand()));
   }
@@ -3183,9 +3183,9 @@ class X86_Ushr_OpcodeDecoder extends X86_OpcodeDecoder {
       OPT_RegisterOperand source2) {
     OPT_RegisterOperand carry = translationHelper.getCarryFlag();
     OPT_RegisterOperand temp = translationHelper.getTempInt(9);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_SUB,
+    translationHelper.appendInstruction(Binary.create(INT_SUB,
         temp, source2, new OPT_IntConstantOperand(1)));
-    translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+    translationHelper.appendInstruction(BooleanCmp.create(
         BOOLEAN_CMP_INT, carry, source1, temp.copyRO(), OPT_ConditionOperand
             .BIT_TEST(), new OPT_BranchProfileOperand()));
   }
@@ -3299,7 +3299,7 @@ class X86_Pop_OpcodeDecoder extends X86_OpcodeDecoder {
     // Increment stack pointer
     OPT_RegisterOperand esp = translationHelper.getGPRegister(lazy,
         X86_Registers.ESP, addressSize);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+    translationHelper.appendInstruction(Binary.create(INT_ADD,
         esp, esp.copyRO(), new OPT_IntConstantOperand(operandSize >>> 3)));
     return pc + length;
   }
@@ -3425,7 +3425,7 @@ class X86_Push_OpcodeDecoder extends X86_OpcodeDecoder {
     // Decrement stack pointer
     OPT_RegisterOperand esp = translationHelper.getGPRegister(lazy,
         X86_Registers.ESP, addressSize);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_SUB,
+    translationHelper.appendInstruction(Binary.create(INT_SUB,
         esp, esp.copyRO(), new OPT_IntConstantOperand(addressSize >>> 3)));
     // Write value
     destination.writeValue(translationHelper, lazy, sourceOp1.copyRO());
@@ -3535,7 +3535,7 @@ class X86_Leave_OpcodeDecoder extends X86_OpcodeDecoder {
     OPT_RegisterOperand esp = translationHelper.getGPRegister(lazy,
         X86_Registers.ESP, operandSize);
     // Copy ebp to esp
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         esp, ebp));
 
     // Read ebp from stack
@@ -3543,7 +3543,7 @@ class X86_Leave_OpcodeDecoder extends X86_OpcodeDecoder {
         operandSize);
     source.readToRegister(translationHelper, lazy, ebp.copyRO());
     // Increment stack pointer
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+    translationHelper.appendInstruction(Binary.create(INT_ADD,
         esp.copyRO(), esp.copyRO(), new OPT_IntConstantOperand(
             operandSize >>> 3)));
     return pc + length;
@@ -3639,11 +3639,11 @@ class X86_Call_OpcodeDecoder extends X86_OpcodeDecoder {
     // Decrement stack pointer
     OPT_RegisterOperand esp = translationHelper.getGPRegister(lazy,
         X86_Registers.ESP, addressSize);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_SUB,
+    translationHelper.appendInstruction(Binary.create(INT_SUB,
         esp, esp.copyRO(), new OPT_IntConstantOperand(operandSize >>> 3)));
     ;
     // Store return address
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         temp, new OPT_IntConstantOperand(pc + length)));
     stack.writeValue(translationHelper, lazy, temp.copyRO());
     // Branch
@@ -3766,7 +3766,7 @@ class X86_Ret_OpcodeDecoder extends X86_OpcodeDecoder {
     // Increment stack pointer
     OPT_RegisterOperand esp = translationHelper.getGPRegister(lazy,
         X86_Registers.ESP, _16BIT ? 16 : 32);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+    translationHelper.appendInstruction(Binary.create(INT_ADD,
         esp, esp.copyRO(), new OPT_IntConstantOperand(4 + immediate)));
     // Branch
     translationHelper.setReturnValueResolveLazinessAndBranchToFinish(
@@ -3841,7 +3841,7 @@ class X86_Int_OpcodeDecoder extends X86_OpcodeDecoder {
       int displacement, int immediateSize, int immediate, int length,
       X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
       X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
-    translationHelper.plantSystemCall(lazy, pc);
+    translationHelper.appendSystemCall(lazy, pc);
     return pc + length;
   }
 
@@ -3918,8 +3918,6 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
     // The destination for the branch
     int target_address = pc + length + immediate;
     // Find a pre-translated version
-    OPT_BasicBlock targetBlock = translationHelper.findMapping(target_address,
-        lazy);
     OPT_BasicBlock fallThrough = translationHelper.createBlockAfterCurrent();
     boolean branchLikely;
     if (prefix2 != null) {
@@ -3929,8 +3927,7 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
     }
     OPT_BranchProfileOperand likelyOp = translationHelper
         .getConditionalBranchProfileOperand(branchLikely);
-    OPT_BranchOperand targetBlockOp = (targetBlock != null) ? targetBlock
-        .makeJumpTarget() : null;
+
     // decode condition
     OPT_Operator operator = null;
     OPT_Operand lhsOp1 = null, rhsOp1 = null, lhsOp2 = null, rhsOp2 = null;
@@ -4029,18 +4026,12 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
           rhsOp2, condOp2, translationHelper
               .getConditionalBranchProfileOperand(false));
     }
-    translationHelper.appendInstructionToCurrentBlock(boolcmp);
-    OPT_Instruction branchInstr, gotoInstr;
-    branchInstr = IfCmp.create(INT_IFCMP, translationHelper
-        .getTempValidation(0), temp.copyRO(), new OPT_IntConstantOperand(0),
-        OPT_ConditionOperand.NOT_EQUAL(), targetBlockOp, likelyOp);
-    translationHelper.appendInstructionToCurrentBlock(branchInstr);
-    if (targetBlockOp == null) {
-      translationHelper.registerIfCmpTargetUnresolved(branchInstr,
-          target_address, (X86_Laziness) lazy.clone());
-    }
-    gotoInstr = Goto.create(GOTO, fallThrough.makeJumpTarget());
-    translationHelper.appendInstructionToCurrentBlock(gotoInstr);
+    translationHelper.appendInstruction(boolcmp);
+    translationHelper.appendIfCmp(INT_IFCMP, translationHelper
+        .getTempValidation(0), temp.copyRO(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), target_address, lazy, likelyOp);
+    
+    OPT_Instruction gotoInstr = Goto.create(GOTO, fallThrough.makeJumpTarget());
+    translationHelper.appendInstruction(gotoInstr);
     translationHelper.setCurrentBlock(fallThrough);
     return pc + length;
   }
@@ -4172,19 +4163,8 @@ class X86_Jmp_OpcodeDecoder extends X86_OpcodeDecoder {
     int target_address;
     if (modrm == null) {
       target_address = absolute ? immediate : pc + length + immediate;
-      // Find a pre-translated version
-      OPT_BasicBlock targetBlock = translationHelper.findMapping(
-          target_address, lazy);
-      OPT_BranchOperand targetBlockOp = (targetBlock != null) ? targetBlock
-          .makeJumpTarget() : null;
-      OPT_Instruction branchInstr = Goto.create(GOTO, targetBlockOp);
-      translationHelper.appendInstructionToCurrentBlock(branchInstr);
-      if (targetBlock == null) {
-        translationHelper.registerGotoTargetUnresolved(branchInstr,
-            target_address, (X86_Laziness) lazy.clone());
-      } else {
-        translationHelper.getCurrentBlock().insertOut(targetBlock);
-      }
+      translationHelper.getCurrentBlock().deleteNormalOut();
+      translationHelper.appendGoto(target_address, lazy);
     } else {
       int operandSize;
       if (prefix3 == null) {
@@ -4480,7 +4460,7 @@ class X86_Set_OpcodeDecoder extends X86_OpcodeDecoder {
           rhsOp2, condOp2, translationHelper
               .getConditionalBranchProfileOperand(false));
     }
-    translationHelper.appendInstructionToCurrentBlock(boolcmp);
+    translationHelper.appendInstruction(boolcmp);
     destination.writeValue(translationHelper, lazy, temp.copyRO());
     return pc + length;
   }
@@ -4664,7 +4644,7 @@ class X86_Cmov_OpcodeDecoder extends X86_OpcodeDecoder {
           rhsOp2, condOp2, translationHelper
               .getConditionalBranchProfileOperand(false));
     }
-    translationHelper.appendInstructionToCurrentBlock(boolcmp);
+    translationHelper.appendInstruction(boolcmp);
     // do cmov
     OPT_RegisterOperand temp2 = translationHelper.getTempInt(1);
     OPT_RegisterOperand sourceOp = translationHelper.getTempInt(2);
@@ -4674,7 +4654,7 @@ class X86_Cmov_OpcodeDecoder extends X86_OpcodeDecoder {
     OPT_Instruction cmov = CondMove.create(INT_COND_MOVE, temp2, temp.copyRO(),
         new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(),
         sourceOp.copyRO(), destinationOp.copyRO());
-    translationHelper.appendInstructionToCurrentBlock(cmov);
+    translationHelper.appendInstruction(cmov);
     destination.writeValue(translationHelper, lazy, temp2.copyRO());
     return pc + length;
   }
@@ -4787,7 +4767,7 @@ class X86_LdMXCSR_OpcodeDecoder extends X86_OpcodeDecoder {
     source.readToRegister(translationHelper, lazy, temp);
     
     OPT_RegisterOperand mxcsr = translationHelper.getMXCSR();
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE, mxcsr, temp.copyRO()));
+    translationHelper.appendInstruction(Move.create(INT_MOVE, mxcsr, temp.copyRO()));
     return pc + length;
   }
 
@@ -5007,9 +4987,9 @@ class X86_MovSX_OpcodeDecoder extends X86_OpcodeDecoder {
     OPT_RegisterOperand temp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, temp);
     int shift = (srcSize == 8) ? 24 : 16;
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_SHL,
+    translationHelper.appendInstruction(Binary.create(INT_SHL,
         temp.copyRO(), temp.copyRO(), new OPT_IntConstantOperand(shift)));
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_SHR,
+    translationHelper.appendInstruction(Binary.create(INT_SHR,
         temp.copyRO(), temp.copyRO(), new OPT_IntConstantOperand(shift)));
     destination.writeValue(translationHelper, lazy, temp.copyRO());
     return pc + length;
@@ -5136,7 +5116,7 @@ class X86_MovZX_OpcodeDecoder extends X86_OpcodeDecoder {
     OPT_RegisterOperand temp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, temp);
     int mask = (srcSize == 8) ? 0xFF : 0xFFFF;
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+    translationHelper.appendInstruction(Binary.create(INT_AND,
         temp.copyRO(), temp.copyRO(), new OPT_IntConstantOperand(mask)));
     destination.writeValue(translationHelper, lazy, temp.copyRO());
     return pc + length;
@@ -5257,7 +5237,7 @@ class X86_MoveToFlag_OpcodeDecoder extends X86_OpcodeDecoder {
       flagOp = null;
       break;      
     }
-    translationHelper.appendInstructionToCurrentBlock(
+    translationHelper.appendInstruction(
         Move.create(INT_MOVE, flagOp,
             value ? new OPT_IntConstantOperand(1) :
               new OPT_IntConstantOperand(0)));
@@ -5409,9 +5389,9 @@ class X86_Rdtsc_OpcodeDecoder extends X86_OpcodeDecoder {
     OPT_RegisterOperand eax = translationHelper.getGPRegister(lazy,
         X86_Registers.EAX, 32);
     long time = System.currentTimeMillis(); // TODO - make this dynamic
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         edx, new OPT_IntConstantOperand((int) (time >>> 32))));
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         eax, new OPT_IntConstantOperand((int) time)));
     return pc + length;
   }
@@ -5693,7 +5673,7 @@ class X86_Inc_OpcodeDecoder extends X86_OpcodeDecoder {
     // Perform inc
     OPT_RegisterOperand sourceOp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, sourceOp);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+    translationHelper.appendInstruction(Binary.create(INT_ADD,
         sourceOp.copyRO(), sourceOp.copyRO(), new OPT_IntConstantOperand(1)));
     // Write value
     source.writeValue(translationHelper, lazy, sourceOp.copyRO());
@@ -5813,7 +5793,7 @@ class X86_Dec_OpcodeDecoder extends X86_OpcodeDecoder {
     // Perform dec
     OPT_RegisterOperand sourceOp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, sourceOp);
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_SUB,
+    translationHelper.appendInstruction(Binary.create(INT_SUB,
         sourceOp.copyRO(), sourceOp.copyRO(), new OPT_IntConstantOperand(1)));
     // Write value
     source.writeValue(translationHelper, lazy, sourceOp.copyRO());
@@ -5926,7 +5906,7 @@ class X86_Not_OpcodeDecoder extends X86_OpcodeDecoder {
     // Perform not
     OPT_RegisterOperand sourceOp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, sourceOp);
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(INT_NOT,
+    translationHelper.appendInstruction(Unary.create(INT_NOT,
         sourceOp.copyRO(), sourceOp.copyRO()));
     // Write value
     source.writeValue(translationHelper, lazy, sourceOp.copyRO());
@@ -6035,7 +6015,7 @@ class X86_Neg_OpcodeDecoder extends X86_OpcodeDecoder {
     // Perform neg
     OPT_RegisterOperand sourceOp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, sourceOp);
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(INT_NEG,
+    translationHelper.appendInstruction(Unary.create(INT_NEG,
         sourceOp.copyRO(), sourceOp.copyRO()));
     // Write value
     source.writeValue(translationHelper, lazy, sourceOp.copyRO());
@@ -6149,25 +6129,25 @@ class X86_Mul_OpcodeDecoder extends X86_OpcodeDecoder {
             : X86_Registers.DS);
     OPT_RegisterOperand sourceOp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, sourceOp);
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(INT_2LONG,
+    translationHelper.appendInstruction(Unary.create(INT_2LONG,
         tempLong1, sourceOp.copyRO()));
     OPT_RegisterOperand edx = translationHelper.getGPRegister(lazy,
         X86_Registers.EDX, operandSize);
     OPT_RegisterOperand eax = translationHelper.getGPRegister(lazy,
         X86_Registers.EAX, operandSize);
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(INT_2LONG,
+    translationHelper.appendInstruction(Unary.create(INT_2LONG,
         tempLong2, eax));
 
     // Perform mul
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(LONG_MUL,
+    translationHelper.appendInstruction(Binary.create(LONG_MUL,
         tempLong1.copyRO(), tempLong1.copyRO(), tempLong2.copyRO()));
     // Write values
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(LONG_2INT,
+    translationHelper.appendInstruction(Unary.create(LONG_2INT,
         eax.copyRO(), tempLong1.copyRO()));
     translationHelper
-        .appendInstructionToCurrentBlock(Binary.create(LONG_USHR, tempLong1
+        .appendInstruction(Binary.create(LONG_USHR, tempLong1
             .copyRO(), tempLong1.copyRO(), new OPT_IntConstantOperand(32)));
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(LONG_2INT,
+    translationHelper.appendInstruction(Unary.create(LONG_2INT,
         edx, tempLong1.copyRO()));
     return pc + length;
   }
@@ -6306,22 +6286,22 @@ class X86_Imul_OpcodeDecoder extends X86_OpcodeDecoder {
     if (isAccumulatorDestination) {
       // 64bit by 32bit multiply result to go in edx:eax
       OPT_RegisterOperand longSourceOp1 = translationHelper.getTempLong(1);
-      translationHelper.appendInstructionToCurrentBlock(Unary.create(INT_2LONG,
+      translationHelper.appendInstruction(Unary.create(INT_2LONG,
           longSourceOp1, sourceOp1.copyRO()));
       TODO();
     } else {
       OPT_RegisterOperand sourceOp2 = translationHelper.getTempInt(2);
       source2.readToRegister(translationHelper, lazy, sourceOp2);
       OPT_RegisterOperand temp = translationHelper.getTempInt(3);
-      translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_MUL,
+      translationHelper.appendInstruction(Binary.create(INT_MUL,
           temp, sourceOp1.copyRO(), sourceOp2.copyRO()));      
       destination.writeValue(translationHelper, lazy, temp.copyRO());
       OPT_RegisterOperand carry = translationHelper.getCarryFlag();
-      translationHelper.appendInstructionToCurrentBlock(BooleanCmp.create(
+      translationHelper.appendInstruction(BooleanCmp.create(
           BOOLEAN_CMP_INT, carry, sourceOp1.copyRO(), sourceOp2.copyRO(), OPT_ConditionOperand
               .OVERFLOW_FROM_MUL(), new OPT_BranchProfileOperand()));
       OPT_RegisterOperand overflow = translationHelper.getOverflowFlag();
-      translationHelper.appendInstructionToCurrentBlock(
+      translationHelper.appendInstruction(
           Move.create(INT_MOVE, overflow, carry.copyRO()));
     }
     return pc + length;
@@ -6398,13 +6378,13 @@ class X86_Div_OpcodeDecoder extends X86_OpcodeDecoder {
         X86_Registers.EDX, operandSize);
     OPT_RegisterOperand eax = translationHelper.getGPRegister(lazy,
         X86_Registers.EAX, operandSize);
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(INT_2LONG,
+    translationHelper.appendInstruction(Unary.create(INT_2LONG,
         tempLong1, edx));
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(INT_2LONG,
+    translationHelper.appendInstruction(Unary.create(INT_2LONG,
         tempLong2, eax));
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(LONG_SHL,
+    translationHelper.appendInstruction(Binary.create(LONG_SHL,
         tempLong1.copyRO(), tempLong1.copyRO(), new OPT_IntConstantOperand(32)));
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(LONG_OR,
+    translationHelper.appendInstruction(Binary.create(LONG_OR,
         tempLong1.copyRO(), tempLong1.copyRO(), tempLong2.copyRO()));
     // Read unsigned source into tempLong2
     X86_DecodedOperand source;
@@ -6413,30 +6393,30 @@ class X86_Div_OpcodeDecoder extends X86_OpcodeDecoder {
             : X86_Registers.DS);
     OPT_RegisterOperand sourceOp = translationHelper.getTempInt(0);
     source.readToRegister(translationHelper, lazy, sourceOp);
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(INT_2LONG,
+    translationHelper.appendInstruction(Unary.create(INT_2LONG,
         tempLong2, sourceOp.copyRO()));
-    translationHelper.appendInstructionToCurrentBlock(Binary.create(LONG_AND,
+    translationHelper.appendInstruction(Binary.create(LONG_AND,
         tempLong2.copyRO(), tempLong2.copyRO(), new OPT_LongConstantOperand(0xFFFFFFFF)));
     // Check source isn't zero
     OPT_RegisterOperand guard = translationHelper.getTempValidation(0);
-    translationHelper.appendInstructionToCurrentBlock(
+    translationHelper.appendInstruction(
         ZeroCheck.create(LONG_ZERO_CHECK, guard, tempLong2.copyRO()));
     
     // Perform div
     OPT_RegisterOperand quotient = translationHelper.getTempLong(2);
     OPT_RegisterOperand remainder = translationHelper.getTempLong(3);
-    translationHelper.appendInstructionToCurrentBlock(GuardedBinary.create(LONG_DIV,
+    translationHelper.appendInstruction(GuardedBinary.create(LONG_DIV,
         quotient, tempLong1.copyRO(), tempLong2.copyRO(), guard.copyRO()));
-    translationHelper.appendInstructionToCurrentBlock(GuardedBinary.create(LONG_REM,
+    translationHelper.appendInstruction(GuardedBinary.create(LONG_REM,
         remainder, tempLong1.copyRO(), tempLong2.copyRO(), guard.copyRO()));
     
     // TODO: if the value in EDX:EAX divided by SRC is > 0xFFFFFFFF then a
     // divide error exception should be raised
     
     // Write values
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(LONG_2INT,
+    translationHelper.appendInstruction(Unary.create(LONG_2INT,
         eax.copyRO(), quotient.copyRO()));
-    translationHelper.appendInstructionToCurrentBlock(Unary.create(LONG_2INT,
+    translationHelper.appendInstruction(Unary.create(LONG_2INT,
         edx.copyRO(), remainder.copyRO()));
     return pc + length;
   }
@@ -6547,7 +6527,7 @@ class X86_PushA_OpcodeDecoder extends X86_OpcodeDecoder {
     OPT_RegisterOperand esp = translationHelper.getGPRegister(lazy,
         X86_Registers.ESP, addressSize);
     OPT_RegisterOperand original_esp = translationHelper.getTempInt(1);
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         original_esp, esp));
     for (int i = 0; i < pushARegs.length; i++) {
       int reg = pushARegs[i];
@@ -6555,11 +6535,11 @@ class X86_PushA_OpcodeDecoder extends X86_OpcodeDecoder {
         source = X86_DecodedOperand.getRegister(reg, operandSize);
         source.readToRegister(translationHelper, lazy, sourceOp.copyRO());
       } else {
-        translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+        translationHelper.appendInstruction(Move.create(INT_MOVE,
             sourceOp.copyRO(), original_esp.copyRO()));
       }
       // Decrement stack pointer
-      translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_SUB,
+      translationHelper.appendInstruction(Binary.create(INT_SUB,
           esp.copyRO(), esp.copyRO(), new OPT_IntConstantOperand(
               addressSize >>> 3)));
       // Write value
@@ -6675,11 +6655,11 @@ class X86_PopA_OpcodeDecoder extends X86_OpcodeDecoder {
         // Write value
         destination.writeValue(translationHelper, lazy, sourceOp.copyRO());
         // Increment stack pointer
-        translationHelper.appendInstructionToCurrentBlock(Binary.create(
+        translationHelper.appendInstruction(Binary.create(
             INT_ADD, esp.copyRO(), esp.copyRO(), new OPT_IntConstantOperand(
                 addressSize >>> 3)));
       } else { // ESP is ignored - increment stack pointer
-        translationHelper.appendInstructionToCurrentBlock(Binary.create(
+        translationHelper.appendInstruction(Binary.create(
             INT_ADD, esp.copyRO(), esp.copyRO(), new OPT_IntConstantOperand(
                 addressSize >>> 3)));
       }

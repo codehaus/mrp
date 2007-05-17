@@ -11,17 +11,15 @@ package org.binarytranslator.generic.decoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.generic.branch.BranchLogic.BranchType;
 import org.binarytranslator.generic.decoder.Laziness.Key;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
-import org.binarytranslator.vmInterface.TranslationHelper;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_Class;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -75,9 +73,7 @@ import org.jikesrvm.compilers.opt.ir.OPT_TypeOperand;
  * </dd>
  * </dl>
  */
-public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
-    TranslationHelper {
-  // -oO Constants Oo-
+public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Operators {
 
   /**
    * VM_TypeReference of org.binarytranslator.generic.os.process.ProcessSpace
@@ -93,7 +89,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * VM_TypeReference of
    * org.binarytranslator.generic.fault.BadInstructionException
    */
-  private static final VM_Class badInstrKlass;
+  public static final VM_Class badInstrKlass;
 
   /**
    * Method BadInstructionException.<init>
@@ -130,41 +126,25 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
         .resolveInvokeSpecial();
   }
 
-  /**
-   * Number of translated instructions
-   */
+  /** Number of translated instructions */
   private int numberOfInstructions;
 
-  /**
-   * The process space object used by the running PPC binary.
-   */
-  public ProcessSpace ps;
+  /** The process space object used by the running binary. */
+  public final ProcessSpace ps;
 
-  /**
-   * The generation context.
-   */
+  /** The VM method's generation context. */
   protected OPT_GenerationContext gc;
 
-  // -oO Global HIR basic blocks Oo-
-
-  /**
-   * The OPT_BasicBlock in which instructions are currently being inserted
-   */
+  /** The OPT_BasicBlock in which instructions are currently being inserted */
   protected OPT_BasicBlock currentBlock;
 
-  /**
-   * The pc value corresponding to the instruction currently being translated
-   */
+  /** The pc value corresponding to the instruction currently being translated */
   protected int currentPC;
 
-  /**
-   * The pc value of the first instruction in the trace
-   */
+  /** The pc value of the first instruction in the trace */
   protected int startingPC;
 
-  /**
-   * The OPT_BasicBlock which will contain the next translated instruction
-   */
+  /** The OPT_BasicBlock which will contain the next translated instruction */
   protected OPT_BasicBlock nextBlock;
 
   /**
@@ -178,93 +158,37 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    */
   protected OPT_BasicBlock preFillBlock;
 
-  /**
-   * Map to locate HIR basic blocks to re-use translation within a trace
-   */
+  /** Map to locate HIR basic blocks to re-use translation within a trace */
   protected final HashMap<Laziness.Key, OPT_BasicBlock> blockMap;
+  
+  private final static class UnresolvedJumpInstruction {
+    public final OPT_Instruction instruction;
+    public final Laziness lazyStateAtJump;
+    public final int pc;
+    
+    public UnresolvedJumpInstruction(OPT_Instruction instruction, Laziness lazyStateAtJump, int pc) {
+      this.instruction = instruction;
+      this.lazyStateAtJump = lazyStateAtJump;
+      this.pc = pc;
+    }
+  }
 
-  /**
-   * List of unresolved Goto instructions
-   */
-  protected final ArrayList<OPT_Instruction> unresolvedGoto;
+  /** List of unresolved Goto instructions */
+  private final ArrayList<UnresolvedJumpInstruction> unresolvedGoto;
 
-  /**
-   * List of where unresolved Goto instructions are trying to go
-   */
-  protected final ArrayList<Integer> unresolvedGoto_PC;
-
-  /**
-   * List of what the unresolved Goto instruction's target laziness should be
-   */
-  protected final ArrayList<Laziness> unresolvedGoto_Laziness;
-
-  /**
-   * List of unresolved IfCmp instructions
-   */
-  protected final ArrayList<OPT_Instruction> unresolvedIfCmp;
-
-  /**
-   * List of where unresolved IfCmp instructions are trying to go
-   */
-  protected final ArrayList<Integer> unresolvedIfCmp_PC;
-
-  /**
-   * List of what the unresolved IfCmp instruction's target laziness should be
-   */
-  protected final ArrayList<Laziness> unresolvedIfCmp_Laziness;
-
-  /**
-   * List of unresolved LookupSwitch instructions used for branching to the link
-   * register
-   */
-  protected final ArrayList<OPT_Instruction> unresolvedLookupSwitchForReturns;
-
-  /**
-   * List of where unresolved Goto instructions are trying to go
-   */
-  protected final ArrayList<Integer> unresolvedLookupSwitchForReturns_PC;
-
-  /**
-   * List of what the unresolved Goto instruction's target laziness should be
-   */
-  protected final ArrayList<Laziness> unresolvedLookupSwitchForReturns_Laziness;
-
-  /**
-   * List of unresolved LookupSwitch instructions used for branching to the
-   * count register
-   */
-  protected final ArrayList<OPT_Instruction> unresolvedLookupSwitchForSwitches;
-
-  /**
-   * List of where unresolved LookupSwitch instructions are branching from
-   */
-  protected final ArrayList<Integer> unresolvedLookupSwitchForSwitches_PC;
-
-  /**
-   * List of what the unresolved LookupSwitch instruction's target laziness
-   * should be
-   */
-  protected final ArrayList<Laziness> unresolvedLookupSwitchForSwitches_Laziness;
-
-  /**
-   * List of whether the unresolved LookupSwitch instruction's was a call
-   */
-  protected final ArrayList<Boolean> unresolvedLookupSwitchForSwitches_WasCall;
-
-  // -oO Debug Oo-
-
-  /**
-   * Report some debug output
-   */
-  protected abstract void report(String str);
+  /** List of unresolved IfCmp instructions */
+  private final ArrayList<UnresolvedJumpInstruction> unresolvedIfCmp;
+  
+  /** List of unresolved dynamic jumps */
+  private final ArrayList<UnresolvedJumpInstruction> unresolvedDynamicJumps;
 
   /**
    * Constructor
    * 
    * @param context
-   *          the generation context for this trace
+   *  The JRVM generation context for this trace.
    */
-  protected DecoderUtils(OPT_GenerationContext context) {
+  protected AbstractCodeTranslator(OPT_GenerationContext context) {
     // Make copies of popular variables
     gc = context;
     ps = ((DBT_Trace) (gc.method)).ps;
@@ -286,22 +210,9 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     finishBlock = createBlockAfterCurrent();
 
     // Fix up stores
-    unresolvedGoto = new ArrayList<OPT_Instruction>();
-    unresolvedGoto_PC = new ArrayList<Integer>();
-    unresolvedGoto_Laziness = new ArrayList<Laziness>();
-
-    unresolvedIfCmp = new ArrayList<OPT_Instruction>();
-    unresolvedIfCmp_PC = new ArrayList<Integer>();
-    unresolvedIfCmp_Laziness = new ArrayList<Laziness>();
-
-    unresolvedLookupSwitchForReturns = new ArrayList<OPT_Instruction>();
-    unresolvedLookupSwitchForReturns_PC = new ArrayList<Integer>();
-    unresolvedLookupSwitchForReturns_Laziness = new ArrayList<Laziness>();
-
-    unresolvedLookupSwitchForSwitches = new ArrayList<OPT_Instruction>();
-    unresolvedLookupSwitchForSwitches_PC = new ArrayList<Integer>();
-    unresolvedLookupSwitchForSwitches_Laziness = new ArrayList<Laziness>();
-    unresolvedLookupSwitchForSwitches_WasCall = new ArrayList<Boolean>();
+    unresolvedGoto = new ArrayList<UnresolvedJumpInstruction>();
+    unresolvedIfCmp = new ArrayList<UnresolvedJumpInstruction>();
+    unresolvedDynamicJumps = new ArrayList<UnresolvedJumpInstruction>();
   }
   
   /** Returns the number of previously translated instructions within this trace. */
@@ -309,9 +220,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     return numberOfInstructions;
   }
 
-  /**
-   * This is the main loop to generate the HIR.
-   */
+  /** This is the main loop, which generates the HIR. */
   public void generateHIR() {
     // Load all the register values to be used in a trace
     preFillAllRegisters();
@@ -323,27 +232,25 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     // branches
     do {
       if (DBT_Options.resolveProceduresBeforeBranches) {
-        prepareToResolveLookupSwitchForReturns();
-        prepareToResolveLookupSwitchForSwitches();
+        resolveAllDynamicJumpTargets();
       }
       if (DBT_Options.resolveBranchesAtOnce) {
         do {
           resolveGoto();
           resolveIfCmp();
-        } while ((areGotosResolved() && areIfCmpsResolved()) == false);
+        } while (((unresolvedGoto.size() == 0) && (unresolvedIfCmp.size() == 0)) == false);
       } else {
         resolveGoto();
         resolveIfCmp();
       }
       if (!DBT_Options.resolveProceduresBeforeBranches) {
-        prepareToResolveLookupSwitchForReturns();
-        prepareToResolveLookupSwitchForSwitches();
+        resolveAllDynamicJumpTargets();
       }
-    } while ((areGotosResolved() && areIfCmpsResolved()
-        && areLookupSwitchForReturnsReadyToResolve() && areLookupSwitchForSwitchesReadyToResolve()) == false);
-    // Resolve unresolved branches and branches to ctr
-    resolveLookupSwitchForReturns();
-    resolveLookupSwitchForSwitches();
+    } while (((unresolvedGoto.size() == 0) && (unresolvedIfCmp.size() == 0)
+        && areDynamicJumpsReadyToResolve()) == false);
+    
+    // Resolve unresolved dynamic jumps
+    resolveDynamicJumps();
 
     // Finish up the trace
     finishTrace();
@@ -353,8 +260,6 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
     // TODO: maximizeBasicBlocks()
   }
-
-  // -oO Translate sequences of code Oo-
 
   /**
    * Translate a sequence of instructions upto an instruction that doesn't know
@@ -406,7 +311,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
         OPT_BasicBlock possibleNextBlock = findMapping(pc, lazy);
         if (possibleNextBlock != null) {
           // Yes, branch to that and stop translating
-          appendInstructionToCurrentBlock(Goto.create(GOTO, possibleNextBlock
+          appendInstruction(Goto.create(GOTO, possibleNextBlock
               .makeJumpTarget()));
           OPT_BasicBlock gotoBlock = currentBlock;
           currentBlock = createBlockAfterCurrent();
@@ -419,17 +324,6 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
       } while (pc != -1);
     }
   }
-
-  /**
-   * Translate the instruction at the given pc
-   * 
-   * @param lazy
-   *          the status of the lazy evaluation
-   * @param pc
-   *          the program counter for the instruction
-   * @return the next instruction address or -1
-   */
-  protected abstract int translateInstruction(Laziness lazy, int pc);
 
   /**
    * Get the block which is currently having instructions inserted into it
@@ -447,7 +341,6 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * @return the next block
    */
   public OPT_BasicBlock getNextBlock() {
-    
     return nextBlock;
   }
 
@@ -488,13 +381,13 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
 
     if (DBT.VerifyAssertions)
       DBT._assert(currentBlock.isOut(nxtBlock));
+
     currentBlock.deleteOut(nxtBlock);
     currentBlock.insertOut(newBlock);
     newBlock.insertOut(nxtBlock);
 
     if (DBT_Options.debugCFG) {
-      report("Created block (" + newBlock + ") after current (" + currentBlock
-          + ").");
+      report(String.format("Created block (%s) after current (%s).", newBlock, currentBlock));
     }
     return newBlock;
   }
@@ -514,8 +407,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     gc.cfg.linkInCodeOrder(newBlock, nxtBlock);
 
     if (DBT_Options.debugCFG) {
-      report("Created block (" + newBlock + ") after current (" + currentBlock
-          + ") but not in CFG.");
+      report(String.format("Created non-cfg block (%s) after current (%s).", newBlock, currentBlock));
     }
     return newBlock;
   }
@@ -525,7 +417,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * into the CFG and code ordering
    * 
    * @param afterBlock
-   *          the block to create a block after
+   *  The block after which the new block is to be created.
    * @return the new basic block
    */
   public OPT_BasicBlock createBlockAfter(OPT_BasicBlock afterBlock) {
@@ -543,8 +435,9 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     newBlock.insertOut(nxtBlock);
 
     if (DBT_Options.debugCFG) {
-      report("Created block (" + newBlock + ") after (" + afterBlock + ").");
+      report(String.format("Created block (%s) after current (%s).", newBlock, afterBlock));
     }
+    
     return newBlock;
   }
 
@@ -552,9 +445,9 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * Append a HIR instruction to the current basic block
    * 
    * @param i
-   *          the HIR instruction
+   *  The instruciton that is to be appended to the current bloc.
    */
-  public void appendInstructionToCurrentBlock(OPT_Instruction i) {
+  public void appendInstruction(OPT_Instruction i) {
     if (i.bcIndex == UNKNOWN_BCI) {
       i.position = gc.inlineSequence;
       // we only have 16bits to distinguish instructions (the bcIndex
@@ -571,7 +464,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * Generate a branch profile operand for the current instruction
    * 
    * @param likely
-   *          does this branch have a likely hint
+   *  Does this branch have a likely hint?
    */
   public OPT_BranchProfileOperand getConditionalBranchProfileOperand(
       boolean likely) {
@@ -597,27 +490,15 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     return gc;
   }
 
-  // -oO Laziness Oo-
-
-  /**
-   * Create the initial object for capturing lazy information
-   */
-  protected abstract Laziness createInitialLaziness();
-
-  /**
-   * Plant instructions modifying a lazy state into one with no laziness
-   * 
-   * @param laziness
-   *          the laziness to modify
-   */
-  public abstract void resolveLaziness(Laziness laziness);
-
   /**
    * Register a mapping between a pc and lazy and a hir block
    * 
    * @param pc
+   *  The program counter whose translation the basic bock represents.
    * @param lazy
+   *  The lazy state that is assumed for this basic block.
    * @param hirBlock
+   *  The block that is to be registered.
    */
   protected void registerMapping(int pc, Laziness lazy, OPT_BasicBlock hirBlock) {
     blockMap.put(lazy.makeKey(pc), hirBlock);
@@ -627,168 +508,302 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * Find if there's already a translation for a given pc and laziness
    * 
    * @param pc
+   *  The program counter address at which the returned basic block shall start.
    * @param lazy
-   * @return basic block or null if no translation exists
+   *  The lazy state assumed within the returned trace.
+   * @return 
+   *  An appropriate basic block or null if no translation exists.
    */
-  public OPT_BasicBlock findMapping(int pc, Laziness lazy) {
+  protected OPT_BasicBlock findMapping(int pc, Laziness lazy) {
     return blockMap.get(lazy.makeKey(pc));
   }
 
   /**
-   * Register a HIR IfCmp instruction whose target can't be resolved yet
+   * Appends an IfCmp instruction to the current block that (when the condition is true) jumps
+   * to the address <code>targetPc</code>. The parameters for this function are mostly
+   * the same as for the {@link IfCmp#create(OPT_Operator, OPT_RegisterOperand, OPT_Operand, OPT_Operand, OPT_ConditionOperand, OPT_BranchOperand, OPT_BranchProfileOperand)} function.
    * 
-   * @param ifcmp_instr
-   * @param targetPC
+   * @param operator
+   *  The HIR operator.
+   * @param guard
+   *  A guard result for this call.
+   * @param lhs
+   *  The left-hand-side comparision operator.
+   * @param rhs
+   *  The right-hand-side comparision operator.
+   * @param condition
+   *  The type of comparison that is to be executed.
+   * @param targetPc
+   *  The address that the trace shall jump to, when the condition evaluates to true.
    * @param targetLaziness
+   *  The laziness at the point of jump.
+   * @param branchProfile
+   *  A branch profile operand that describes how likely it is that the jump is executed.
    */
-  public void registerIfCmpTargetUnresolved(OPT_Instruction ifcmp_instr,
-      int targetPC, Laziness targetLaziness) {
-    unresolvedIfCmp.add(ifcmp_instr);
-    unresolvedIfCmp_PC.add(targetPC);
-    unresolvedIfCmp_Laziness.add(targetLaziness);
-  }
-
-  /**
-   * Are all IfCmp instructions resolved
-   * 
-   * @return true if we need to resolve IfCmps
-   */
-  private boolean areIfCmpsResolved() {
-    return unresolvedIfCmp.size() == 0;
-  }
-
-  /**
-   * Resolve an ifCmp instruction
-   */
-  private void resolveIfCmp() {
-    if (areIfCmpsResolved() == false) {
-      // Try to find if block has now been translated
-      int toRemove = unresolvedIfCmp.size() - 1;
-      int pc = ((Integer) unresolvedIfCmp_PC.get(toRemove)).intValue();
-      Laziness lazy = (Laziness) unresolvedIfCmp_Laziness.get(toRemove);
-      OPT_BasicBlock targetBB = findMapping(pc, lazy);
-      if (targetBB == null) {
-        // Block not translated so translate
-        translateSubTrace(lazy, pc);
-        targetBB = findMapping(pc, lazy);
-      }
-      // Fix up instruction
-      OPT_Instruction ifCmp = (OPT_Instruction) unresolvedIfCmp.get(toRemove);
-      IfCmp.setTarget(ifCmp, targetBB.makeJumpTarget());
-      ifCmp.getBasicBlock().insertOut(targetBB);
-      // Remove from unresolved list
-      unresolvedIfCmp.remove(toRemove);
-      unresolvedIfCmp_PC.remove(toRemove);
-      unresolvedIfCmp_Laziness.remove(toRemove);
+  public void appendIfCmp(OPT_Operator operator, OPT_RegisterOperand guard, OPT_Operand lhs,
+      OPT_Operand rhs, OPT_ConditionOperand condition, int targetPc, Laziness targetLaziness, OPT_BranchProfileOperand branchProfile) {
+    
+    OPT_BasicBlock targetBlock = findMapping(targetPc, targetLaziness);
+    OPT_Instruction ifcmp = IfCmp.create(operator, guard, lhs, rhs, condition, null, branchProfile);
+    
+    if (targetBlock != null) { 
+      IfCmp.setTarget(ifcmp, targetBlock.makeJumpTarget());
+      getCurrentBlock().insertOut(targetBlock);
     }
+    else {
+      UnresolvedJumpInstruction unresolvedJump = new UnresolvedJumpInstruction(ifcmp, (Laziness)targetLaziness.clone(), targetPc);
+      unresolvedIfCmp.add(unresolvedJump);
+    }
+    
+    appendInstruction(ifcmp);
+  }
+
+  /** Resolve a single ifCmp instruction */
+  private void resolveIfCmp() {
+    
+    if (unresolvedIfCmp.size() == 0)
+      return;
+    
+    //Try to find if block has now been translated
+    UnresolvedJumpInstruction instruction = unresolvedIfCmp.remove(unresolvedIfCmp.size() - 1);
+    
+    OPT_Instruction ifCmp = instruction.instruction;
+    
+    if (DBT.VerifyAssertions) DBT._assert(IfCmp.conforms(ifCmp));
+    
+    //try to resolve the ifcmp's jump target
+    OPT_BasicBlock targetBB = resolveJumpTarget(instruction.pc, instruction.lazyStateAtJump);
+    
+    //Fix up the instruction
+    IfCmp.setTarget(ifCmp, targetBB.makeJumpTarget());
+    ifCmp.getBasicBlock().insertOut(targetBB);
   }
 
   /**
-   * Register a HIR Goto instruction whose target can't be resolved yet. There's
+   * Create a HIR Goto instruction that jumps to the address <code>targetPc</code>. There's
    * a caveat on using this that there are no other out edges for this BB.
    * 
-   * @param goto_instr
    * @param targetPC
+   *  The address where we shall jump to.
    * @param targetLaziness
+   *  The current at the point of jump.
    */
-  public void registerGotoTargetUnresolved(OPT_Instruction goto_instr,
-      int targetPC, Laziness targetLaziness) {
-    unresolvedGoto.add(goto_instr);
-    unresolvedGoto_PC.add(targetPC);
-    unresolvedGoto_Laziness.add(targetLaziness);
+  public void appendGoto(int targetPC, Laziness targetLaziness) {
+    
+    OPT_Instruction jump;
+    OPT_BasicBlock target = findMapping(targetPC, targetLaziness);
+    
+    if (target != null) { 
+      jump = Goto.create(GOTO, target.makeJumpTarget());
+      getCurrentBlock().insertOut(target);
+    }
+    else {
+      jump = Goto.create(GOTO, null);
+      UnresolvedJumpInstruction unresolvedJump = new UnresolvedJumpInstruction(jump, (Laziness)targetLaziness.clone(), targetPC);
+      unresolvedGoto.add(unresolvedJump);
+    }
+    
+    appendInstruction(jump);
   }
 
-  /**
-   * Are all Goto instructions resolved
-   * 
-   * @return true if we need to resolve Gotos
-   */
-  private boolean areGotosResolved() {
-    return unresolvedGoto.size() == 0;
-  }
-
-  /**
-   * Resolve a goto instruction
-   */
+  /** Resolve a single goto instruction */
   private void resolveGoto() {
-    if (areGotosResolved() == false) {
-      // Try to find if block has now been translated
-      int toRemove = unresolvedGoto.size() - 1;
-      int pc = ((Integer) unresolvedGoto_PC.get(toRemove)).intValue();
-      Laziness lazy = (Laziness) unresolvedGoto_Laziness.get(toRemove);
-      OPT_BasicBlock targetBB;
-      if (DBT_Options.singleInstrTranslation == false) {
-        targetBB = findMapping(pc, lazy);
-      } else {
-        // Single instruction mode so resolve gotos to a block that resolves the
-        // lazy state and exits
-        if (currentBlock.getNumberOfRealInstructions() != 0) {
-          currentBlock = createBlockAfterCurrentNotInCFG();
-        }
-        targetBB = currentBlock;
-        setReturnValueResolveLazinessAndBranchToFinish(lazy,
-            new OPT_IntConstantOperand(pc));
+    
+    if (unresolvedGoto.size() == 0)
+      return;
+    
+    //Get the jump that we're supposed to resolve
+    UnresolvedJumpInstruction unresolvedInstr = unresolvedGoto.remove(unresolvedGoto.size() - 1);
+    int targetPc = unresolvedInstr.pc;
+    Laziness lazyStateAtJump = unresolvedInstr.lazyStateAtJump;
+    OPT_Instruction gotoInstr = unresolvedInstr.instruction;
+    
+    if (DBT.VerifyAssertions) DBT._assert(Goto.conforms(gotoInstr));
+    
+    OPT_BasicBlock targetBB = resolveJumpTarget(targetPc, lazyStateAtJump);
+    
+    if (DBT_Options.debugLazy) {
+      report("Resolving goto " + lazyStateAtJump.makeKey(targetPc) + " " + targetBB);
+    }
+
+    // Fix up instruction
+    Goto.setTarget(gotoInstr, targetBB.makeJumpTarget());
+    gotoInstr.getBasicBlock().deleteNormalOut();
+    gotoInstr.getBasicBlock().insertOut(targetBB);
+    
+    if (DBT.VerifyAssertions) DBT._assert(gotoInstr.getBasicBlock().getNumberOfNormalOut() == 1);
+    
+    if (DBT_Options.debugLazy) {
+      report("Properly resolving goto in block "
+          + gotoInstr.getBasicBlock() + " to " + lazyStateAtJump.makeKey(targetPc) + " "
+          + targetBB);
+    }
+  }
+
+  /**
+   * Resolves a jump target to an actual basic block. This method usually tries to compile the trace
+   * for any target addresses that have not yet been compiled. However, when 
+   * {@link DBT_Options#singleInstrTranslation} is turned on, then this method will end the curren trace,
+   * just returning the address of the next instruction.
+   * 
+   * @param targetPc
+   *  The address of the target basic block that.
+   * @param lazyStateAtJump
+   *  The lazy state with which we would be entering the block.
+   * @return
+   *  A basic block that is equivalent to the program counter address <code>targetPc</code> in the
+   *  original binary.
+   */
+  private OPT_BasicBlock resolveJumpTarget(int targetPc, Laziness lazyStateAtJump) {
+    //Resolve the address of the target block
+    OPT_BasicBlock targetBB;
+    if (DBT_Options.singleInstrTranslation == true) {
+      //In Single instruction mode, the target block just ends the trace
+      if (currentBlock.getNumberOfRealInstructions() != 0) {
+        currentBlock = createBlockAfterCurrentNotInCFG();
       }
-      if (DBT_Options.debugLazy) {
-        report("Resolving goto " + lazy.makeKey(pc) + " " + targetBB);
-      }
+
+      targetBB = currentBlock;
+      setReturnValueResolveLazinessAndBranchToFinish(lazyStateAtJump, new OPT_IntConstantOperand(targetPc));
+    } 
+    else {
+      //Try to find if block has now been translated
+      targetBB = findMapping(targetPc, lazyStateAtJump);
+      
       if (targetBB == null) {
         // Block not translated so translate
-        translateSubTrace((Laziness) lazy.clone(), pc);
-        targetBB = findMapping(pc, lazy);
+        translateSubTrace((Laziness) lazyStateAtJump.clone(), targetPc);
+        targetBB = findMapping(targetPc, lazyStateAtJump);
       }
-      // Fix up instruction
-      OPT_Instruction goto_inst = (OPT_Instruction) unresolvedGoto
-          .get(toRemove);
-      Goto.setTarget(goto_inst, targetBB.makeJumpTarget());
-      if (DBT_Options.debugLazy) {
-        report("Properly resolving goto in block "
-            + goto_inst.getBasicBlock() + " to " + lazy.makeKey(pc) + " "
-            + targetBB);
-      }
-      goto_inst.getBasicBlock().deleteNormalOut();
-      goto_inst.getBasicBlock().insertOut(targetBB);
-      if (DBT.VerifyAssertions)
-        DBT._assert(goto_inst.getBasicBlock().getNumberOfNormalOut() == 1);
-      // Remove from unresolved list
-      unresolvedGoto.remove(toRemove);
-      unresolvedGoto_PC.remove(toRemove);
-      unresolvedGoto_Laziness.remove(toRemove);
+    }
+    
+    if (DBT.VerifyAssertions) DBT._assert(targetBB != null);
+    
+    return targetBB;
+  }
+
+  /**
+   * Resolves all dynamic jumps that have been added with 
+   * {@link #appendDynamicJump(OPT_RegisterOperand, Laziness, BranchType)}.
+   */
+  private void resolveDynamicJumps() {
+
+    for (int i = 0; i < unresolvedDynamicJumps.size(); i++) {
+      
+      UnresolvedJumpInstruction unresolvedSwitch = unresolvedDynamicJumps.get(i);
+
+      Laziness lazy = unresolvedSwitch.lazyStateAtJump;
+      OPT_Instruction lookupswitch = unresolvedSwitch.instruction;
+      Set<Integer> branchDests = getLikelyJumpTargets(unresolvedSwitch.pc);
+      
+      resolveSingleDynamicJump(lazy, lookupswitch, branchDests);
     }
   }
 
-  /**
-   * Register a HIR LookupSwitch instruction whose target can't be resolved yet.
-   * There's a caveat on using this that there are no other out edges for this
-   * BB.
+  /** 
+   * Resolves a single dynamic jump that has previously been created with 
+   * {@link #appendDynamicJump(OPT_RegisterOperand, Laziness, BranchType)}.
    * 
-   * @param lookupswitch_instr
-   * @param pc
-   *          the PC of the branch to link register
-   * @param targetLaziness
+   * @param lazy
+   *  The lazy state of the jump that is to be resolved.
+   * @param lookupswitch
+   *  Each dynamic jump is converted to a switch statement. This is the switch statement for the current jump.
+   * @param destinations
+   *  A list of known destinations that this dynamic jumps branches to.
    */
-  public void registerLookupSwitchForReturnUnresolved(
-      OPT_Instruction lookupswitch_instr, int pc, Laziness targetLaziness) {
-    unresolvedLookupSwitchForReturns.add(lookupswitch_instr);
-    unresolvedLookupSwitchForReturns_PC.add(pc);
-    unresolvedLookupSwitchForReturns_Laziness.add(targetLaziness);
+  private void resolveSingleDynamicJump(Laziness lazy, OPT_Instruction lookupswitch, Set<Integer> destinations) throws Error {
+    OPT_BranchOperand default_target = LookupSwitch.getDefault(lookupswitch);
+    OPT_Operand value = LookupSwitch.getValue(lookupswitch);
+    
+    if (destinations != null) {
+      if ((destinations.size() > 1)
+          || (lookupswitch.getBasicBlock().nextBasicBlockInCodeOrder() != default_target.target
+              .getBasicBlock())) {
+        float branchProb = (1.0f - OPT_BranchProfileOperand.UNLIKELY)
+            / (float) destinations.size();
+        LookupSwitch.mutate(lookupswitch, LOOKUPSWITCH, value, null, null,
+            default_target, OPT_BranchProfileOperand.unlikely(), destinations
+                .size() * 3);
+        int match_no = 0;
+        for (int dest_pc : destinations) {
+          
+          OPT_BasicBlock target = findMapping(dest_pc, lazy);
+          if (target == null) {
+            throw new Error("Failed to find trace for " + dest_pc
+                + " with laziness " + lazy);
+          }
+          LookupSwitch.setMatch(lookupswitch, match_no,
+              new OPT_IntConstantOperand(dest_pc));
+          LookupSwitch.setTarget(lookupswitch, match_no, target
+              .makeJumpTarget());
+          LookupSwitch.setBranchProfile(lookupswitch, match_no,
+              new OPT_BranchProfileOperand(branchProb));
+          lookupswitch.getBasicBlock().insertOut(target);
+          match_no++;
+        }
+      } else {
+        int dest_pc = destinations.iterator().next();
+        
+        OPT_BasicBlock target = findMapping(dest_pc, lazy);
+        if (target == null) {
+          throw new Error("Failed to find trace for " + dest_pc
+              + " with laziness " + lazy);
+        }
+        IfCmp.mutate(lookupswitch, INT_IFCMP, null, value,
+            new OPT_IntConstantOperand(dest_pc),
+            OPT_ConditionOperand.EQUAL(), target.makeJumpTarget(),
+            OPT_BranchProfileOperand.likely());
+        lookupswitch.getBasicBlock().insertOut(target);
+      }
+    } else {
+      // no possibly branch destinations so remove lookupswitch
+      lookupswitch.remove();
+    }
+  }
+  
+  
+  /**
+   * Append a dynamic jump (a jump whose target address is not known at translation time) to the 
+   * current basic block.
+   * 
+   * @param targetAddress
+   *  The target address of the jump.
+   * @param lazyStateAtJump
+   *  The lazy state at the point the jump was added.
+   * @param branchType
+   *  The type of jump.
+   */
+  public void appendDynamicJump(OPT_RegisterOperand targetAddress, Laziness lazyStateAtJump, BranchType branchType) {
+    
+    OPT_BasicBlock fallThrough = createBlockAfterCurrent();
+    OPT_Instruction switchInstr;
+    switchInstr = LookupSwitch.create(LOOKUPSWITCH, targetAddress, null, null, fallThrough.makeJumpTarget(), null, 0);
+    appendInstruction(switchInstr);
+    
+    UnresolvedJumpInstruction unresolvedInfo = new UnresolvedJumpInstruction(switchInstr, (Laziness)lazyStateAtJump.clone(), currentPC);
+    unresolvedDynamicJumps.add(unresolvedInfo);
+
+    setCurrentBlock(fallThrough);
+    appendRecordUncaughtBranch(currentPC, targetAddress.copyRO(), branchType);
+    setReturnValueResolveLazinessAndBranchToFinish((Laziness) lazyStateAtJump.clone(), targetAddress.copyRO());
   }
 
   /**
-   * Are all LookupSwitch instructions for branches to LR ready to be resolved
+   * Checks if all dynamic jumps are ready to be resolved (because their target blocks have
+   * been resolved).
    * 
-   * @return true if all are ready to be resolved
+   * @return
+   *  True if all dynamic jumps can be resolved, false otherwise.
    */
-  private boolean areLookupSwitchForReturnsReadyToResolve() {
-    for (int i = 0; i < unresolvedLookupSwitchForReturns_PC.size(); i++) {
-      int pc = ((Integer) unresolvedLookupSwitchForReturns_PC.get(i))
-          .intValue();
-      Laziness lazy = (Laziness) unresolvedLookupSwitchForReturns_Laziness
-          .get(i);
-      Set branchDests = getLikelyCallSites(pc);
+  private boolean areDynamicJumpsReadyToResolve() {
+    for (int i = 0; i < unresolvedDynamicJumps.size(); i++) {
+      
+      UnresolvedJumpInstruction unresolvedSwitch = unresolvedDynamicJumps.get(i);
+      Laziness lazy = unresolvedSwitch.lazyStateAtJump;
+      Set<Integer> branchDests = getLikelyJumpTargets(unresolvedSwitch.pc);
+      
       if (branchDests != null) {
-        for (Iterator j = branchDests.iterator(); j.hasNext();) {
-          int dest_pc = ((Integer) j.next()).intValue() + 4;
+        for (int dest_pc : branchDests) {
           if (findMapping(dest_pc, lazy) == null) {
             return false;
           }
@@ -799,20 +814,17 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
   }
 
   /**
-   * Create sub-traces that will allow for the resolution of all lookup switchs
-   * for branch to lr
+   * Resolves all dynamic jump targets by making sure the respective basic blocks exist.
    */
-  private void prepareToResolveLookupSwitchForReturns() {
-    for (int i = 0; i < unresolvedLookupSwitchForReturns_PC.size(); i++) {
-      int pc = ((Integer) unresolvedLookupSwitchForReturns_PC.get(i))
-          .intValue();
-      Laziness lazy = (Laziness) unresolvedLookupSwitchForReturns_Laziness
-          .get(i);
-      Set branchDests = (Set) getLikelyCallSites(pc);
+  private void resolveAllDynamicJumpTargets() {
+    for (int i = 0; i < unresolvedDynamicJumps.size(); i++) {
+      
+      UnresolvedJumpInstruction unresolvedSwitch = unresolvedDynamicJumps.get(i);
+      
+      Laziness lazy = unresolvedSwitch.lazyStateAtJump;
+      Set<Integer> branchDests = getLikelyJumpTargets(unresolvedSwitch.pc);
       if (branchDests != null) {
-        branchDests = (Set) ((HashSet) getLikelyCallSites(pc)).clone();
-        for (Iterator j = branchDests.iterator(); j.hasNext();) {
-          int dest_pc = ((Integer) j.next()).intValue() + 4;
+        for (int dest_pc : branchDests) {
           if (findMapping(dest_pc, lazy) == null) {
             // Block not translated so translate
             translateSubTrace((Laziness) lazy.clone(), dest_pc);
@@ -822,197 +834,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
   }
 
-  /**
-   * Resolve all lookup switch instructions for branch to lr
-   */
-  private void resolveLookupSwitchForReturns() {
-    for (int i = 0; i < unresolvedLookupSwitchForReturns_PC.size(); i++) {
-      int pc = ((Integer) unresolvedLookupSwitchForReturns_PC.get(i))
-          .intValue();
-      Laziness lazy = (Laziness) unresolvedLookupSwitchForReturns_Laziness
-          .get(i);
-      OPT_Instruction lookupswitch = (OPT_Instruction) unresolvedLookupSwitchForReturns
-          .get(i);
-      OPT_BranchOperand default_target = LookupSwitch.getDefault(lookupswitch);
-      OPT_Operand value = LookupSwitch.getValue(lookupswitch);
-      Set branchDests = getLikelyCallSites(pc);
-      if (branchDests != null) {
-        if ((branchDests.size() > 1)
-            || (lookupswitch.getBasicBlock().nextBasicBlockInCodeOrder() != default_target.target
-                .getBasicBlock())) {
-          float branchProb = (1.0f - OPT_BranchProfileOperand.UNLIKELY)
-              / (float) branchDests.size();
-          LookupSwitch.mutate(lookupswitch, LOOKUPSWITCH, value, null, null,
-              default_target, OPT_BranchProfileOperand.unlikely(), branchDests
-                  .size() * 3);
-          int match_no = 0;
-          for (Iterator j = branchDests.iterator(); j.hasNext();) {
-            int dest_pc = ((Integer) j.next()).intValue() + 4;
-            OPT_BasicBlock target = findMapping(dest_pc, lazy);
-            if (target == null) {
-              throw new Error("Failed to find trace for " + dest_pc
-                  + " with laziness " + lazy);
-            }
-            LookupSwitch.setMatch(lookupswitch, match_no,
-                new OPT_IntConstantOperand(dest_pc));
-            LookupSwitch.setTarget(lookupswitch, match_no, target
-                .makeJumpTarget());
-            LookupSwitch.setBranchProfile(lookupswitch, match_no,
-                new OPT_BranchProfileOperand(branchProb));
-            lookupswitch.getBasicBlock().insertOut(target);
-            match_no++;
-          }
-        } else {
-          int dest_pc = ((Integer) branchDests.iterator().next()).intValue() + 4;
-          OPT_BasicBlock target = findMapping(dest_pc, lazy);
-          if (target == null) {
-            throw new Error("Failed to find trace for " + dest_pc
-                + " with laziness " + lazy);
-          }
-          IfCmp.mutate(lookupswitch, INT_IFCMP, null, value,
-              new OPT_IntConstantOperand(dest_pc),
-              OPT_ConditionOperand.EQUAL(), target.makeJumpTarget(),
-              OPT_BranchProfileOperand.likely());
-          lookupswitch.getBasicBlock().insertOut(target);
-        }
-      } else {
-        // no possibly branch destinations so remove lookupswitch
-        lookupswitch.remove();
-      }
-    }
-  }
 
-  /**
-   * Register a HIR LookupSwitch instruction whose target can't be resolved yet.
-   * There's a caveat on using this that there are no other out edges for this
-   * BB.
-   * 
-   * @param lookupswitch_instr
-   * @param pc
-   *          the PC of the branch to count register
-   * @param targetLaziness
-   */
-  public void registerLookupSwitchForSwitchUnresolved(
-      OPT_Instruction lookupswitch_instr, int pc, Laziness targetLaziness,
-      boolean link) {
-    unresolvedLookupSwitchForSwitches.add(lookupswitch_instr);
-    unresolvedLookupSwitchForSwitches_PC.add(pc);
-    unresolvedLookupSwitchForSwitches_Laziness.add(targetLaziness);
-    unresolvedLookupSwitchForSwitches_WasCall.add(link);
-  }
-
-  /**
-   * Are all LookupSwitch instructions for branches to CTR ready to be resolved
-   * 
-   * @return true if all are ready to be resolved
-   */
-  private boolean areLookupSwitchForSwitchesReadyToResolve() {
-    for (int i = 0; i < unresolvedLookupSwitchForSwitches_PC.size(); i++) {
-      int pc = ((Integer) unresolvedLookupSwitchForSwitches_PC.get(i))
-          .intValue();
-      Laziness lazy = (Laziness) unresolvedLookupSwitchForSwitches_Laziness
-          .get(i);
-      Set branchDests = getLikelyCtrDestinations(pc);
-      if (branchDests != null) {
-        for (Iterator j = branchDests.iterator(); j.hasNext();) {
-          int dest_pc = ((Integer) j.next()).intValue();
-          if (findMapping(dest_pc, lazy) == null) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Create sub-traces that will allow for the resolution of all lookup switchs
-   * for branch to ctr
-   */
-  private void prepareToResolveLookupSwitchForSwitches() {
-    for (int i = 0; i < unresolvedLookupSwitchForSwitches_PC.size(); i++) {
-      int pc = ((Integer) unresolvedLookupSwitchForSwitches_PC.get(i))
-          .intValue();
-      Laziness lazy = (Laziness) unresolvedLookupSwitchForSwitches_Laziness
-          .get(i);
-      Set branchDests = (Set) getLikelyCtrDestinations(pc);
-      if (branchDests != null) {
-        branchDests = (Set) ((HashSet) getLikelyCtrDestinations(pc)).clone();
-        for (Iterator j = branchDests.iterator(); j.hasNext();) {
-          int dest_pc = ((Integer) j.next()).intValue();
-          if (((Boolean) unresolvedLookupSwitchForSwitches_WasCall.get(i))
-              .booleanValue()) {
-            throw new Error("TODO: we need pc, return address and dest_pc here");
-            // registerBranchAndLink(pc, dest_pc);
-          }
-          if (findMapping(dest_pc, lazy) == null) {
-            // Block not translated so translate
-            translateSubTrace((Laziness) lazy.clone(), dest_pc);
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Resolve all lookup switch instructions for branch to ctr
-   */
-  private void resolveLookupSwitchForSwitches() {
-    for (int i = 0; i < unresolvedLookupSwitchForSwitches_PC.size(); i++) {
-      int pc = ((Integer) unresolvedLookupSwitchForSwitches_PC.get(i))
-          .intValue();
-      Laziness lazy = (Laziness) unresolvedLookupSwitchForSwitches_Laziness
-          .get(i);
-      OPT_Instruction lookupswitch = (OPT_Instruction) unresolvedLookupSwitchForSwitches
-          .get(i);
-      OPT_BranchOperand default_target = LookupSwitch.getDefault(lookupswitch);
-      OPT_Operand value = LookupSwitch.getValue(lookupswitch);
-      Set branchDests = getLikelyCtrDestinations(pc);
-      if (branchDests != null) {
-        if ((branchDests.size() > 1)
-            || (lookupswitch.getBasicBlock().nextBasicBlockInCodeOrder() != default_target.target
-                .getBasicBlock())) {
-          float branchProb = (1.0f - OPT_BranchProfileOperand.UNLIKELY)
-              / (float) branchDests.size();
-          LookupSwitch.mutate(lookupswitch, LOOKUPSWITCH, value, null, null,
-              default_target, OPT_BranchProfileOperand.unlikely(), branchDests
-                  .size() * 3);
-          int match_no = 0;
-          for (Iterator j = branchDests.iterator(); j.hasNext();) {
-            int dest_pc = ((Integer) j.next()).intValue();
-            OPT_BasicBlock target = findMapping(dest_pc, lazy);
-            if (target == null) {
-              throw new Error("Failed to find trace for " + dest_pc
-                  + " with laziness " + lazy);
-            }
-            LookupSwitch.setMatch(lookupswitch, match_no,
-                new OPT_IntConstantOperand(dest_pc));
-            LookupSwitch.setTarget(lookupswitch, match_no, target
-                .makeJumpTarget());
-            LookupSwitch.setBranchProfile(lookupswitch, match_no,
-                new OPT_BranchProfileOperand(branchProb));
-            lookupswitch.getBasicBlock().insertOut(target);
-            match_no++;
-          }
-        } else {
-          int dest_pc = ((Integer) branchDests.iterator().next()).intValue();
-          OPT_BasicBlock target = findMapping(dest_pc, lazy);
-          if (target == null) {
-            throw new Error("Failed to find trace for " + dest_pc
-                + " with laziness " + lazy);
-          }
-          IfCmp.mutate(lookupswitch, INT_IFCMP, null, value,
-              new OPT_IntConstantOperand(dest_pc),
-              OPT_ConditionOperand.EQUAL(), target.makeJumpTarget(),
-              OPT_BranchProfileOperand.likely());
-          lookupswitch.getBasicBlock().insertOut(target);
-        }
-      } else {
-        // no possibly branch destinations so remove lookupswitch
-        lookupswitch.remove();
-      }
-    }
-  }
 
   /**
    * Set the return value in the currentBlock, resolve its lazy state (so the
@@ -1027,10 +849,10 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
        
     nextBlock = createBlockAfterCurrent();
     // Copy the value into the register specified by gc.resultReg.
-    appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    appendInstruction(Move.create(INT_MOVE,
         new OPT_RegisterOperand(gc.resultReg, VM_TypeReference.Int), value));
     resolveLaziness(laziness);
-    appendInstructionToCurrentBlock(Goto.create(GOTO, finishBlock
+    appendInstruction(Goto.create(GOTO, finishBlock
         .makeJumpTarget()));
     currentBlock.deleteNormalOut();
     currentBlock.insertOut(finishBlock);
@@ -1038,8 +860,6 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
       DBT._assert(currentBlock.getNumberOfNormalOut() == 1);
     currentBlock = nextBlock;
   }
-
-  // -oO Trace control Oo-
 
   /**
    * Is it suitable to stop the trace now?
@@ -1065,37 +885,26 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * Register a branch and link instruction
    * 
    * @param pc
-   *          the address of the branch instruction
+   *  the address of the branch instruction
    * @param ret
-   *          the address returned to
+   *  the address returned to
    * @param dest
-   *          the destination of the branch instruction
+   *  the destination of the branch instruction
    */
   public void registerBranchAndLink(int pc, int ret, int dest) {
     ps.branchInfo.registerCall(pc, ret, dest);
   }
 
   /**
-   * Returns a vector of likely call sites (typically pc is the address of a
-   * return instruction)
+   * Returns a vector of likely branch targets for the branch at address <code>pc</code>.
    * 
    * @param pc
-   *          location to suggest call sites for
-   * @return vector of potential calling instructions
+   *  The location at which the branch occurs.
+   * @return 
+   *  A set of likely destinations for that jump.
    */
-  public Set getLikelyCallSites(int pc) {
-    return null; // ps.branchInfo.getLikelyCallSites(pc);
-  }
-
-  /**
-   * Returns a vector of likely bcctr destinations
-   * 
-   * @param pc
-   *          location to suggest destinations for
-   * @return vector of potential destinations
-   */
-  public Set getLikelyCtrDestinations(int pc) {
-    return null; // ps.branchInfo.getLikelyCtrDestinations(pc);
+  private Set<Integer> getLikelyJumpTargets(int pc) {
+    return ps.branchInfo.getKnownBranchTargets(pc);
   }
 
   /**
@@ -1103,26 +912,12 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * the trace?
    * 
    * @param pc
-   *          the address of the branch and link instruction
+   *  the address of the branch and link instruction
    * @return whether the trace should continue
    */
   public boolean traceContinuesAfterBranchAndLink(int pc) {
     return suitableToStop() == false;
   }
-
-  // -oO Register Manipulation Oo-
-
-  /**
-   * Fill all the registers from the ProcessSpace, that is take the register
-   * values from the process space and place them in the traces registers.
-   */
-  protected abstract void fillAllRegisters();
-
-  /**
-   * Spill all the registers, that is put them from the current running trace
-   * into the process space
-   */
-  protected abstract void spillAllRegisters();
 
   /**
    * Load all the registers from the ProcessSpace into the pre-fill block
@@ -1134,11 +929,6 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     ps.memory.initTranslate(this); // Set up memory
     currentBlock = temp;
   }
-
-  /**
-   * Return an array of unused registers
-   */
-  protected abstract OPT_Register[] getUnusedRegisters();
 
   /**
    * Eliminate unnecessary register spill and fill code - ie a register wasn't
@@ -1172,28 +962,23 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
   }
 
-  // -oO System call handling Oo-
-
   /**
-   * Plant a system call
+   * Appends a system call to the current basic block.
    * 
    * @param lazy
-   *          current translation laziness
+   *  current translation laziness
    * @param pc
-   *          address of system call instruction
+   *  address of system call instruction
    */
-  public void plantSystemCall(Laziness lazy, int pc) {
-    // Need to make sure that the PPC_ProcessSpace registers have
-    // the correct values before call to doSysCall().
+  public void appendSystemCall(Laziness lazy, int pc) {
+    //We need to make sure that all registers contain their latest values, before
+    //performing the actual system call.
     resolveLaziness(lazy);
     spillAllRegisters();
 
     // Plant call
     OPT_Instruction s = Call.create(CALL, null, null, null, null, 1);
 
-    // VM_CompiledMethod cm = method.getCurrentCompiledMethod();
-    // OPT_MethodOperand methOp = OPT_MethodOperand.COMPILED(method,
-    // cm.getOsrJTOCoffset());
     OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(sysCallMethod
         .getMemberRef().asMethodReference(), sysCallMethod);
 
@@ -1206,25 +991,23 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
         new OPT_AddressConstantOperand(sysCallMethod.getOffset()));
     s.position = gc.inlineSequence;
     s.bcIndex = DBT_Trace.DO_SYSCALL;
-    appendInstructionToCurrentBlock(s);
+    appendInstruction(s);
 
     // Fill all registers again following system call
     fillAllRegisters();
   }
 
-  // -oO Handling bad instructions Oo-
-
   /**
    * Plant a throw of a bad instruction exception
    * 
    * @param lazy
-   *          current translation laziness
+   *  current translation laziness
    * @param pc
-   *          the program counter of the bad instruction
+   *  the program counter of the bad instruction
    */
-  public void plantThrowBadInstruction(Laziness lazy, int pc) {
-    // Need to make sure that the PPC_ProcessSpace registers have
-    // the correct values before call to doSysCall().
+  public void appendThrowBadInstruction(Laziness lazy, int pc) {
+    //We need to make sure that all registers contain their latest values, before
+    //throwing the bad instruction exception.
     resolveLaziness(lazy);
     spillAllRegisters();
 
@@ -1239,17 +1022,13 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
 
     OPT_RegisterOperand eRef = gc.temps.makeTemp(eTref);
-
     OPT_Instruction n = New.create(newOperator, eRef, typeOperand);
     n.position = gc.inlineSequence;
     n.bcIndex = DBT_Trace.BAD_INSTRUCTION_NEW;
-
-    appendInstructionToCurrentBlock(n);
-
+    appendInstruction(n);
+    
     OPT_Operand psRef = gc.makeLocal(1, psTref);
-
     OPT_Instruction c = Call.create(CALL, null, null, null, null, 3);
-
     OPT_MethodOperand methOp = OPT_MethodOperand.SPECIAL(
         badInstrKlassInitMethod.getMemberRef().asMethodReference(),
         badInstrKlassInitMethod);
@@ -1264,19 +1043,17 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     c.position = gc.inlineSequence;
     c.bcIndex = DBT_Trace.BAD_INSTRUCTION_INIT;
 
-    appendInstructionToCurrentBlock(c);
+    appendInstruction(c);
 
     OPT_Instruction t = Athrow.create(ATHROW, eRef.copyRO());
     t.position = gc.inlineSequence;
     t.bcIndex = DBT_Trace.BAD_INSTRUCTION_THROW;
 
-    appendInstructionToCurrentBlock(t);
+    appendInstruction(t);
 
     setReturnValueResolveLazinessAndBranchToFinish(lazy,
         new OPT_IntConstantOperand(0xEBADC0DE));
   }
-
-  // -oO Trace helping methods Oo-
 
   /**
    * Plant a record uncaught branch call. NB register state won't get resolved
@@ -1289,8 +1066,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
    * @param code
    *          a code that can be a hint of the branch type
    */
-  public void plantRecordUncaughtBranch(int pc,
-      OPT_RegisterOperand destination, int code) {
+  private void appendRecordUncaughtBranch(int pc, OPT_RegisterOperand destination, BranchType branchType) {
     // Is it sensible to record this information?
     if ((gc.options.getOptLevel() > 0)
         && (DBT_Options.plantUncaughtBranchWatcher)) {
@@ -1304,7 +1080,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
       Call.setParam(s, 1, new OPT_IntConstantOperand(pc)); // Address of branch
                                                             // instruction
       Call.setParam(s, 2, destination); // Destination of branch value
-      Call.setParam(s, 3, new OPT_IntConstantOperand(code)); // Branch code
+      Call.setParam(s, 3, new OPT_IntConstantOperand(branchType.ordinal())); // Branch code
                                                               // value
       Call.setGuard(s, new OPT_TrueGuardOperand());
       Call.setMethod(s, methOp);
@@ -1312,15 +1088,11 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
           recordUncaughtBranchMethod.getOffset()));
       s.position = gc.inlineSequence;
       s.bcIndex = DBT_Trace.RECORD_BRANCH;
-      appendInstructionToCurrentBlock(s);
+      appendInstruction(s);
     }
   }
 
-  // -oO Temporaries used during translation Oo-
-
-  /**
-   * Temporary int variables
-   */
+  /** Temporary int variables */
   private OPT_Register intTemps[];
 
   /**
@@ -1343,9 +1115,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
   }
 
-  /**
-   * Temporary long variables
-   */
+  /** Temporary long variables */
   private OPT_Register longTemps[];
 
   /**
@@ -1368,10 +1138,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
   }
 
-  /**
-   * Temporary intArray variables
-   */
-
+  /** Temporary intArray variables */
   private OPT_Register intArrayTemp;
 
   /**
@@ -1394,10 +1161,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
   }
 
-  /**
-   * Temporary float variables
-   */
-
+  /** Temporary float variables */
   private OPT_Register floatTemps[];
 
   /**
@@ -1422,10 +1186,7 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
   }
 
-  /**
-   * Temporary Double variables
-   */
-
+  /** Temporary Double variables */
   private OPT_Register doubleTemp;
 
   /**
@@ -1447,18 +1208,14 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
     }
   }
 
-  /**
-   * Temporary validation variables
-   */
-
+  /** Temporary validation variables */
   private OPT_Register validationTemp;
 
   /**
    * Get/create a temporary validation variable
    * 
    * @param num
-   *          a hint to allow for reuse of temps across instructions
-   */
+   *  a hint to allow for reuse of temps across instructions */
   public OPT_RegisterOperand getTempValidation(int num) {
     if (DBT.VerifyAssertions)
       DBT._assert(num == 0);
@@ -1472,20 +1229,146 @@ public abstract class DecoderUtils implements OPT_Constants, OPT_Operators,
       return new OPT_RegisterOperand(result, VM_TypeReference.VALIDATION_TYPE);
     }
   }
-
-  // -oO Utilities Oo-
-
+  
   /**
-   * Get the method
+   * Inserts code into the current block that will use the process space's interpreter 
+   * to execute the given instructions.
+   *  
+   * @param pc
+   *  The address of the instruction that shall be executed
+   *  
+   * @param lazy
+   *  The current laziness state.
    */
+  public void appendInterpretedInstruction(int pc, Laziness lazy) {
+    resolveLaziness(lazy);
+    spillAllRegisters();
+    
+    //Prepare a local variable of type Interpreter
+    VM_TypeReference interpreterTypeRef = VM_TypeReference.findOrCreate(Interpreter.class);
+    OPT_RegisterOperand interpreter = gc.temps.makeTemp(interpreterTypeRef);
+
+    //Plant a call to createInstructionInterpreter().
+    OPT_Instruction s = Call.create(CALL, null, null, null, null, 1);
+    
+    VM_MethodReference getInterpreterMethodRef = (VM_MethodReference) VM_MemberReference
+    .findOrCreate(psTref, VM_Atom.findOrCreateAsciiAtom("createInstructionInterpreter"),
+        VM_Atom.findOrCreateAsciiAtom("()A"));
+    VM_Method getInterpreterMethod = getInterpreterMethodRef.resolveInterfaceMethod();
+
+    OPT_MethodOperand methOp = OPT_MethodOperand.INTERFACE(getInterpreterMethodRef, getInterpreterMethod);
+    OPT_Operand psRef = gc.makeLocal(1, psTref);
+    
+    if (DBT.VerifyAssertions) DBT._assert(psRef != null && getInterpreterMethod != null && interpreter != null && methOp != null);
+    
+    Call.setParam(s, 0, psRef);
+    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setMethod(s, methOp);
+    Call.setAddress(s, new OPT_AddressConstantOperand(getInterpreterMethod.getOffset()));
+    Call.setResult(s, interpreter);
+    
+    s.position = gc.inlineSequence;
+    s.bcIndex = DBT_Trace.DO_SYSCALL;
+    
+    appendInstruction(s);
+    
+    //then use the returned instruction interpreter to interpret the instruction
+    VM_TypeReference instructionTypeRef = VM_TypeReference.findOrCreate(Interpreter.Instruction.class);
+    OPT_RegisterOperand instruction = gc.temps.makeTemp(instructionTypeRef);
+
+    s = Call.create(CALL, null, null, null, null, 1);
+    
+    VM_MethodReference decodeMethodRef = (VM_MethodReference) VM_MemberReference
+    .findOrCreate(interpreterTypeRef, VM_Atom.findOrCreateAsciiAtom("decode"),
+        VM_Atom.findOrCreateAsciiAtom("(I)A"));
+    VM_Method decodeMethod = decodeMethodRef.resolveInterfaceMethod();
+
+    methOp = OPT_MethodOperand.INTERFACE(decodeMethodRef, decodeMethod);
+    
+    if (DBT.VerifyAssertions) DBT._assert(decodeMethod != null && methOp != null && instruction != null && interpreter != null);
+    
+    Call.setParam(s, 0, interpreter);
+    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setMethod(s, methOp);
+    Call.setAddress(s, new OPT_AddressConstantOperand(decodeMethod.getOffset()));
+    Call.setResult(s, instruction);
+    
+    s.position = gc.inlineSequence;
+    s.bcIndex = DBT_Trace.DO_SYSCALL;
+    
+    appendInstruction(s);
+    
+    //finally, call the execute method on the instruction
+    VM_MethodReference executeMethodRef = (VM_MethodReference) VM_MemberReference
+    .findOrCreate(instructionTypeRef, VM_Atom.findOrCreateAsciiAtom("execute"),
+        VM_Atom.findOrCreateAsciiAtom("()V"));
+    VM_Method executeMethod = executeMethodRef.resolveInterfaceMethod();
+
+    s = Call.create(CALL, null, null, null, null, 1);
+    methOp = OPT_MethodOperand.INTERFACE(executeMethodRef, executeMethod);
+    
+    if (DBT.VerifyAssertions) DBT._assert(executeMethod != null && methOp != null && instruction != null);
+    
+    Call.setParam(s, 0, instruction);
+    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setMethod(s, methOp);
+    Call.setAddress(s, new OPT_AddressConstantOperand(executeMethod.getOffset()));
+    
+    s.position = gc.inlineSequence;
+    s.bcIndex = DBT_Trace.DO_SYSCALL;
+    appendInstruction(s);
+    
+    // Fill all registers again following interpreted instruction
+    fillAllRegisters();
+  }
+
+  /** Get the method*/
   public DBT_Trace getMethod() {
     return (DBT_Trace) gc.method;
   }
 
-  /**
-   * Make a temporary register
-   */
+  /** Make a temporary register */
   public OPT_RegisterOperand makeTemp(VM_TypeReference type) {
     return gc.temps.makeTemp(type);
   }
+  
+  /** Report some debug output */
+  protected abstract void report(String str);
+
+  /** Create the initial object for capturing lazy information*/
+  protected abstract Laziness createInitialLaziness();
+  
+  /**
+   * Plant instructions modifying a lazy state into one with no laziness
+   * 
+   * @param laziness
+   *          the laziness to modify
+   */
+  public abstract void resolveLaziness(Laziness laziness);
+  
+  /**
+   * Translate the instruction at the given pc
+   * 
+   * @param lazy
+   *          the status of the lazy evaluation
+   * @param pc
+   *          the program counter for the instruction
+   * @return the next instruction address or -1
+   */
+  protected abstract int translateInstruction(Laziness lazy, int pc);
+  
+  /**
+   * Fill all the registers from the ProcessSpace, that is take the register
+   * values from the process space and place them in the traces registers.
+   */
+  protected abstract void fillAllRegisters();
+
+  /**
+   * Spill all the registers, that is put them from the current running trace
+   * into the process space
+   */
+  protected abstract void spillAllRegisters();
+
+  /** Return an array of unused registers */
+  protected abstract OPT_Register[] getUnusedRegisters();
 }

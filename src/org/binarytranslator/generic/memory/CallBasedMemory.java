@@ -9,9 +9,9 @@
 package org.binarytranslator.generic.memory;
 
 import org.binarytranslator.DBT;
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
-import org.binarytranslator.vmInterface.TranslationHelper;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_FieldReference;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -98,7 +98,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   /**
    * A translation helper for generating code
    */
-  protected TranslationHelper helper;
+  protected AbstractCodeTranslator helper;
 
   /**
    * The generation context we're translating within
@@ -117,8 +117,13 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    *          the name of the over-riding class
    */
   protected CallBasedMemory(Class memoryClass) {
-    memoryType = VM_TypeReference.findOrCreate(memoryClass);
+    //Debug initializations to run this stuff on SUN
+    /*memoryType = null;
+    loadS8 = loadU8 = loadS16 = loadU16 = load32 = null;
+    store8 = store16 = store32 = null;*/
+    
 
+    memoryType = VM_TypeReference.findOrCreate(memoryClass);
     VM_Atom storeDescriptor = VM_Atom.findOrCreateAsciiAtom("(II)V");
     store8 = VM_MemberReference.findOrCreate(memoryType,
         VM_Atom.findOrCreateAsciiAtom("store8"), storeDescriptor)
@@ -152,11 +157,11 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * Generate memory prologue,... for the beignning of a trace. e.g. Loading the
    * page table into a register
    */
-  public void initTranslate(TranslationHelper helper) {
+  public void initTranslate(AbstractCodeTranslator helper) {
     this.helper = helper;
     this.gc = helper.getGenerationContext();
     OPT_RegisterOperand memoryOp = helper.makeTemp(memoryType);
-    helper.appendInstructionToCurrentBlock(GetField.create(GETFIELD, memoryOp,
+    helper.appendInstruction(GetField.create(GETFIELD, memoryOp,
         gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(psMemoryRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
             psMemoryRef), new OPT_TrueGuardOperand()));
@@ -192,7 +197,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
     Call.setAddress(s, new OPT_AddressConstantOperand(loadMethod.getOffset()));
     s.position = gc.inlineSequence;
     s.bcIndex = bcIndex;
-    helper.appendInstructionToCurrentBlock(s);
+    helper.appendInstruction(s);
   }
 
   /**
@@ -333,7 +338,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
     Call.setAddress(s, new OPT_AddressConstantOperand(storeMethod.getOffset()));
     s.position = gc.inlineSequence;
     s.bcIndex = bcIndex;
-    helper.appendInstructionToCurrentBlock(s);
+    helper.appendInstruction(s);
   }
 
   /**

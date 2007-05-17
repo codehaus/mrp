@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
-import org.binarytranslator.generic.decoder.DecoderUtils;
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.classloader.VM_Atom;
@@ -24,7 +24,7 @@ import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.OPT_Constants;
 import org.jikesrvm.compilers.opt.ir.*;
 
-public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
+public class X862IR extends AbstractCodeTranslator implements OPT_HIRGenerator,
     OPT_Operators, OPT_Constants {
 
   private static final VM_TypeReference  psTref;
@@ -135,7 +135,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
    * @return -1
    */
   private int plantSystemCallGateEntry(X86_Laziness lazy, int pc) {
-    plantSystemCall(lazy, pc);
+    appendSystemCall(lazy, pc);
     // Get return address
     X86_DecodedOperand source = X86_DecodedOperand.getStack(X86_ProcessSpace._16BIT ? 16 : 32,
         X86_ProcessSpace._16BIT ? 16 : 32);
@@ -144,8 +144,8 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
 
     // Increment stack pointer
     OPT_RegisterOperand esp = getGPRegister(lazy, X86_Registers.ESP, X86_ProcessSpace._16BIT ? 16 : 32);
-    appendInstructionToCurrentBlock(Binary.create(INT_ADD, esp,
-        esp.copyRO(), new OPT_IntConstantOperand(4)));
+    appendInstruction(Binary.create(INT_ADD, esp, esp.copyRO(), new OPT_IntConstantOperand(4)));
+    
     // Branch
     setReturnValueResolveLazinessAndBranchToFinish((X86_Laziness) lazy.clone(), temp.copyRO());
     return -1;  
@@ -221,11 +221,11 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
         // EXX = (EXX & 0xFFFF0000) | (XX & 0xFFFF)
         OPT_RegisterOperand reg16 = new OPT_RegisterOperand(GP16[r],
             VM_TypeReference.Int);
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, result, result
+        appendInstruction(Binary.create(INT_AND, result, result
             .copyRO(), new OPT_IntConstantOperand(0xFFFF0000)));
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, reg16, reg16
+        appendInstruction(Binary.create(INT_AND, reg16, reg16
             .copyRO(), new OPT_IntConstantOperand(0xFFFF)));
-        appendInstructionToCurrentBlock(Binary.create(INT_OR, result.copyRO(),
+        appendInstruction(Binary.create(INT_OR, result.copyRO(),
             result.copyRO(), reg16.copyRO()));
       } else { // 8bit registers
         // both XL and Xh are valid
@@ -234,17 +234,17 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
             VM_TypeReference.Int);
         OPT_RegisterOperand reg8_l = new OPT_RegisterOperand(GP8[r],
             VM_TypeReference.Int);
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, result, result
+        appendInstruction(Binary.create(INT_AND, result, result
             .copyRO(), new OPT_IntConstantOperand(0xFFFF0000)));
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, reg8_h, reg8_h
+        appendInstruction(Binary.create(INT_AND, reg8_h, reg8_h
             .copyRO(), new OPT_IntConstantOperand(0xFF)));
-        appendInstructionToCurrentBlock(Binary.create(INT_SHL, reg8_h.copyRO(),
+        appendInstruction(Binary.create(INT_SHL, reg8_h.copyRO(),
             reg8_h.copyRO(), new OPT_IntConstantOperand(8)));
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, reg8_l, reg8_l
+        appendInstruction(Binary.create(INT_AND, reg8_l, reg8_l
             .copyRO(), new OPT_IntConstantOperand(0xFF)));
-        appendInstructionToCurrentBlock(Binary.create(INT_OR, result.copyRO(),
+        appendInstruction(Binary.create(INT_OR, result.copyRO(),
             result.copyRO(), reg8_l.copyRO()));
-        appendInstructionToCurrentBlock(Binary.create(INT_OR, result.copyRO(),
+        appendInstruction(Binary.create(INT_OR, result.copyRO(),
             result.copyRO(), reg8_h.copyRO()));
       }
       laziness.set32bitRegisterValid(r);
@@ -270,12 +270,12 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     switch(segment) {
     case X86_Registers.GS: {
       OPT_RegisterOperand temp = getTempInt(9);
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+      appendInstruction(GetField.create(GETFIELD,
           temp, new OPT_RegisterOperand(ps_registers, registersTref),
           new OPT_AddressConstantOperand(gsBaseAddrFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(gsBaseAddrFref),
           new OPT_TrueGuardOperand()));
-      appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+      appendInstruction(Binary.create(INT_ADD,
           address.copyRO(), address.copyRO(), temp.copyRO()));
       break;
     }
@@ -318,7 +318,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       // registers or take from 32bit register
       if (laziness.is32bitRegisterValid(r)) {
         // 32bit register is valid so just move that to use the lower 16bits
-        appendInstructionToCurrentBlock(Move.create(INT_MOVE, result.copyRO(),
+        appendInstruction(Move.create(INT_MOVE, result.copyRO(),
             new OPT_RegisterOperand(GP32[r], VM_TypeReference.Int)));
       } else { // 8bit registers
         // both XL and XH are valid
@@ -327,13 +327,13 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
             VM_TypeReference.Int);
         OPT_RegisterOperand reg8_l = new OPT_RegisterOperand(GP8[r],
             VM_TypeReference.Int);
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, result.copyRO(),
+        appendInstruction(Binary.create(INT_AND, result.copyRO(),
             reg8_h.copyRO(), new OPT_IntConstantOperand(0xFF)));
-        appendInstructionToCurrentBlock(Binary.create(INT_SHL, result.copyRO(),
+        appendInstruction(Binary.create(INT_SHL, result.copyRO(),
             result.copyRO(), new OPT_IntConstantOperand(8)));
-        appendInstructionToCurrentBlock(Binary.create(INT_AND, reg8_l, reg8_l
+        appendInstruction(Binary.create(INT_AND, reg8_l, reg8_l
             .copyRO(), new OPT_IntConstantOperand(0xFF)));
-        appendInstructionToCurrentBlock(Binary.create(INT_OR, result.copyRO(),
+        appendInstruction(Binary.create(INT_OR, result.copyRO(),
             result.copyRO(), reg8_l.copyRO()));
       }
       laziness.set16bitRegisterValid(r);
@@ -376,13 +376,13 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       // 8bit register isn't valid so take from either 32bit or 16bit
       // register
       if (laziness.is32bitRegisterValid(rl)) { // 32bit register is valid
-        appendInstructionToCurrentBlock(Move.create(INT_MOVE, rlOp,
+        appendInstruction(Move.create(INT_MOVE, rlOp,
             new OPT_RegisterOperand(GP32[rl], VM_TypeReference.Int)));
       } else { // 16bit register is valid
-        appendInstructionToCurrentBlock(Move.create(INT_MOVE, rlOp,
+        appendInstruction(Move.create(INT_MOVE, rlOp,
             new OPT_RegisterOperand(GP16[rl], VM_TypeReference.Int)));
       }
-      appendInstructionToCurrentBlock(Binary.create(INT_SHL, rhOp, rlOp
+      appendInstruction(Binary.create(INT_SHL, rhOp, rlOp
           .copyRO(), new OPT_IntConstantOperand(8)));
       laziness.set8bitRegisterValid(rl);
     }
@@ -535,7 +535,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
    */
   OPT_RegisterOperand getFPU_CW() {
     OPT_RegisterOperand result = makeTemp(VM_TypeReference.Int);
-    appendInstructionToCurrentBlock(Move.create(INT_MOVE, result.copyRO(),
+    appendInstruction(Move.create(INT_MOVE, result.copyRO(),
         new OPT_IntConstantOperand(0)));
     return result;
   }
@@ -578,7 +578,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       // Set up the reference to memory
       ps_registersOp = gc.temps.makeTemp(registersTref);
       ps_registers = ps_registersOp.register;
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD, ps_registersOp,
+      appendInstruction(GetField.create(GETFIELD, ps_registersOp,
           gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(registersFref
               .peekResolvedField().getOffset()), new OPT_LocationOperand(
               registersFref), new OPT_TrueGuardOperand()));
@@ -589,7 +589,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_RegisterOperand ps_registers_segRegOp;
     if (ps_registers_segReg == null) {
       ps_registers_segRegOp = gc.temps.makeTemp(segRegTref);
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+      appendInstruction(GetField.create(GETFIELD,
           ps_registers_segRegOp, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(segRegFref.peekResolvedField()
               .getOffset()), new OPT_LocationOperand(segRegFref),
@@ -602,7 +602,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_RegisterOperand ps_registers_gp32Op;
     if (ps_registers_gp32 == null) {
       ps_registers_gp32Op = gc.temps.makeTemp(gp32Tref);
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+      appendInstruction(GetField.create(GETFIELD,
           ps_registers_gp32Op, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(gp32Fref.peekResolvedField()
               .getOffset()), new OPT_LocationOperand(gp32Fref),
@@ -620,7 +620,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         segRegOp = new OPT_RegisterOperand(SegReg[i], VM_TypeReference.Char);
       }
-      appendInstructionToCurrentBlock(ALoad.create(USHORT_ALOAD, segRegOp,
+      appendInstruction(ALoad.create(USHORT_ALOAD, segRegOp,
           ps_registers_segRegOp.copyRO(), new OPT_IntConstantOperand(i),
           new OPT_LocationOperand(VM_TypeReference.Char),
           new OPT_TrueGuardOperand()));
@@ -634,7 +634,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         gp32op = new OPT_RegisterOperand(GP32[i], VM_TypeReference.Int);
       }
-      appendInstructionToCurrentBlock(ALoad.create(INT_ALOAD, gp32op,
+      appendInstruction(ALoad.create(INT_ALOAD, gp32op,
           ps_registers_gp32Op.copyRO(), new OPT_IntConstantOperand(i),
           new OPT_LocationOperand(VM_TypeReference.Int),
           new OPT_TrueGuardOperand()));
@@ -648,7 +648,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         ps_registers_mxcsr_Op = new OPT_RegisterOperand(flag_CF, VM_TypeReference.Boolean);
       }
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD, ps_registers_mxcsr_Op,
+      appendInstruction(GetField.create(GETFIELD, ps_registers_mxcsr_Op,
           ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(mxcsrFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(mxcsrFref),
@@ -663,7 +663,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_CF_Op = new OPT_RegisterOperand(flag_CF, VM_TypeReference.Boolean);
       }
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_CF_Op,
+      appendInstruction(GetField.create(GETFIELD, flag_CF_Op,
           ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagCFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagCFref),
@@ -677,7 +677,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_SF_Op = new OPT_RegisterOperand(flag_SF, VM_TypeReference.Boolean);
       }
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_SF_Op,
+      appendInstruction(GetField.create(GETFIELD, flag_SF_Op,
           ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagSFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagSFref),
@@ -691,7 +691,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_ZF_Op = new OPT_RegisterOperand(flag_ZF, VM_TypeReference.Boolean);
       }
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_ZF_Op,
+      appendInstruction(GetField.create(GETFIELD, flag_ZF_Op,
           ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagZFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagZFref),
@@ -705,7 +705,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_OF_Op = new OPT_RegisterOperand(flag_OF, VM_TypeReference.Boolean);
       }
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_OF_Op,
+      appendInstruction(GetField.create(GETFIELD, flag_OF_Op,
           ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagOFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagOFref),
@@ -719,7 +719,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       } else {
         flag_DF_Op = new OPT_RegisterOperand(flag_DF, VM_TypeReference.Boolean);
       }
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag_DF_Op,
+      appendInstruction(GetField.create(GETFIELD, flag_DF_Op,
           ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagDFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagDFref),
@@ -740,7 +740,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       // never used
       if ((DBT_Options.singleInstrTranslation == false)
           || (SegRegInUse[i] == true)) {
-        appendInstructionToCurrentBlock(AStore.create(SHORT_ASTORE,
+        appendInstruction(AStore.create(SHORT_ASTORE,
             new OPT_RegisterOperand(GP32[i], VM_TypeReference.Int),
             ps_registers_segRegOp.copyRO(), new OPT_IntConstantOperand(i),
             new OPT_LocationOperand(VM_TypeReference.Char),
@@ -755,7 +755,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
       // never used
       if ((DBT_Options.singleInstrTranslation == false)
           || (GP32InUse[i] == true)) {
-        appendInstructionToCurrentBlock(AStore.create(INT_ASTORE,
+        appendInstruction(AStore.create(INT_ASTORE,
             new OPT_RegisterOperand(GP32[i], VM_TypeReference.Int),
             ps_registers_gp32Op.copyRO(), new OPT_IntConstantOperand(i),
             new OPT_LocationOperand(VM_TypeReference.Int),
@@ -768,7 +768,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     {
       OPT_RegisterOperand ps_registers_mxcsr_Op =
         new OPT_RegisterOperand(ps_registers_mxcsr, VM_TypeReference.Int);
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+      appendInstruction(GetField.create(PUTFIELD,
           ps_registers_mxcsr_Op, ps_registersOp,
           new OPT_AddressConstantOperand(mxcsrFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(mxcsrFref),
@@ -779,7 +779,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     {
       OPT_RegisterOperand flag_CF_Op =
         new OPT_RegisterOperand(flag_CF, VM_TypeReference.Boolean);
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+      appendInstruction(GetField.create(PUTFIELD,
           flag_CF_Op, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagCFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagCFref),
@@ -788,7 +788,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     {
       OPT_RegisterOperand flag_SF_Op = new OPT_RegisterOperand(flag_SF,
           VM_TypeReference.Boolean);
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+      appendInstruction(GetField.create(PUTFIELD,
           flag_SF_Op, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagSFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagSFref),
@@ -797,7 +797,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     {
       OPT_RegisterOperand flag_ZF_Op =
         new OPT_RegisterOperand(flag_ZF, VM_TypeReference.Boolean);
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+      appendInstruction(GetField.create(PUTFIELD,
           flag_ZF_Op, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagZFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagZFref),
@@ -806,7 +806,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     {
       OPT_RegisterOperand flag_OF_Op =
         new OPT_RegisterOperand(flag_OF, VM_TypeReference.Boolean);
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+      appendInstruction(GetField.create(PUTFIELD,
           flag_OF_Op, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagOFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagOFref),
@@ -815,7 +815,7 @@ public class X862IR extends DecoderUtils implements OPT_HIRGenerator,
     {
       OPT_RegisterOperand flag_DF_Op =
         new OPT_RegisterOperand(flag_DF, VM_TypeReference.Boolean);
-      appendInstructionToCurrentBlock(GetField.create(PUTFIELD,
+      appendInstruction(GetField.create(PUTFIELD,
           flag_DF_Op, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(flagDFref.peekResolvedField().getOffset()),
           new OPT_LocationOperand(flagDFref),

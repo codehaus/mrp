@@ -123,37 +123,29 @@ public abstract class ProcessSpace {
     branchInfo = new BranchLogic();
   }
   
+  /** Returns an instance of {@link Interpreter} that can be used to interpret instructions
+   * for this process space. */
   public Interpreter createInstructionInterpreter() throws UnsupportedOperationException {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * Record a branch instruction
-   */
+  /** Record a branch instruction */
   public void recordUncaughtBranch(int location, int destination, int code) {
     branchInfo.registerBranch(location, destination, code);
   }
 
-  /**
-   * Return as an integer the current instruction's address
-   */
+  /** Return as an integer the current instruction's address */
   @Uninterruptible
   public abstract int getCurrentInstructionAddress();
 
-  /**
-   * Sets the current instruction's address
-   */
+  /** Sets the current instruction's address */
   public abstract void setCurrentInstructionAddress(int pc);
 
-  /**
-   * Return a string disassembly of the instuction at the given address
-   */
+  /** Return a string disassembly of the instuction at the given address*/
   @Uninterruptible
   public abstract String disassembleInstruction(int pc);
 
-  /**
-   * Return as an integer the current instruction's address
-   */
+  /** Return as an integer the current instruction's address*/
   public abstract int getCurrentStackAddress();
 
   /**
@@ -230,11 +222,6 @@ public abstract class ProcessSpace {
      * in SSH_* varies.
      */
     return env;
-    /*
-     * if (!DBT_Options.loadEnv) { Process printenv =
-     * Runtime.exec("/usr/bin/printenv"); InputStream variables = new
-     * DataInputStream(printenv.getInputStream()); variables.readUTF(); }
-     */
   }
 
   /**

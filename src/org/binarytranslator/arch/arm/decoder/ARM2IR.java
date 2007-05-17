@@ -7,7 +7,7 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
-import org.binarytranslator.generic.decoder.DecoderUtils;
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_FieldReference;
@@ -17,7 +17,7 @@ import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.ir.*;
 
-public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
+public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
 
   /** Mapping of ARM registers to HIR registers */
   private OPT_Register regMap[] = new OPT_Register[16];
@@ -128,7 +128,6 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     
     if (DBT.VerifyAssertions) DBT._assert(registers_overflowFlag_Fref != null);
   }
-  
 
   public ARM2IR(OPT_GenerationContext context) {
     super(context);
@@ -172,7 +171,7 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     VM_FieldReference requestedMode_FieldReference = VM_FieldReference.findOrCreate(OperatingMode_TypeRef, VM_Atom.findOrCreateAsciiAtom(mode.name()), VM_Atom.findOrCreateAsciiAtom("Lorg/binarytranslator/arch/arm/os/process/ARM_Registers/OperatingMode;")).asFieldReference();
     
     //Finally, use a getfield to grab the (static) member field 
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, result,
+    appendInstruction(GetField.create(GETFIELD, result,
         null, new OPT_AddressConstantOperand(requestedMode_FieldReference
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
                 requestedMode_FieldReference), new OPT_TrueGuardOperand()));
@@ -190,7 +189,7 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     if (ps_registers == null) {
       ps_registersOp = gc.temps.makeTemp(registersTref);
       ps_registers = ps_registersOp.register;
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD, ps_registersOp,
+      appendInstruction(GetField.create(GETFIELD, ps_registersOp,
           gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(registersFref
               .peekResolvedField().getOffset()), new OPT_LocationOperand(
               registersFref), new OPT_TrueGuardOperand()));
@@ -218,19 +217,19 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     
     //store the carry flag
     OPT_RegisterOperand flag = new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_carryFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_carryFlag_Fref), new OPT_TrueGuardOperand()) );
+    appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_carryFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_carryFlag_Fref), new OPT_TrueGuardOperand()) );
     
     //store the negative flag
     flag = new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_negativeFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_negativeFlag_Fref), new OPT_TrueGuardOperand()) );
+    appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_negativeFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_negativeFlag_Fref), new OPT_TrueGuardOperand()) );
     
     //store the zero flag
     flag = new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_zeroFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_zeroFlag_Fref), new OPT_TrueGuardOperand()) );
+    appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_zeroFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_zeroFlag_Fref), new OPT_TrueGuardOperand()) );
 
     //store the overflow flag
     flag = new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_overflowFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_overflowFlag_Fref), new OPT_TrueGuardOperand()) );
+    appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_overflowFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_overflowFlag_Fref), new OPT_TrueGuardOperand()) );
   }
   
   public void fillAllFlags() {
@@ -247,19 +246,19 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
 
     //get the carry flag
     OPT_RegisterOperand flag = new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_carryFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_carryFlag_Fref), new OPT_TrueGuardOperand()) );
+    appendInstruction(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_carryFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_carryFlag_Fref), new OPT_TrueGuardOperand()) );
     
     //get the negative flag
     flag = new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_negativeFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_negativeFlag_Fref), new OPT_TrueGuardOperand()) );
+    appendInstruction(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_negativeFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_negativeFlag_Fref), new OPT_TrueGuardOperand()) );
     
     //get the zero flag
     flag = new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_zeroFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_zeroFlag_Fref), new OPT_TrueGuardOperand()) );
+    appendInstruction(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_zeroFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_zeroFlag_Fref), new OPT_TrueGuardOperand()) );
     
     //get the overflow flag
     flag = new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_overflowFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_overflowFlag_Fref), new OPT_TrueGuardOperand()) );    
+    appendInstruction(GetField.create(GETFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_overflowFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_overflowFlag_Fref), new OPT_TrueGuardOperand()) );    
   }
 
   @Override
@@ -273,7 +272,7 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     if (ps_registers_regs == null) {
 
       ps_registers_regsOp = gc.temps.makeTemp(registers_regs_Tref);
-      appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+      appendInstruction(GetField.create(GETFIELD,
           ps_registers_regsOp, ps_registersOp.copyRO(),
           new OPT_AddressConstantOperand(registers_regs_Fref.peekResolvedField()
               .getOffset()), new OPT_LocationOperand(registers_regs_Fref),
@@ -292,7 +291,7 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
       } else {
         regOp = new OPT_RegisterOperand(regMap[i], VM_TypeReference.Int);
       }
-      appendInstructionToCurrentBlock(ALoad.create(INT_ALOAD, regOp,
+      appendInstruction(ALoad.create(INT_ALOAD, regOp,
           ps_registers_regsOp.copyRO(), new OPT_IntConstantOperand(i),
           new OPT_LocationOperand(VM_TypeReference.Int),
           new OPT_TrueGuardOperand()));
@@ -357,7 +356,7 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
       // never used
       if ((DBT_Options.singleInstrTranslation == false)
           || (regUsed[i] == true)) {
-        appendInstructionToCurrentBlock(AStore.create(INT_ASTORE,
+        appendInstruction(AStore.create(INT_ASTORE,
             new OPT_RegisterOperand(regMap[i], VM_TypeReference.Int),
             ps_registers_regsOp.copyRO(), new OPT_IntConstantOperand(i),
             new OPT_LocationOperand(VM_TypeReference.Int),
@@ -423,23 +422,23 @@ public class ARM2IR extends DecoderUtils implements OPT_HIRGenerator {
     Call.setAddress(s, new OPT_AddressConstantOperand(rotateRightMethod
         .getOffset()));
 
-    appendInstructionToCurrentBlock(s);
+    appendInstruction(s);
   }
 
   protected void appendBitTest(OPT_RegisterOperand target, OPT_Operand wordToTest, OPT_Operand bit) {
     if (DBT.VerifyAssertions) DBT._assert(wordToTest != target && bit != target);
   
-    appendInstructionToCurrentBlock(Binary.create(OPT_Operators.INT_SHL, target, new OPT_IntConstantOperand(1), bit));
-    appendInstructionToCurrentBlock(Binary.create(OPT_Operators.INT_AND, target, wordToTest, target));
-    appendInstructionToCurrentBlock(BooleanCmp.create(OPT_Operators.BOOLEAN_CMP_INT, target, target, new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand()));
+    appendInstruction(Binary.create(OPT_Operators.INT_SHL, target, new OPT_IntConstantOperand(1), bit));
+    appendInstruction(Binary.create(OPT_Operators.INT_AND, target, wordToTest, target));
+    appendInstruction(BooleanCmp.create(OPT_Operators.BOOLEAN_CMP_INT, target, target, new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand()));
   }
 
   protected void appendBitTest(OPT_RegisterOperand target, OPT_Operand wordToTest, int bit) {
     if (DBT.VerifyAssertions) DBT._assert(wordToTest != target);
     if (DBT.VerifyAssertions) DBT._assert(bit <= 31 && bit >= 0);
     
-    appendInstructionToCurrentBlock(Binary.create(OPT_Operators.INT_AND, target, wordToTest, new OPT_IntConstantOperand(1 << bit)));
-    appendInstructionToCurrentBlock(BooleanCmp.create(OPT_Operators.BOOLEAN_CMP_INT, target, target, new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand()));
+    appendInstruction(Binary.create(OPT_Operators.INT_AND, target, wordToTest, new OPT_IntConstantOperand(1 << bit)));
+    appendInstruction(BooleanCmp.create(OPT_Operators.BOOLEAN_CMP_INT, target, target, new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand()));
   }
 
 }

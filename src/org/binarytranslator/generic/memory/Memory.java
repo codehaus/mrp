@@ -11,7 +11,7 @@ package org.binarytranslator.generic.memory;
 import org.jikesrvm.compilers.opt.ir.OPT_Operand;
 import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
 import org.jikesrvm.classloader.VM_MethodReference;
-import org.binarytranslator.vmInterface.TranslationHelper;
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.vmmagic.pragma.Uninterruptible;
 import java.io.RandomAccessFile;
 
@@ -173,7 +173,7 @@ public abstract class Memory {
    * Generate memory prologue,... for the beignning of a trace. e.g. Loading the
    * page table into a register
    */
-  public abstract void initTranslate(TranslationHelper helper);
+  public abstract void initTranslate(AbstractCodeTranslator helper);
 
   /**
    * Generate the IR code for a byte load where the sign extended result fills

@@ -10,7 +10,7 @@ package org.binarytranslator.arch.x86.decoder;
 
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
 
-import org.binarytranslator.generic.decoder.DecoderUtils;
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 
 /**
@@ -386,7 +386,7 @@ class X86_ModRM_Decoder extends X86_InstructionDecoder {
    * Get the RM field as a decoded operand, the RM field encodes either a
    * register or memory location
    */
-  X86_DecodedOperand getRM(DecoderUtils translationHelper, Laziness lazy,
+  X86_DecodedOperand getRM(AbstractCodeTranslator translationHelper, Laziness lazy,
       X86_SIB_Decoder sib, int displacement, int operandSize, int addressSize,
       int segment) {
     if (addressSize == 32) {

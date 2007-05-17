@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
-import org.binarytranslator.generic.decoder.DecoderUtils;
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.classloader.VM_Atom;
@@ -41,7 +41,7 @@ import org.jikesrvm.compilers.opt.ir.PutField;
  * 
  * @author Richard Matley, Ian Rogers
  */
-public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
+public final class PPC2IR extends AbstractCodeTranslator implements OPT_HIRGenerator,
     OPT_Operators, OPT_Constants {
 
   // -oO Caches of references to process space entities Oo-
@@ -306,7 +306,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     } else {
       result = new OPT_RegisterOperand(intRegMap[r], VM_TypeReference.Int);
     }
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, result, gc
+    appendInstruction(GetField.create(GETFIELD, result, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(gprFieldRefs[r]
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         gprFieldRefs[r]), new OPT_TrueGuardOperand()));
@@ -328,7 +328,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_RegisterOperand regOp = new OPT_RegisterOperand(intRegMap[r],
         VM_TypeReference.Int);
 
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp, gc
+    appendInstruction(PutField.create(PUTFIELD, regOp, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(gprFieldRefs[r]
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         gprFieldRefs[r]), new OPT_TrueGuardOperand()));
@@ -353,7 +353,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
       result = new OPT_RegisterOperand(fpRegMap[r], VM_TypeReference.Double);
     }
 
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, result, gc
+    appendInstruction(GetField.create(GETFIELD, result, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(fprFieldRefs[r]
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         fprFieldRefs[r]), new OPT_TrueGuardOperand()));
@@ -373,7 +373,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_RegisterOperand regOp = new OPT_RegisterOperand(fpRegMap[r],
         VM_TypeReference.Double);
 
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp, gc
+    appendInstruction(PutField.create(PUTFIELD, regOp, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(fprFieldRefs[r]
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         fprFieldRefs[r]), new OPT_TrueGuardOperand()));
@@ -405,32 +405,32 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_RegisterOperand arrayref = gc.temps
         .makeTemp(VM_TypeReference.BooleanArray);
 
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref, gc
+    appendInstruction(GetField.create(GETFIELD, arrayref, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(crf_ltFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         crf_ltFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, lt, arrayref,
+    appendInstruction(ALoad.create(UBYTE_ALOAD, lt, arrayref,
         new OPT_IntConstantOperand(crf), new OPT_LocationOperand(
             VM_TypeReference.BooleanArray), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref, gc
+    appendInstruction(GetField.create(GETFIELD, arrayref, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(crf_gtFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         crf_gtFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, gt, arrayref,
+    appendInstruction(ALoad.create(UBYTE_ALOAD, gt, arrayref,
         new OPT_IntConstantOperand(crf), new OPT_LocationOperand(
             VM_TypeReference.BooleanArray), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref, gc
+    appendInstruction(GetField.create(GETFIELD, arrayref, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(crf_eqFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         crf_eqFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, eq, arrayref,
+    appendInstruction(ALoad.create(UBYTE_ALOAD, eq, arrayref,
         new OPT_IntConstantOperand(crf), new OPT_LocationOperand(
             VM_TypeReference.BooleanArray), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref, gc
+    appendInstruction(GetField.create(GETFIELD, arrayref, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(crf_soFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         crf_soFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(ALoad.create(UBYTE_ALOAD, so, arrayref,
+    appendInstruction(ALoad.create(UBYTE_ALOAD, so, arrayref,
         new OPT_IntConstantOperand(crf), new OPT_LocationOperand(
             VM_TypeReference.BooleanArray), new OPT_TrueGuardOperand()));
   }
@@ -455,32 +455,32 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_RegisterOperand arrayref = gc.temps
         .makeTemp(VM_TypeReference.BooleanArray);
 
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref, gc
+    appendInstruction(GetField.create(GETFIELD, arrayref, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(crf_ltFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         crf_ltFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, lt, arrayref,
+    appendInstruction(AStore.create(BYTE_ASTORE, lt, arrayref,
         new OPT_IntConstantOperand(crf), new OPT_LocationOperand(
             VM_TypeReference.BooleanArray), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref, gc
+    appendInstruction(GetField.create(GETFIELD, arrayref, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(crf_gtFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         crf_gtFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, gt, arrayref,
+    appendInstruction(AStore.create(BYTE_ASTORE, gt, arrayref,
         new OPT_IntConstantOperand(crf), new OPT_LocationOperand(
             VM_TypeReference.BooleanArray), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref, gc
+    appendInstruction(GetField.create(GETFIELD, arrayref, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(crf_eqFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         crf_eqFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, eq, arrayref,
+    appendInstruction(AStore.create(BYTE_ASTORE, eq, arrayref,
         new OPT_IntConstantOperand(crf), new OPT_LocationOperand(
             VM_TypeReference.BooleanArray), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, arrayref, gc
+    appendInstruction(GetField.create(GETFIELD, arrayref, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(crf_soFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         crf_soFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(AStore.create(BYTE_ASTORE, so, arrayref,
+    appendInstruction(AStore.create(BYTE_ASTORE, so, arrayref,
         new OPT_IntConstantOperand(crf), new OPT_LocationOperand(
             VM_TypeReference.BooleanArray), new OPT_TrueGuardOperand()));
   }
@@ -497,7 +497,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     } else {
       result = new OPT_RegisterOperand(fpscrRegMap, VM_TypeReference.Int);
     }
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, result, gc
+    appendInstruction(GetField.create(GETFIELD, result, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(fpscrFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         fpscrFieldRef), new OPT_TrueGuardOperand()));
@@ -511,7 +511,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_RegisterOperand regOp = new OPT_RegisterOperand(fpscrRegMap,
         VM_TypeReference.Int);
 
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp, gc
+    appendInstruction(PutField.create(PUTFIELD, regOp, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(fpscrFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(
         fpscrFieldRef), new OPT_TrueGuardOperand()));
@@ -529,7 +529,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     } else {
       result = new OPT_RegisterOperand(ctrRegMap, VM_TypeReference.Int);
     }
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, result, gc
+    appendInstruction(GetField.create(GETFIELD, result, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(ctrFieldRef
         .peekResolvedField().getOffset()),
         new OPT_LocationOperand(ctrFieldRef), new OPT_TrueGuardOperand()));
@@ -543,7 +543,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     OPT_RegisterOperand regOp = new OPT_RegisterOperand(ctrRegMap,
         VM_TypeReference.Int);
 
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp, gc
+    appendInstruction(PutField.create(PUTFIELD, regOp, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(ctrFieldRef
         .peekResolvedField().getOffset()),
         new OPT_LocationOperand(ctrFieldRef), new OPT_TrueGuardOperand()));
@@ -579,19 +579,19 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
           VM_TypeReference.Byte);
     }
 
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, xerRegMap_SO_Op,
+    appendInstruction(GetField.create(GETFIELD, xerRegMap_SO_Op,
         gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(xer_soFieldRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
             xer_soFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, xerRegMap_OV_Op,
+    appendInstruction(GetField.create(GETFIELD, xerRegMap_OV_Op,
         gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(xer_ovFieldRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
             xer_ovFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, xerRegMap_CA_Op,
+    appendInstruction(GetField.create(GETFIELD, xerRegMap_CA_Op,
         gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(xer_caFieldRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
             xer_caFieldRef), new OPT_TrueGuardOperand()));
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD,
+    appendInstruction(GetField.create(GETFIELD,
         xerRegMap_ByteCountOp, gc.makeLocal(1, psTref),
         new OPT_AddressConstantOperand(xer_byteCountFieldRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
@@ -605,28 +605,28 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
   private void spillXERRegister() {
     OPT_RegisterOperand xerRegMap_SO_Op = new OPT_RegisterOperand(xerRegMap_SO,
         VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, xerRegMap_SO_Op,
+    appendInstruction(PutField.create(PUTFIELD, xerRegMap_SO_Op,
         gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(xer_soFieldRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
             xer_soFieldRef), new OPT_TrueGuardOperand()));
 
     OPT_RegisterOperand xerRegMap_OV_Op = new OPT_RegisterOperand(xerRegMap_OV,
         VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, xerRegMap_OV_Op,
+    appendInstruction(PutField.create(PUTFIELD, xerRegMap_OV_Op,
         gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(xer_ovFieldRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
             xer_ovFieldRef), new OPT_TrueGuardOperand()));
 
     OPT_RegisterOperand xerRegMap_CA_Op = new OPT_RegisterOperand(xerRegMap_CA,
         VM_TypeReference.Boolean);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, xerRegMap_CA_Op,
+    appendInstruction(PutField.create(PUTFIELD, xerRegMap_CA_Op,
         gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(xer_caFieldRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
             xer_caFieldRef), new OPT_TrueGuardOperand()));
 
     OPT_RegisterOperand xerRegMap_ByteCountOp = new OPT_RegisterOperand(
         xerRegMap_ByteCount, VM_TypeReference.Byte);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD,
+    appendInstruction(PutField.create(PUTFIELD,
         xerRegMap_ByteCountOp, gc.makeLocal(1, psTref),
         new OPT_AddressConstantOperand(xer_byteCountFieldRef
             .peekResolvedField().getOffset()), new OPT_LocationOperand(
@@ -645,7 +645,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
     } else {
       result = new OPT_RegisterOperand(lrRegMap, VM_TypeReference.Int);
     }
-    appendInstructionToCurrentBlock(GetField.create(GETFIELD, result, gc
+    appendInstruction(GetField.create(GETFIELD, result, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(lrFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(lrFieldRef),
         new OPT_TrueGuardOperand()));
@@ -658,7 +658,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
   private void spillLRRegister() {
     OPT_RegisterOperand regOp = new OPT_RegisterOperand(lrRegMap,
         VM_TypeReference.Int);
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD, regOp, gc
+    appendInstruction(PutField.create(PUTFIELD, regOp, gc
         .makeLocal(1, psTref), new OPT_AddressConstantOperand(lrFieldRef
         .peekResolvedField().getOffset()), new OPT_LocationOperand(lrFieldRef),
         new OPT_TrueGuardOperand()));
@@ -716,7 +716,7 @@ public final class PPC2IR extends DecoderUtils implements OPT_HIRGenerator,
    * Spill a given PC value into the process space
    */
   private void spillPC(int pc) {
-    appendInstructionToCurrentBlock(PutField.create(PUTFIELD,
+    appendInstruction(PutField.create(PUTFIELD,
         new OPT_IntConstantOperand(pc), gc.makeLocal(1, psTref),
         new OPT_AddressConstantOperand(pcFieldRef.peekResolvedField()
             .getOffset()), new OPT_LocationOperand(pcFieldRef),

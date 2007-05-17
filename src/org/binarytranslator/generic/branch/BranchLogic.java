@@ -13,30 +13,26 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.binarytranslator.DBT;
+
 /**
  * Object capturing branches and jumps so that traces can avoid terminating on
  * branches whose destinations aren't known
  */
 public class BranchLogic {
-  /** Code to indicate branch was an indirect branch */
-  public static final int INDIRECT_BRANCH = 0;
+  
+  public enum BranchType {
+    INDIRECT_BRANCH,
+    RETURN
+  }
 
-  /** Code to indicate branch was a return */
-  public static final int RETURN = 1;
-
-  /**
-   * A set of procedure information
-   */
+  /** A set of procedure information */
   private final SortedMap<Integer, ProcedureInformation> procedures;
 
-  /**
-   * A set of switch like branchs sites and their destinations
-   */
+  /** A set of switch like branchs sites and their destinations */
   private final SortedMap<Integer, Set<Integer>> branchSitesAndDestinations;
 
-  /**
-   * Global branch information
-   */
+  /** Global branch information */
   private static BranchLogic global;
 
   /**
@@ -48,7 +44,8 @@ public class BranchLogic {
     if (global == null) {
       global = this;
       branchSitesAndDestinations = new TreeMap<Integer, Set<Integer>>();
-    } else {
+    } 
+    else {
       branchSitesAndDestinations = global.branchSitesAndDestinations;
     }
     procedures = new TreeMap<Integer, ProcedureInformation>();
@@ -58,20 +55,20 @@ public class BranchLogic {
    * Register a call (branch and link) instruction
    * 
    * @param pc
-   *          the address of the branch instruction
+   *  the address of the branch instruction
    * @param ret
-   *          the address that will be returned to
+   *  the address that will be returned to
    * @param dest
-   *          the destination of the branch instruction
+   *  the destination of the branch instruction
    */
   public void registerCall(int pc, int ret, int dest) {
-    ProcedureInformation procedure = (ProcedureInformation) procedures
-        .get(Integer.valueOf(dest));
+    ProcedureInformation procedure = procedures.get(dest);
+    
     if (procedure != null) {
       procedure.registerCall(pc, ret);
     } else {
       procedure = new ProcedureInformation(pc, ret, dest);
-      procedures.put(Integer.valueOf(dest), procedure);
+      procedures.put(dest, procedure);
     }
   }
 
@@ -99,35 +96,54 @@ public class BranchLogic {
    */
   private ProcedureInformation getLikelyProcedure(int pc) {
     if (procedures.size() > 0) {
-      SortedMap priorProcedures = procedures.headMap(Integer.valueOf(pc));
+      SortedMap<Integer, ProcedureInformation> priorProcedures = procedures.headMap(pc);
       if (priorProcedures.size() > 0) {
-        Integer procedureEntry = (Integer) priorProcedures.lastKey();
-        return (ProcedureInformation) procedures.get(procedureEntry);
+        Integer procedureEntry = priorProcedures.lastKey();
+        return procedures.get(procedureEntry);
       }
     }
     return null;
   }
 
   /**
-   * Register a branch to the count register
+   * Registers a branch from the address <code>origin</code> to the address <code>target</code>.
+   * The type of branch is determined by <code>type</code>, which is an ordinal from the 
+   * {@link BranchType} enum.
+   * @param origin
+   *  The address from which the branch occurs. 
+   * @param target
+   *  The address to which the program is branching.
+   * @param type
+   *  The most likely type of the branch. This is taken from the {@link BranchType} enum. 
+   */
+  public void registerBranch(int origin, int target, int type) {
+    
+    if (DBT.VerifyAssertions) DBT._assert(type > 0 && type < BranchType.values().length);
+    
+    Set<Integer> dests = branchSitesAndDestinations.get(origin);
+    
+    if (dests != null && dests.contains(target)) {
+      // This destination address is already registered
+      return;
+    } 
+    else {
+      dests = new HashSet<Integer>();
+      branchSitesAndDestinations.put(origin, dests);
+    }
+    
+    dests.add(target);
+  }
+  
+  /**
+   * Returns a list of known branch targets for the branch at address <code>pc</code>.
    * 
    * @param pc
-   *          the address of the branch instruction
-   * @param lr
-   *          the value of the link register
+   *  The address where the branch originates from.
+   * @return
+   *  A list of known target addresses for this branch. It is not critical to the functionality of the 
+   *  translated binary, if this list is not complete. 
    */
-  public void registerBranch(int pc, int ctr, int type) {
-    Set<Integer> dests = branchSitesAndDestinations.get(Integer.valueOf(pc));
-    if (dests != null) {
-      if (dests.contains(Integer.valueOf(ctr))) {
-        // This ctr address is already registered
-        return;
-      }
-    } else {
-      dests = new HashSet<Integer>();
-      branchSitesAndDestinations.put(Integer.valueOf(pc), dests);
-    }
-    dests.add(Integer.valueOf(ctr));
+  public Set<Integer> getKnownBranchTargets(int pc) {
+    return branchSitesAndDestinations.get(pc);
   }
-
 }

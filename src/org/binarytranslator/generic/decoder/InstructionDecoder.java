@@ -28,7 +28,7 @@ public abstract class InstructionDecoder {
    * @return the address of the next instruction or -1 if this instruction has
    *         branched to the end of the trace
    */
-  public int translate(DecoderUtils translationHelper, ProcessSpace ps,
+  public int translate(AbstractCodeTranslator translationHelper, ProcessSpace ps,
       Object lazy, int pc) {
     throw new Error("TODO");
   }

@@ -94,7 +94,7 @@ final class X86_IntDecodedOperand extends X86_DecodedOperand {
    */
   void readToRegister(X862IR translationHelper, X86_Laziness lazy,
       OPT_RegisterOperand op) {
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE, op,
+    translationHelper.appendInstruction(Move.create(INT_MOVE, op,
         new OPT_IntConstantOperand(immediate)));
   }
 
@@ -142,7 +142,7 @@ final class X86_RegDecodedOperand extends X86_DecodedOperand {
    */
   void readToRegister(X862IR translationHelper, X86_Laziness lazy,
       OPT_RegisterOperand op) {
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE, op,
+    translationHelper.appendInstruction(Move.create(INT_MOVE, op,
         translationHelper.getGPRegister(lazy, reg, size)));
   }
 
@@ -153,7 +153,7 @@ final class X86_RegDecodedOperand extends X86_DecodedOperand {
       OPT_RegisterOperand op) {
     OPT_RegisterOperand result = translationHelper.getGPRegister(lazy, reg,
         size);
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         result, op));
   }
 
@@ -187,7 +187,7 @@ final class X86_SegRegDecodedOperand extends X86_DecodedOperand {
    */
   void readToRegister(X862IR translationHelper, X86_Laziness lazy,
       OPT_RegisterOperand op) {
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE, op,
+    translationHelper.appendInstruction(Move.create(INT_MOVE, op,
         translationHelper.getSegRegister(lazy, reg)));
   }
 
@@ -197,7 +197,7 @@ final class X86_SegRegDecodedOperand extends X86_DecodedOperand {
   void writeValue(X862IR translationHelper, X86_Laziness lazy,
       OPT_RegisterOperand op) {
     OPT_RegisterOperand result = translationHelper.getSegRegister(lazy, reg);
-    translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+    translationHelper.appendInstruction(Move.create(INT_MOVE,
         result, op));
   }
 
@@ -329,26 +329,26 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
       OPT_RegisterOperand address) {
     // Get the index and scale it
     if ((scale > 0) && (index != -1)) {
-      translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+      translationHelper.appendInstruction(Move.create(INT_MOVE,
           address, translationHelper.getGPRegister(lazy, index, 32)));
       if (scale > 1) {
-        translationHelper.appendInstructionToCurrentBlock(Binary.create(
+        translationHelper.appendInstruction(Binary.create(
             INT_MUL, address.copyRO(), address.copyRO(),
             new OPT_IntConstantOperand(scale)));
       }
     } else {
-      translationHelper.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+      translationHelper.appendInstruction(Move.create(INT_MOVE,
           address, new OPT_IntConstantOperand(0)));
     }
     // Add on the base
     if (base != -1) {
-      translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+      translationHelper.appendInstruction(Binary.create(INT_ADD,
           address.copyRO(), address.copyRO(), translationHelper.getGPRegister(
               lazy, base, addressSize)));
     }
     // Add on the displacement
     if (displacement != 0) {
-      translationHelper.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+      translationHelper.appendInstruction(Binary.create(INT_ADD,
           address.copyRO(), address.copyRO(), new OPT_IntConstantOperand(
               displacement)));
     }

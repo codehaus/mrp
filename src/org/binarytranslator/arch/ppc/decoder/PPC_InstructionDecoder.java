@@ -12,6 +12,7 @@ import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.generic.branch.BranchLogic;
+import org.binarytranslator.generic.branch.BranchLogic.BranchType;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.Binary;
@@ -20,13 +21,11 @@ import org.jikesrvm.compilers.opt.ir.BooleanCmp2;
 import org.jikesrvm.compilers.opt.ir.CondMove;
 import org.jikesrvm.compilers.opt.ir.Goto;
 import org.jikesrvm.compilers.opt.ir.IfCmp;
-import org.jikesrvm.compilers.opt.ir.LookupSwitch;
 import org.jikesrvm.compilers.opt.ir.Move;
 import org.jikesrvm.compilers.opt.ir.OPT_BasicBlock;
 import org.jikesrvm.compilers.opt.ir.OPT_BranchProfileOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_DoubleConstantOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_Instruction;
 import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_LongConstantOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_Operand;
@@ -276,7 +275,7 @@ public class PPC_InstructionDecoder implements
         System.out.println("Unknown extended instruction. Primary "
             + primaryOpcode);
       }
-      ppc2ir.plantThrowBadInstruction((PPC_Laziness) lazy.clone(), pc);
+      ppc2ir.appendThrowBadInstruction((PPC_Laziness) lazy.clone(), pc);
       return -1;
       // throw new Error("Unknown extended instruction. Primary " +
       // primaryOpcode);
@@ -499,7 +498,7 @@ public class PPC_InstructionDecoder implements
         System.out.println("Unknown extended instruction. Primary "
             + primaryOpcode + " secondary " + secondaryOpcode);
       }
-      ppc2ir.plantThrowBadInstruction((PPC_Laziness) lazy.clone(), pc);
+      ppc2ir.appendThrowBadInstruction((PPC_Laziness) lazy.clone(), pc);
       return -1;
       // throw new Error("Unknown extended instruction. Primary " +
       // primaryOpcode + " secondary " + secondaryOpcode);
@@ -576,7 +575,7 @@ public class PPC_InstructionDecoder implements
    */
   protected static void plantDecrementCTR(PPC2IR ppc2ir) {
     OPT_RegisterOperand ctr = ppc2ir.getCTRRegister();
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, ctr, ctr
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, ctr, ctr
         .copyRO(), new OPT_IntConstantOperand(1)));
   }
 
@@ -605,42 +604,42 @@ public class PPC_InstructionDecoder implements
 
     switch (compareType) {
     case SIGNED_INT_CMP:
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           lt, rA, rB, OPT_ConditionOperand.LESS(), OPT_BranchProfileOperand
               .unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           gt, rA.copy(), rB.copy(), OPT_ConditionOperand.GREATER(),
           OPT_BranchProfileOperand.unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           eq, rA.copy(), rB.copy(), OPT_ConditionOperand.EQUAL(),
           OPT_BranchProfileOperand.unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, so, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, so, ppc2ir
           .getXER_SO_Register()));
       break;
     case UNSIGNED_INT_CMP:
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           lt, rA, rB, OPT_ConditionOperand.LOWER(), OPT_BranchProfileOperand
               .unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           gt, rA.copy(), rB.copy(), OPT_ConditionOperand.HIGHER(),
           OPT_BranchProfileOperand.unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           eq, rA.copy(), rB.copy(), OPT_ConditionOperand.EQUAL(),
           OPT_BranchProfileOperand.unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, so, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, so, ppc2ir
           .getXER_SO_Register()));
       break;
     case FP_CMPU:
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           lt, rA, rB, OPT_ConditionOperand.CMPG_LESS(),
           OPT_BranchProfileOperand.unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           gt, rA.copy(), rB.copy(), OPT_ConditionOperand.CMPL_GREATER(),
           OPT_BranchProfileOperand.unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           eq, rA.copy(), rB.copy(), OPT_ConditionOperand.CMPL_EQUAL(),
           OPT_BranchProfileOperand.unlikely()));
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp2.create(
+      ppc2ir.appendInstruction(BooleanCmp2.create(
           BOOLEAN_CMP2_INT_OR, so, rA.copy(), rA.copy(), OPT_ConditionOperand
               .CMPL_NOT_EQUAL(), OPT_BranchProfileOperand.unlikely(),
           rB.copy(), rB.copy(), OPT_ConditionOperand.CMPL_NOT_EQUAL(),
@@ -671,7 +670,7 @@ public class PPC_InstructionDecoder implements
         .getConditionalBranchProfileOperand(likely);
 
     OPT_BasicBlock fallThrough = ppc2ir.createBlockAfterCurrent();
-    ppc2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, guardResult,
+    ppc2ir.appendInstruction(IfCmp.create(INT_IFCMP, guardResult,
         ctr, new OPT_IntConstantOperand(0), condOp, targetBlock
             .makeJumpTarget(), likelyOp));
     ppc2ir.getCurrentBlock().insertOut(targetBlock);
@@ -710,7 +709,7 @@ public class PPC_InstructionDecoder implements
 
     // Create the instruction
     OPT_RegisterOperand guardResult = ppc2ir.getTempValidation(0);
-    ppc2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, guardResult,
+    ppc2ir.appendInstruction(IfCmp.create(INT_IFCMP, guardResult,
         flag, new OPT_IntConstantOperand(0), condOp, targetBlock
             .makeJumpTarget(), likelyOp));
     ppc2ir.getCurrentBlock().insertOut(targetBlock);
@@ -1895,7 +1894,7 @@ final class mulli_decoder extends PPC_InstructionDecoder {
    */
   protected int translateD_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rD, int rA, int simm) {
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_MUL, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_MUL, ppc2ir
         .getGPRegister(rD), ppc2ir.getGPRegister(rA),
         new OPT_IntConstantOperand(EXTS(simm, 16))));
     return pc + 4;
@@ -1939,10 +1938,10 @@ final class subfic_decoder extends PPC_InstructionDecoder {
     int simm = EXTS(imm, 16);
 
     // Perform subtract for rD
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, ppc2ir
         .getGPRegister(rD), new OPT_IntConstantOperand(simm), reg_rA.copyRO()));
     // Set XER CA based on result
-    ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+    ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
         ppc2ir.getXER_CA_Register(), new OPT_IntConstantOperand(simm), reg_rA
             .copyRO(), OPT_ConditionOperand.LOWER(), OPT_BranchProfileOperand
             .unlikely()));
@@ -2078,10 +2077,10 @@ final class addic_decoder extends PPC_InstructionDecoder {
     int simm = EXTS(imm, 16);
 
     // Perform add for rD
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD,
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD,
         new OPT_IntConstantOperand(simm), reg_rA.copyRO()));
     // Set XER CA based on result
-    ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+    ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
         ppc2ir.getXER_CA_Register(), reg_rD.copyRO(),
         new OPT_IntConstantOperand(simm), // could equally be reg_rA
         OPT_ConditionOperand.LOWER(), OPT_BranchProfileOperand.unlikely()));
@@ -2126,10 +2125,10 @@ final class addic__decoder extends PPC_InstructionDecoder {
     int simm = EXTS(imm, 16);
 
     // Perform add for rD
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD,
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD,
         new OPT_IntConstantOperand(simm), reg_rA.copyRO()));
     // Set XER CA based on result
-    ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+    ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
         ppc2ir.getXER_CA_Register(), reg_rD.copyRO(),
         new OPT_IntConstantOperand(simm), // could equally be reg_rA
         OPT_ConditionOperand.LOWER(), OPT_BranchProfileOperand.unlikely()));
@@ -2180,10 +2179,10 @@ final class addi_decoder extends PPC_InstructionDecoder {
     int simm = EXTS(imm, 16);
 
     if (rA == 0) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rD), new OPT_IntConstantOperand(simm)));
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, ppc2ir
           .getGPRegister(rD), ppc2ir.getGPRegister(rA),
           new OPT_IntConstantOperand(simm)));
     }
@@ -2234,10 +2233,10 @@ final class addis_decoder extends PPC_InstructionDecoder {
     int simm = EXTS(imm, 16);
 
     if (rA == 0) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rD), new OPT_IntConstantOperand(simm << 16)));
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, ppc2ir
           .getGPRegister(rD), ppc2ir.getGPRegister(rA),
           new OPT_IntConstantOperand(simm << 16)));
     }
@@ -2283,7 +2282,7 @@ final class ori_decoder extends PPC_InstructionDecoder {
     if ((uimm == 0) && (rA == rS)) {
       // Don't translate nop cases
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_OR, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rS),
           new OPT_IntConstantOperand(uimm)));
     }
@@ -2325,7 +2324,7 @@ final class oris_decoder extends PPC_InstructionDecoder {
     if ((uimm == 0) && (rA == rS)) {
       // Don't translate nop case
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_OR, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rS),
           new OPT_IntConstantOperand(uimm << 16)));
     }
@@ -2367,7 +2366,7 @@ final class xori_decoder extends PPC_InstructionDecoder {
     if ((uimm == 0) && (rA == rS)) {
       // Don't translate nop case
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_XOR, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_XOR, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rS),
           new OPT_IntConstantOperand(uimm)));
     }
@@ -2409,7 +2408,7 @@ final class xoris_decoder extends PPC_InstructionDecoder {
     if ((uimm == 0) && (rA == rS)) {
       // Don't translate nop case
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_XOR, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_XOR, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rS),
           new OPT_IntConstantOperand(uimm << 16)));
     }
@@ -2454,7 +2453,7 @@ final class andi__decoder extends PPC_InstructionDecoder {
   protected int translateD_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rS, int rA, int uimm) {
     OPT_RegisterOperand result = ppc2ir.getGPRegister(rA);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, result,
+    ppc2ir.appendInstruction(Binary.create(INT_AND, result,
         ppc2ir.getGPRegister(rS), new OPT_IntConstantOperand(uimm)));
     // Make copies of operands for lazy state
     setCRfield(ppc2ir, lazy, 0, ppc2ir.getGPRegister(rA),
@@ -2500,7 +2499,7 @@ final class andis__decoder extends PPC_InstructionDecoder {
   protected int translateD_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rS, int rA, int uimm) {
     OPT_RegisterOperand result = ppc2ir.getGPRegister(rA);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, result,
+    ppc2ir.appendInstruction(Binary.create(INT_AND, result,
         ppc2ir.getGPRegister(rS), new OPT_IntConstantOperand(uimm << 16)));
     // Make copies of operands for lazy state
     setCRfield(ppc2ir, lazy, 0, ppc2ir.getGPRegister(rA),
@@ -2549,11 +2548,11 @@ final class lwz_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Load value from memory at EA into rD.
@@ -2602,12 +2601,12 @@ final class lwzu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA = ppc2ir.getTempInt(0);
     d = EXTS(d, 16);
     // EA = rA + EXTS(d)
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     // Load value from memory at EA into rD.
     ppc2ir.ps.memory.translateLoad32(EA.copyRO(), ppc2ir.getGPRegister(rD));
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -2653,11 +2652,11 @@ final class lbz_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Load value from memory at EA into rD.
@@ -2705,13 +2704,13 @@ final class lbzu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA = ppc2ir.getTempInt(0);
     d = EXTS(d, 16);
     // EA = rA + EXTS(d)
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     // Load value from memory at EA into rD.
     OPT_RegisterOperand result = ppc2ir.getGPRegister(rD);
     ppc2ir.ps.memory.translateLoadUnsigned8(EA.copyRO(), result);
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -2755,11 +2754,11 @@ final class stw_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Store value from rS into memory at address EA
@@ -2808,12 +2807,12 @@ final class stwu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA = ppc2ir.getTempInt(0);
     d = EXTS(d, 16);
     // EA = rA + EXTS(d)
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     // Load value from memory at EA into rD.
     ppc2ir.ps.memory.translateStore32(EA.copyRO(), ppc2ir.getGPRegister(rS));
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -2857,11 +2856,11 @@ final class stb_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Store value from rS into memory at address EA
@@ -2915,12 +2914,12 @@ final class stbu_decoder extends PPC_InstructionDecoder {
     }
 
     // EA = rA + EXTS(d)
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     // Load value from memory at EA into rS.
     ppc2ir.ps.memory.translateStore8(EA.copyRO(), ppc2ir.getGPRegister(rS));
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -2965,11 +2964,11 @@ final class lhz_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Load value from memory at EA into rD.
@@ -3018,17 +3017,17 @@ final class lhzu_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Load value from memory at EA into rD.
     OPT_RegisterOperand result = ppc2ir.getGPRegister(rD);
     ppc2ir.ps.memory.translateLoad32(EA.copyRO(), result);
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -3073,11 +3072,11 @@ final class lha_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Load value from memory at EA into rD.
@@ -3125,13 +3124,13 @@ final class lhau_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA = ppc2ir.getTempInt(0);
     d = EXTS(d, 16);
     // EA = rA + EXTS(d)
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     // Load value from memory at EA into rD.
     OPT_RegisterOperand result = ppc2ir.getGPRegister(rD);
     ppc2ir.ps.memory.translateLoadSigned16(EA.copyRO(), result);
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -3176,11 +3175,11 @@ final class sth_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Store value from rS into memory at address EA
@@ -3230,13 +3229,13 @@ final class sthu_decoder extends PPC_InstructionDecoder {
       throw new Error("Invalid form of sthu at 0x" + Integer.toHexString(pc));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Store value from rS into memory at address EA
     ppc2ir.ps.memory.translateStore16(EA.copyRO(), ppc2ir.getGPRegister(rS));
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -3333,11 +3332,11 @@ final class lfs_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // Load value from memory at EA into tempInt
@@ -3345,11 +3344,11 @@ final class lfs_decoder extends PPC_InstructionDecoder {
     ppc2ir.ps.memory.translateLoad32(EA.copyRO(), tempInt);
     // Convert bit pattern to a float.
     OPT_RegisterOperand tempFloat = ppc2ir.getTempFloat(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_BITS_AS_FLOAT,
+    ppc2ir.appendInstruction(Unary.create(INT_BITS_AS_FLOAT,
         tempFloat, tempInt.copyRO()));
 
     // Now to a double, and put into register.
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_2DOUBLE, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(FLOAT_2DOUBLE, ppc2ir
         .getFPRegister(frD), tempFloat.copyRO()));
     return pc + 4;
   }
@@ -3393,21 +3392,21 @@ final class lfsu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA = ppc2ir.getTempInt(0);
     d = EXTS(d, 16);
     // EA = rA + EXTS(d)
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     // Load value from memory at EA into tempInt
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0 + 1);
     ppc2ir.ps.memory.translateLoad32(EA.copyRO(), tempInt);
     // Convert bit pattern to a float.
     OPT_RegisterOperand tempFloat = ppc2ir.getTempFloat(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_BITS_AS_FLOAT,
+    ppc2ir.appendInstruction(Unary.create(INT_BITS_AS_FLOAT,
         tempFloat, tempInt.copyRO()));
 
     // Now to a double, and put into register.
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_2DOUBLE, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(FLOAT_2DOUBLE, ppc2ir
         .getFPRegister(frD), tempFloat.copyRO()));
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -3455,15 +3454,15 @@ final class lfd_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA2,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA2,
           new OPT_IntConstantOperand(d + 4)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA2, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA2, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d + 4)));
     }
     // Load value from memory at EA & EA2 into tempInt & tempInt2 (msb at low
@@ -3477,19 +3476,19 @@ final class lfd_decoder extends PPC_InstructionDecoder {
     // tempLong = ((long)tempInt << 32) | (long)tempInt2
     OPT_RegisterOperand tempLong = ppc2ir.getTempLong(0);
     OPT_RegisterOperand tempLong2 = ppc2ir.getTempLong(1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, tempLong,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, tempLong,
         tempInt.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, tempLong2,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, tempLong2,
         tempInt2.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_SHL, tempLong
+    ppc2ir.appendInstruction(Binary.create(LONG_SHL, tempLong
         .copyRO(), tempLong.copyRO(), new OPT_IntConstantOperand(32)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary
+    ppc2ir.appendInstruction(Binary
         .create(LONG_AND, tempLong2.copyRO(), tempLong2.copyRO(),
             new OPT_LongConstantOperand(0xffffffffl)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_OR, tempLong
+    ppc2ir.appendInstruction(Binary.create(LONG_OR, tempLong
         .copyRO(), tempLong.copyRO(), tempLong2.copyRO()));
     // Convert long to a double, and put into register.
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_BITS_AS_DOUBLE,
+    ppc2ir.appendInstruction(Unary.create(LONG_BITS_AS_DOUBLE,
         ppc2ir.getFPRegister(frD), tempLong.copyRO()));
     return pc + 4;
   }
@@ -3536,9 +3535,9 @@ final class lfdu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA2 = ppc2ir.getTempInt(0 + 1);
     d = EXTS(d, 16);
     // EA = rA + EXTS(d)
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA2, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA2, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d + 4)));
     // Load value from memory at EA & EA2 into tempInt & tempInt2 (msb at low
     // address)
@@ -3551,22 +3550,22 @@ final class lfdu_decoder extends PPC_InstructionDecoder {
     // tempLong = ((long)tempInt << 32) | (long)tempInt2
     OPT_RegisterOperand tempLong = ppc2ir.getTempLong(0);
     OPT_RegisterOperand tempLong2 = ppc2ir.getTempLong(1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, tempLong,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, tempLong,
         tempInt.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, tempLong2,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, tempLong2,
         tempInt2.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_SHL, tempLong
+    ppc2ir.appendInstruction(Binary.create(LONG_SHL, tempLong
         .copyRO(), tempLong.copyRO(), new OPT_IntConstantOperand(32)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary
+    ppc2ir.appendInstruction(Binary
         .create(LONG_AND, tempLong2.copyRO(), tempLong2.copyRO(),
             new OPT_LongConstantOperand(0xffffffffl)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_OR, tempLong
+    ppc2ir.appendInstruction(Binary.create(LONG_OR, tempLong
         .copyRO(), tempLong.copyRO(), tempLong2.copyRO()));
     // Convert long to a double, and put into register.
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_BITS_AS_DOUBLE,
+    ppc2ir.appendInstruction(Unary.create(LONG_BITS_AS_DOUBLE,
         ppc2ir.getFPRegister(frD), tempLong.copyRO()));
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -3612,19 +3611,19 @@ final class stfs_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // tempInt = SINGLE(frS)
     OPT_RegisterOperand tempFloat = ppc2ir.getTempFloat(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat, ppc2ir.getFPRegister(frS)));
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0 + 1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_AS_INT_BITS,
+    ppc2ir.appendInstruction(Unary.create(FLOAT_AS_INT_BITS,
         tempInt, tempFloat.copyRO()));
 
     // Store value from rS into memory at address EA
@@ -3674,25 +3673,25 @@ final class stfsu_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
     }
     // tempInt = SINGLE(frS)
     OPT_RegisterOperand tempFloat = ppc2ir.getTempFloat(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat, ppc2ir.getFPRegister(frS)));
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0 + 1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_AS_INT_BITS,
+    ppc2ir.appendInstruction(Unary.create(FLOAT_AS_INT_BITS,
         tempInt, tempFloat.copyRO()));
 
     // Store value from rS into memory at address EA
     ppc2ir.ps.memory.translateStore32(EA.copyRO(), tempInt.copyRO());
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -3740,15 +3739,15 @@ final class stfd_decoder extends PPC_InstructionDecoder {
     d = EXTS(d, 16);
     if (rA == 0) {
       // EA = EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA,
           new OPT_IntConstantOperand(d)));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA2,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA2,
           new OPT_IntConstantOperand(d + 4)));
     } else {
       // EA = rA + EXTS(d)
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d)));
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA2, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA2, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(d + 4)));
     }
     // Split double into ints
@@ -3763,17 +3762,17 @@ final class stfd_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempLong2 = ppc2ir.getTempLong(1);
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0 + 2);
     OPT_RegisterOperand tempInt2 = ppc2ir.getTempInt(0 + 3);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_AS_LONG_BITS,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_AS_LONG_BITS,
         tempLong, ppc2ir.getFPRegister(frS)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_USHR, tempLong2,
+    ppc2ir.appendInstruction(Binary.create(LONG_USHR, tempLong2,
         tempLong.copyRO(), new OPT_IntConstantOperand(32)));
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(LONG_AND, tempLong
+        .appendInstruction(Binary.create(LONG_AND, tempLong
             .copyRO(), tempLong.copyRO(), new OPT_LongConstantOperand(
             0xffffffffl)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, tempInt,
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, tempInt,
         tempLong.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, tempInt2,
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, tempInt2,
         tempLong2.copyRO()));
 
     // Store value into memory at address EA (msb at low address)
@@ -3825,9 +3824,9 @@ final class stfdu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA2 = ppc2ir.getTempInt(0 + 1);
     d = EXTS(d, 16);
     // EA = rA + EXTS(d)
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA2, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA2, ppc2ir
         .getGPRegister(rA), new OPT_IntConstantOperand(d + 4)));
     // Split double into ints
     // tempLong = DOUBLE_AS_LONG_BITS(frS)
@@ -3841,24 +3840,24 @@ final class stfdu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempLong2 = ppc2ir.getTempLong(1);
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0 + 2);
     OPT_RegisterOperand tempInt2 = ppc2ir.getTempInt(0 + 3);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_AS_LONG_BITS,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_AS_LONG_BITS,
         tempLong, ppc2ir.getFPRegister(frS)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_USHR, tempLong2,
+    ppc2ir.appendInstruction(Binary.create(LONG_USHR, tempLong2,
         tempLong.copyRO(), new OPT_IntConstantOperand(32)));
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(LONG_AND, tempLong
+        .appendInstruction(Binary.create(LONG_AND, tempLong
             .copyRO(), tempLong.copyRO(), new OPT_LongConstantOperand(
             0xffffffffl)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, tempInt,
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, tempInt,
         tempLong.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, tempInt2,
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, tempInt2,
         tempLong2.copyRO()));
 
     // Store value into memory at address EA (msb at low address)
     ppc2ir.ps.memory.translateStore32(EA.copyRO(), tempInt2.copyRO());
     ppc2ir.ps.memory.translateStore32(EA2.copyRO(), tempInt.copyRO());
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -3913,10 +3912,10 @@ final class mcrf_decoder extends PPC_InstructionDecoder {
       OPT_RegisterOperand eqD = ppc2ir.getCR_Eq_Register(crfD);
       OPT_RegisterOperand soD = ppc2ir.getCR_SO_Register(crfD);
 
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ltD, ltS));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, gtD, gtS));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, eqD, eqS));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, soD, soS));
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ltD, ltS));
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, gtD, gtS));
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, eqD, eqS));
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, soD, soS));
     }
     return pc + 4;
   }
@@ -4019,25 +4018,15 @@ final class bclr_decoder extends PPC_InstructionDecoder {
       // @todo: record the pc as an address that set lr
       OPT_RegisterOperand lr = ppc2ir.getLRRegister();
       branchAddress = ppc2ir.getTempInt(0);
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE,
           branchAddress.copyRO(), lr));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, lr.copyRO(),
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, lr.copyRO(),
           new OPT_IntConstantOperand(pc + 4)));
     } else {
       branchAddress = ppc2ir.getLRRegister();
     }
-    OPT_BasicBlock fallThrough = ppc2ir.createBlockAfterCurrent();
-    OPT_Instruction lookupswitch_instr;
-    lookupswitch_instr = LookupSwitch.create(LOOKUPSWITCH, branchAddress, null,
-        null, fallThrough.makeJumpTarget(), null, 0);
-    ppc2ir.appendInstructionToCurrentBlock(lookupswitch_instr);
-    ppc2ir.registerLookupSwitchForReturnUnresolved(lookupswitch_instr, pc,
-        (PPC_Laziness) lazy.clone());
-    ppc2ir.setCurrentBlock(fallThrough);
-    ppc2ir.plantRecordUncaughtBranch(pc, branchAddress.copyRO(),
-        BranchLogic.RETURN);
-    ppc2ir.setReturnValueResolveLazinessAndBranchToFinish((PPC_Laziness) lazy
-        .clone(), branchAddress.copyRO());
+    
+    ppc2ir.appendDynamicJump(branchAddress, lazy, BranchLogic.BranchType.RETURN);
 
     // stop translation on branch always
     if (BO == 0x14) {
@@ -4092,7 +4081,7 @@ final class crnor_decoder extends PPC_InstructionDecoder {
     if ((crbA == crbB) && (crbA == crbD)) { // crnot crbA, crbA -> just twiddle
                                             // bit in position
       int bitMask = 0x80000000 >>> crbA;
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_XOR,
+      ppc2ir.appendInstruction(Binary.create(INT_XOR,
           cr.copyRO(), cr, new OPT_IntConstantOperand(bitMask)));
     } else {
       ppc2ir.resolveLazinessCrBit(lazy, crbB);
@@ -4102,11 +4091,11 @@ final class crnor_decoder extends PPC_InstructionDecoder {
       OPT_RegisterOperand tempInt1;
       if (crbA < crbD) {
         tempInt1 = ppc2ir.getTempInt(0);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt1, cr, new OPT_IntConstantOperand(crbD - crbA)));
       } else if (crbA > crbD) {
         tempInt1 = ppc2ir.getTempInt(0);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt1,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt1,
             cr, new OPT_IntConstantOperand(crbA - crbD)));
       } else {
         tempInt1 = cr;
@@ -4115,31 +4104,31 @@ final class crnor_decoder extends PPC_InstructionDecoder {
       OPT_RegisterOperand tempInt2;
       if (crbB < crbD) {
         tempInt2 = ppc2ir.getTempInt(1);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt2, cr.copyRO(), new OPT_IntConstantOperand(crbD - crbB)));
       } else if (crbB > crbD) {
         tempInt2 = ppc2ir.getTempInt(1);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt2,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt2,
             cr.copyRO(), new OPT_IntConstantOperand(crbB - crbD)));
       } else {
         tempInt2 = cr;
       }
       // Perform NOR
       OPT_RegisterOperand tempInt3 = ppc2ir.getTempInt(2);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, tempInt3,
+      ppc2ir.appendInstruction(Binary.create(INT_OR, tempInt3,
           tempInt1.copyRO(), tempInt2.copyRO()));
-      ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, tempInt3
+      ppc2ir.appendInstruction(Unary.create(INT_NOT, tempInt3
           .copyRO(), tempInt3.copyRO()));
       // Mask out bits that don't concern this instruction
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt3
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt3
           .copyRO(), tempInt3.copyRO(), new OPT_IntConstantOperand(
           0x80000000 >>> crbD)));
       // Clear desitination bit
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+      ppc2ir.appendInstruction(Binary.create(INT_AND,
           cr.copyRO(), cr.copyRO(), new OPT_IntConstantOperand(
               ~(0x80000000 >>> crbD))));
       // Combine result
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, cr.copyRO(),
+      ppc2ir.appendInstruction(Binary.create(INT_OR, cr.copyRO(),
           cr.copyRO(), tempInt3.copyRO()));
     }
     return pc + 4;
@@ -4272,13 +4261,13 @@ final class crxor_decoder extends PPC_InstructionDecoder {
     if ((crbA == crbB) && (crbA == crbD)) { // crclr crbD -> just zero bit in
                                             // position
       OPT_RegisterOperand crb_regOp = ppc2ir.getCRB_Register(crbA);
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, crb_regOp,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, crb_regOp,
           new OPT_IntConstantOperand(0)));
     } else {
       OPT_RegisterOperand crbA_regOp = ppc2ir.getCRB_Register(crbA);
       OPT_RegisterOperand crbB_regOp = ppc2ir.getCRB_Register(crbB);
       OPT_RegisterOperand crbD_regOp = ppc2ir.getCRB_Register(crbD);
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           crbD_regOp, crbB_regOp, crbA_regOp, OPT_ConditionOperand.NOT_EQUAL(),
           OPT_BranchProfileOperand.unlikely()));
     }
@@ -4381,7 +4370,7 @@ final class creqv_decoder extends PPC_InstructionDecoder {
     if ((crbA == crbB) && (crbA == crbD)) { // crset crbD -> just set bit in
                                             // position
       int bitMask = 0x80000000 >>> crbA;
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, cr.copyRO(),
+      ppc2ir.appendInstruction(Binary.create(INT_OR, cr.copyRO(),
           cr, new OPT_IntConstantOperand(bitMask)));
     } else {
       ppc2ir.resolveLazinessCrBit(lazy, crbB);
@@ -4391,11 +4380,11 @@ final class creqv_decoder extends PPC_InstructionDecoder {
       OPT_RegisterOperand tempInt1;
       if (crbA < crbD) {
         tempInt1 = ppc2ir.getTempInt(0);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt1, cr, new OPT_IntConstantOperand(crbD - crbA)));
       } else if (crbA > crbD) {
         tempInt1 = ppc2ir.getTempInt(0);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt1,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt1,
             cr, new OPT_IntConstantOperand(crbA - crbD)));
       } else {
         tempInt1 = cr;
@@ -4404,31 +4393,31 @@ final class creqv_decoder extends PPC_InstructionDecoder {
       OPT_RegisterOperand tempInt2;
       if (crbB < crbD) {
         tempInt2 = ppc2ir.getTempInt(1);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt2, cr.copyRO(), new OPT_IntConstantOperand(crbD - crbB)));
       } else if (crbB > crbD) {
         tempInt2 = ppc2ir.getTempInt(1);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt2,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt2,
             cr.copyRO(), new OPT_IntConstantOperand(crbB - crbD)));
       } else {
         tempInt2 = cr;
       }
       // Perform equivalence
       OPT_RegisterOperand tempInt3 = ppc2ir.getTempInt(2);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_XOR, tempInt3,
+      ppc2ir.appendInstruction(Binary.create(INT_XOR, tempInt3,
           tempInt1.copyRO(), tempInt2.copyRO()));
-      ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, tempInt3
+      ppc2ir.appendInstruction(Unary.create(INT_NOT, tempInt3
           .copyRO(), tempInt3.copyRO()));
       // Mask out bits that don't concern this instruction
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt3
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt3
           .copyRO(), tempInt3.copyRO(), new OPT_IntConstantOperand(
           0x80000000 >>> crbD)));
       // Clear desitination bit
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+      ppc2ir.appendInstruction(Binary.create(INT_AND,
           cr.copyRO(), cr.copyRO(), new OPT_IntConstantOperand(
               ~(0x80000000 >>> crbD))));
       // Combine result
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, cr.copyRO(),
+      ppc2ir.appendInstruction(Binary.create(INT_OR, cr.copyRO(),
           cr.copyRO(), tempInt3.copyRO()));
     }
     return pc + 4;
@@ -4512,25 +4501,25 @@ final class cror_traslator extends PPC_InstructionDecoder {
         ppc2ir.resolveLazinessCrBit(lazy, crbD);
 
         tempInt1 = ppc2ir.getTempInt(0);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt1, cr, new OPT_IntConstantOperand(crbD - crbA)));
       } else if (crbA > crbD) {
         tempInt1 = ppc2ir.getTempInt(0);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt1,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt1,
             cr, new OPT_IntConstantOperand(crbA - crbD)));
       } else {
         tempInt1 = cr;
       }
       // Mask out bits that don't concern this instruction
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt1
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt1
           .copyRO(), tempInt1.copyRO(), new OPT_IntConstantOperand(
           0x80000000 >>> crbD)));
       // Clear desitination bit
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+      ppc2ir.appendInstruction(Binary.create(INT_AND,
           cr.copyRO(), cr.copyRO(), new OPT_IntConstantOperand(
               ~(0x80000000 >>> crbD))));
       // Combine result
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, cr.copyRO(),
+      ppc2ir.appendInstruction(Binary.create(INT_OR, cr.copyRO(),
           cr.copyRO(), tempInt1.copyRO()));
     } else {
       OPT_RegisterOperand cr = ppc2ir.getCRRegister();
@@ -4541,11 +4530,11 @@ final class cror_traslator extends PPC_InstructionDecoder {
         ppc2ir.resolveLazinessCrBit(lazy, crbD);
 
         tempInt1 = ppc2ir.getTempInt(0);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt1, cr, new OPT_IntConstantOperand(crbD - crbA)));
       } else if (crbA > crbD) {
         tempInt1 = ppc2ir.getTempInt(0);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt1,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt1,
             cr, new OPT_IntConstantOperand(crbA - crbD)));
       } else {
         tempInt1 = cr;
@@ -4554,29 +4543,29 @@ final class cror_traslator extends PPC_InstructionDecoder {
       OPT_RegisterOperand tempInt2;
       if (crbB < crbD) {
         tempInt2 = ppc2ir.getTempInt(1);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt2, cr.copyRO(), new OPT_IntConstantOperand(crbD - crbB)));
       } else if (crbB > crbD) {
         tempInt2 = ppc2ir.getTempInt(1);
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt2,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt2,
             cr.copyRO(), new OPT_IntConstantOperand(crbB - crbD)));
       } else {
         tempInt2 = cr;
       }
       // Perform OR
       OPT_RegisterOperand tempInt3 = ppc2ir.getTempInt(2);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, tempInt3,
+      ppc2ir.appendInstruction(Binary.create(INT_OR, tempInt3,
           tempInt1.copyRO(), tempInt2.copyRO()));
       // Mask out bits that don't concern this instruction
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt3
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt3
           .copyRO(), tempInt3.copyRO(), new OPT_IntConstantOperand(
           0x80000000 >>> crbD)));
       // Clear desitination bit
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+      ppc2ir.appendInstruction(Binary.create(INT_AND,
           cr.copyRO(), cr.copyRO(), new OPT_IntConstantOperand(
               ~(0x80000000 >>> crbD))));
       // Combine result
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, cr.copyRO(),
+      ppc2ir.appendInstruction(Binary.create(INT_OR, cr.copyRO(),
           cr.copyRO(), tempInt3.copyRO()));
     }
     return pc + 4;
@@ -4678,22 +4667,13 @@ final class bcctr_decoder extends PPC_InstructionDecoder {
     if (lk != 0) {
       // @todo: record the pc as an address that set lr
       OPT_RegisterOperand lr = ppc2ir.getLRRegister();
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, lr,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, lr,
           new OPT_IntConstantOperand(pc + 4)));
     }
+    
     OPT_RegisterOperand branchAddress = ppc2ir.getCTRRegister();
-    OPT_BasicBlock fallThrough = ppc2ir.createBlockAfterCurrent();
-    OPT_Instruction lookupswitch_instr;
-    lookupswitch_instr = LookupSwitch.create(LOOKUPSWITCH, branchAddress, null,
-        null, fallThrough.makeJumpTarget(), null, 0);
-    ppc2ir.appendInstructionToCurrentBlock(lookupswitch_instr);
-    ppc2ir.registerLookupSwitchForSwitchUnresolved(lookupswitch_instr, pc,
-        (PPC_Laziness) lazy.clone(), lk != 0);
-    ppc2ir.setCurrentBlock(fallThrough);
-    ppc2ir.plantRecordUncaughtBranch(pc, branchAddress.copyRO(),
-        BranchLogic.INDIRECT_BRANCH);
-    ppc2ir.setReturnValueResolveLazinessAndBranchToFinish((PPC_Laziness) lazy
-        .clone(), branchAddress.copyRO());
+    ppc2ir.appendDynamicJump(branchAddress, lazy, BranchType.INDIRECT_BRANCH);
+
 
     // stop translation on branch always
     if (BO == 0x14) {
@@ -4745,10 +4725,10 @@ final class subfc_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand reg_rB = ppc2ir.getGPRegister(rB);
 
     // Perform subtract for rD
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, ppc2ir
         .getGPRegister(rD), reg_rB.copyRO(), reg_rA.copyRO()));
     // Set XER CA based on result
-    ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+    ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
         ppc2ir.getXER_CA_Register(), reg_rB.copyRO(), reg_rA.copyRO(),
         OPT_ConditionOperand.LOWER(), OPT_BranchProfileOperand.unlikely()));
     if (Rc != 0) {
@@ -4799,10 +4779,10 @@ final class addc_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand reg_rD = ppc2ir.getGPRegister(rD);
 
     // Perform operation for rD
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD,
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD,
         reg_rB.copyRO(), reg_rA.copyRO()));
     // Set XER CA based on result
-    ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+    ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
         ppc2ir.getXER_CA_Register(), reg_rD.copyRO(), reg_rA.copyRO(), // could
                                                                         // equally
                                                                         // be
@@ -4854,22 +4834,22 @@ final class mulhwu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand long_rA = ppc2ir.getTempLong(0);
     OPT_RegisterOperand long_rB = ppc2ir.getTempLong(1);
     OPT_RegisterOperand long_rD = ppc2ir.getTempLong(2);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, long_rA,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, long_rA,
         ppc2ir.getGPRegister(rA)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, long_rB,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, long_rB,
         ppc2ir.getGPRegister(rB)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_AND, long_rA
+    ppc2ir.appendInstruction(Binary.create(LONG_AND, long_rA
         .copyRO(), long_rA.copyRO(), new OPT_LongConstantOperand(0xffffffffL)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_AND, long_rB
+    ppc2ir.appendInstruction(Binary.create(LONG_AND, long_rB
         .copyRO(), long_rB.copyRO(), new OPT_LongConstantOperand(0xffffffffL)));
     // Perform multiply
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_MUL, long_rD,
+    ppc2ir.appendInstruction(Binary.create(LONG_MUL, long_rD,
         long_rB.copyRO(), long_rA.copyRO()));
     // Get high 32bits
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_USHR, long_rD
+    ppc2ir.appendInstruction(Binary.create(LONG_USHR, long_rD
         .copyRO(), long_rD.copyRO(), new OPT_IntConstantOperand(32)));
     // Set rD
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, ppc2ir
         .getGPRegister(rD), long_rD.copyRO()));
 
     if (Rc != 0) {
@@ -4928,7 +4908,7 @@ final class subf_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand reg_rB = ppc2ir.getGPRegister(rB);
 
     // Perform subtract for rD
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, ppc2ir
         .getGPRegister(rD), reg_rB, reg_rA));
     if (Rc != 0) {
       // Set condition codes
@@ -4976,23 +4956,23 @@ final class mulhw_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand long_rA = ppc2ir.getTempLong(0);
     OPT_RegisterOperand long_rB = ppc2ir.getTempLong(1);
     OPT_RegisterOperand long_rD = ppc2ir.getTempLong(2);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, long_rA,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, long_rA,
         ppc2ir.getGPRegister(rA)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, long_rB,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, long_rB,
         ppc2ir.getGPRegister(rB)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_AND, long_rA
+    ppc2ir.appendInstruction(Binary.create(LONG_AND, long_rA
         .copyRO(), long_rA.copyRO(), new OPT_LongConstantOperand(0xffffffffl)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_AND, long_rB
+    ppc2ir.appendInstruction(Binary.create(LONG_AND, long_rB
         .copyRO(), long_rB.copyRO(), new OPT_LongConstantOperand(0xffffffffl)));
 
     // Perform multiply
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_MUL, long_rD,
+    ppc2ir.appendInstruction(Binary.create(LONG_MUL, long_rD,
         long_rB.copyRO(), long_rA.copyRO()));
     // Get high 32bits
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_USHR, long_rD
+    ppc2ir.appendInstruction(Binary.create(LONG_USHR, long_rD
         .copyRO(), long_rD.copyRO(), new OPT_IntConstantOperand(32)));
     // Set rD
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, ppc2ir
         .getGPRegister(rD), long_rD.copyRO()));
 
     if (Rc != 0) {
@@ -5048,7 +5028,7 @@ final class neg_decoder extends PPC_InstructionDecoder {
       DBT._assert(rB == 0);
 
     // Perform negation
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NEG, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(INT_NEG, ppc2ir
         .getGPRegister(rD), ppc2ir.getGPRegister(rA)));
 
     if (Rc != 0) {
@@ -5101,17 +5081,17 @@ final class subfe_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempInt2 = ppc2ir.getTempInt(1);
 
     // tempInt := XER_CA ? 1 : 0
-    ppc2ir.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+    ppc2ir.appendInstruction(CondMove.create(INT_COND_MOVE,
         tempInt, ppc2ir.getXER_CA_Register(), new OPT_IntConstantOperand(0),
         OPT_ConditionOperand.EQUAL(), new OPT_IntConstantOperand(0),
         new OPT_IntConstantOperand(1)));
     // tempInt2 := ¬ (rA)
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, tempInt2,
+    ppc2ir.appendInstruction(Unary.create(INT_NOT, tempInt2,
         reg_rA));
     // rD := tempInt2 + (rB) + tempInt
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD,
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD,
         tempInt2.copyRO(), reg_rB));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD
         .copyRO(), reg_rD.copyRO(), tempInt.copyRO()));
     if (Rc != 0) {
       // Set condition codes
@@ -5162,14 +5142,14 @@ final class adde_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
 
     // tempInt := XER_CA ? 1 : 0
-    ppc2ir.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+    ppc2ir.appendInstruction(CondMove.create(INT_COND_MOVE,
         tempInt, ppc2ir.getXER_CA_Register(), new OPT_IntConstantOperand(0),
         OPT_ConditionOperand.EQUAL(), new OPT_IntConstantOperand(0),
         new OPT_IntConstantOperand(1)));
     // rD := (rA) + (rB) + tempInt
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD,
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD,
         reg_rA, reg_rB));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD
         .copyRO(), reg_rD.copyRO(), tempInt.copyRO()));
     if (Rc != 0) {
       // Set condition codes
@@ -5221,15 +5201,15 @@ final class subfze_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
 
     // tempInt := XER_CA ? 1 : 0
-    ppc2ir.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+    ppc2ir.appendInstruction(CondMove.create(INT_COND_MOVE,
         tempInt, ppc2ir.getXER_CA_Register(), new OPT_IntConstantOperand(0),
         OPT_ConditionOperand.EQUAL(), new OPT_IntConstantOperand(0),
         new OPT_IntConstantOperand(1)));
     // rD := ¬ (rA)
-    ppc2ir.appendInstructionToCurrentBlock(Unary
+    ppc2ir.appendInstruction(Unary
         .create(INT_NOT, reg_rD, reg_rA));
     // rD := rD + tempInt
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD
         .copyRO(), reg_rD.copyRO(), tempInt.copyRO()));
     if (Rc != 0) {
       // Set condition codes
@@ -5281,12 +5261,12 @@ final class addze_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
 
     // tempInt := XER_CA ? 1 : 0
-    ppc2ir.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+    ppc2ir.appendInstruction(CondMove.create(INT_COND_MOVE,
         tempInt, ppc2ir.getXER_CA_Register(), new OPT_IntConstantOperand(0),
         OPT_ConditionOperand.EQUAL(), new OPT_IntConstantOperand(0),
         new OPT_IntConstantOperand(1)));
     // rD := rA + tempInt
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD,
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD,
         reg_rA, tempInt.copyRO()));
 
     if (Rc != 0) {
@@ -5366,15 +5346,15 @@ final class addme_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
 
     // tempInt := XER_CA ? 1 : 0
-    ppc2ir.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+    ppc2ir.appendInstruction(CondMove.create(INT_COND_MOVE,
         tempInt, ppc2ir.getXER_CA_Register(), new OPT_IntConstantOperand(0),
         OPT_ConditionOperand.EQUAL(), new OPT_IntConstantOperand(0),
         new OPT_IntConstantOperand(1)));
     // rD := rA + tempInt
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD,
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD,
         reg_rA, tempInt.copyRO()));
     // rD := rD + -1
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, reg_rD
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, reg_rD
         .copyRO(), reg_rD.copyRO(), new OPT_IntConstantOperand(0xffffffff)));
     if (Rc != 0) {
       // Set condition codes
@@ -5419,7 +5399,7 @@ final class mullw_decoder extends PPC_InstructionDecoder {
       int secondaryOpcode, int Rc) {
     // Perform multiply
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(INT_MUL, ppc2ir
+        .appendInstruction(Binary.create(INT_MUL, ppc2ir
             .getGPRegister(rD), ppc2ir.getGPRegister(rA), ppc2ir
             .getGPRegister(rB)));
     if (Rc != 0) {
@@ -5473,7 +5453,7 @@ final class add_decoder extends PPC_InstructionDecoder {
       int secondaryOpcode, int Rc) {
     // Perform add
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(INT_ADD, ppc2ir
+        .appendInstruction(Binary.create(INT_ADD, ppc2ir
             .getGPRegister(rD), ppc2ir.getGPRegister(rA), ppc2ir
             .getGPRegister(rB)));
     if (Rc != 0) {
@@ -5522,19 +5502,19 @@ final class divwu_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand long_rA = ppc2ir.getTempLong(0);
     OPT_RegisterOperand long_rB = ppc2ir.getTempLong(1);
     OPT_RegisterOperand long_rD = ppc2ir.getTempLong(2);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, long_rA,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, long_rA,
         ppc2ir.getGPRegister(rA)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, long_rB,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, long_rB,
         ppc2ir.getGPRegister(rB)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_AND, long_rA
+    ppc2ir.appendInstruction(Binary.create(LONG_AND, long_rA
         .copyRO(), long_rA.copyRO(), new OPT_LongConstantOperand(0xffffffffL)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_AND, long_rB
+    ppc2ir.appendInstruction(Binary.create(LONG_AND, long_rB
         .copyRO(), long_rB.copyRO(), new OPT_LongConstantOperand(0xffffffffL)));
     // Perform divide
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_DIV, long_rD,
+    ppc2ir.appendInstruction(Binary.create(LONG_DIV, long_rD,
         long_rA.copyRO(), long_rB.copyRO()));
     // Set rD
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, ppc2ir
         .getGPRegister(rD), long_rD.copyRO()));
 
     if (Rc != 0) {
@@ -5581,7 +5561,7 @@ final class divw_decoder extends PPC_InstructionDecoder {
       int secondaryOpcode, int Rc) {
     // Perform divide
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(INT_DIV, ppc2ir
+        .appendInstruction(Binary.create(INT_DIV, ppc2ir
             .getGPRegister(rD), ppc2ir.getGPRegister(rA), ppc2ir
             .getGPRegister(rB)));
     if (Rc != 0) {
@@ -6033,7 +6013,7 @@ final class mtfsf_decoder extends PPC_InstructionDecoder {
     // Clear the VX bit then test if we need to set it
     OPT_RegisterOperand FPSCR = ppc2ir.getFPSCRRegister();
     // FPSCR = FPSCR & 0b 1101 1111 1111 1111
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, FPSCR
+    ppc2ir.appendInstruction(Binary.create(INT_AND, FPSCR
         .copyRO(), FPSCR, new OPT_IntConstantOperand(0xdfffffff)));
     OPT_BasicBlock testVX = ppc2ir.getCurrentBlock();
     OPT_BasicBlock setVX = ppc2ir.createBlockAfterCurrent();
@@ -6071,7 +6051,7 @@ final class mtfsf_decoder extends PPC_InstructionDecoder {
     // Clear the FEX bit then test if we need to set it
     OPT_RegisterOperand FPSCR = ppc2ir.getFPSCRRegister();
     // FPSCR = FPSCR & 0b 1011 1111 1111 1111
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, FPSCR
+    ppc2ir.appendInstruction(Binary.create(INT_AND, FPSCR
         .copyRO(), FPSCR, new OPT_IntConstantOperand(0xbfffffff)));
 
     // We need to make several tests of the bits of the FPSCR, so
@@ -6287,35 +6267,35 @@ final class mtfsf_decoder extends PPC_InstructionDecoder {
 
     // First, get the bit pattern from frB
     OPT_RegisterOperand tempLong = ppc2ir.getTempLong(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_AS_LONG_BITS,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_AS_LONG_BITS,
         tempLong, ppc2ir.getFPRegister(frB)));
 
     // Extract the low order word
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(LONG_AND, tempLong
+        .appendInstruction(Binary.create(LONG_AND, tempLong
             .copyRO(), tempLong.copyRO(), new OPT_LongConstantOperand(
             0xffffffffL)));
 
     // Copy to an int
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, tempInt,
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, tempInt,
         tempLong.copyRO()));
 
     // This is a MTFS
     if (FMask == 0xffffffff) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getFPSCRRegister(), tempInt.copyRO()));
     } else {
       // Calculate tempInt = tempInt & mask
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt
           .copyRO(), tempInt.copyRO(), new OPT_IntConstantOperand(FMask)));
       // Calculate FPSCR & NOT mask
       OPT_RegisterOperand tempInt2 = ppc2ir.getTempInt(1);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt2,
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt2,
           ppc2ir.getFPSCRRegister(), new OPT_IntConstantOperand(~FMask)));
 
       // Calculate ((tempInt) & mask) | (FPSCR & NOT mask), and put into FPSCR
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_OR, ppc2ir
           .getFPSCRRegister(), tempInt.copyRO(), tempInt2.copyRO()));
     }
 
@@ -6474,38 +6454,38 @@ final class mfspr_decoder extends PPC_InstructionDecoder {
     {
       OPT_RegisterOperand XER = ppc2ir.getTempInt(0);
       OPT_RegisterOperand XER_SO_Set = ppc2ir.getTempInt(1);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, XER_SO_Set,
+      ppc2ir.appendInstruction(Binary.create(INT_OR, XER_SO_Set,
           ppc2ir.getXER_ByteCountRegister(),
           new OPT_IntConstantOperand(1 << 31)));
-      ppc2ir.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE,
+      ppc2ir.appendInstruction(CondMove.create(INT_COND_MOVE,
           XER, ppc2ir.getXER_SO_Register(), new OPT_IntConstantOperand(0),
           OPT_ConditionOperand.EQUAL(), ppc2ir.getXER_ByteCountRegister(),
           XER_SO_Set.copyRO()));
       OPT_RegisterOperand XER_OV_Set = ppc2ir.getTempInt(1);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, XER_OV_Set,
+      ppc2ir.appendInstruction(Binary.create(INT_OR, XER_OV_Set,
           XER.copyRO(), new OPT_IntConstantOperand(1 << 30)));
-      ppc2ir.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE, XER
+      ppc2ir.appendInstruction(CondMove.create(INT_COND_MOVE, XER
           .copyRO(), ppc2ir.getXER_OV_Register(),
           new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), XER
               .copyRO(), XER_OV_Set.copyRO()));
       OPT_RegisterOperand XER_CA_Set = ppc2ir.getTempInt(1);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, XER_OV_Set,
+      ppc2ir.appendInstruction(Binary.create(INT_OR, XER_OV_Set,
           XER.copyRO(), new OPT_IntConstantOperand(1 << 29)));
-      ppc2ir.appendInstructionToCurrentBlock(CondMove.create(INT_COND_MOVE, XER
+      ppc2ir.appendInstruction(CondMove.create(INT_COND_MOVE, XER
           .copyRO(), ppc2ir.getXER_CA_Register(),
           new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), XER
               .copyRO(), XER_CA_Set.copyRO()));
 
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rS), XER.copyRO()));
     }
       break;
     case 8: // LR
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rS), ppc2ir.getLRRegister()));
       break;
     case 9: // CTR
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rS), ppc2ir.getCTRRegister()));
       break;
     default:
@@ -6569,33 +6549,33 @@ final class mtspr_decoder extends PPC_InstructionDecoder {
       OPT_RegisterOperand rS_RegOp = ppc2ir.getGPRegister(rS);
       // Copy SO bit into XER[SO] register
       ppc2ir
-          .appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+          .appendInstruction(Binary.create(INT_AND, ppc2ir
               .getXER_SO_Register(), rS_RegOp, new OPT_IntConstantOperand(
               1 << 31)));
       // Copy OV bit into XER[OV] register
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_AND, ppc2ir
           .getXER_OV_Register(), rS_RegOp.copyRO(), new OPT_IntConstantOperand(
           1 << 30)));
       // Copy byte count bits out
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_AND, ppc2ir
           .getXER_ByteCountRegister(), rS_RegOp.copyRO(),
           new OPT_IntConstantOperand(0x3f)));
       // Copy CA bit into XER[CA] register
       OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt,
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt,
           rS_RegOp.copyRO(), new OPT_IntConstantOperand(1 << 29)));
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           ppc2ir.getXER_CA_Register(), tempInt.copyRO(),
           new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(),
           OPT_BranchProfileOperand.unlikely()));
     }
       break;
     case 8: // LR
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getLRRegister(), ppc2ir.getGPRegister(rS)));
       break;
     case 9: // CTR
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getCTRRegister(), ppc2ir.getGPRegister(rS)));
       break;
     default:
@@ -6687,7 +6667,7 @@ final class tw_decoder extends PPC_InstructionDecoder {
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int crfD0L, int rA, int rB, int zero, int zero2) {
     // @TODO
-    ppc2ir.plantThrowBadInstruction((PPC_Laziness) lazy.clone(), pc);
+    ppc2ir.appendThrowBadInstruction((PPC_Laziness) lazy.clone(), pc);
     return -1;
   }
 }
@@ -6807,7 +6787,7 @@ final class mfcr_decoder extends PPC_InstructionDecoder {
     if (DBT.VerifyAssertions)
       DBT._assert((zero1 == zero2) && (zero2 == zero3) && (zero3 == 0));
 
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rD), ppc2ir.getCRRegister()));
     return pc + 4;
   }
@@ -6850,11 +6830,11 @@ final class lwarx_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Load value from memory at EA into rD.
@@ -6926,11 +6906,11 @@ final class lwzx_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Load value from memory at EA into rD.
@@ -6971,7 +6951,7 @@ final class slw_decoder extends PPC_InstructionDecoder {
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(INT_SHL, ppc2ir
+        .appendInstruction(Binary.create(INT_SHL, ppc2ir
             .getGPRegister(rA), ppc2ir.getGPRegister(rS), ppc2ir
             .getGPRegister(rB)));
     if (Rc != 0) {
@@ -7082,83 +7062,83 @@ final class cntlzw_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand m = ppc2ir.getTempInt(2);
     OPT_RegisterOperand n = ppc2ir.getTempInt(3);
 
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, x, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, x, ppc2ir
         .getGPRegister(rS)));
 
     // y = -(x >> 16); // If left half of x is 0,
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, y, x
+    ppc2ir.appendInstruction(Binary.create(INT_USHR, y, x
         .copyRO(), new OPT_IntConstantOperand(16)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NEG, y.copyRO(), y
+    ppc2ir.appendInstruction(Unary.create(INT_NEG, y.copyRO(), y
         .copyRO()));
     // m = (y >> 16) & 16; // set n = 16. If left half
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, m,
+    ppc2ir.appendInstruction(Binary.create(INT_SHR, m,
         y.copyRO(), new OPT_IntConstantOperand(16)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, m.copyRO(), m
+    ppc2ir.appendInstruction(Binary.create(INT_AND, m.copyRO(), m
         .copyRO(), new OPT_IntConstantOperand(16)));
     // n = 16 - m; // is nonzero, set n = 0 and
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, n,
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, n,
         new OPT_IntConstantOperand(16), m.copyRO()));
     // x = x >> m; // shift x right 16.
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, x.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_USHR, x.copyRO(),
         x.copyRO(), m.copyRO()));
     // // Now x is of the form 0000xxxx.
     // y = x - 0x100; // If positions 8-15 are 0,
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, y.copyRO(), x
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, y.copyRO(), x
         .copyRO(), new OPT_IntConstantOperand(0x100)));
     // m = (y >> 16) & 8; // add 8 to n and shift x left 8.
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, m.copyRO(), y
+    ppc2ir.appendInstruction(Binary.create(INT_SHR, m.copyRO(), y
         .copyRO(), new OPT_IntConstantOperand(16)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, m.copyRO(), m
+    ppc2ir.appendInstruction(Binary.create(INT_AND, m.copyRO(), m
         .copyRO(), new OPT_IntConstantOperand(8)));
 
     // n = n + m;
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, n.copyRO(), n
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, n.copyRO(), n
         .copyRO(), m.copyRO()));
     // x = x << m;
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, x.copyRO(), x
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, x.copyRO(), x
         .copyRO(), m.copyRO()));
     // y = x - 0x1000; // If positions 12-15 are 0,
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, y.copyRO(), x
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, y.copyRO(), x
         .copyRO(), new OPT_IntConstantOperand(0x1000)));
     // m = (y >> 16) & 4; // add 4 to n and shift x left 4.
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, m.copyRO(), y
+    ppc2ir.appendInstruction(Binary.create(INT_SHR, m.copyRO(), y
         .copyRO(), new OPT_IntConstantOperand(16)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, m.copyRO(), m
+    ppc2ir.appendInstruction(Binary.create(INT_AND, m.copyRO(), m
         .copyRO(), new OPT_IntConstantOperand(4)));
     // n = n + m;
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, n.copyRO(), n
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, n.copyRO(), n
         .copyRO(), m.copyRO()));
     // x = x << m;
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, x.copyRO(), x
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, x.copyRO(), x
         .copyRO(), m.copyRO()));
     // y = x - 0x4000; // If positions 14-15 are 0,
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, y.copyRO(), x
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, y.copyRO(), x
         .copyRO(), new OPT_IntConstantOperand(0x4000)));
     // m = (y >> 16) & 2; // add 2 to n and shift x left 2.
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, m.copyRO(), y
+    ppc2ir.appendInstruction(Binary.create(INT_SHR, m.copyRO(), y
         .copyRO(), new OPT_IntConstantOperand(16)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, m.copyRO(), m
+    ppc2ir.appendInstruction(Binary.create(INT_AND, m.copyRO(), m
         .copyRO(), new OPT_IntConstantOperand(2)));
     // n = n + m;
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, n.copyRO(), n
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, n.copyRO(), n
         .copyRO(), m.copyRO()));
     // x = x << m;
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, x.copyRO(), x
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, x.copyRO(), x
         .copyRO(), m.copyRO()));
     // y = x >> 14; // Set y = 0, 1, 2, or 3.
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, y.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_USHR, y.copyRO(),
         x.copyRO(), new OPT_IntConstantOperand(14)));
     // m = y & ~(y >> 1); // Set m = 0, 1, 2, or 2 resp.
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, m.copyRO(), y
+    ppc2ir.appendInstruction(Binary.create(INT_SHR, m.copyRO(), y
         .copyRO(), new OPT_IntConstantOperand(1)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, m.copyRO(), m
+    ppc2ir.appendInstruction(Unary.create(INT_NOT, m.copyRO(), m
         .copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, m.copyRO(), m
+    ppc2ir.appendInstruction(Binary.create(INT_AND, m.copyRO(), m
         .copyRO(), y.copyRO()));
     // return n + 2 - m;
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, n.copyRO(), n
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, n.copyRO(), n
         .copyRO(), new OPT_IntConstantOperand(2)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, ppc2ir
         .getGPRegister(rA), n.copyRO(), m.copyRO()));
   }
 
@@ -7236,7 +7216,7 @@ final class and_decoder extends PPC_InstructionDecoder {
       int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
     // Perform and
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+        .appendInstruction(Binary.create(INT_AND, ppc2ir
             .getGPRegister(rA), ppc2ir.getGPRegister(rS), ppc2ir
             .getGPRegister(rB)));
     if (Rc != 0) {
@@ -7476,11 +7456,11 @@ final class andc_decoder extends PPC_InstructionDecoder {
       int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
     // Perform complement
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, tempInt,
+    ppc2ir.appendInstruction(Unary.create(INT_NOT, tempInt,
         ppc2ir.getGPRegister(rB)));
 
     // Perform and
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_AND, ppc2ir
         .getGPRegister(rA), tempInt.copyRO(), ppc2ir.getGPRegister(rS)));
     if (Rc != 0) {
       // Set condition codes
@@ -7657,11 +7637,11 @@ final class lbzx_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Load value from memory at EA into rD.
@@ -7671,24 +7651,24 @@ final class lbzx_decoder extends PPC_InstructionDecoder {
     // of the address
     // -#if RVM_FOR_POWERPC
     // EA = (EA & 0x3) * 8
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_AND, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
     // -#else
     // EA = (3 - (EA & 0x3)) * 8
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_AND, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, EA.copyRO(),
         new OPT_IntConstantOperand(3), EA.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
     // -#endif
     // rD >>>= EA
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, result
+    ppc2ir.appendInstruction(Binary.create(INT_USHR, result
         .copyRO(), result.copyRO(), EA.copyRO()));
     // rD &= 0xff
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, result
+    ppc2ir.appendInstruction(Binary.create(INT_AND, result
         .copyRO(), result.copyRO(), new OPT_IntConstantOperand(0xff)));
     return pc + 4;
   }
@@ -7733,37 +7713,37 @@ final class lbzux_decoder extends PPC_InstructionDecoder {
       throw new Error("Invalid form of lbzux at 0x" + Integer.toHexString(pc));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Load value from memory at EA into rD.
     OPT_RegisterOperand result = ppc2ir.getGPRegister(rD);
     ppc2ir.ps.memory.translateLoad32(EA.copyRO(), result);
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     // Turn 32bit address into appropriate shift using last 2 bits
     // of the address
     // -#if RVM_FOR_POWERPC
     // EA = (EA & 0x3) * 8
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_AND, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
     // -#else
     // EA = (3 - (EA & 0x3)) * 8
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_AND, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SUB, EA.copyRO(),
         new OPT_IntConstantOperand(3), EA.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
     // -#endif
     // rD >>>= EA
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, result
+    ppc2ir.appendInstruction(Binary.create(INT_USHR, result
         .copyRO(), result.copyRO(), EA.copyRO()));
     // rD &= 0xff
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, result
+    ppc2ir.appendInstruction(Binary.create(INT_AND, result
         .copyRO(), result.copyRO(), new OPT_IntConstantOperand(0xff)));
     return pc + 4;
   }
@@ -7810,14 +7790,14 @@ final class nor_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
     // Perform or
     if (rS == rB) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, tempInt,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, tempInt,
           ppc2ir.getGPRegister(rB)));
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, tempInt,
+      ppc2ir.appendInstruction(Binary.create(INT_OR, tempInt,
           ppc2ir.getGPRegister(rS), ppc2ir.getGPRegister(rB)));
     }
     // Perform complement
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(INT_NOT, ppc2ir
         .getGPRegister(rA), tempInt.copyRO()));
     if (Rc != 0) {
       // Set condition codes
@@ -7920,11 +7900,11 @@ final class stwcx_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Store value from rS into memory at address EA
@@ -7972,11 +7952,11 @@ final class stwx_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Store value from rS into memory at address EA
@@ -8047,17 +8027,17 @@ final class stwux_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Store value from rS into memory at address EA
     ppc2ir.ps.memory.translateStore32(EA.copyRO(), ppc2ir.getGPRegister(rS));
     // Place EA into rA
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getGPRegister(rA), EA.copyRO()));
     return pc + 4;
   }
@@ -8151,11 +8131,11 @@ final class stbx_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD,
+      ppc2ir.appendInstruction(Binary.create(INT_ADD,
           EA.copyRO(), ppc2ir.getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Store value from rS into memory at address EA
@@ -8350,11 +8330,11 @@ final class lhzx_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Load value from memory at EA into rD.
@@ -8364,24 +8344,24 @@ final class lhzx_decoder extends PPC_InstructionDecoder {
     // of the address
     // -#if RVM_FOR_POWERPC
     // EA = (EA & 0x2) * 8
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_AND, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(0x2)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
     // -#else
     // EA = (~EA & 0x2) * 8
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, EA.copyRO(),
+    ppc2ir.appendInstruction(Unary.create(INT_NOT, EA.copyRO(),
         EA.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_AND, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(0x2)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
     // -#endif
     // rD >>>= EA
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, result
+    ppc2ir.appendInstruction(Binary.create(INT_USHR, result
         .copyRO(), result.copyRO(), EA.copyRO()));
     // rD &= 0xffff
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, result
+    ppc2ir.appendInstruction(Binary.create(INT_AND, result
         .copyRO(), result.copyRO(), new OPT_IntConstantOperand(0xffff)));
     return pc + 4;
   }
@@ -8531,7 +8511,7 @@ final class xor_decoder extends PPC_InstructionDecoder {
       int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
     // Perform xor
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(INT_XOR, ppc2ir
+        .appendInstruction(Binary.create(INT_XOR, ppc2ir
             .getGPRegister(rA), ppc2ir.getGPRegister(rS), ppc2ir
             .getGPRegister(rB)));
     if (Rc != 0) {
@@ -8630,11 +8610,11 @@ final class lhax_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA = ppc2ir.getTempInt(0);
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Load value from memory at EA into rD.
@@ -8644,26 +8624,26 @@ final class lhax_decoder extends PPC_InstructionDecoder {
     // of the address
     // -#if RVM_FOR_POWERPC
     // EA = (EA & 0x2) * 8
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_AND, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(0x2)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
     // -#else
     // EA = (~EA & 0x2) * 8
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, EA.copyRO(),
+    ppc2ir.appendInstruction(Unary.create(INT_NOT, EA.copyRO(),
         EA.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_AND, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(0x2)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, EA.copyRO(),
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, EA.copyRO(),
         EA.copyRO(), new OPT_IntConstantOperand(3)));
     // -#endif
     // rD >>>= EA
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, result
+    ppc2ir.appendInstruction(Binary.create(INT_SHR, result
         .copyRO(), result.copyRO(), EA.copyRO()));
     // rD = (rD << 16) >> 16
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, result
+    ppc2ir.appendInstruction(Binary.create(INT_SHL, result
         .copyRO(), result.copyRO(), new OPT_IntConstantOperand(16)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, result
+    ppc2ir.appendInstruction(Binary.create(INT_SHR, result
         .copyRO(), result.copyRO(), new OPT_IntConstantOperand(16)));
     return pc + 4;
   }
@@ -8861,11 +8841,11 @@ final class sthx_decoder extends PPC_InstructionDecoder {
 
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Store value from rS into memory at address EA
@@ -8906,10 +8886,10 @@ final class orc_decoder extends PPC_InstructionDecoder {
       int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
     // Perform complement
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, tempInt,
+    ppc2ir.appendInstruction(Unary.create(INT_NOT, tempInt,
         ppc2ir.getGPRegister(rB)));
     // Perform or
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_OR, ppc2ir
         .getGPRegister(rA), ppc2ir.getGPRegister(rS), tempInt.copyRO()));
     if (Rc != 0) {
       // Set condition codes
@@ -9038,10 +9018,10 @@ final class or_decoder extends PPC_InstructionDecoder {
       int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
     // Perform or
     if (rS == rB) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rS)));
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_OR, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rS), ppc2ir
           .getGPRegister(rB)));
     }
@@ -9139,14 +9119,14 @@ final class nand_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
     // Perform and
     if (rS == rB) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, tempInt,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, tempInt,
           ppc2ir.getGPRegister(rB)));
     } else {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt,
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt,
           ppc2ir.getGPRegister(rS), ppc2ir.getGPRegister(rB)));
     }
     // Perform complement
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_NOT, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(INT_NOT, ppc2ir
         .getGPRegister(rA), tempInt.copyRO()));
     if (Rc != 0) {
       // Set condition codes
@@ -9322,11 +9302,11 @@ final class lfsx_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA = ppc2ir.getTempInt(0);
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
     // Load value from memory at EA into tempInt
@@ -9334,11 +9314,11 @@ final class lfsx_decoder extends PPC_InstructionDecoder {
     ppc2ir.ps.memory.translateLoad32(EA.copyRO(), tempInt);
     // Convert bit pattern to a float.
     OPT_RegisterOperand tempFloat = ppc2ir.getTempFloat(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_BITS_AS_FLOAT,
+    ppc2ir.appendInstruction(Unary.create(INT_BITS_AS_FLOAT,
         tempFloat, tempInt.copyRO()));
 
     // Now to a double, and put into register.
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_2DOUBLE, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(FLOAT_2DOUBLE, ppc2ir
         .getFPRegister(frD), tempFloat.copyRO()));
     return pc + 4;
   }
@@ -9385,7 +9365,7 @@ final class srw_decoder extends PPC_InstructionDecoder {
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rS, int rA, int rB, int secondaryOpcode, int Rc) {
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(INT_USHR, ppc2ir
+        .appendInstruction(Binary.create(INT_USHR, ppc2ir
             .getGPRegister(rA), ppc2ir.getGPRegister(rS), ppc2ir
             .getGPRegister(rB)));
     if (Rc != 0) {
@@ -9589,14 +9569,14 @@ final class lfdx_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA2 = ppc2ir.getTempInt(0 + 1);
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA2, EA
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA2, EA
         .copyRO(), new OPT_IntConstantOperand(4)));
 
     // Load value from memory at EA & EA2 into tempInt & tempInt2 (msb at low
@@ -9610,19 +9590,19 @@ final class lfdx_decoder extends PPC_InstructionDecoder {
     // tempLong = ((long)tempInt << 32) | (long)tempInt2
     OPT_RegisterOperand tempLong = ppc2ir.getTempLong(0);
     OPT_RegisterOperand tempLong2 = ppc2ir.getTempLong(1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, tempLong,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, tempLong,
         tempInt.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, tempLong2,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, tempLong2,
         tempInt2.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_SHL, tempLong
+    ppc2ir.appendInstruction(Binary.create(LONG_SHL, tempLong
         .copyRO(), tempLong.copyRO(), new OPT_IntConstantOperand(32)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary
+    ppc2ir.appendInstruction(Binary
         .create(LONG_AND, tempLong2.copyRO(), tempLong2.copyRO(),
             new OPT_LongConstantOperand(0xffffffffl)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_OR, tempLong
+    ppc2ir.appendInstruction(Binary.create(LONG_OR, tempLong
         .copyRO(), tempLong.copyRO(), tempLong2.copyRO()));
     // Convert long to a double, and put into register.
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_BITS_AS_DOUBLE,
+    ppc2ir.appendInstruction(Unary.create(LONG_BITS_AS_DOUBLE,
         ppc2ir.getFPRegister(frD), tempLong.copyRO()));
     return pc + 4;
   }
@@ -9846,14 +9826,14 @@ final class stfdx_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand EA2 = ppc2ir.getTempInt(0 + 1);
     if (rA == 0) {
       // EA = rB
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, EA, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, EA, ppc2ir
           .getGPRegister(rB)));
     } else {
       // EA = rA + rB
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_ADD, EA, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rB)));
     }
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_ADD, EA2, EA
+    ppc2ir.appendInstruction(Binary.create(INT_ADD, EA2, EA
         .copyRO(), new OPT_IntConstantOperand(4)));
 
     // Split double into ints
@@ -9868,17 +9848,17 @@ final class stfdx_decoder extends PPC_InstructionDecoder {
     OPT_RegisterOperand tempLong2 = ppc2ir.getTempLong(1);
     OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0 + 2);
     OPT_RegisterOperand tempInt2 = ppc2ir.getTempInt(0 + 3);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_AS_LONG_BITS,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_AS_LONG_BITS,
         tempLong, ppc2ir.getFPRegister(frS)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(LONG_USHR, tempLong2,
+    ppc2ir.appendInstruction(Binary.create(LONG_USHR, tempLong2,
         tempLong.copyRO(), new OPT_IntConstantOperand(32)));
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(LONG_AND, tempLong
+        .appendInstruction(Binary.create(LONG_AND, tempLong
             .copyRO(), tempLong.copyRO(), new OPT_LongConstantOperand(
             0xffffffffl)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, tempInt,
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, tempInt,
         tempLong.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_2INT, tempInt2,
+    ppc2ir.appendInstruction(Unary.create(LONG_2INT, tempInt2,
         tempLong2.copyRO()));
 
     // Store value into memory at address EA (msb at low address)
@@ -10004,9 +9984,9 @@ final class sraw_decoder extends PPC_InstructionDecoder {
 
     // test rB[26]
     OPT_RegisterOperand mask = ppc2ir.getTempInt(0);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, mask, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_AND, mask, ppc2ir
         .getGPRegister(rB), new OPT_IntConstantOperand(0x10)));
-    ppc2ir.appendInstructionToCurrentBlock(IfCmp.create(INT_IFCMP, null, mask
+    ppc2ir.appendInstruction(IfCmp.create(INT_IFCMP, null, mask
         .copyRO(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(),
         rB26_clear.makeJumpTarget(), ppc2ir
             .getConditionalBranchProfileOperand(true)));
@@ -10027,16 +10007,16 @@ final class sraw_decoder extends PPC_InstructionDecoder {
     ppc2ir.setCurrentBlock(performSraw);
     // shifted bits out of rS
     OPT_RegisterOperand shiftedBits = ppc2ir.getTempInt(1);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, shiftedBits,
+    ppc2ir.appendInstruction(Binary.create(INT_AND, shiftedBits,
         ppc2ir.getGPRegister(rS), mask.copyRO()));
     // do rA = rS >> rB
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(INT_SHR, ppc2ir
+        .appendInstruction(Binary.create(INT_SHR, ppc2ir
             .getGPRegister(rA), ppc2ir.getGPRegister(rS), ppc2ir
             .getGPRegister(rB)));
 
     // set XER CA dependent on whether bits were shifted out of rS
-    ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+    ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
         ppc2ir.getXER_CA_Register(), shiftedBits.copyRO(),
         new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(),
         OPT_BranchProfileOperand.unlikely()));
@@ -10134,24 +10114,24 @@ final class srawi_decoder extends PPC_InstructionDecoder {
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int rS, int rA, int SH, int secondaryOpcode, int Rc) {
     if (SH == 0) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rS)));
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(LONG_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(LONG_MOVE, ppc2ir
           .getXER_CA_Register(), new OPT_LongConstantOperand(0)));
     } else {
       // shifted bits out of rS
       OPT_RegisterOperand shiftedBits = ppc2ir.getTempInt(0);
       int mask = (0x1 << SH) - 1;
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND,
+      ppc2ir.appendInstruction(Binary.create(INT_AND,
           shiftedBits, ppc2ir.getGPRegister(rS), new OPT_IntConstantOperand(
               mask)));
       // do rA = rS >> SH
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_SHR, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rS),
           new OPT_IntConstantOperand(SH)));
 
       // set XER CA dependent on whether bits were shifted out of rS
-      ppc2ir.appendInstructionToCurrentBlock(BooleanCmp.create(BOOLEAN_CMP_INT,
+      ppc2ir.appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT,
           ppc2ir.getXER_CA_Register(), shiftedBits.copyRO(),
           new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(),
           OPT_BranchProfileOperand.unlikely()));
@@ -10276,18 +10256,18 @@ final class extsh_decoder extends PPC_InstructionDecoder {
       int inst, int opcode, int rS, int rA, int zero, int secondaryOpcode,
       int Rc) {
     if (rA == rS) {
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_SHL, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rA),
           new OPT_IntConstantOperand(16)));
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHR, ppc2ir
+      ppc2ir.appendInstruction(Binary.create(INT_SHR, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rA),
           new OPT_IntConstantOperand(16)));
     } else {
       OPT_RegisterOperand tempInt = ppc2ir.getTempInt(0);
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt,
+      ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt,
           ppc2ir.getGPRegister(rS), new OPT_IntConstantOperand(16)));
       ppc2ir
-          .appendInstructionToCurrentBlock(Binary.create(INT_SHR, ppc2ir
+          .appendInstruction(Binary.create(INT_SHR, ppc2ir
               .getGPRegister(rA), tempInt.copyRO(), new OPT_IntConstantOperand(
               16)));
     }
@@ -10576,9 +10556,9 @@ final class frsp_decoder extends PPC_InstructionDecoder {
     // whatever Jikes does.
 
     OPT_RegisterOperand tempFloat = ppc2ir.getTempFloat(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat, ppc2ir.getFPRegister(frB)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_2DOUBLE, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(FLOAT_2DOUBLE, ppc2ir
         .getFPRegister(frD), tempFloat.copyRO()));
 
     // Set the FPSCR
@@ -10626,9 +10606,9 @@ final class fctiw_decoder extends PPC_InstructionDecoder {
       int Rc) {
     // @todo: rounding modes
     OPT_RegisterOperand tempLong = ppc2ir.getTempLong(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2LONG, tempLong,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2LONG, tempLong,
         ppc2ir.getFPRegister(frB)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_BITS_AS_DOUBLE,
+    ppc2ir.appendInstruction(Unary.create(LONG_BITS_AS_DOUBLE,
         ppc2ir.getFPRegister(frD), tempLong.copyRO()));
     // Check the condition register record
     if (Rc != 0) {
@@ -10671,9 +10651,9 @@ final class fctiwz_decoder extends PPC_InstructionDecoder {
       int Rc) {
     // @todo: rounding modes
     OPT_RegisterOperand tempLong = ppc2ir.getTempLong(0);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2LONG, tempLong,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2LONG, tempLong,
         ppc2ir.getFPRegister(frB)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_BITS_AS_DOUBLE,
+    ppc2ir.appendInstruction(Unary.create(LONG_BITS_AS_DOUBLE,
         ppc2ir.getFPRegister(frD), tempLong.copyRO()));
     // Check the condition register record
     if (Rc != 0) {
@@ -10744,7 +10724,7 @@ final class mtfsb1_decoder extends PPC_InstructionDecoder {
       throw new Error("mtfsb1: attempting to set bit " + crbD);
     }
     int setBit = 0x80000000 >>> crbD;
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_OR, ppc2ir
         .getFPSCRRegister(), ppc2ir.getFPSCRRegister(),
         new OPT_IntConstantOperand(setBit)));
 
@@ -10788,7 +10768,7 @@ final class fneg_decoder extends PPC_InstructionDecoder {
       int inst, int opcode, int frD, int zero, int frB, int secondaryOpcode,
       int Rc) {
     // @todo setting of fpscr
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_NEG, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_NEG, ppc2ir
         .getFPRegister(frD), ppc2ir.getFPRegister(frB)));
     if (Rc != 0) {
       throw new Error("todo: record within a fneg instruction");
@@ -10858,7 +10838,7 @@ final class mtfsb0_decoder extends PPC_InstructionDecoder {
       throw new Error("mtfsb0: attempting to clear bit " + crbD);
     }
     int clearBit = ~(0x80000000 >>> crbD);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_AND, ppc2ir
         .getFPSCRRegister(), ppc2ir.getFPSCRRegister(),
         new OPT_IntConstantOperand(clearBit)));
 
@@ -10901,7 +10881,7 @@ final class fmr_decoder extends PPC_InstructionDecoder {
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
       int inst, int opcode, int frD, int zero, int frB, int secondaryOpcode,
       int Rc) {
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(DOUBLE_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(DOUBLE_MOVE, ppc2ir
         .getFPRegister(frD), ppc2ir.getFPRegister(frB)));
     if (Rc != 0) {
       throw new Error("fmr: setting CR1 not yet implemented.");
@@ -10947,10 +10927,10 @@ final class mtfsfi_decoder extends PPC_InstructionDecoder {
     }
     int clearBitsMask = ~(0xf0000000 >>> (crfD * 4));
     int bitsToSet = (imm << 28) >>> (crfD * 4);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_AND, ppc2ir
         .getFPSCRRegister(), ppc2ir.getFPSCRRegister(),
         new OPT_IntConstantOperand(clearBitsMask)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(INT_OR, ppc2ir
         .getFPSCRRegister(), ppc2ir.getFPSCRRegister(),
         new OPT_IntConstantOperand(bitsToSet)));
     if (Rc != 0) {
@@ -10994,7 +10974,7 @@ final class fnabs_decoder extends PPC_InstructionDecoder {
     OPT_BasicBlock fallThrough = ppc2ir.getNextBlock();
     OPT_BasicBlock negate = ppc2ir.createBlockAfterCurrent();
     OPT_BasicBlock lteZeroTest = ppc2ir.getCurrentBlock();
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getFPRegister(frD), ppc2ir.getFPRegister(frB)));
     lteZeroTest.appendInstruction(IfCmp.create(INT_IFCMP, null, ppc2ir
         .getFPRegister(frB), new OPT_DoubleConstantOperand(0),
@@ -11044,7 +11024,7 @@ final class fabs_decoder extends PPC_InstructionDecoder {
     OPT_BasicBlock fallThrough = ppc2ir.getNextBlock();
     OPT_BasicBlock negate = ppc2ir.createBlockAfterCurrent();
     OPT_BasicBlock gteZeroTest = ppc2ir.getCurrentBlock();
-    ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+    ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
         .getFPRegister(frD), ppc2ir.getFPRegister(frB)));
     gteZeroTest.appendInstruction(IfCmp.create(INT_IFCMP, null, ppc2ir
         .getFPRegister(frB), new OPT_DoubleConstantOperand(0),
@@ -11100,14 +11080,14 @@ final class mffs_decoder extends PPC_InstructionDecoder {
       int Rc) {
     OPT_RegisterOperand tempLong = ppc2ir.getTempLong(0);
 
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(INT_2LONG, tempLong,
+    ppc2ir.appendInstruction(Unary.create(INT_2LONG, tempLong,
         ppc2ir.getFPSCRRegister()));
     ppc2ir
-        .appendInstructionToCurrentBlock(Binary.create(LONG_AND, tempLong
+        .appendInstruction(Binary.create(LONG_AND, tempLong
             .copyRO(), tempLong.copyRO(), new OPT_LongConstantOperand(
             0xffffffffL)));
 
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(LONG_BITS_AS_DOUBLE,
+    ppc2ir.appendInstruction(Unary.create(LONG_BITS_AS_DOUBLE,
         ppc2ir.getFPRegister(frD), tempLong.copyRO()));
     if (Rc != 0) {
       throw new Error("mffs: setting CR1 not yet implemented.");
@@ -11230,7 +11210,7 @@ final class sc_decoder extends PPC_InstructionDecoder {
     if (DBT.VerifyAssertions)
       DBT._assert((zero1 == zero2) && (zero2 == zero3) && (zero3 == zero4)
           && (zero4 == 0) && (one == 1));
-    ppc2ir.plantSystemCall(lazy, pc);
+    ppc2ir.appendSystemCall(lazy, pc);
     return pc + 4;
   }
 }
@@ -11332,7 +11312,7 @@ final class rlwimi_decoder extends PPC_InstructionDecoder {
     }
 
     if (m == 0) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rA), ppc2ir.getGPRegister(rA)));
     } else {
       OPT_RegisterOperand tempr = ppc2ir.getTempInt(0);
@@ -11343,31 +11323,31 @@ final class rlwimi_decoder extends PPC_InstructionDecoder {
         // 2. calculate rs >>> (32-SH) and put into tempInt2
         // 3. put the bitwise OR of these into tempr (the variable r in
         // the prog. env. manual entry for this instruction).
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt1,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt1,
             ppc2ir.getGPRegister(rS), new OPT_IntConstantOperand(SH)));
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt2, ppc2ir.getGPRegister(rS), new OPT_IntConstantOperand(
                 32 - SH)));
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, tempr,
+        ppc2ir.appendInstruction(Binary.create(INT_OR, tempr,
             tempInt1.copyRO(), tempInt2.copyRO()));
       } else {
-        ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, tempr,
+        ppc2ir.appendInstruction(Move.create(INT_MOVE, tempr,
             ppc2ir.getGPRegister(rS)));
       }
       if (m == 0xffffffff) {
-        ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+        ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
             .getGPRegister(rA), tempr.copyRO()));
       } else {
         OPT_RegisterOperand tempInt3 = ppc2ir.getTempInt(1);
         OPT_RegisterOperand tempInt4 = ppc2ir.getTempInt(2);
         // AND the value in tempr with the value m, and put into tempInt3.
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt3,
+        ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt3,
             tempr.copyRO(), new OPT_IntConstantOperand(m)));
         // AND the current value of rA with NOT mask, and put into tempInt4.
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempInt4,
+        ppc2ir.appendInstruction(Binary.create(INT_AND, tempInt4,
             ppc2ir.getGPRegister(rA), new OPT_IntConstantOperand(~m)));
         // OR these two and put back into rA.
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, ppc2ir
+        ppc2ir.appendInstruction(Binary.create(INT_OR, ppc2ir
             .getGPRegister(rA), tempInt3.copyRO(), tempInt4.copyRO()));
       }
     }
@@ -11476,7 +11456,7 @@ final class rlwinm_decoder extends PPC_InstructionDecoder {
     }
 
     if (m == 0) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(0)));
     } else {
       OPT_RegisterOperand tempr = ppc2ir.getTempInt(0);
@@ -11487,23 +11467,23 @@ final class rlwinm_decoder extends PPC_InstructionDecoder {
         // 2. calculate rS >>> (32-SH) and put into tempInt2
         // 3. put the bitwise OR of these into tempr (the variable r in
         // the prog. env. manual entry for this instruction).
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt1,
+        ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt1,
             ppc2ir.getGPRegister(rS), new OPT_IntConstantOperand(SH)));
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR,
+        ppc2ir.appendInstruction(Binary.create(INT_USHR,
             tempInt2, ppc2ir.getGPRegister(rS), new OPT_IntConstantOperand(
                 32 - SH)));
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, tempr,
+        ppc2ir.appendInstruction(Binary.create(INT_OR, tempr,
             tempInt1.copyRO(), tempInt2.copyRO()));
       } else {
-        ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, tempr,
+        ppc2ir.appendInstruction(Move.create(INT_MOVE, tempr,
             ppc2ir.getGPRegister(rS)));
       }
       if (m == 0xffffffff) {
-        ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+        ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
             .getGPRegister(rA), tempr.copyRO()));
       } else {
         // AND the value in tempr with the value m, and put into rA
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+        ppc2ir.appendInstruction(Binary.create(INT_AND, ppc2ir
             .getGPRegister(rA), tempr.copyRO(), new OPT_IntConstantOperand(m)));
       }
     }
@@ -11565,7 +11545,7 @@ final class rlwnm_decoder extends PPC_InstructionDecoder {
     }
 
     if (m == 0) {
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getGPRegister(rA), new OPT_IntConstantOperand(0)));
     } else {
       OPT_RegisterOperand tempr = ppc2ir.getTempInt(0);
@@ -11575,27 +11555,27 @@ final class rlwnm_decoder extends PPC_InstructionDecoder {
 
       OPT_RegisterOperand tempIntSH = ppc2ir.getTempInt(3);
 
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, tempIntSH,
+      ppc2ir.appendInstruction(Binary.create(INT_AND, tempIntSH,
           ppc2ir.getGPRegister(rB), new OPT_IntConstantOperand(0x1f)));
 
       // 1. calculate rS << rB and put into tempInt1
       // 2. calculate rS >>> (32-rB) and put into tempInt2
       // 3. put the bitwise OR of these into tempr (the variable r in
       // the prog. env. manual entry for this instruction).
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SHL, tempInt1,
+      ppc2ir.appendInstruction(Binary.create(INT_SHL, tempInt1,
           ppc2ir.getGPRegister(rS), tempIntSH.copyRO()));
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_SUB, tempIntSH
+      ppc2ir.appendInstruction(Binary.create(INT_SUB, tempIntSH
           .copyRO(), new OPT_IntConstantOperand(32), tempIntSH.copyRO()));
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_USHR, tempInt2,
+      ppc2ir.appendInstruction(Binary.create(INT_USHR, tempInt2,
           ppc2ir.getGPRegister(rS), tempIntSH.copyRO()));
-      ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_OR, tempr,
+      ppc2ir.appendInstruction(Binary.create(INT_OR, tempr,
           tempInt1.copyRO(), tempInt2.copyRO()));
       if (m == 0xffffffff) {
-        ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+        ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
             .getGPRegister(rA), tempr.copyRO()));
       } else {
         // AND the value in tempr with the value m, and put into rA
-        ppc2ir.appendInstructionToCurrentBlock(Binary.create(INT_AND, ppc2ir
+        ppc2ir.appendInstruction(Binary.create(INT_AND, ppc2ir
             .getGPRegister(rA), tempr.copyRO(), new OPT_IntConstantOperand(m)));
       }
     }
@@ -11705,7 +11685,7 @@ final class bc_decoder extends PPC_InstructionDecoder {
     if (LK != 0) {
       ppc2ir.registerBranchAndLink(pc, target_address);
       OPT_RegisterOperand lr = ppc2ir.getLRRegister();
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, lr,
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, lr,
           new OPT_IntConstantOperand(pc + 4)));
     }
 
@@ -11725,21 +11705,8 @@ final class bc_decoder extends PPC_InstructionDecoder {
 
     if ((LK == 0) || (ppc2ir.traceContinuesAfterBranchAndLink(pc))) {
       // Plant branch block
-      OPT_BasicBlock targetBlock = ppc2ir.findMapping(target_address, lazy);
-      if (targetBlock != null) {
-        found_mapping = true;
-        ppc2ir.appendInstructionToCurrentBlock(Goto.create(GOTO, targetBlock
-            .makeJumpTarget()));
-        ppc2ir.getCurrentBlock().deleteNormalOut();
-        ppc2ir.getCurrentBlock().insertOut(targetBlock);
-        if (DBT.VerifyAssertions)
-          DBT._assert(ppc2ir.getCurrentBlock().getNumberOfNormalOut() == 1);
-      } else {
-        OPT_Instruction gotoInstr = Goto.create(GOTO, null);
-        ppc2ir.appendInstructionToCurrentBlock(gotoInstr);
-        ppc2ir.registerGotoTargetUnresolved(gotoInstr, target_address,
-            (PPC_Laziness) lazy.clone());
-      }
+      ppc2ir.appendGoto(target_address, lazy);
+      
       // stop translation on branch always
       if (BO == 0x14) {
         return -1;
@@ -11756,10 +11723,8 @@ final class bc_decoder extends PPC_InstructionDecoder {
           // target_address to translate into an empty block
           ppc2ir.setCurrentBlock(instructionEndBlock);
           ppc2ir.setNextBlock(ppc2ir.createBlockAfterCurrent());
-          OPT_Instruction gotoInstr = Goto.create(GOTO, null);
-          ppc2ir.appendInstructionToCurrentBlock(gotoInstr);
-          ppc2ir.registerGotoTargetUnresolved(gotoInstr, pc + 4,
-              (PPC_Laziness) lazy.clone());
+
+          ppc2ir.appendGoto(pc + 4, lazy);
           return target_address;
         }
       }
@@ -11834,7 +11799,7 @@ final class b_decoder extends PPC_InstructionDecoder {
     }
     if (lk != 0) {
       // @todo: record this as a likely return address...
-      ppc2ir.appendInstructionToCurrentBlock(Move.create(INT_MOVE, ppc2ir
+      ppc2ir.appendInstruction(Move.create(INT_MOVE, ppc2ir
           .getLRRegister(), new OPT_IntConstantOperand(pc + 4)));
       ppc2ir.registerBranchAndLink(pc, target_addr);
       if (ppc2ir.traceContinuesAfterBranchAndLink(pc)) {
@@ -11887,13 +11852,13 @@ final class fdivs_decoder extends PPC_InstructionDecoder {
     // @todo setting of fpscr
     OPT_RegisterOperand tempFloat1 = ppc2ir.getTempFloat(0);
     OPT_RegisterOperand tempFloat2 = ppc2ir.getTempFloat(1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat1, ppc2ir.getFPRegister(frA)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat2, ppc2ir.getFPRegister(frB)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(FLOAT_DIV, tempFloat1
+    ppc2ir.appendInstruction(Binary.create(FLOAT_DIV, tempFloat1
         .copyRO(), tempFloat1.copyRO(), tempFloat2.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_2DOUBLE, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(FLOAT_2DOUBLE, ppc2ir
         .getFPRegister(frD), tempFloat1.copyRO()));
     if (Rc != 0) {
       throw new Error("todo: record within a fdivs instruction");
@@ -11936,13 +11901,13 @@ final class fsubs_decoder extends PPC_InstructionDecoder {
     // @todo setting of fpscr
     OPT_RegisterOperand tempFloat1 = ppc2ir.getTempFloat(0);
     OPT_RegisterOperand tempFloat2 = ppc2ir.getTempFloat(1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat1, ppc2ir.getFPRegister(frA)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat2, ppc2ir.getFPRegister(frB)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(FLOAT_SUB, tempFloat1
+    ppc2ir.appendInstruction(Binary.create(FLOAT_SUB, tempFloat1
         .copyRO(), tempFloat1.copyRO(), tempFloat2.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_2DOUBLE, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(FLOAT_2DOUBLE, ppc2ir
         .getFPRegister(frD), tempFloat1.copyRO()));
     if (Rc != 0) {
       throw new Error("todo: record within a fsubs instruction");
@@ -11985,13 +11950,13 @@ final class fadds_decoder extends PPC_InstructionDecoder {
     // @todo setting of fpscr
     OPT_RegisterOperand tempFloat1 = ppc2ir.getTempFloat(0);
     OPT_RegisterOperand tempFloat2 = ppc2ir.getTempFloat(1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat1, ppc2ir.getFPRegister(frA)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat2, ppc2ir.getFPRegister(frB)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(FLOAT_ADD, tempFloat1
+    ppc2ir.appendInstruction(Binary.create(FLOAT_ADD, tempFloat1
         .copyRO(), tempFloat1.copyRO(), tempFloat2.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_2DOUBLE, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(FLOAT_2DOUBLE, ppc2ir
         .getFPRegister(frD), tempFloat1.copyRO()));
     if (Rc != 0) {
       throw new Error("todo: record within a fsubs instruction");
@@ -12086,13 +12051,13 @@ final class fmuls_decoder extends PPC_InstructionDecoder {
     // @todo setting of fpscr
     OPT_RegisterOperand tempFloat1 = ppc2ir.getTempFloat(0);
     OPT_RegisterOperand tempFloat2 = ppc2ir.getTempFloat(1);
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat1, ppc2ir.getFPRegister(frA)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_2FLOAT,
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_2FLOAT,
         tempFloat2, ppc2ir.getFPRegister(frC)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(FLOAT_MUL, tempFloat1
+    ppc2ir.appendInstruction(Binary.create(FLOAT_MUL, tempFloat1
         .copyRO(), tempFloat1.copyRO(), tempFloat2.copyRO()));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(FLOAT_2DOUBLE, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(FLOAT_2DOUBLE, ppc2ir
         .getFPRegister(frD), tempFloat1.copyRO()));
     if (Rc != 0) {
       throw new Error("todo: record within a fmuls instruction");
@@ -12237,7 +12202,7 @@ final class fdiv_decoder extends PPC_InstructionDecoder {
       int instr, int opcode, int frD, int frA, int frB, int zero,
       int secondaryOpcode, int Rc) {
     // @todo setting of fpscr
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_DIV, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_DIV, ppc2ir
         .getFPRegister(frD), ppc2ir.getFPRegister(frA), ppc2ir
         .getFPRegister(frB)));
     if (Rc != 0) {
@@ -12280,7 +12245,7 @@ final class fsub_decoder extends PPC_InstructionDecoder {
       int instr, int opcode, int frD, int frA, int frB, int zero,
       int secondaryOpcode, int Rc) {
     // @todo setting of fpscr
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_SUB, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_SUB, ppc2ir
         .getFPRegister(frD), ppc2ir.getFPRegister(frA), ppc2ir
         .getFPRegister(frB)));
     if (Rc != 0) {
@@ -12323,7 +12288,7 @@ final class fadd_decoder extends PPC_InstructionDecoder {
       int instr, int opcode, int frD, int frA, int frB, int zero,
       int secondaryOpcode, int Rc) {
     // @todo setting of fpscr
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_ADD, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_ADD, ppc2ir
         .getFPRegister(frD), ppc2ir.getFPRegister(frA), ppc2ir
         .getFPRegister(frB)));
     if (Rc != 0) {
@@ -12366,7 +12331,7 @@ final class fmul_decoder extends PPC_InstructionDecoder {
       int instr, int opcode, int frD, int frA, int zero, int frC,
       int secondaryOpcode, int Rc) {
     // @todo setting of fpscr
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_MUL, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_MUL, ppc2ir
         .getFPRegister(frD), ppc2ir.getFPRegister(frA), ppc2ir
         .getFPRegister(frC)));
     if (Rc != 0) {
@@ -12410,9 +12375,9 @@ final class fmadd_decoder extends PPC_InstructionDecoder {
       int secondaryOpcode, int Rc) {
     // @todo setting of fpscr
     OPT_RegisterOperand tempDouble = ppc2ir.getTempDouble(0);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_MUL,
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_MUL,
         tempDouble, ppc2ir.getFPRegister(frA), ppc2ir.getFPRegister(frC)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_ADD, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_ADD, ppc2ir
         .getFPRegister(frD), tempDouble.copyRO(), ppc2ir.getFPRegister(frB)));
     if (Rc != 0) {
       throw new Error("todo: record within a fmadd instruction");
@@ -12455,9 +12420,9 @@ final class fmsub_decoder extends PPC_InstructionDecoder {
       int secondaryOpcode, int Rc) {
     // @todo setting of fpscr
     OPT_RegisterOperand tempDouble = ppc2ir.getTempDouble(0);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_MUL,
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_MUL,
         tempDouble, ppc2ir.getFPRegister(frA), ppc2ir.getFPRegister(frC)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_SUB, ppc2ir
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_SUB, ppc2ir
         .getFPRegister(frD), tempDouble.copyRO(), ppc2ir.getFPRegister(frB)));
     if (Rc != 0) {
       throw new Error("todo: record within a fmsub instruction");
@@ -12500,11 +12465,11 @@ final class fnmsub_decoder extends PPC_InstructionDecoder {
       int secondaryOpcode, int Rc) {
     // @todo setting of fpscr
     OPT_RegisterOperand tempDouble = ppc2ir.getTempDouble(0);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_MUL,
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_MUL,
         tempDouble, ppc2ir.getFPRegister(frA), ppc2ir.getFPRegister(frC)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_SUB, tempDouble
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_SUB, tempDouble
         .copyRO(), tempDouble.copyRO(), ppc2ir.getFPRegister(frB)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_NEG, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_NEG, ppc2ir
         .getFPRegister(frD), tempDouble.copyRO()));
     if (Rc != 0) {
       throw new Error("todo: record within a fnmsub instruction");
@@ -12547,11 +12512,11 @@ final class fnmadd_decoder extends PPC_InstructionDecoder {
       int secondaryOpcode, int Rc) {
     // @todo setting of fpscr
     OPT_RegisterOperand tempDouble = ppc2ir.getTempDouble(0);
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_MUL,
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_MUL,
         tempDouble, ppc2ir.getFPRegister(frA), ppc2ir.getFPRegister(frC)));
-    ppc2ir.appendInstructionToCurrentBlock(Binary.create(DOUBLE_ADD, tempDouble
+    ppc2ir.appendInstruction(Binary.create(DOUBLE_ADD, tempDouble
         .copyRO(), tempDouble.copyRO(), ppc2ir.getFPRegister(frB)));
-    ppc2ir.appendInstructionToCurrentBlock(Unary.create(DOUBLE_NEG, ppc2ir
+    ppc2ir.appendInstruction(Unary.create(DOUBLE_NEG, ppc2ir
         .getFPRegister(frD), tempDouble.copyRO()));
     if (Rc != 0) {
       throw new Error("todo: record within a fnmadd instruction");
