@@ -176,8 +176,6 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
   /** List of unresolved Goto instructions */
   private final ArrayList<UnresolvedJumpInstruction> unresolvedGoto;
 
-  /** List of unresolved IfCmp instructions */
-  private final ArrayList<UnresolvedJumpInstruction> unresolvedIfCmp;
   
   /** List of unresolved dynamic jumps */
   private final ArrayList<UnresolvedJumpInstruction> unresolvedDynamicJumps;
@@ -211,7 +209,6 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
 
     // Fix up stores
     unresolvedGoto = new ArrayList<UnresolvedJumpInstruction>();
-    unresolvedIfCmp = new ArrayList<UnresolvedJumpInstruction>();
     unresolvedDynamicJumps = new ArrayList<UnresolvedJumpInstruction>();
   }
   
@@ -237,16 +234,16 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
       if (DBT_Options.resolveBranchesAtOnce) {
         do {
           resolveGoto();
-          resolveIfCmp();
-        } while ((unresolvedGoto.size() != 0) || (unresolvedIfCmp.size() != 0));
+ 
+        } while (unresolvedGoto.size() != 0);
       } else {
         resolveGoto();
-        resolveIfCmp();
+
       }
       if (!DBT_Options.resolveProceduresBeforeBranches) {
         resolveAllDynamicJumpTargets();
       }
-    } while (((unresolvedGoto.size() == 0) && (unresolvedIfCmp.size() == 0)
+    } while (((unresolvedGoto.size() == 0)
         && areDynamicJumpsReadyToResolve()) == false);
     
     // Resolve unresolved dynamic jumps
@@ -520,67 +517,6 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
   }
 
   /**
-   * Appends an IfCmp instruction to the current block that (when the condition is true) jumps
-   * to the address <code>targetPc</code>. The parameters for this function are mostly
-   * the same as for the {@link IfCmp#create(OPT_Operator, OPT_RegisterOperand, OPT_Operand, OPT_Operand, OPT_ConditionOperand, OPT_BranchOperand, OPT_BranchProfileOperand)} function.
-   * 
-   * @param operator
-   *  The HIR operator.
-   * @param guard
-   *  A guard result for this call.
-   * @param lhs
-   *  The left-hand-side comparision operator.
-   * @param rhs
-   *  The right-hand-side comparision operator.
-   * @param condition
-   *  The type of comparison that is to be executed.
-   * @param targetPc
-   *  The address that the trace shall jump to, when the condition evaluates to true.
-   * @param targetLaziness
-   *  The laziness at the point of jump.
-   * @param branchProfile
-   *  A branch profile operand that describes how likely it is that the jump is executed.
-   */
-  public void appendIfCmp(OPT_Operator operator, OPT_RegisterOperand guard, OPT_Operand lhs,
-      OPT_Operand rhs, OPT_ConditionOperand condition, int targetPc, Laziness targetLaziness, OPT_BranchProfileOperand branchProfile) {
-    
-    OPT_BasicBlock targetBlock = findMapping(targetPc, targetLaziness);
-    OPT_Instruction ifcmp = IfCmp.create(operator, guard, lhs, rhs, condition, null, branchProfile);
-    
-    if (targetBlock != null) { 
-      IfCmp.setTarget(ifcmp, targetBlock.makeJumpTarget());
-      getCurrentBlock().insertOut(targetBlock);
-    }
-    else {
-      UnresolvedJumpInstruction unresolvedJump = new UnresolvedJumpInstruction(ifcmp, (Laziness)targetLaziness.clone(), targetPc);
-      unresolvedIfCmp.add(unresolvedJump);
-    }
-    
-    appendInstruction(ifcmp);
-  }
-
-  /** Resolve a single ifCmp instruction */
-  private void resolveIfCmp() {
-    
-    if (unresolvedIfCmp.size() == 0)
-      return;
-    
-    //Try to find if block has now been translated
-    UnresolvedJumpInstruction instruction = unresolvedIfCmp.remove(unresolvedIfCmp.size() - 1);
-    
-    OPT_Instruction ifCmp = instruction.instruction;
-    
-    if (DBT.VerifyAssertions) DBT._assert(IfCmp.conforms(ifCmp));
-    
-    //try to resolve the ifcmp's jump target
-    OPT_BasicBlock targetBB = resolveJumpTarget(instruction.pc, instruction.lazyStateAtJump);
-    
-    //Fix up the instruction
-    IfCmp.setTarget(ifCmp, targetBB.makeJumpTarget());
-    ifCmp.getBasicBlock().insertOut(targetBB);
-  }
-
-  /**
    * Create a HIR Goto instruction that jumps to the address <code>targetPc</code>. There's
    * a caveat on using this that there are no other out edges for this BB.
    * 
@@ -588,27 +524,50 @@ public abstract class AbstractCodeTranslator implements OPT_Constants, OPT_Opera
    *  The address where we shall jump to.
    * @param targetLaziness
    *  The current at the point of jump.
+   * @param branchType
+   *  The type of branch that best describes this jump.
    */
-  public void appendGoto(int targetPC, Laziness targetLaziness) {
+  public void appendGoto(int targetPC, Laziness targetLaziness, BranchType branchType) {
     
-    OPT_Instruction jump;
+    //see if we already compiled the target address
     OPT_BasicBlock target = findMapping(targetPC, targetLaziness);
     
+    //if yes, just jump directly to it
     if (target != null) { 
       
       if (DBT_Options.debugBranchResolution) 
         System.out.println(String.format("Found precompiled mapping for pc 0x%x: %s", targetPC, target));
       
-      jump = Goto.create(GOTO, target.makeJumpTarget());
+      OPT_Instruction jump = Goto.create(GOTO, target.makeJumpTarget());
       getCurrentBlock().insertOut(target);
+      appendInstruction(jump);
     }
     else {
-      jump = Goto.create(GOTO, null);
-      UnresolvedJumpInstruction unresolvedJump = new UnresolvedJumpInstruction(jump, (Laziness)targetLaziness.clone(), targetPC);
-      unresolvedGoto.add(unresolvedJump);
+      //otherwise, we have to decide whether to compile that address into the trace or to compile
+      //it as a separate trace. We use the branchType hint for that...
+      
+      switch (branchType) {
+      case CALL:
+        //exit the trace on a call
+        ps.branchInfo.registerCall(currentPC, targetPC);
+        setReturnValueResolveLazinessAndBranchToFinish(targetLaziness, new OPT_IntConstantOperand(targetPC));
+        break;
+        
+      case RETURN:
+        //exit the trace
+        ps.branchInfo.registerReturn(currentPC, targetPC);
+        setReturnValueResolveLazinessAndBranchToFinish(targetLaziness, new OPT_IntConstantOperand(targetPC));
+        break;
+
+      default:
+        //compile the jump directly into the trace.
+        OPT_Instruction jump = Goto.create(GOTO, null);
+        UnresolvedJumpInstruction unresolvedJump = new UnresolvedJumpInstruction(jump, (Laziness)targetLaziness.clone(), targetPC);
+        unresolvedGoto.add(unresolvedJump);
+      }
     }
     
-    appendInstruction(jump);
+    
   }
 
   /** Resolve a single goto instruction */

@@ -11703,9 +11703,9 @@ final class bc_decoder extends PPC_InstructionDecoder {
           BI, !branch_if_cond_true, likely_to_fallthrough);
     }
 
-    if ((LK == 0) || (ppc2ir.traceContinuesAfterBranchAndLink(pc))) {
+    if ((LK == 0) || ppc2ir.traceContinuesAfterBranchAndLink(pc)) {
       // Plant branch block
-      ppc2ir.appendGoto(target_address, lazy);
+      ppc2ir.appendGoto(target_address, lazy, LK != 0 ? BranchType.CALL : BranchType.DIRECT_BRANCH);
       
       // stop translation on branch always
       if (BO == 0x14) {
@@ -11724,15 +11724,14 @@ final class bc_decoder extends PPC_InstructionDecoder {
           ppc2ir.setCurrentBlock(instructionEndBlock);
           ppc2ir.setNextBlock(ppc2ir.createBlockAfterCurrent());
 
-          ppc2ir.appendGoto(pc + 4, lazy);
+          ppc2ir.appendGoto(pc + 4, lazy, BranchType.DIRECT_BRANCH);
           return target_address;
         }
       }
     } else {
       // This was a branch and link and the trace should stop, so end
       // gracefully
-      ppc2ir.setReturnValueResolveLazinessAndBranchToFinish((PPC_Laziness) lazy
-          .clone(), new OPT_IntConstantOperand(target_address));
+      ppc2ir.appendGoto(target_address, lazy, BranchType.CALL);
       return -1;
     }
   }

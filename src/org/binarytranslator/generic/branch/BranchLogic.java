@@ -23,6 +23,8 @@ public class BranchLogic {
   
   public enum BranchType {
     INDIRECT_BRANCH,
+    DIRECT_BRANCH,
+    CALL,
     RETURN
   }
 
@@ -56,12 +58,12 @@ public class BranchLogic {
    * 
    * @param pc
    *  the address of the branch instruction
-   * @param ret
-   *  the address that will be returned to
    * @param dest
    *  the destination of the branch instruction
+   * @param ret
+   *  the address that will be returned to
    */
-  public void registerCall(int pc, int ret, int dest) {
+  public void registerCall(int pc, int dest, int ret) {
     ProcedureInformation procedure = procedures.get(dest);
     
     if (procedure != null) {
@@ -70,6 +72,18 @@ public class BranchLogic {
       procedure = new ProcedureInformation(pc, ret, dest);
       procedures.put(dest, procedure);
     }
+  }
+  
+  /**
+   * Register a call (branch and link) instruction
+   * 
+   * @param pc
+   *  the address of the branch instruction
+   * @param dest
+   *  the destination of the branch instruction
+   */
+  public void registerCall(int pc, int dest) {
+    registerCall(pc, dest, -1);
   }
 
   /**
@@ -120,6 +134,21 @@ public class BranchLogic {
     
     if (DBT.VerifyAssertions) DBT._assert(type > 0 && type < BranchType.values().length);
     
+    //Some branch types require a special registration (calls and returns)
+    switch (BranchType.values()[type]) {
+      case CALL:
+        registerCall(origin, target);
+        break;
+        
+      case RETURN:
+        registerReturn(origin, target);
+        break;
+        
+      default:
+        break;
+    }
+    
+    //Perform the general branch registration, too
     Set<Integer> dests = branchSitesAndDestinations.get(origin);
     
     if (dests != null && dests.contains(target)) {

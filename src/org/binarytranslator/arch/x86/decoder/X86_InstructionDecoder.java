@@ -11,6 +11,7 @@ package org.binarytranslator.arch.x86.decoder;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
+import org.binarytranslator.generic.branch.BranchLogic.BranchType;
 import org.binarytranslator.generic.decoder.InstructionDecoder;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.generic.fault.BadInstructionException;
@@ -3646,9 +3647,9 @@ class X86_Call_OpcodeDecoder extends X86_OpcodeDecoder {
     translationHelper.appendInstruction(Move.create(INT_MOVE,
         temp, new OPT_IntConstantOperand(pc + length)));
     stack.writeValue(translationHelper, lazy, temp.copyRO());
+    
     // Branch
-    translationHelper.setReturnValueResolveLazinessAndBranchToFinish(
-        (X86_Laziness) lazy.clone(), destOp.copyRO());
+    translationHelper.appendDynamicJump(destOp.copyRO(), lazy, BranchType.CALL);
     return -1;
   }
 
@@ -3917,7 +3918,8 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
       X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
     // The destination for the branch
     int target_address = pc + length + immediate;
-    // Find a pre-translated version
+
+    OPT_BasicBlock executeBranch = translationHelper.createBlockAfterCurrent();
     OPT_BasicBlock fallThrough = translationHelper.createBlockAfterCurrent();
     boolean branchLikely;
     if (prefix2 != null) {
@@ -4027,11 +4029,14 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
               .getConditionalBranchProfileOperand(false));
     }
     translationHelper.appendInstruction(boolcmp);
-    translationHelper.appendIfCmp(INT_IFCMP, translationHelper
-        .getTempValidation(0), temp.copyRO(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), target_address, lazy, likelyOp);
+    translationHelper.appendInstruction(IfCmp.create(INT_IFCMP, translationHelper.getTempValidation(0), temp.copyRO(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), executeBranch.makeJumpTarget(), likelyOp));
     
     OPT_Instruction gotoInstr = Goto.create(GOTO, fallThrough.makeJumpTarget());
     translationHelper.appendInstruction(gotoInstr);
+    
+    translationHelper.setCurrentBlock(executeBranch);
+    translationHelper.appendGoto(target_address, lazy, BranchType.DIRECT_BRANCH);
+    
     translationHelper.setCurrentBlock(fallThrough);
     return pc + length;
   }
@@ -4164,7 +4169,7 @@ class X86_Jmp_OpcodeDecoder extends X86_OpcodeDecoder {
     if (modrm == null) {
       target_address = absolute ? immediate : pc + length + immediate;
       translationHelper.getCurrentBlock().deleteNormalOut();
-      translationHelper.appendGoto(target_address, lazy);
+      translationHelper.appendGoto(target_address, lazy, BranchType.DIRECT_BRANCH);
     } else {
       int operandSize;
       if (prefix3 == null) {
