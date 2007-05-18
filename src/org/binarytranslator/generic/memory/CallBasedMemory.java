@@ -9,6 +9,7 @@
 package org.binarytranslator.generic.memory;
 
 import org.binarytranslator.DBT;
+import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
@@ -118,39 +119,42 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    */
   protected CallBasedMemory(Class memoryClass) {
     //Debug initializations to run this stuff on SUN
-    /*memoryType = null;
-    loadS8 = loadU8 = loadS16 = loadU16 = load32 = null;
-    store8 = store16 = store32 = null;*/
     
-
+    if (DBT_Options.buildForSunVM) {
+      memoryType = null;
+      loadS8 = loadU8 = loadS16 = loadU16 = load32 = null;
+      store8 = store16 = store32 = null;
+    }
+    else {
     memoryType = VM_TypeReference.findOrCreate(memoryClass);
-    VM_Atom storeDescriptor = VM_Atom.findOrCreateAsciiAtom("(II)V");
-    store8 = VM_MemberReference.findOrCreate(memoryType,
-        VM_Atom.findOrCreateAsciiAtom("store8"), storeDescriptor)
-        .asMethodReference().resolve();
-    store16 = VM_MemberReference.findOrCreate(memoryType,
-        VM_Atom.findOrCreateAsciiAtom("store16"), storeDescriptor)
-        .asMethodReference().resolve();
-    store32 = VM_MemberReference.findOrCreate(memoryType,
-        VM_Atom.findOrCreateAsciiAtom("store32"), storeDescriptor)
-        .asMethodReference().resolve();
+      VM_Atom storeDescriptor = VM_Atom.findOrCreateAsciiAtom("(II)V");
+      store8 = VM_MemberReference.findOrCreate(memoryType,
+          VM_Atom.findOrCreateAsciiAtom("store8"), storeDescriptor)
+          .asMethodReference().resolve();
+      store16 = VM_MemberReference.findOrCreate(memoryType,
+          VM_Atom.findOrCreateAsciiAtom("store16"), storeDescriptor)
+          .asMethodReference().resolve();
+      store32 = VM_MemberReference.findOrCreate(memoryType,
+          VM_Atom.findOrCreateAsciiAtom("store32"), storeDescriptor)
+          .asMethodReference().resolve();
 
-    VM_Atom loadDescriptor = VM_Atom.findOrCreateAsciiAtom("(I)I");
-    loadS8 = VM_MemberReference.findOrCreate(memoryType,
-        VM_Atom.findOrCreateAsciiAtom("loadSigned8"), loadDescriptor)
-        .asMethodReference().resolve();
-    loadU8 = VM_MemberReference.findOrCreate(memoryType,
-        VM_Atom.findOrCreateAsciiAtom("loadUnsigned8"), loadDescriptor)
-        .asMethodReference().resolve();
-    loadS16 = VM_MemberReference.findOrCreate(memoryType,
-        VM_Atom.findOrCreateAsciiAtom("loadSigned16"), loadDescriptor)
-        .asMethodReference().resolve();
-    loadU16 = VM_MemberReference.findOrCreate(memoryType,
-        VM_Atom.findOrCreateAsciiAtom("loadUnsigned16"), loadDescriptor)
-        .asMethodReference().resolve();
-    load32 = VM_MemberReference.findOrCreate(memoryType,
-        VM_Atom.findOrCreateAsciiAtom("load32"), loadDescriptor)
-        .asMethodReference().resolve();
+      VM_Atom loadDescriptor = VM_Atom.findOrCreateAsciiAtom("(I)I");
+      loadS8 = VM_MemberReference.findOrCreate(memoryType,
+          VM_Atom.findOrCreateAsciiAtom("loadSigned8"), loadDescriptor)
+          .asMethodReference().resolve();
+      loadU8 = VM_MemberReference.findOrCreate(memoryType,
+          VM_Atom.findOrCreateAsciiAtom("loadUnsigned8"), loadDescriptor)
+          .asMethodReference().resolve();
+      loadS16 = VM_MemberReference.findOrCreate(memoryType,
+          VM_Atom.findOrCreateAsciiAtom("loadSigned16"), loadDescriptor)
+          .asMethodReference().resolve();
+      loadU16 = VM_MemberReference.findOrCreate(memoryType,
+          VM_Atom.findOrCreateAsciiAtom("loadUnsigned16"), loadDescriptor)
+          .asMethodReference().resolve();
+      load32 = VM_MemberReference.findOrCreate(memoryType,
+          VM_Atom.findOrCreateAsciiAtom("load32"), loadDescriptor)
+          .asMethodReference().resolve();
+    }
   }
 
   /**

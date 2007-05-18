@@ -19,7 +19,6 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.BadInstructionException;
-import org.binarytranslator.arch.ppc.decoder.PPC_InstructionDecoder;
 import org.binarytranslator.arch.x86.os.process.linux.X86_LinuxProcessSpace;
 import org.binarytranslator.arch.x86.decoder.X862IR;
 import org.binarytranslator.arch.x86.decoder.X86_InstructionDecoder;
@@ -150,8 +149,8 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
    * @param context the generation context for the HIR generation
    * @return a HIR generator
    */
-  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
-    return new X862IR(context);
+  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context, DBT_Trace trace) {
+    return new X862IR(context, trace);
   }
 
   /**

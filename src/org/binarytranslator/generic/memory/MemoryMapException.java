@@ -8,8 +8,6 @@
  */
 package org.binarytranslator.generic.memory;
 
-import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
-
 /**
  * Captures exceptions that can occur during memory mangement
  */

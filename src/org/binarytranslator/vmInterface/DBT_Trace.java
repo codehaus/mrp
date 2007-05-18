@@ -8,12 +8,16 @@
  */
 package org.binarytranslator.vmInterface;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DummyDynamicCodeRunner;
 import org.binarytranslator.DBT;
 import org.jikesrvm.compilers.common.VM_CompiledMethod;
 import org.jikesrvm.compilers.common.VM_CompiledMethods;
+import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_NormalMethod;
 import org.jikesrvm.classloader.VM_Class;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -79,14 +83,11 @@ public final class DBT_Trace extends VM_NormalMethod {
   public static final int MEMORY_ULOAD8 = 0xFB1C;
 
   public static final int MEMORY_ULOAD16 = 0xFB1D;
+  
+  /** Bytecode index starting from which custom call bytecode indexes will be distributed.*/
+  public static final int CUSTOM_CALL_BCINDEX_BASE = 0x8000; 
 
-  /*
-   * Unique features of a trace
-   */
-
-  /**
-   * The ProcessSpace within which we are running.
-   */
+  /** The ProcessSpace within which we are running. */
   public final ProcessSpace ps;
 
   /**
@@ -94,6 +95,25 @@ public final class DBT_Trace extends VM_NormalMethod {
    * compilation) this might not be the same as ps.pc.
    */
   public final int pc;
+  
+  /** 
+   * In order to allow arbitrary calls within a trace, we have to store at which bytecode index
+   * a method is called in which way. This class stores the necessary information. */
+  private class CustomCallInformation {
+    public final VM_MethodReference methodRef;
+    public final int callType;
+    
+    public CustomCallInformation(VM_MethodReference methodRef, int callType) {
+      this.methodRef = methodRef;
+      this.callType = callType;
+    }
+  }
+  
+  /** 
+   * This list stores at which bytecode index a specific method call is executed. 
+   * The index of an element plus {@link #CUSTOM_CALL_BCINDEX_BASE} equals the bytecode index
+   * for the call.*/
+  private List<CustomCallInformation> customCalls = new ArrayList<CustomCallInformation>();
 
   /**
    * Create an optimizing compiler HIR code generator for this trace
@@ -103,7 +123,7 @@ public final class DBT_Trace extends VM_NormalMethod {
    * @return a HIR generator
    */
   public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
-    return ps.createHIRGenerator(context);
+    return ps.createHIRGenerator(context, this);
   }
 
   /**
@@ -209,6 +229,31 @@ public final class DBT_Trace extends VM_NormalMethod {
   public int getLineNumberForBCIndex(int bci) {
     return bci;
   }
+  
+  /**
+   * Register that the function at bytecode index <code>bcIndex</code> calls the method <code>methodRef</code>
+   * with a type of <code>callType</code>.
+   * @param bcIndex
+   *  The bytecode index of the call instruction.
+   * @param methodRef
+   *  A reference to the called method.
+   * @param callType
+   *  The type of the call. This must be one of JBC_invoke*.
+   * @return
+   *  The bytecode index for this call
+   */
+  public int registerDynamicLink(VM_MethodReference methodRef, int callType) {
+    if (DBT.VerifyAssertions) 
+      DBT._assert(callType == JBC_invokeinterface || callType == JBC_invokespecial || 
+                  callType == JBC_invokestatic ||  callType == JBC_invokevirtual);
+    
+    int nextBcIndex = customCalls.size();
+    
+    CustomCallInformation mapping = new CustomCallInformation(methodRef, callType);
+    customCalls.add(mapping);
+    
+    return CUSTOM_CALL_BCINDEX_BASE + nextBcIndex;
+  }
 
   /**
    * Fill in DynamicLink object for the invoke at the given bytecode index
@@ -247,8 +292,16 @@ public final class DBT_Trace extends VM_NormalMethod {
       dynamicLink.set(ps.memory.getMethodRef(bcIndex), JBC_invokevirtual);
       break;
     default:
-      DBT.write(bcIndex);
-      DBT.fail("Trying to dynamic link inside a DBT trace for an unknown dynamic link location");
+      //check if a custom call has been registered for this bytecode index.
+      int callIdx = bcIndex - CUSTOM_CALL_BCINDEX_BASE;
+    
+      if (callIdx < 0 || callIdx >= customCalls.size()) {
+        DBT.write(bcIndex);
+        DBT.fail("Trying to dynamic link inside a DBT trace for an unknown dynamic link location");
+      }
+      
+      CustomCallInformation call = customCalls.get(callIdx);
+      dynamicLink.set(call.methodRef, call.callType);
     }
   }
 

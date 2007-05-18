@@ -10,11 +10,15 @@ package org.binarytranslator;
 
 import java.io.File;
 
-import org.binarytranslator.arch.arm.decoder.Utils;
 import org.binarytranslator.generic.execution.DynamicTranslationController;
 import org.binarytranslator.generic.execution.ExecutionController;
 import org.binarytranslator.generic.execution.GdbController;
 import org.binarytranslator.generic.execution.InterpreterController;
+import org.binarytranslator.generic.execution.ThreadedInterpretationController;
+import org.binarytranslator.generic.execution.ThreadedInterpretationController2;
+import org.binarytranslator.generic.execution.ThreadedInterpretationController3;
+import org.binarytranslator.generic.execution.ThreadedInterpretationController4;
+import org.binarytranslator.generic.execution.ThreadedInterpretationController5;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -98,15 +102,18 @@ public class Main {
     //Create an execution controller and pass execution on to it
     ExecutionController controller;
     
-    if (DBT_Options.gdbStub) {
-      controller = new GdbController(DBT_Options.gdbStubPort, ps);
+    if (DBT_Options.buildForSunVM) {
+      controller = new InterpreterController(ps);
     }
     else {
-      controller = new DynamicTranslationController(ps);
+      if (DBT_Options.gdbStub) {
+        controller = new GdbController(DBT_Options.gdbStubPort, ps);
+      }
+      else {
+        controller = new DynamicTranslationController(ps);
+      }
     }
     
-    
-    //controller = new InterpreterController(ps);
     controller.run();
     System.out.println("\nProgram has finished.");
   }

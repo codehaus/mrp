@@ -17,6 +17,7 @@ import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
+import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_FieldReference;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -253,8 +254,8 @@ public final class PPC2IR extends AbstractCodeTranslator implements OPT_HIRGener
    * Construct the PPC2IR object for the generation context; then we'll be ready
    * to start generating the HIR.
    */
-  public PPC2IR(OPT_GenerationContext context) {
-    super(context);
+  public PPC2IR(OPT_GenerationContext context, DBT_Trace trace) {
+    super(context, trace);
     // Create register maps PPC -> OPT_Register
     intRegMap = new OPT_Register[32];
     intRegInUseMap = new boolean[32];

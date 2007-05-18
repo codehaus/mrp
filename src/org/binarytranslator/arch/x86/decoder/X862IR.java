@@ -16,6 +16,7 @@ import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
+import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_BootstrapClassLoader;
 import org.jikesrvm.classloader.VM_FieldReference;
@@ -100,8 +101,8 @@ public class X862IR extends AbstractCodeTranslator implements OPT_HIRGenerator,
   /**
    * Constructor
    */
-  public X862IR(OPT_GenerationContext context) {
-    super(context);
+  public X862IR(OPT_GenerationContext context, DBT_Trace trace) {
+    super(context, trace);
 
     // Create the registers
     SegReg = new OPT_Register[6];
@@ -147,7 +148,7 @@ public class X862IR extends AbstractCodeTranslator implements OPT_HIRGenerator,
     appendInstruction(Binary.create(INT_ADD, esp, esp.copyRO(), new OPT_IntConstantOperand(4)));
     
     // Branch
-    setReturnValueResolveLazinessAndBranchToFinish((X86_Laziness) lazy.clone(), temp.copyRO());
+    appendTraceExit((X86_Laziness) lazy.clone(), temp.copyRO());
     return -1;  
   }
   

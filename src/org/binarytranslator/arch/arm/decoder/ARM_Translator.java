@@ -889,16 +889,16 @@ public class ARM_Translator implements OPT_Operators {
         } 
         else {
           OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
-          arm2ir.appendInstruction(s);
+          arm2ir.appendCustomCall(s);
         }
       }
       
       if (Rd == 15) {
         
         if (updateConditionCodes)
-          arm2ir.appendDynamicJump(result, lazy, BranchType.INDIRECT_BRANCH);
+          arm2ir.appendBranch(result, lazy, BranchType.INDIRECT_BRANCH);
         else 
-          arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, result);
+          arm2ir.appendTraceExit(lazy, result);
       }
       else {
         arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(Rd), result) );
@@ -941,16 +941,15 @@ public class ARM_Translator implements OPT_Operators {
         } 
         else {
           OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
-          arm2ir.appendInstruction(s);
+          arm2ir.appendCustomCall(s);
         }
       }
 
       if (Rd == 15) {
-        
         if (updateConditionCodes)
-          arm2ir.appendDynamicJump(result, lazy, BranchType.INDIRECT_BRANCH);
+          arm2ir.appendBranch(result, lazy, BranchType.INDIRECT_BRANCH);
         else 
-          arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, result);
+          arm2ir.appendTraceExit(lazy, result);
       }
       else {
         arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(Rd), result) );
@@ -968,9 +967,9 @@ public class ARM_Translator implements OPT_Operators {
      */
     protected final void setSubFlags(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
       //set the carry flag to not(Borrow)
+      OPT_ConditionOperand notBorrowFromSub = OPT_ConditionOperand.BORROW_FROM_SUB().flipCode();
       arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getCarryFlag(), lhs, rhs, OPT_ConditionOperand.BORROW_FROM_SUB(), new OPT_BranchProfileOperand()));
-      arm2ir.appendInstruction(Unary.create(BOOLEAN_NOT, arm2ir.getCarryFlag(), arm2ir.getCarryFlag()));
+          BOOLEAN_CMP_INT, arm2ir.getCarryFlag(), lhs, rhs, notBorrowFromSub, new OPT_BranchProfileOperand()));
       
       //set the overflow flag
       arm2ir.appendInstruction(BooleanCmp.create(
@@ -1021,15 +1020,13 @@ public class ARM_Translator implements OPT_Operators {
           setLogicalFlags(result);          
         } else {
           OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
-          arm2ir.appendInstruction(s);
+          arm2ir.appendCustomCall(s);
         }
       }
       
-      
-      
       if (Rd == 15) {
         if (updateConditionCodes) {
-          arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, result);
+          arm2ir.appendTraceExit(lazy, result);
         }
         else {
           BranchType branchType = BranchType.INDIRECT_BRANCH;
@@ -1038,7 +1035,7 @@ public class ARM_Translator implements OPT_Operators {
           if (opcode == Opcode.MOV && operand2.getType() == OperandWrapper.Type.Register && operand2.getRegister() == ARM_Registers.LR)
             branchType = BranchType.RETURN;
           
-          arm2ir.appendDynamicJump(result, lazy, branchType);
+          arm2ir.appendBranch(result, lazy, branchType);
         }
       }
       else {
@@ -1284,6 +1281,7 @@ public class ARM_Translator implements OPT_Operators {
       OPT_Operand operand1 = resolveOperand1();
       OPT_Operand operand2 = resolveOperand2();
       OPT_RegisterOperand result = arm2ir.getTempInt(0);
+      
       arm2ir.appendInstruction(Binary.create(INT_SUB, result, operand1, operand2));      
       setSubFlags(result, operand1, operand2);
     }
@@ -1302,6 +1300,7 @@ public class ARM_Translator implements OPT_Operators {
       OPT_Operand operand1 = resolveOperand1();
       OPT_Operand operand2 = resolveOperand2();
       OPT_RegisterOperand result = arm2ir.getTempInt(0);
+      
       arm2ir.appendInstruction(Binary.create(INT_ADD, result, operand1, operand2));      
       setAddFlags(result, operand1, operand2);
     }
@@ -1358,6 +1357,7 @@ public class ARM_Translator implements OPT_Operators {
       OPT_RegisterOperand result = getResultRegister();
       
       OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
+
       arm2ir.appendInstruction(Unary.create(INT_NOT, tmp, operand2));
       arm2ir.appendInstruction(Binary.create(INT_AND, result, operand1, tmp));
       setLogicalResult(result);
@@ -1494,7 +1494,7 @@ public class ARM_Translator implements OPT_Operators {
       //This instruction gets very complex when forceUser is set, which is why we are interpreting that special and rare instruction
       if (forceUser) {
         arm2ir.appendInterpretedInstruction(pc, lazy);
-        arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, arm2ir.getRegister(ARM_Registers.PC));
+        arm2ir.appendTraceExit(lazy, arm2ir.getRegister(ARM_Registers.PC));
         
         return;
       }
@@ -1571,7 +1571,7 @@ public class ARM_Translator implements OPT_Operators {
           switchToThumbBlock.insertOut(finishInstruction);
           OPT_Instruction call_setThumbMode = createCallToRegisters("setThumbMode", "(Z)V", 1);
           Call.setParam(call_setThumbMode, 1, new OPT_IntConstantOperand(1));
-          arm2ir.appendInstruction(call_setThumbMode);
+          arm2ir.appendCustomCall(call_setThumbMode);
           arm2ir.appendInstruction(Goto.create(GOTO, finishInstruction.makeJumpTarget()));
 
           //No, don't switch to thumb mode
@@ -1580,12 +1580,12 @@ public class ARM_Translator implements OPT_Operators {
           arm2ir.appendInstruction(Binary.create(INT_AND, regPC, regPC, new OPT_IntConstantOperand(0xFFFFFFFE)));
           OPT_Instruction call_setArmMode = createCallToRegisters("setThumbMode", "(Z)V", 1);
           Call.setParam(call_setArmMode, 1, new OPT_IntConstantOperand(0));
-          arm2ir.appendInstruction(call_setArmMode);
+          arm2ir.appendCustomCall(call_setArmMode);
           arm2ir.appendInstruction(Goto.create(GOTO, finishInstruction.makeJumpTarget()));
           
           //according to the APCS, these types of instructions are usually function returns
           arm2ir.setCurrentBlock(finishInstruction);
-          arm2ir.appendDynamicJump(regPC, lazy, BranchType.RETURN);
+          arm2ir.appendBranch(regPC, lazy, BranchType.RETURN);
           return;
         }
       } else {
@@ -1658,9 +1658,12 @@ public class ARM_Translator implements OPT_Operators {
       if (link) {        
         arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + 4)));
       }
+      else {
+        //we should never be returning from the goto
+        arm2ir.getCurrentBlock().deleteNormalOut();
+      }
       
-      arm2ir.getCurrentBlock().deleteNormalOut();
-      arm2ir.appendGoto(pc + getOffset() + 8, lazy, link ? BranchType.CALL : BranchType.DIRECT_BRANCH);
+      arm2ir.appendBranch(pc + getOffset() + 8, lazy, link ? BranchType.CALL : BranchType.DIRECT_BRANCH);
     }
 
     public int getSuccessor(int pc) {
@@ -1718,11 +1721,11 @@ public class ARM_Translator implements OPT_Operators {
       //set the correct processor mode (thumb or not)
       OPT_Instruction s = createCallToRegisters("setThumbMode", "(Z)V", 1);
       Call.setParam(s, 1, enableThumb);
-      arm2ir.appendInstruction(s);
+      arm2ir.appendCustomCall(s);
       
       //jump to the target address. Because we might have switched to thumb mode, we are
       //ending the trace with this method
-      arm2ir.setReturnValueResolveLazinessAndBranchToFinish(lazy, targetAddress);
+      arm2ir.appendTraceExit(lazy, targetAddress);
     }
 
     public int getSuccessor(int pc) {
@@ -1856,7 +1859,7 @@ public class ARM_Translator implements OPT_Operators {
       }
       
       Call.setResult(call, psrValue);
-      arm2ir.appendInstruction(call);
+      arm2ir.appendCustomCall(call);
     }
 
     public int getSuccessor(int pc) {
@@ -1892,7 +1895,7 @@ public class ARM_Translator implements OPT_Operators {
 
     public void translate() {
       arm2ir.appendSystemCall(lazy, pc);
-      arm2ir.appendDynamicJump(arm2ir.getRegister(ARM_Registers.PC), lazy, BranchType.INDIRECT_BRANCH);
+      arm2ir.appendBranch(arm2ir.getRegister(ARM_Registers.PC), lazy, BranchType.INDIRECT_BRANCH);
     }
 
     public int getSuccessor(int pc) {
@@ -1957,12 +1960,12 @@ public class ARM_Translator implements OPT_Operators {
         currentOperatingMode = arm2ir.getTempOperatingMode();
         
         Call.setResult(call_getOperatingMode, currentOperatingMode);
-        arm2ir.appendInstruction(call_getOperatingMode);
+        arm2ir.appendCustomCall(call_getOperatingMode);
         
         OPT_Instruction call_setOperatingModeWithoutRegisterLayout = createCallToRegisters("setOperatingModeWithoutRegisterLayout", "(A)", 1);
         Call.setParam(call_setOperatingModeWithoutRegisterLayout, 1, arm2ir.getTempOperatingMode(OperatingMode.USR));
         
-        arm2ir.appendInstruction(call_setOperatingModeWithoutRegisterLayout);
+        arm2ir.appendCustomCall(call_setOperatingModeWithoutRegisterLayout);
       }
 
       //get the address of the memory, that we're supposed access
@@ -2040,7 +2043,7 @@ public class ARM_Translator implements OPT_Operators {
       if (forceUserMode) {
         OPT_Instruction call_setOperatingModeWithoutRegisterLayout = createCallToRegisters("setOperatingModeWithoutRegisterLayout", "(A)", 1);
         Call.setParam(call_setOperatingModeWithoutRegisterLayout, 1, currentOperatingMode);
-        arm2ir.appendInstruction(call_setOperatingModeWithoutRegisterLayout);        
+        arm2ir.appendCustomCall(call_setOperatingModeWithoutRegisterLayout);        
       }      
 
       //should the memory address, which we accessed, be written back into a register? 
@@ -2060,7 +2063,7 @@ public class ARM_Translator implements OPT_Operators {
       
       if (isLoad && Rd == ARM_Registers.PC) {
         //we are actually loading to the program counter here
-        arm2ir.appendDynamicJump(arm2ir.getRegister(Rd), lazy, BranchType.INDIRECT_BRANCH);
+        arm2ir.appendBranch(arm2ir.getRegister(Rd), lazy, BranchType.INDIRECT_BRANCH);
       }
     }
 

@@ -15,10 +15,12 @@ import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.generic.branch.BranchLogic;
+import org.binarytranslator.generic.decoder.CodeCache;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.vmmagic.pragma.Uninterruptible;
@@ -29,15 +31,14 @@ import org.vmmagic.pragma.Uninterruptible;
  */
 public abstract class ProcessSpace {
 
-  /**
-   * A record of branches to guide translation
-   */
+  /** A record of branches to guide translation */
   public final BranchLogic branchInfo;
 
-  /**
-   * Has a system call been called to terminate the process
-   */
+  /** Has a system call been called to terminate the process? */
   public boolean finished = false;
+  
+  /** A cache of code traces within this process space. */
+  public final CodeCache codeCache;
 
   /**
    * The memory for the process. As this is user mode code, it is a virtual
@@ -64,11 +65,12 @@ public abstract class ProcessSpace {
    * 
    * @param context
    *          the generation context for the HIR generation
+   * @param trace 
    * @return a HIR generator
    */
 
   public abstract OPT_HIRGenerator createHIRGenerator(
-      OPT_GenerationContext context);
+      OPT_GenerationContext context, DBT_Trace trace);
 
   /**
    * Given an ELF binary loader, create the appropriate process space
@@ -121,6 +123,7 @@ public abstract class ProcessSpace {
    */
   protected ProcessSpace() {
     branchInfo = new BranchLogic();
+    codeCache = new CodeCache();
   }
   
   /** Returns an instance of {@link Interpreter} that can be used to interpret instructions

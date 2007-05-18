@@ -4026,7 +4026,7 @@ final class bclr_decoder extends PPC_InstructionDecoder {
       branchAddress = ppc2ir.getLRRegister();
     }
     
-    ppc2ir.appendDynamicJump(branchAddress, lazy, BranchLogic.BranchType.RETURN);
+    ppc2ir.appendBranch(branchAddress, lazy, BranchLogic.BranchType.RETURN);
 
     // stop translation on branch always
     if (BO == 0x14) {
@@ -4672,7 +4672,7 @@ final class bcctr_decoder extends PPC_InstructionDecoder {
     }
     
     OPT_RegisterOperand branchAddress = ppc2ir.getCTRRegister();
-    ppc2ir.appendDynamicJump(branchAddress, lazy, BranchType.INDIRECT_BRANCH);
+    ppc2ir.appendBranch(branchAddress, lazy, BranchType.INDIRECT_BRANCH);
 
 
     // stop translation on branch always
@@ -11705,7 +11705,7 @@ final class bc_decoder extends PPC_InstructionDecoder {
 
     if ((LK == 0) || ppc2ir.traceContinuesAfterBranchAndLink(pc)) {
       // Plant branch block
-      ppc2ir.appendGoto(target_address, lazy, LK != 0 ? BranchType.CALL : BranchType.DIRECT_BRANCH);
+      ppc2ir.appendBranch(target_address, lazy, LK != 0 ? BranchType.CALL : BranchType.DIRECT_BRANCH);
       
       // stop translation on branch always
       if (BO == 0x14) {
@@ -11724,14 +11724,14 @@ final class bc_decoder extends PPC_InstructionDecoder {
           ppc2ir.setCurrentBlock(instructionEndBlock);
           ppc2ir.setNextBlock(ppc2ir.createBlockAfterCurrent());
 
-          ppc2ir.appendGoto(pc + 4, lazy, BranchType.DIRECT_BRANCH);
+          ppc2ir.appendBranch(pc + 4, lazy, BranchType.DIRECT_BRANCH);
           return target_address;
         }
       }
     } else {
       // This was a branch and link and the trace should stop, so end
       // gracefully
-      ppc2ir.appendGoto(target_address, lazy, BranchType.CALL);
+      ppc2ir.appendBranch(target_address, lazy, BranchType.CALL);
       return -1;
     }
   }
@@ -11804,7 +11804,7 @@ final class b_decoder extends PPC_InstructionDecoder {
       if (ppc2ir.traceContinuesAfterBranchAndLink(pc)) {
         return target_addr;
       } else {
-        ppc2ir.setReturnValueResolveLazinessAndBranchToFinish(
+        ppc2ir.appendTraceExit(
             (PPC_Laziness) lazy.clone(),
             new OPT_IntConstantOperand(target_addr));
         return -1;

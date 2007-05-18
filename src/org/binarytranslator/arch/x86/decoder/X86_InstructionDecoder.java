@@ -3649,7 +3649,7 @@ class X86_Call_OpcodeDecoder extends X86_OpcodeDecoder {
     stack.writeValue(translationHelper, lazy, temp.copyRO());
     
     // Branch
-    translationHelper.appendDynamicJump(destOp.copyRO(), lazy, BranchType.CALL);
+    translationHelper.appendBranch(destOp.copyRO(), lazy, BranchType.CALL);
     return -1;
   }
 
@@ -3770,7 +3770,7 @@ class X86_Ret_OpcodeDecoder extends X86_OpcodeDecoder {
     translationHelper.appendInstruction(Binary.create(INT_ADD,
         esp, esp.copyRO(), new OPT_IntConstantOperand(4 + immediate)));
     // Branch
-    translationHelper.setReturnValueResolveLazinessAndBranchToFinish(
+    translationHelper.appendTraceExit(
         (X86_Laziness) lazy.clone(), temp.copyRO());
     return -1;
   }
@@ -4035,7 +4035,7 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
     translationHelper.appendInstruction(gotoInstr);
     
     translationHelper.setCurrentBlock(executeBranch);
-    translationHelper.appendGoto(target_address, lazy, BranchType.DIRECT_BRANCH);
+    translationHelper.appendBranch(target_address, lazy, BranchType.DIRECT_BRANCH);
     
     translationHelper.setCurrentBlock(fallThrough);
     return pc + length;
@@ -4169,7 +4169,7 @@ class X86_Jmp_OpcodeDecoder extends X86_OpcodeDecoder {
     if (modrm == null) {
       target_address = absolute ? immediate : pc + length + immediate;
       translationHelper.getCurrentBlock().deleteNormalOut();
-      translationHelper.appendGoto(target_address, lazy, BranchType.DIRECT_BRANCH);
+      translationHelper.appendBranch(target_address, lazy, BranchType.DIRECT_BRANCH);
     } else {
       int operandSize;
       if (prefix3 == null) {
@@ -4210,7 +4210,7 @@ class X86_Jmp_OpcodeDecoder extends X86_OpcodeDecoder {
        * ppc2ir.setCurrentBlock(fallThrough);
        * ppc2ir.plantRecordUncaughtBcctr(pc, branchAddress.copyRO());
        */
-      translationHelper.setReturnValueResolveLazinessAndBranchToFinish(
+      translationHelper.appendTraceExit(
           (X86_Laziness) lazy.clone(), branchAddress.copyRO());
     }
     return -1;

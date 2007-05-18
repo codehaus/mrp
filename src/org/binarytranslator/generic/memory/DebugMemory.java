@@ -11,9 +11,8 @@ package org.binarytranslator.generic.memory;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
-import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
-import org.binarytranslator.vmInterface.TranslationHelper;
+import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.jikesrvm.compilers.opt.ir.OPT_Operand;
 import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
 
@@ -545,7 +544,7 @@ public class DebugMemory extends Memory {
   }
 
   @Override
-  public void initTranslate(TranslationHelper helper) {
+  public void initTranslate(AbstractCodeTranslator helper) {
     throw new UnsupportedOperationException();
   }
 

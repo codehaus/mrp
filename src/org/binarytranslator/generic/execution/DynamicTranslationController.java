@@ -1,7 +1,5 @@
 package org.binarytranslator.generic.execution;
 
-import java.util.Hashtable;
-
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
@@ -16,13 +14,8 @@ import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
  */
 public class DynamicTranslationController extends ExecutionController {
 
-  /** Caches pre-translated code and uses the starting address of the code on the subject machine as a key*/
-  private final Hashtable<Integer, DBT_Trace> codeHash;
-
   public DynamicTranslationController(ProcessSpace ps) {
     super(ps);
-    
-    codeHash = new Hashtable<Integer, DBT_Trace>();
   }
 
   @Override
@@ -51,7 +44,7 @@ public class DynamicTranslationController extends ExecutionController {
    *  An executable VM_CodeArray, which contains a trace starting at the given address.
    */
   private VM_CodeArray getCodeForPC(int pc) {
-    DBT_Trace trace = codeHash.get(pc);
+    DBT_Trace trace = ps.codeCache.tryGet(pc);
 
     if (trace == null) {
       trace = translateCode(pc);
@@ -81,9 +74,9 @@ public class DynamicTranslationController extends ExecutionController {
       // compile the given trace
       trace.compile();
 
-      // store the compiled code in code hash
-      codeHash.put(trace.pc, trace);
-
+      // store the compiled code in the code cache
+      ps.codeCache.add(pc, trace);
+      
       return trace;
     }
   }

@@ -8,9 +8,11 @@ import org.binarytranslator.arch.arm.decoder.ARM_Interpreter;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.generic.decoder.Interpreter;
+import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.memory.DebugMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
+import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.vmmagic.pragma.Uninterruptible;
@@ -37,7 +39,11 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
 
   protected ARM_ProcessSpace() {
     registers = new ARM_Registers();
-    memory = new DebugMemory();
+    
+    if (DBT_Options.buildForSunVM)
+      memory = new DebugMemory();
+    else
+      memory = new ByteAddressedMemory();
   }
 
   /**
@@ -48,8 +54,8 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
-  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
-    return new ARM2IR(context);
+  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context, DBT_Trace trace) {
+    return new ARM2IR(context, trace);
   }
 
   /**

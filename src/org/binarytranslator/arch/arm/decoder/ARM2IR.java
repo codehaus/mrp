@@ -9,6 +9,7 @@ import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
 import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
+import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_FieldReference;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -129,8 +130,8 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
     if (DBT.VerifyAssertions) DBT._assert(registers_overflowFlag_Fref != null);
   }
 
-  public ARM2IR(OPT_GenerationContext context) {
-    super(context);
+  public ARM2IR(OPT_GenerationContext context, DBT_Trace trace) {
+    super(context, trace);
     translator = new ARM_Translator((ARM_ProcessSpace)ps, this);
   }
 

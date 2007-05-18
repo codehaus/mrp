@@ -17,7 +17,9 @@ import java.util.Map.Entry;
  * Options for controlling the emulator
  */
 public class DBT_Options {
-  // -oO Runtime settings Oo-
+  
+  /** Remove features that will only work on jikes? */
+  public final static boolean buildForSunVM = true;
   
   /**
    * Debug binary loading
@@ -69,17 +71,8 @@ public class DBT_Options {
    */
   public static boolean plantUncaughtBranchWatcher = false;
 
-  /**
-   * Should all branches (excluding to lr and ctr) be resolved in one big go or
-   * one at at a time
-   */
-  public static boolean resolveBranchesAtOnce = true;
-
-  /**
-   * Should procedures (branches to ctr and lr) be given precedent over more
-   * local branches
-   */
-  public static boolean resolveProceduresBeforeBranches = true;
+  /** Should direct branches be resolved before dynamic branches? */
+  public static boolean resolveDirectBranchesFirst = true;
 
   /**
    * Use global branch information rather than local (within the trace)
@@ -231,14 +224,8 @@ public class DBT_Options {
       instrOpt2 = Integer.parseInt(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:singleInstrTranslation")) {
       singleInstrTranslation = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:resolveBranchesAtOnce")) {
-      resolveBranchesAtOnce = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:resolveBranchesAtOnce")) {
-      resolveBranchesAtOnce = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:resolveProceduresBeforeBranches")) {
-      resolveProceduresBeforeBranches = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:resolveProceduresBeforeBranches")) {
-      resolveProceduresBeforeBranches = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:resolveDirectBranchesFirst")) {
+      resolveDirectBranchesFirst = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:gdbStub")) {
       gdbStub = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:gdbStubPort")) {

@@ -20,6 +20,7 @@ import org.binarytranslator.generic.memory.ByteAddressedByteSwapMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
+import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.jikesrvm.ppc.PPC_Disassembler;
@@ -139,8 +140,8 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
-  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
-    return new PPC2IR(context);
+  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context, DBT_Trace trace) {
+    return new PPC2IR(context, trace);
   }
 
   /**
