@@ -23,14 +23,10 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 
 public class ELF_File {
 
-  /**
-   * Wrapper class used for reading the ELF file with the required endianness
-   */
+  /** Wrapper class used for reading the ELF file with the required endianness */
   private BinaryReader reader;
 
-  /**
-   * Header of ELF file
-   */
+  /** Header of ELF file */
   private Header header;
 
   /**
@@ -835,7 +831,7 @@ public class ELF_File {
         this.sectionIndex = sectionIndex;
       }
       
-      final boolean isUndefined() {
+      public final boolean isUndefined() {
         return sectionIndex == SHN_UNDEF;
       }
     }
@@ -1112,9 +1108,9 @@ public class ELF_File {
       if (tabLocation == null || tabSize == null || entrySize == null | entryType == null)
         return null;
            
-      relaTab = new RelocationTable(tabLocation.value, tabSize.value, entrySize.value, entryType.value == DT_RELA); 
+      RelocationTable jmpRel= new RelocationTable(tabLocation.value, tabSize.value, entrySize.value, entryType.value == DT_RELA); 
       
-      return relaTab;
+      return jmpRel;
     }
     
     public RelocationTable findRelaTable() throws IOException {

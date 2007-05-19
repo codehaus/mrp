@@ -99,7 +99,7 @@ public class ImageLoader extends Loader {
       return null;
     }
     
-    ps.initialise(this, 0, -1);
+    ps.initialise(this);
     return ps;
   }
   
@@ -132,5 +132,15 @@ public class ImageLoader extends Loader {
       System.out.print("Image Loader:");
       System.out.println(s);
     }
+  }
+
+  @Override
+  public int getBrk() {
+    return -1;
+  }
+
+  @Override
+  public int getEntryPoint() {
+    return 0;
   }
 }

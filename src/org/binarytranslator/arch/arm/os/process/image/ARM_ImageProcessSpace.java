@@ -79,8 +79,8 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   }
 
   @Override
-  public void initialise(Loader loader, int pc, int brk) {
-    registers.set(ARM_Registers.PC, pc);
+  public void initialise(Loader loader) {
+    registers.set(ARM_Registers.PC, loader.getEntryPoint());
   }
 
 }

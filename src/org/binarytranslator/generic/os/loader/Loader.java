@@ -33,11 +33,6 @@ public abstract class Loader {
       System.out.println(s);
     }
   }
-
-  /*
-   * Abstract methods defined by the relavent binary loader
-   */
-
   /**
    * Create a process space, load the binary into it and initialise the stack,
    * etc.
@@ -69,6 +64,12 @@ public abstract class Loader {
   
   /** Shall return the Application Binary Interface that is required to load this executable. */
   public abstract ABI getABI();
+  
+  /** Shall return the top of the stack. */
+  public abstract int getBrk();
+  
+  /** Shall return the address at which execution of the program starts. */
+  public abstract int getEntryPoint();
 
   /**
    * Open and read the start of the file to determine the appropriate file

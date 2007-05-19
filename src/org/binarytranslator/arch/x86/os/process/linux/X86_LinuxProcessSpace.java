@@ -64,10 +64,11 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
    * @param brk the initial value for the top of BSS
    * @param args command line arguments
    */
-  public void initialise(Loader loader, int pc, int brk) {
-    registers.eip = pc;
+  @Override
+  public void initialise(Loader loader) {
+    registers.eip = loader.getEntryPoint();
     
-    registers.writeGP32(X86_Registers.ESP, initialiseStack(loader, pc));
+    registers.writeGP32(X86_Registers.ESP, initialiseStack(loader));
     if (useSysInfoPage) {
       try {
         memory.map(0xffffe000, 8192, true, true, true);
@@ -79,13 +80,14 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
       memory.store8(0xffffe400, 0xC3); // RET
     }
     
-    syscalls.initialize(brk);
+    syscalls.initialize(loader.getBrk());
   }
 
   /**
    * Initialise the stack
    */
-  private int initialiseStack(Loader loader, int pc) {
+  private int initialiseStack(Loader loader) {
+    
     auxVector = new int[] {
         LinuxStackInitializer.AuxiliaryVectorType.AT_HWCAP, 0x078bfbff,
         LinuxStackInitializer.AuxiliaryVectorType.AT_PAGESZ, 0x1000,
@@ -94,7 +96,7 @@ public class X86_LinuxProcessSpace extends X86_ProcessSpace implements LinuxSyst
         LinuxStackInitializer.AuxiliaryVectorType.AT_PHNUM, ((ELF_Loader)loader).getNumberOfProgramSegmentHeaders(),
         LinuxStackInitializer.AuxiliaryVectorType.AT_BASE, 0x0,
         LinuxStackInitializer.AuxiliaryVectorType.AT_FLAGS, 0x0,
-        LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, pc,
+        LinuxStackInitializer.AuxiliaryVectorType.AT_ENTRY, loader.getEntryPoint(),
 
         LinuxStackInitializer.AuxiliaryVectorType.AT_UID, DBT_Options.UID,
         LinuxStackInitializer.AuxiliaryVectorType.AT_EUID, DBT_Options.UID,

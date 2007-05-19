@@ -60,17 +60,12 @@ final public class PPC_LinuxProcessSpace extends PPC_ProcessSpace implements
   /**
    * Initialise the process space, called after the binary has been loaded
    * 
-   * @param pc
-   *          the entry point
-   * @param brk
-   *          the initial value for the top of BSS
-   * @param args
-   *          command line arguments
    */
-  public void initialise(Loader loader, int pc, int brk) {
-    this.pc = pc;
+  @Override
+  public void initialise(Loader loader) {
+    this.pc = loader.getEntryPoint();
     this.r1 = initialiseStack(loader, pc);
-    syscalls.initialize(brk);
+    syscalls.initialize(loader.getBrk());
   }
 
   /**

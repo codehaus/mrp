@@ -2,18 +2,30 @@ package org.binarytranslator.generic.os.loader.elf;
 
 import java.io.IOException;
 
-import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
-import org.binarytranslator.arch.arm.os.process.ARM_Registers;
-import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
-import org.binarytranslator.generic.decoder.Interpreter;
+import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.loader.Loader;
-import org.binarytranslator.generic.os.loader.elf.ELF_File.DynamicSection;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
 public class ELF_Loader extends Loader {
   
+  /** The file that we're trying to load. */
   private ELF_File file;
-  private ELF_File loader;
+  
+  /** The top of the stack segment. */
+  private int brk;
+  
+  /** The entry point at which execution of the program starts. */
+  private int entryPoint;
+  
+  @Override
+  public int getEntryPoint() {
+    return entryPoint;
+  }
+  
+  @Override
+  public int getBrk() {
+    return brk;
+  }
 
   @Override
   public ABI getABI() {
@@ -25,18 +37,34 @@ public class ELF_Loader extends Loader {
     return file.getHeader().getISA();
   }
   
+  /** Returns the file that we're trying to load. */
+  public ELF_File getFile() {
+    return file;
+  }
+  
+  /** Returns the address at which the executable's program header has been mapped into memory. */
   public int getProgramHeaderAddress() {
     return file.getProgramHeaderAddress();
   }
   
+  /** Returns the number of program headers within the executable. */
   public int getNumberOfProgramSegmentHeaders() {
     return file.getHeader().getNumberOfProgramSegmentHeaders();
   }
-  
+
+  /** Returns the size of a single program header within memory. */
   public int getProgramSegmentHeaderSize() {
     return file.getHeader().getProgramSegmentHeaderSize();
   }
   
+  /**
+   * Checks if the given file is in ELF format.
+   * 
+   * @param filename
+   *  The name of the file that is to be checked.
+   * @return
+   *  True if the file is an ELF file, false otherwise.
+   */
   public static boolean conforms(String filename) {
     return ELF_File.conforms(filename);
   }
@@ -48,62 +76,41 @@ public class ELF_Loader extends Loader {
     ProcessSpace ps = ProcessSpace.createProcessSpaceFromBinary(this);
     
     ELF_File.SegmentHeader[] segments = file.getProgramSegmentHeaders();
-    
-    System.out.println("ELF has segments:");
-    for (ELF_File.SegmentHeader header : segments) {
-      System.out.println(header.toString());
-      header.create(ps);
+   
+    if (DBT_Options.debugLoader) {
+      System.out.println("ELF has segments:");
+      
+      for (ELF_File.SegmentHeader segment : segments) {
+        System.out.println(" - " + segment.toString());
+      }
     }
 
-    int brk;
-    if (segments.length > 1)
-      brk = segments[1].getEnd();
-    else
-      brk = segments[0].getEnd();
+    //Determine the top of the stack.
+    //NB: I just copied that code from the old ELF loader. Is this really correct?
+    brk = segments[segments.length > 1 ? 1 : 0].getEnd();
     
-    if (file.getDynamicSection() != null && file.getHeader().getABI() == ABI.ARM) {
+    //determine the entry point to the program
+    entryPoint = file.getHeader().getEntryPoint();
+    
+    if (file.getDynamicSection() != null) {
+    
+      if (DBT_Options.debugLoader) System.out.println("Executable is dynamically linked.");
       
-      ARM_ProcessSpace armps = (ARM_ProcessSpace)ps;
-      
-      //invoke the runtime linker
-      RuntimeLinker ld = new RuntimeLinker(file, ps);
+      //This is a dynamically linked file, so hand over control to the runtime linker
+      RuntimeLinker ld = RuntimeLinker.create(ps, this);      
       ld.link();
+    }
+    else {
+      if (DBT_Options.debugLoader) System.out.println("Executable is statically linked.");
       
-      ps.initialise(this, file.getHeader().getEntryPoint(), brk);
-      int startInstruction = ps.getCurrentInstructionAddress();
-      
-      //call the INITs
-      Interpreter interpreter = ps.createInstructionInterpreter();
-      for (Integer init : ld.initMethods) {
-        int pc = init;
-        
-        ps.setCurrentInstructionAddress(init);
-        armps.registers.set(ARM_Registers.LR, init);
-      
-        while (!ps.finished) {
-  
-          Interpreter.Instruction instruction = interpreter.decode(pc);
-          System.out.println(String.format("[0x%x] %s", pc, instruction.toString()));
-          
-          instruction.execute();
-          pc = instruction.getSuccessor(pc);
-          
-          if (pc == -1)
-            pc = ps.getCurrentInstructionAddress();
-          else
-            ps.setCurrentInstructionAddress(pc);
-          
-          //we're done running the init method
-          if (pc == init)
-            break;
-        }
+      //this is a statically linked file. We simply need to map all of its segments into memory
+      for (ELF_File.SegmentHeader segment : segments) {
+        segment.create(ps);
       }
       
-      ld._tmpRestore();
-      ps.setCurrentInstructionAddress(startInstruction);
+      //and then initialize the process space
+      ps.initialise(this);
     }
-    else
-      ps.initialise(this, file.getHeader().getEntryPoint(), brk);
     
     return ps;
   }

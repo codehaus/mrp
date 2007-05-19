@@ -116,7 +116,7 @@ public abstract class ProcessSpace {
    * @param brk
    *          the initial value for the top of BSS
    */
-  public abstract void initialise(Loader loader, int pc, int brk);
+  public abstract void initialise(Loader loader);
 
   /**
    * Constructor

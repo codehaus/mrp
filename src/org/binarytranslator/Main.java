@@ -89,7 +89,12 @@ public class Main {
       ps = loader.readBinary(DBT_Options.executableFile);
     } 
     catch (java.io.IOException e) {
-      throw new Error("Error accessing file: " + args[0], e);
+      System.err.println("Error accesing file: " + args[0] + ". " + e.getMessage());
+      return;
+    }
+    catch (Error e) {
+      System.err.println(e.getMessage());
+      return;
     }
 
     report("Sucessfully created process.");
