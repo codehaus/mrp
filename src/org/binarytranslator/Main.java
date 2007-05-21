@@ -9,6 +9,7 @@
 package org.binarytranslator;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.binarytranslator.generic.execution.DynamicTranslationController;
 import org.binarytranslator.generic.execution.ExecutionController;
@@ -29,6 +30,8 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
  * 
  */
 public class Main {
+  private static ProcessSpace ps;
+
   /**
    * Debug information
    * 
@@ -49,6 +52,8 @@ public class Main {
     System.out
         .println("org.binarytranslator.Main [-X:dbt:...] <program> <args...>");
   }
+  
+  
 
   /**
    * Main method
@@ -81,8 +86,6 @@ public class Main {
       return;
     }
 
-    ProcessSpace ps;
-    
     try {
       report("Loading " + DBT_Options.executableFile);
       Loader loader = Loader.getLoader(DBT_Options.executableFile);
@@ -120,6 +123,16 @@ public class Main {
     }
     
     controller.run();
-    System.out.println("\nProgram has finished.");
+    System.out.println("\nExecution controller has exited.");
+  }
+
+  public static void onExit(int exitcode) {
+    System.out.println("\nProgram has finished. Exitcode: " + exitcode);
+    
+    try {
+      ps.branchInfo.saveAsXML("/tmp/profile.xml");
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }

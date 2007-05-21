@@ -1663,7 +1663,10 @@ public class ARM_Translator implements OPT_Operators {
         arm2ir.getCurrentBlock().deleteNormalOut();
       }
       
-      arm2ir.appendBranch(pc + getOffset() + 8, lazy, link ? BranchType.CALL : BranchType.DIRECT_BRANCH);
+      if (link)
+        arm2ir.appendCall(pc + getOffset() + 8, lazy, pc + 4);
+      else
+        arm2ir.appendBranch(pc + getOffset() + 8, lazy, BranchType.DIRECT_BRANCH);
     }
 
     public int getSuccessor(int pc) {

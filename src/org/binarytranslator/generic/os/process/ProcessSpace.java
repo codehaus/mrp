@@ -15,6 +15,7 @@ import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.generic.branch.BranchLogic;
+import org.binarytranslator.generic.branch.BranchLogic.BranchType;
 import org.binarytranslator.generic.decoder.CodeCache;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
@@ -133,8 +134,25 @@ public abstract class ProcessSpace {
   }
 
   /** Record a branch instruction */
-  public void recordUncaughtBranch(int location, int destination, int code) {
-    branchInfo.registerBranch(location, destination, code);
+  public void recordUncaughtBranch(int location, int destination, int code, int returnAddress) {
+    
+    if (code < 0 || code > BranchType.values().length)
+      throw new Error("Invalid uncaught branch type: " + code);
+
+    BranchType type = BranchType.values()[code];
+    
+    switch (type) {
+    case CALL:
+      branchInfo.registerCall(location, destination, returnAddress);
+      return;
+      
+    case RETURN:
+      branchInfo.registerReturn(location, destination);
+      return;
+      
+    default:
+      branchInfo.registerBranch(location, destination, BranchType.values()[code]);
+    }
   }
 
   /** Return as an integer the current instruction's address */

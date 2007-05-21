@@ -19,16 +19,15 @@ import java.util.Map.Entry;
 public class DBT_Options {
   
   /** Remove features that will only work on jikes? */
-  public final static boolean buildForSunVM = true;
+  public final static boolean buildForSunVM = false;
   
-  /**
-   * Debug binary loading
-   */
+  /** Enable the profiling of application during interpretation? */
+  public final static boolean profileDuringInterpretation = true;
+  
+  /** Debug binary loading */
   public final static boolean debugLoader = true;
 
-  /**
-   * Are unimplemented system calls are fatal?
-   */
+  /** Are unimplemented system calls are fatal? */
   public final static boolean unimplementedSystemCallsFatal = false;
 
   // -oO Translation settings Oo-
@@ -208,6 +207,8 @@ public class DBT_Options {
       debugRuntime = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:debugBranchResolution")) {
       debugBranchResolution = Boolean.parseBoolean(value);
+    } else if (arg.equalsIgnoreCase("-X:dbt:debugMemory")) {
+      debugMemory = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscall")) {
       debugSyscall = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscallMore")) {

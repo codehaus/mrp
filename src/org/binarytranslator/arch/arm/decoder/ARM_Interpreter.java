@@ -1,6 +1,7 @@
 package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.DBT;
+import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoder.ARM_InstructionFactory;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.OperandWrapper;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.DataProcessing.Opcode;
@@ -8,6 +9,7 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condit
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
+import org.binarytranslator.generic.branch.BranchLogic.BranchType;
 import org.binarytranslator.generic.decoder.Interpreter;
 
 import com.sun.org.apache.bcel.internal.generic.InstructionFactory;
@@ -457,6 +459,38 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public abstract void execute();
+    
+    /**
+     * Stores the result of adding <code>lhs</code> + <code>rhs</code> to <code>Rd</code>
+     * and sets the flags accordingly, if <code>updateConditionCodes</code> is set.
+     * @param lhs
+     * @param rhs
+     */
+    protected final void setAddResult(int lhs, int rhs) {
+      setFlagsForAdd(lhs, rhs);
+
+      if (DBT_Options.profileDuringInterpretation && Rd == 15) {
+        ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), lhs + rhs, BranchType.INDIRECT_BRANCH);
+      }
+      
+      regs.set(Rd, lhs + rhs);
+    }
+    
+    /**
+     * Stores the result of adding <code>lhs</code> - <code>rhs</code> to <code>Rd</code>
+     * and sets the flags accordingly, if <code>updateConditionCodes</code> is set.
+     * @param lhs
+     * @param rhs
+     */
+    protected final void setSubResult(int lhs, int rhs) {
+      setFlagsForSub(lhs, rhs);
+      
+      if (DBT_Options.profileDuringInterpretation && Rd == 15) {
+        ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), lhs - rhs, BranchType.INDIRECT_BRANCH);
+      }
+      
+      regs.set(Rd, lhs - rhs);
+    }
 
     /** Sets the processor flags according to the result of adding <code>lhs</code> and <code>rhs</code>.*/
     protected final void setFlagsForAdd(int lhs, int rhs) {
@@ -522,6 +556,21 @@ public class ARM_Interpreter implements Interpreter {
         return super.resolveOperand2();
       }
     }
+    
+    /** Stores the result of a logical operation to a register and, if <code>updateConditionFlags</code>
+     * is set, also sets the flags accordingly. */
+    protected final void setLogicalResult(int result) {
+      
+      if (DBT_Options.profileDuringInterpretation && Rd == 15) {        
+        if (getOpcode() == Opcode.MOV && operand2.getType() == OperandWrapper.Type.Register && operand2.getRegister() == ARM_Registers.LR)
+          ps.branchInfo.registerReturn(regs.get(ARM_Registers.PC), result);
+        else
+          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
+      }
+      
+      regs.set(Rd, result);
+      setFlagsForLogicalOperator(result);
+    }
 
     /** Sets the condition field for logical operations. */
     protected final void setFlagsForLogicalOperator(int result) {
@@ -546,8 +595,7 @@ public class ARM_Interpreter implements Interpreter {
     @Override
     public void execute() {
       int result = resolveOperand1() & resolveOperand2();
-      regs.set(Rd, result);
-      setFlagsForLogicalOperator(result);
+      setLogicalResult(result);
     }
   }
 
@@ -561,8 +609,7 @@ public class ARM_Interpreter implements Interpreter {
     @Override
     public void execute() {
       int result = resolveOperand1() ^ resolveOperand2();
-      regs.set(Rd, result);
-      setFlagsForLogicalOperator(result);
+      setLogicalResult(result);
     }
   }
 
@@ -576,10 +623,8 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       int operand1 = resolveOperand1();
       int operand2 = resolveOperand2();
-      int result = operand1 + operand2;
-
-      regs.set(Rd, result);
-      setFlagsForAdd(operand1, operand2);
+      
+      setAddResult(operand1, operand2);
     }
   }
 
@@ -594,10 +639,7 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       int operand1 = resolveOperand1();
       int operand2 = resolveOperand2();
-      int result = operand1 - operand2;
-
-      regs.set(Rd, result);
-      setFlagsForSub(operand1, operand2);
+      setSubResult(operand1, operand2);
     }
   }
 
@@ -612,10 +654,7 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       int operand1 = resolveOperand1();
       int operand2 = resolveOperand2();
-      int result = operand2 - operand1;
-
-      regs.set(Rd, result);
-      setFlagsForSub(operand2, operand1);
+      setSubResult(operand2, operand1);
     }
   }
 
@@ -646,11 +685,8 @@ public class ARM_Interpreter implements Interpreter {
           return;
         }
       }
-
-      int result = operand1 + operand2;
-
-      regs.set(Rd, result);
-      setFlagsForAdd(operand1, operand2);
+      
+      setAddResult(operand1, operand2);
     }
   }
 
@@ -679,10 +715,7 @@ public class ARM_Interpreter implements Interpreter {
         }
       }
 
-      int result = operand1 - operand2;
-
-      regs.set(Rd, result);
-      setFlagsForSub(operand1, operand2);
+      setSubResult(operand1, operand2);
     }
   }
 
@@ -770,8 +803,7 @@ public class ARM_Interpreter implements Interpreter {
     @Override
     public void execute() {
       int result = resolveOperand1() | resolveOperand2();
-      regs.set(Rd, result);
-      setFlagsForLogicalOperator(result);
+      setLogicalResult(result);
     }
   }
 
@@ -785,8 +817,7 @@ public class ARM_Interpreter implements Interpreter {
     /** Moves a value into a register .*/
     public void execute() {
       int result = resolveOperand2();
-      regs.set(Rd, result);
-      setFlagsForLogicalOperator(result);
+      setLogicalResult(result);
     }
   }
 
@@ -802,8 +833,7 @@ public class ARM_Interpreter implements Interpreter {
     /** Clear bits in a register by a mask given by a second operand. */
     public void execute() {
       int result = resolveOperand1() & (~resolveOperand2());
-      regs.set(Rd, result);
-      setFlagsForLogicalOperator(result);
+      setLogicalResult(result);
     }
   }
 
@@ -818,8 +848,7 @@ public class ARM_Interpreter implements Interpreter {
     @Override
     public void execute() {
       int result = ~resolveOperand2();
-      regs.set(Rd, result);
-      setFlagsForLogicalOperator(result);
+      setLogicalResult(result);
     }
   }
   
@@ -951,6 +980,9 @@ public class ARM_Interpreter implements Interpreter {
         if (transferPC) {
           nextAddress += 4;
           int newpc = ps.memory.load32(nextAddress);
+          
+          if (DBT_Options.profileDuringInterpretation)
+            ps.branchInfo.registerReturn(regs.get(ARM_Registers.PC), newpc);
 
           if (forceUser) {
             //when we are transferring the PC with a forced-user transfer, then we also want to
@@ -1040,8 +1072,16 @@ public class ARM_Interpreter implements Interpreter {
 
     public void execute() {
       //if we're supposed to link, then write the previous address into the link register
-      if (link)
+      if (link) {
         regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + 4);
+        
+        if (DBT_Options.profileDuringInterpretation)
+          ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), regs.get(ARM_Registers.PC) + getOffset() + 8, regs.get(ARM_Registers.PC) + 4);
+      }
+      else {
+        if (DBT_Options.profileDuringInterpretation) 
+          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), regs.get(ARM_Registers.PC) + getOffset() + 8, BranchType.DIRECT_BRANCH);
+      }
     }
 
     public int getSuccessor(int pc) {
@@ -1084,13 +1124,19 @@ public class ARM_Interpreter implements Interpreter {
             + target.getType());
       }
 
+      //if we're supposed to link, then write the previous address into the link register
+      if (link) {
+        regs.set(ARM_Registers.LR, previousAddress - 4);
+        ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), targetAddress, BranchType.CALL);
+      }
+      else {
+        ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), targetAddress, BranchType.DIRECT_BRANCH);
+      }
+      
+
       //jump to the new address
       regs.set(ARM_Registers.PC, targetAddress);
       regs.setThumbMode(thumb);
-
-      //if we're supposed to link, then write the previous address into the link register
-      if (link)
-        regs.set(ARM_Registers.LR, previousAddress - 4);
     }
 
     public int getSuccessor(int pc) {
@@ -1376,6 +1422,11 @@ public class ARM_Interpreter implements Interpreter {
 
         //finally, write the variable into a register
         regs.set(Rd, value);
+        
+        if (DBT_Options.profileDuringInterpretation) {
+          if (Rd == 15)
+            ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), value, BranchType.INDIRECT_BRANCH);
+        }
       } 
       else {
         //we are store a value from a register to memory.

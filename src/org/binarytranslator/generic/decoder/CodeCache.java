@@ -1,6 +1,6 @@
 package org.binarytranslator.generic.decoder;
 
-import java.util.WeakHashMap;
+import java.util.HashMap;
 
 import org.binarytranslator.vmInterface.DBT_Trace;
 
@@ -8,7 +8,7 @@ import org.binarytranslator.vmInterface.DBT_Trace;
 public class CodeCache {
   
   /** Stores the cached traces. The address at which the trace starts is used as the key. */
-  private WeakHashMap<Integer, DBT_Trace> codeSnippets = new WeakHashMap<Integer, DBT_Trace>();
+  private HashMap<Integer, DBT_Trace> codeSnippets = new HashMap<Integer, DBT_Trace>();
   
   /**
    * Adds a trace to the codecache.

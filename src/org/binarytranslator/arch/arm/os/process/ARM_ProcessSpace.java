@@ -9,7 +9,6 @@ import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
-import org.binarytranslator.generic.memory.DebugMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
@@ -39,11 +38,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
 
   protected ARM_ProcessSpace() {
     registers = new ARM_Registers();
-    
-    if (DBT_Options.buildForSunVM)
-      memory = new DebugMemory();
-    else
-      memory = new ByteAddressedMemory();
+    memory = new ByteAddressedMemory();
   }
 
   /**

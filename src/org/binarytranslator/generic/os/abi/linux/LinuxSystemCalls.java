@@ -14,6 +14,7 @@ import java.net.UnknownHostException;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.Main;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.memory.MemoryMapException;
 import org.binarytranslator.generic.os.abi.linux.LinuxConstants.errno;
@@ -226,8 +227,9 @@ abstract public class LinuxSystemCalls {
     
     @Override
     public void doSysCall() {
-      int status = arguments.nextInt();
-      System.exit(status);
+      int exitCode = arguments.nextInt();
+      Main.onExit(exitCode);
+      System.exit(exitCode); 
     }
   }
 
@@ -655,7 +657,9 @@ abstract public class LinuxSystemCalls {
     @Override
     public void doSysCall() {
       // For now, equivalent to SysExit
-      System.exit(arguments.nextInt());
+      int exitCode = arguments.nextInt();
+      Main.onExit(exitCode);
+      System.exit(exitCode);
     }
   }
 }
