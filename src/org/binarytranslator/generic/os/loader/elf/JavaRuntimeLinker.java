@@ -29,7 +29,7 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
   private LinkedList<SharedObject> libraries = new LinkedList<SharedObject>();
   
   /** A list of the star addres of all init routines, that we're supposed to execute. */
-  public LinkedList<Integer> initMethods = new LinkedList<Integer>();
+  private LinkedList<Integer> initMethods = new LinkedList<Integer>();
   
   /** The address of the memory block that is going to be allocated to the next library*/
   private int nextMemoryBlock = 1024*1024*1024; //start mapping libraries at 1GB (0x40000000)
@@ -58,6 +58,11 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
     
     /** Other libraries, that this library depends upon. */
     private SharedObject[] dependencies = null;
+    
+    /** 
+     * A list of segments that have additionally received write protection to allow
+     * relocations within the segment, although the segment was originally write protected. */
+    private LinkedList<SegmentHeader> removedWriteProtection = new LinkedList<SegmentHeader>();
     
     public SharedObject(String filename) {
       this.filename = filename;
@@ -135,6 +140,15 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
     
     //relocate all dynamic libraries    
     relocateLibRecursively(programfile);
+    
+    //Add write protections to all segments from which we removed it during relocation
+    for (SharedObject lib : libraries) {
+      for (SegmentHeader segment : lib.removedWriteProtection) {
+        boolean read = (segment.p_flags & SegmentHeader.PF_R) != 0;
+        boolean exec = (segment.p_flags & SegmentHeader.PF_X) != 0;    
+        ps.memory.changeProtection(segment.p_vaddr + lib.loadedAt, segment.p_filesz, read, false, exec);
+      }
+    }
 
     //Call the init routines that were registered by the different libraries
     callInitRoutines();
@@ -325,7 +339,7 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
    */
   private void loadSingleLibrary(SharedObject lib) {
     
-    if (DBT.VerifyAssertions) DBT._assert(lib.loadedAt == 0);
+    if (DBT.VerifyAssertions) DBT._assert(lib.loadedAt == 0 || lib.hasFixedLoadOffset());
     
     if (!lib.hasFixedLoadOffset()) {
     //  load the library to the next available address
@@ -340,15 +354,24 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
     
     //the highest offset from nextMemoryBlock that this shared object uses
     long highestUsedAddress = 1;
+    
+    if (DBT_Options.debugLoader) 
+      System.out.println(String.format("Loading Shared Object: %s to 0x%x", lib, lib.loadedAt));
 
     for (int i = 0; i < segments.length; i++) {
+      
+      SegmentHeader segment = segments[i];
+      if (DBT_Options.debugLoader) System.out.println(" Loading Segment: " + segment);
 
-      //TODO: This is only a hack. We are making this segment writeable, because we need to relocate within it...
-      if (needRelocText)
-        segments[i].p_flags |= ELF_File.SegmentHeader.PF_W;
+      if (needRelocText && (segment.p_flags & ELF_File.SegmentHeader.PF_W) == 0) {
+        //We are making this segment writeable, because we need to relocate inside of it.
+        //Remember that segment to remove the write protection later on
+        lib.removedWriteProtection.add(segment);
+        segment.p_flags |= ELF_File.SegmentHeader.PF_W;
+      }
     
       //create the actual segment
-      segments[i].create(ps, lib.loadedAt);
+      segment.create(ps, lib.loadedAt);
       
       long thisAddress = segments[i].p_vaddr;
       thisAddress += segments[i].p_memsz;

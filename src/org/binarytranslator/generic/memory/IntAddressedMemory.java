@@ -12,6 +12,7 @@ import java.io.RandomAccessFile;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.generic.fault.SegmentationFault;
 import org.jikesrvm.VM_Configuration;
 
 /**
@@ -65,10 +66,7 @@ public class IntAddressedMemory extends CallBasedMemory {
    * Constructor - used when this is the instatiated class
    */
   public IntAddressedMemory() {
-    super(IntAddressedMemory.class);
-    readableMemory = new int[NUM_PAGES][];
-    writableMemory = new int[NUM_PAGES][];
-    executableMemory = new int[NUM_PAGES][];
+    this(null);
   }
 
   /**
@@ -78,7 +76,7 @@ public class IntAddressedMemory extends CallBasedMemory {
    *          the type of the over-riding class
    */
   protected IntAddressedMemory(Class classType) {
-    super(classType);
+    super(classType != null ? classType : IntAddressedMemory.class);
     readableMemory = new int[NUM_PAGES][];
     writableMemory = new int[NUM_PAGES][];
     executableMemory = new int[NUM_PAGES][];
@@ -104,9 +102,7 @@ public class IntAddressedMemory extends CallBasedMemory {
    * @return true => memory is mapped
    */
   public boolean isMapped(int addr) {
-    return ((readableMemory[getPTE(addr)] != null) ||
-        (writableMemory[getPTE(addr)] != null) ||
-        (executableMemory[getPTE(addr)] != null));
+    return getPage(getPTE(addr)) != null;
   }
   
   /**
@@ -158,13 +154,11 @@ public class IntAddressedMemory extends CallBasedMemory {
    */
   private final int findFreePages(int pages) {
     starting_page_search: for (int i = 0; i < NUM_PAGES; i++) {
-      if ((readableMemory[i] == null) && (writableMemory[i] == null)
-          && (executableMemory[i] == null)) {
+      if (getPage(i) == null) {
         int start = i;
         int end = i + pages;
         for (; i <= end; i++) {
-          if ((readableMemory[i] != null) || (writableMemory[i] != null)
-              || (executableMemory[i] != null)) {
+          if (getPage(i) != null) {
             continue starting_page_search;
           }
         }
@@ -224,24 +218,58 @@ public class IntAddressedMemory extends CallBasedMemory {
     int pte = getPTE(addr);
     for (int i = 0; i < num_pages; i++) {
       // Check pages aren't already allocated
-      if ((readableMemory[pte + i] != null)
-          || (writableMemory[pte + i] != null)
-          || (executableMemory[pte + i] != null)) {
+      if (getPage(pte + i) != null) {
         throw new Error("Memory map of already mapped location addr=0x"
             + Integer.toHexString(addr) + " len=" + len);
       }
-      // Allocate pages
-      if (read) {
-        readableMemory[pte + i] = pages[i];
-      }
-      if (write) {
-        writableMemory[pte + i] = pages[i];
-      }
-      if (exec) {
-        executableMemory[pte + i] = pages[i];
-      }
+      
+      readableMemory[pte+i]   = read  ? pages[i] : null;
+      writableMemory[pte+i]   = write ? pages[i] : null;
+      executableMemory[pte+i] = exec  ? pages[i] : null;
     }
     return addr;
+  }
+
+  /**
+   * Returns the page currently mapped at the given page table entry.
+   * 
+   * @param pte
+   *  The page table entry, for which a page is to be retrieved.
+   * @return
+   *  The page mapped at the given page table entry or null, if no page is currently mapped
+   *  to that entry.
+   */
+  private int[] getPage(int pte) {
+    
+    if (readableMemory[pte] != null)
+      return readableMemory[pte];
+    
+    if (writableMemory[pte] != null)
+      return writableMemory[pte];
+    
+    if (executableMemory[pte] != null)
+      return executableMemory[pte];
+    
+    return null;
+  }
+
+  @Override
+  public void changeProtection(int address, int len, boolean newRead, boolean newWrite, boolean newExec) {
+    
+    while (len > 0) {
+      int pte = getPTE(address);
+      int[] page = getPage(pte);
+      
+      if (page == null)
+        throw new SegmentationFault(address);
+      
+      readableMemory[pte]   = newRead  ? page : null;
+      writableMemory[pte]   = newWrite ? page : null;
+      executableMemory[pte] = newExec  ? page : null;
+      
+      address += PAGE_SIZE;
+      len -= PAGE_SIZE;
+    }
   }
 
   /**
@@ -292,20 +320,19 @@ public class IntAddressedMemory extends CallBasedMemory {
           + (read ? " r" : " -") + (write ? "w" : "-") + (exec ? "x" : "-"));
     }
     addr = map(addr, len, read, write, exec);
-    try {
+    
+    try {  
       file.seek(offset);
       for (int i = 0; i < len; i += 4) {
-        int value = readInt(file);
-        if (read) {
-          readableMemory[getPTE(addr + i)][getOffset(addr + i)] = value;
-        } else if (write) {
-          writableMemory[getPTE(addr + i)][getOffset(addr + i)] = value;
-        } else if (exec) {
-          executableMemory[getPTE(addr + i)][getOffset(addr + i)] = value;
-        }
+        
+        int[] page = getPage(getPTE(addr + i));
+        page[getOffset(addr + i)] = readInt(file);
       }
+      
       return addr;
-    } catch (java.io.IOException e) {
+      
+    } 
+    catch (java.io.IOException e) {
       throw new Error(e);
     }
   }
@@ -320,20 +347,15 @@ public class IntAddressedMemory extends CallBasedMemory {
    */
   public final void unmap(int addr, int len) {
     for (int i = 0; i < len; i += PAGE_SIZE) {
-      boolean unmapped_something = false;
-      if (readableMemory[getPTE(addr + i)] != null) {
-        readableMemory[getPTE(addr + i)] = null;
-        unmapped_something = true;
+      
+      int pte = getPTE(addr + i);
+      
+      if (getPage(pte) != null) {
+        readableMemory[pte] = null;
+        writableMemory[pte] = null;
+        executableMemory[pte] = null;
       }
-      if (readableMemory[getPTE(addr + i)] != null) {
-        writableMemory[getPTE(addr + i)] = null;
-        unmapped_something = true;
-      }
-      if (readableMemory[getPTE(addr + i)] != null) {
-        executableMemory[getPTE(addr + i)] = null;
-        unmapped_something = true;
-      }
-      if (unmapped_something == false) {
+      else  {
         throw new Error("Unmapping memory that's not mapped addr=0x"
             + Integer.toHexString(addr) + " len=" + len);
       }

@@ -29,9 +29,7 @@ public class ELF_File {
   /** Header of ELF file */
   private Header header;
 
-  /**
-   * Program segment headers
-   */
+  /** Program segment headers */
   private SegmentHeader segmentHeaders[];
 
   /**
@@ -1409,7 +1407,7 @@ public class ELF_File {
      * @param write is segment writable
      * @param exec is segment executable
      */
-    public void createSegment(Memory memory, RandomAccessFile file,
+    private void createSegment(Memory memory, RandomAccessFile file,
         long offset, int address, int filesize, int memsize, boolean read,
         boolean write, boolean exec) throws MemoryMapException {
       // Sanity check
@@ -1439,12 +1437,14 @@ public class ELF_File {
           alignedOffset = offset - delta;
           alignedFilesize = filesize + delta;
         }
-        memory.map(file, alignedOffset, alignedAddress, alignedFilesize, read,
-            write, exec);
+        
+        memory.map(file, alignedOffset, alignedAddress, alignedFilesize, read, write, exec);
+        
         // Do we need to map in some blank pages at the end of the segment?
         if (filesize < memsize) {
           alignedAddress = memory.truncateToNextPage(address + filesize);
-          memory.map(alignedAddress, memsize - filesize, read, write, exec);
+          int delta = alignedAddress - (address + filesize);
+          memory.map(alignedAddress, memsize - filesize - delta, read, write, exec);
         }
       }
     }

@@ -43,6 +43,26 @@ public abstract class Memory {
   public abstract int map(RandomAccessFile file, long offset, int addr,
       int len, boolean read, boolean write, boolean exec)
       throws MemoryMapException;
+  
+  /**
+   * Changes the protection of a region of memory. Note that this function only guarantees
+   * protection to be changed on a page level. Therefore, if <code>address</code> is not page
+   * aligned or len is not a muliple of {@link #getPageSize()}, then the function may
+   * change the protection of a larger memory range than initally requested. 
+   * 
+   * @param address
+   *  The start address of a memory block, whose protection shall be changed. 
+   * @param len
+   *  The length of the memory block.
+   * @param newRead
+   *  Set to true to allow reading from this memory block, false otherwise.
+   * @param newWrite
+   *  Set to true to allow writing to this memory block, false otherwise.
+   * @param newExec
+   *  Set to true to allow executing code from this memory block, false otherwise.
+   */
+  public abstract void changeProtection(int address, int len, boolean newRead, 
+      boolean newWrite, boolean newExec);
 
   /**
    * Unmap a page of memory

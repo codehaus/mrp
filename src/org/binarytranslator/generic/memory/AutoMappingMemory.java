@@ -2,6 +2,8 @@ package org.binarytranslator.generic.memory;
 
 import java.io.RandomAccessFile;
 
+import org.binarytranslator.DBT;
+
 
 /**
  * A memory implementation that will automatically map pages into memory, as soon
@@ -21,6 +23,8 @@ public class AutoMappingMemory extends CallBasedMemory {
   
   public AutoMappingMemory(Memory memoryImplementation) {
     super(AutoMappingMemory.class);
+    
+    if (DBT.VerifyAssertions) DBT._assert(mem != null);
     
     this.mem = memoryImplementation;
   }
@@ -167,5 +171,10 @@ public class AutoMappingMemory extends CallBasedMemory {
 
   public void unmap(int addr, int len) {
     mem.unmap(addr, len);
+  }
+
+  @Override
+  public void changeProtection(int address, int len, boolean newRead, boolean newWrite, boolean newExec) {
+    mem.changeProtection(address, len, newRead, newWrite, newExec);
   }
 }

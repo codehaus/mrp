@@ -34,48 +34,32 @@ import org.binarytranslator.generic.fault.SegmentationFault;
  * </pre>
  */
 public class ByteAddressedMemory extends CallBasedMemory {
-  /**
-   * The size of pages
-   */
+  
+  /** The size of a single page in bytes. */
   private static final int PAGE_SIZE = 4096;
 
-  /**
-   * Bits in offset
-   */
+  /** Bits in offset */
   private static final int OFFSET_BITS = 12;
 
-  /**
-   * The number of pages
-   */
+  /** The number of pages */
   private static final int NUM_PAGES = 0x100000;
 
-  /**
-   * The maximum amount of RAM available
-   */
-  private static final long MAX_RAM = (long) PAGE_SIZE * (long) NUM_PAGES;
+  /** The maximum amount of RAM available */
+  protected static final long MAX_RAM = (long) PAGE_SIZE * (long) NUM_PAGES;
 
-  /**
-   * The memory backing store
-   */
+  /** The memory backing store */
   private byte readableMemory[][];
-
   private byte writableMemory[][];
-
   private byte executableMemory[][];
 
-  /**
-   * Do we have more optimal nio mmap operation?
-   */
+  /** Do we have more optimal nio mmap operation? */
   private boolean HAVE_java_nio_FileChannelImpl_nio_mmap_file = false;
 
   /**
    * Constructor - used when this is the instatiated class
    */
   public ByteAddressedMemory() {
-    super(ByteAddressedMemory.class);
-    readableMemory = new byte[NUM_PAGES][];
-    writableMemory = new byte[NUM_PAGES][];
-    executableMemory = new byte[NUM_PAGES][];
+    this(null);
   }
 
   /**
@@ -85,7 +69,7 @@ public class ByteAddressedMemory extends CallBasedMemory {
    *          the name of the over-riding class
    */
   protected ByteAddressedMemory(Class classType) {
-    super(classType);
+    super(classType != null ? classType : ByteAddressedMemory.class);
     readableMemory = new byte[NUM_PAGES][];
     writableMemory = new byte[NUM_PAGES][];
     executableMemory = new byte[NUM_PAGES][];
@@ -114,13 +98,11 @@ public class ByteAddressedMemory extends CallBasedMemory {
    */
   private final int findFreePages(int pages) {
     starting_page_search: for (int i = 0; i < NUM_PAGES; i++) {
-      if ((readableMemory[i] == null) && (writableMemory[i] == null)
-          && (executableMemory[i] == null)) {
+      if (getPage(i) == null) {
         int start = i;
         int end = i + pages;
         for (; i <= end; i++) {
-          if ((readableMemory[i] != null) || (writableMemory[i] != null)
-              || (executableMemory[i] != null)) {
+          if (getPage(i) != null) {
             continue starting_page_search;
           }
         }
@@ -152,39 +134,38 @@ public class ByteAddressedMemory extends CallBasedMemory {
     if ((addr % PAGE_SIZE) != 0) {
       MemoryMapException.unalignedAddress(addr);
     }
+    
     // Create memory
     int num_pages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
     byte pages[][] = new byte[num_pages][PAGE_SIZE];
+    
     // Find address if not specified
     if (addr == 0) {
       addr = findFreePages(num_pages);
     }
+    
     if (DBT_Options.debugMemory) {
-      System.err.println("Anonymous mapping: addr=0x"
+      System.out.println("Anonymous mapping: addr=0x"
           + Integer.toHexString(addr) + " len=" + len + (read ? " r" : " -")
           + (write ? "w" : "-") + (exec ? "x" : "-"));
     }
+    
     // Get page table entry
     int pte = getPTE(addr);
     for (int i = 0; i < num_pages; i++) {
+      
       // Check pages aren't already allocated
-      if ((readableMemory[pte + i] != null)
-          || (writableMemory[pte + i] != null)
-          || (executableMemory[pte + i] != null)) {
+      if (getPage(pte + i) != null) {
         throw new Error("Memory map of already mapped location addr=0x"
             + Integer.toHexString(addr) + " len=" + len);
       }
+      
       // Allocate pages
-      if (read) {
-        readableMemory[pte + i] = pages[i];
-      }
-      if (write) {
-        writableMemory[pte + i] = pages[i];
-      }
-      if (exec) {
-        executableMemory[pte + i] = pages[i];
-      }
+      readableMemory[pte + i] = read ? pages[i] : null;
+      writableMemory[pte + i] = write ? pages[i] : null;
+      executableMemory[pte + i] = exec ? pages[i] : null;
     }
+    
     return addr;
   }
 
@@ -210,12 +191,11 @@ public class ByteAddressedMemory extends CallBasedMemory {
     if ((addr % PAGE_SIZE) != 0) {
       MemoryMapException.unalignedAddress(addr);
     }
+    
     // Check file offset is page aligned
-    /*
     if ((offset % PAGE_SIZE) != 0) {
       MemoryMapException.unalignedFileOffset(offset);
     }
-    */
     
     // Calculate number of pages
     int num_pages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
@@ -224,7 +204,7 @@ public class ByteAddressedMemory extends CallBasedMemory {
       addr = findFreePages(num_pages);
     }
     if (DBT_Options.debugMemory) {
-      System.err.println("Mapping file " + file + " offset=" + offset
+      System.out.println("Mapping file " + file + " offset=" + offset
           + " addr=0x" + Integer.toHexString(addr) + " len=" + len
           + (read ? " r" : " -") + (write ? "w" : "-") + (exec ? "x" : "-"));
     }
@@ -237,9 +217,7 @@ public class ByteAddressedMemory extends CallBasedMemory {
         file.seek(offset);
         for (int i = 0; i < num_pages; i++) {
           // Check pages aren't already allocated
-          if ((readableMemory[pte + i] != null)
-              || (writableMemory[pte + i] != null)
-              || (executableMemory[pte + i] != null)) {
+          if (getPage(pte + i) != null) {
             throw new Error("Memory map of already mapped location addr=0x"
                 + Integer.toHexString(addr) + " len=" + len);
           }
@@ -252,25 +230,19 @@ public class ByteAddressedMemory extends CallBasedMemory {
           } else {
             file.read(page);
           }
-          if (read) {
-            readableMemory[pte + i] = page;
-          }
-          if (write) {
-            writableMemory[pte + i] = page;
-          }
-          if (exec) {
-            executableMemory[pte + i] = page;
-          }
+             
+          readableMemory[pte + i] = read ? page : null;
+          writableMemory[pte + i] = write ? page : null;
+          executableMemory[pte + i] = exec ? page : null;
         }
       } else {
         for (int i = 0; i < num_pages; i++) {
           // Check pages aren't already allocated
-          if ((readableMemory[pte + i] != null)
-              || (writableMemory[pte + i] != null)
-              || (executableMemory[pte + i] != null)) {
+          if (getPage(pte + i) != null) {
             throw new Error("Memory map of already mapped location addr=0x"
                 + Integer.toHexString(addr) + " len=" + len);
           }
+          
           // Allocate page
           if (read && write) {
             readableMemory[pte + i] = file.getChannel().map(
@@ -303,6 +275,29 @@ public class ByteAddressedMemory extends CallBasedMemory {
       throw new Error(e);
     }
   }
+  
+  /**
+   * Returns the page currently mapped at the given page table entry.
+   * 
+   * @param pte
+   *  The page table entry, for which a page is to be retrieved.
+   * @return
+   *  The page mapped at the given page table entry or null, if no page is currently mapped
+   *  to that entry.
+   */
+  private byte[] getPage(int pte) {
+    
+    if (readableMemory[pte] != null)
+      return readableMemory[pte];
+    
+    if (writableMemory[pte] != null)
+      return writableMemory[pte];
+    
+    if (executableMemory[pte] != null)
+      return executableMemory[pte];
+    
+    return null;
+  }
 
   /**
    * Unmap a page of memory
@@ -314,20 +309,14 @@ public class ByteAddressedMemory extends CallBasedMemory {
    */
   public void unmap(int addr, int len) {
     for (int i = 0; i < len; i += PAGE_SIZE) {
-      boolean unmapped_something = false;
-      if (readableMemory[getPTE(addr + i)] != null) {
-        readableMemory[getPTE(addr + i)] = null;
-        unmapped_something = true;
+      
+      int pte = getPTE(addr + i);
+      if (getPage(pte) != null) {
+        readableMemory[pte] = null;
+        writableMemory[pte] = null;
+        executableMemory[pte] = null;
       }
-      if (writableMemory[getPTE(addr + i)] != null) {
-        writableMemory[getPTE(addr + i)] = null;
-        unmapped_something = true;
-      }
-      if (executableMemory[getPTE(addr + i)] != null) {
-        executableMemory[getPTE(addr + i)] = null;
-        unmapped_something = true;
-      }
-      if (unmapped_something == false) {
+      else {
         throw new Error("Unmapping memory that's not mapped addr=0x"
             + Integer.toHexString(addr) + " len=" + len);
       }
@@ -340,9 +329,7 @@ public class ByteAddressedMemory extends CallBasedMemory {
    * @return true => memory is mapped
    */
   public boolean isMapped(int addr) {
-    return ((readableMemory[getPTE(addr)] != null) ||
-        (writableMemory[getPTE(addr)] != null) ||
-        (executableMemory[getPTE(addr)] != null));
+    return getPage(getPTE(addr)) != null;
   }
   
   /**
@@ -534,6 +521,25 @@ public class ByteAddressedMemory extends CallBasedMemory {
       store8(addr, value);
     } catch (Exception e) {
       throw new SegmentationFault(addr);
+    }
+  }
+
+  @Override
+  public void changeProtection(int address, int len, boolean newRead, boolean newWrite, boolean newExec) {
+    
+    while (len > 0) {
+      int pte = getPTE(address);
+      byte[] page = getPage(pte);
+      
+      if (page == null)
+        throw new SegmentationFault(address);
+      
+      readableMemory[pte]   = newRead  ? page : null;
+      writableMemory[pte]   = newWrite ? page : null;
+      executableMemory[pte] = newExec  ? page : null;
+      
+      address += PAGE_SIZE;
+      len -= PAGE_SIZE;
     }
   }
 }

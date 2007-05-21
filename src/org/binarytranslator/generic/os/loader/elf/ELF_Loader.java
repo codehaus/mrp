@@ -81,7 +81,7 @@ public class ELF_Loader extends Loader {
       System.out.println("ELF has segments:");
       
       for (ELF_File.SegmentHeader segment : segments) {
-        System.out.println(" - " + segment.toString());
+        System.out.println(" " + segment.toString());
       }
     }
 

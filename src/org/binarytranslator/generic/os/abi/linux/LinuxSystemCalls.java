@@ -31,6 +31,7 @@ import org.binarytranslator.generic.os.abi.linux.filesystem.HostFileSystem;
 import org.binarytranslator.generic.os.abi.linux.filesystem.ReadonlyFilesystem;
 import org.binarytranslator.generic.os.abi.linux.filesystem.TempFileSystem;
 import org.binarytranslator.generic.os.abi.linux.filesystem.FileProvider.FileMode;
+import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
  * Linux system call handling class
@@ -206,9 +207,8 @@ abstract public class LinuxSystemCalls {
    * Unknown System Call
    */
   private class UnknownSystemCall extends SystemCall {
-    /**
-     * Handle a system call
-     */
+
+    @Override
     public void doSysCall() {
       if (!DBT_Options.unimplementedSystemCallsFatal) {
         src.setSysCallError(errno.ENOSYS);
@@ -223,6 +223,8 @@ abstract public class LinuxSystemCalls {
    * Exit system call
    */
   public class SysExit extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       int status = arguments.nextInt();
       System.exit(status);
@@ -233,6 +235,8 @@ abstract public class LinuxSystemCalls {
    * Read from a file
    */
   public class SysRead extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       int fd = arguments.nextInt();
       int buf = arguments.nextInt();
@@ -265,6 +269,8 @@ abstract public class LinuxSystemCalls {
    * Write to a file
    */
   public class SysWrite extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       int fd = arguments.nextInt();
       int buf = arguments.nextInt();
@@ -296,6 +302,8 @@ abstract public class LinuxSystemCalls {
    * Write data into multiple buffers
    */
   public class SysWriteV extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       int fd = arguments.nextInt();
       int vector = arguments.nextInt();
@@ -334,6 +342,8 @@ abstract public class LinuxSystemCalls {
   }
 
   public class SysOpen extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       int pathname = arguments.nextInt();
       int flags = arguments.nextInt();
@@ -406,6 +416,8 @@ abstract public class LinuxSystemCalls {
   }
 
   public class SysClose extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       int fd = arguments.nextInt();
 
@@ -421,30 +433,40 @@ abstract public class LinuxSystemCalls {
   }
 
   public class SysGetEUID extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       src.setSysCallReturn(DBT_Options.UID);
     }
   }
 
   public class SysGetUID extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       src.setSysCallReturn(DBT_Options.UID);
     }
   }
 
   public class SysGetEGID extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       src.setSysCallReturn(DBT_Options.GID);
     }
   }
 
   public class SysGetGID extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       src.setSysCallReturn(DBT_Options.GID);
     }
   }
 
   public class SysBrk extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       int newBrk = arguments.nextInt();
       if (newBrk != 0) {
@@ -458,6 +480,8 @@ abstract public class LinuxSystemCalls {
   }
 
   public class SysFstat64 extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       int fd = arguments.nextInt();
       int structAddr = arguments.nextInt();
@@ -506,6 +530,8 @@ abstract public class LinuxSystemCalls {
   }
 
   public class SysFcntl64 extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       // This is complicated so fudge it for now.
       int fd = arguments.nextInt();
@@ -519,6 +545,8 @@ abstract public class LinuxSystemCalls {
   }
 
   public class SysUname extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       // Simple uname support
       int addr = arguments.nextInt();
@@ -556,6 +584,8 @@ abstract public class LinuxSystemCalls {
   }
 
   public class SysMmap extends SystemCall {
+    
+    @Override
     public void doSysCall() {
 
       int addr = arguments.nextInt();
@@ -589,8 +619,27 @@ abstract public class LinuxSystemCalls {
       }
     }
   }
+  
+  public class SysMRemap extends SystemCall {
+
+    @Override
+    public void doSysCall() {
+      int addr = arguments.nextInt();
+      int len = arguments.nextInt();
+      int prot = arguments.nextInt();
+      
+      ProcessSpace ps = src.getProcessSpace();
+      ps.memory.changeProtection(addr, len, (prot & mman.PROT_READ) != 0, 
+          (prot & mman.PROT_WRITE) != 0, (prot & mman.PROT_EXEC) != 0);
+      
+      src.setSysCallReturn(0);
+    }
+    
+  }
 
   public class SysMunmap extends SystemCall {
+    
+    @Override
     public void doSysCall() {
 
       int start = arguments.nextInt();
@@ -602,6 +651,8 @@ abstract public class LinuxSystemCalls {
   }
 
   public class SysExitGroup extends SystemCall {
+    
+    @Override
     public void doSysCall() {
       // For now, equivalent to SysExit
       System.exit(arguments.nextInt());
