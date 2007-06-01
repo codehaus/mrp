@@ -341,7 +341,6 @@
       <arg value="-o"/>
       <arg value="${test.results.dir}/ReportNG.html"/>
       <arg line="${upload-opt}"/>
-      <arg line="${webdir-opt}"/>
     </exec>
     <exec executable="${perl.exe}" failonerror="true">
       <arg value="${jikesrvm.dir}/testing/harness/regressionsummary.pl"/>
@@ -357,6 +356,7 @@
       <arg value="${jikesrvm.dir}/testing/harness/nightlyreport.pl"/>
       <arg value="-o"/>
       <arg value="${test.results.dir}/ReportSummary.html"/>
+      <arg line="${webdir-opt}"/>
     </exec>
   </target>
 
