@@ -30,12 +30,12 @@ public class ARM_Interpreter implements Interpreter {
   protected final ARM_Registers regs;
   
   /** The interpreter factory is creating the final instructions, which implement the Interpreter.Instruction interface. */
-  protected final InterpreterFactory instructionFactory;
+  protected final ARM_InstructionFactory<ARM_Instruction> instructionFactory;
 
   public ARM_Interpreter(ARM_ProcessSpace ps) {
     this.ps = ps;
     this.regs = ps.registers;
-    instructionFactory = new InterpreterFactory();
+    instructionFactory = new CountingInstructionFactory<ARM_Instruction>(new InterpreterFactory());
   }
 
   /** Decodes the instruction at the given address.*/
@@ -49,6 +49,11 @@ public class ARM_Interpreter implements Interpreter {
     }
     
     return instruction;
+  }
+  
+  @Override
+  public String toString() {
+    return instructionFactory.toString();
   }
   
   

@@ -372,7 +372,7 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
   @Override
   protected int translateInstruction(Laziness lazy, int pc) {
     
-    int nextAddr = translator.translateInstruction(pc, (ARM_Laziness)lazy);    
+    int nextAddr = translator.translateInstruction(pc, (ARM_Laziness)lazy);
     return nextAddr;
   }
   

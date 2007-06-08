@@ -95,10 +95,10 @@ public class Main {
       System.err.println("Error accesing file: " + args[0] + ". " + e.getMessage());
       return;
     }
-    catch (Error e) {
+    /*catch (Error e) {
       System.err.println(e.getMessage());
       return;
-    }
+    }*/
 
     report("Sucessfully created process.");
     
@@ -129,10 +129,10 @@ public class Main {
   public static void onExit(int exitcode) {
     System.out.println("\nProgram has finished. Exitcode: " + exitcode);
     
-    try {
-      ps.branchInfo.saveAsXML("/tmp/profile.xml");
+    /*try {
+      //ps.branchInfo.saveAsXML("/tmp/profile.xml");
     } catch (IOException e) {
       e.printStackTrace();
-    }
+    }*/
   }
 }

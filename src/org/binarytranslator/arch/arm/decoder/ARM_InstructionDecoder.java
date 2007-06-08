@@ -227,6 +227,8 @@ public class ARM_InstructionDecoder {
     return decode(instruction, _defaultFactory);
   }
 
+  public static int fastpathCount = 0;
+  
   /**
    * Decodes a binary ARM instruction. This method will use the supplied {@link ARM_InstructionFactory}
    * to create an object representation of the decoded instruction.
@@ -241,8 +243,24 @@ public class ARM_InstructionDecoder {
    */
   static <T> T decode(int instruction, ARM_InstructionFactory<T> factory) {
     
-    int bits_27_25 = Utils.getBits(instruction, 25, 27);
-    return prefixDecoders[bits_27_25].decode(instruction, factory);
+    if (ARM_Options.DATAPROCESSING_DECODER_FASTPATH) {
+      
+      //Check condition!=never?
+      if ((instruction & 0xF0000000) != 0xF0000000) {
+
+        if ((instruction & 0x0F000000) == 0x02000000) {
+          fastpathCount++;
+          return factory.createDataProcessing(instruction);
+        }
+      }
+    
+      int bits_27_25 = Utils.getBits(instruction, 25, 27);
+      return prefixDecoders[bits_27_25].decode(instruction, factory);
+    }
+    else {
+      int bits_27_25 = Utils.getBits(instruction, 25, 27);
+      return prefixDecoders[bits_27_25].decode(instruction, factory);
+    }
   }
   
   /**
@@ -254,11 +272,11 @@ public class ARM_InstructionDecoder {
    */
   interface ARM_InstructionFactory<T> {
     T createDataProcessing(int instr);
+    T createSwap(int instr);
     T createSingleDataTransfer(int instr);
     T createBlockDataTransfer(int instr);
     T createIntMultiply(int instr);
     T createLongMultiply(int instr);
-    T createSwap(int instr);
     T createSoftwareInterrupt(int instr);
     T createBranch(int instr);
     T createBranchExchange(int instr);
@@ -274,7 +292,7 @@ public class ARM_InstructionDecoder {
    * A default implementation of the ARM instruction factory, which will create the 
    * appropriate classes from the {@link ARM_Instructions} namespace.
    */
-  static class DefaultFactory implements ARM_InstructionFactory<ARM_Instructions.Instruction> {
+  private static class DefaultFactory implements ARM_InstructionFactory<ARM_Instructions.Instruction> {
 
     public Instruction createBlockDataTransfer(int instr) {
       return new MultipleDataTransfer(instr);

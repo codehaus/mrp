@@ -27,35 +27,25 @@ public class DBT_Options {
   /** Debug binary loading */
   public final static boolean debugLoader = true;
 
-  /** Are unimplemented system calls are fatal? */
+  /** Are unimplemented system calls fatal? */
   public final static boolean unimplementedSystemCallsFatal = false;
 
-  // -oO Translation settings Oo-
-  
   /** The file that is currently being executed. */
   public static String executableFile;
   
   /** Arguments given to the executable.*/
   public static String[] executableArguments = null;
 
-  /**
-   * The initial optimisation level
-   */
+  /** The initial optimisation level */
   public static int initialOptLevel = 0;
 
-  /**
-   * Instructions to translate for an optimisation level 0 trace
-   */
+  /**  Instructions to translate for an optimisation level 0 trace */
   public static int instrOpt0 = 684;
 
-  /**
-   * Instructions to translate for an optimisation level 1 trace
-   */
+  /** Instructions to translate for an optimisation level 1 trace */
   public static int instrOpt1 = 1500;
 
-  /**
-   * Instructions to translate for an optimisation level 2 trace
-   */
+  /** Instructions to translate for an optimisation level 2 trace */
   public static int instrOpt2 = 1500;
 
   /**
@@ -65,9 +55,7 @@ public class DBT_Options {
    */
   public final static boolean optimizeBackwardBranches = true;
 
-  /**
-   * Set this to true to record uncaught branch instructions
-   */
+  /** Set this to true to record uncaught branch instructions */
   public static boolean plantUncaughtBranchWatcher = false;
 
   /** Should direct branches be resolved before dynamic branches? */
@@ -101,69 +89,46 @@ public class DBT_Options {
    */
   public static boolean debugBranchResolution = true;
 
-  /**
-   * In PPC2IR, print cfg.
-   */
+  /** During code translation, print information about the creation of basic blocks. */
   public final static boolean debugCFG = false;
 
-  // -oO Runtime debugging options Oo-
-
-  /**
-   * Debug using GDB?
-   */
+  /** Debug using GDB? */
   public static boolean gdbStub = false;
 
-  /**
-   * GDB stub port
-   */
+  /** GDB stub port */
   public static int gdbStubPort = 1234;
+  
+  /** Print debug information during the translation of instructions. */
+  public static boolean debugTranslation = true;
 
-  /**
-   * In ProcessSpace, print syscall numbers.
-   */
+  /** In ProcessSpace, print syscall numbers. */
   public static boolean debugSyscall = false;
 
-  /**
-   * In ProcessSpace, print syscall numbers.
-   */
+  /** In ProcessSpace, print syscall numbers. */
   public static boolean debugSyscallMore = false;
 
-  /**
-   * Print out various messages about the emulator starting.
-   */
+  /** Print out various messages about the emulator starting. */
   public static boolean debugRuntime = true;
 
-  /**
-   * Print out messages from the memory system
-   */
+  /** Print out messages from the memory system */
   public static boolean debugMemory = false;
 
-  /**
-   * Print out process space between instructions
-   */
+  /** Print out process space between instructions */
   public final static boolean debugPS = false;
 
-  /**
-   * When printing process space, omit floating point registers.
-   */
+  /** When printing process space, omit floating point registers. */
   public final static boolean debugPS_OmitFP = false;
 
-  /**
-   * The user ID for the user running the command
-   */
+  /** The user ID for the user running the command */
   public final static int UID = 1000;
 
-  /**
-   * The group ID for the user running the command
-   */
+  /** The group ID for the user running the command */
   public final static int GID = 100;
   
   /** Stores the arguments given to the DBT by the user. These are NOT the arguments given to the executable. */
   private final static HashMap<String, String> dbtArguments = new HashMap<String, String>();
   
-  /**
-   * Read and parse the command line arguments. 
-   */
+  /** Read and parse the command line arguments.  */
   public static void parseArguments(String[] args) {
 
     try {

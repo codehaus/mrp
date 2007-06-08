@@ -11210,7 +11210,7 @@ final class sc_decoder extends PPC_InstructionDecoder {
     if (DBT.VerifyAssertions)
       DBT._assert((zero1 == zero2) && (zero2 == zero3) && (zero3 == zero4)
           && (zero4 == 0) && (one == 1));
-    ppc2ir.appendSystemCall(lazy, pc);
+    ppc2ir.appendSystemCall(lazy);
     return pc + 4;
   }
 }

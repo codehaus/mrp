@@ -87,6 +87,10 @@ public class AngelSystemCalls {
   
   public void doSysCall(int callNum) {
     try {
+      
+      if (DBT_Options.debugSyscall)
+        System.out.println("Executing Angel Syscall: " + callNum);
+      
       sysCalls[callNum].execute();
     }
     catch (NullPointerException e) {
@@ -286,6 +290,9 @@ public class AngelSystemCalls {
       int length = ps.memory.load32(ptrParamBlock + 8);
       
       String fileName = readString(ptrBuffer, length);
+      
+      if (DBT_Options.debugSyscallMore)
+        System.out.println("Opening file: " + fileName);
 
       try {
         AngelFileStream stream;

@@ -3842,7 +3842,7 @@ class X86_Int_OpcodeDecoder extends X86_OpcodeDecoder {
       int displacement, int immediateSize, int immediate, int length,
       X86_Group2PrefixDecoder prefix2, X86_Group3PrefixDecoder prefix3,
       X86_Group4PrefixDecoder prefix4, X86_Group5PrefixDecoder prefix5) {
-    translationHelper.appendSystemCall(lazy, pc);
+    translationHelper.appendSystemCall(lazy);
     return pc + length;
   }
 

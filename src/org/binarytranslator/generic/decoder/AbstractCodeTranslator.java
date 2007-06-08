@@ -156,6 +156,11 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    * This block gets instructions to pre-fill registers inserted into it.
    */
   protected OPT_BasicBlock preFillBlock;
+  
+  /** 
+   * This variable is being set by a call to {@link #printTraceAfterCompletion()} and notifies
+   * the system that the current trace shall be printed, after it has been completed. */
+  private boolean requestPrintTrace;
 
   /** Map to locate HIR basic blocks to re-use translation within a trace */
   protected final HashMap<Laziness.Key, OPT_BasicBlock> blockMap;
@@ -229,6 +234,15 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
   public int getNumInstructions() {
     return numberOfInstructions;
   }
+  
+  /**
+   * Deriving classes may call this method if they want to print the current trace after all
+   * dependencies (unknown branch targets etc.) have been resolved. This function is useful for
+   * debug purposes.
+   */
+  protected void printTraceAfterCompletion() {
+    requestPrintTrace = true;
+  }
 
   /** This is the main loop, which generates the HIR. */
   public void generateHIR() {
@@ -240,16 +254,16 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
 
     // Translating the subtrace finished so resolve any unresolved
     // branches
-    if (!DBT_Options.resolveDirectBranchesFirst) {
+    /*if (!DBT_Options.resolveDirectBranchesFirst) {
       resolveAllDynamicBranchTargets();
-    }
+    }*/
 
-    // Resolve all open direct first
+    // Resolve all open direct branches first
     resolveAllDirectBranches();
 
-    if (DBT_Options.resolveDirectBranchesFirst) {
+    /*if (DBT_Options.resolveDirectBranchesFirst) {
       resolveAllDynamicBranchTargets();
-    }
+    }*/
 
     // Resolve unresolved dynamic jumps
     resolveDynamicBranches();
@@ -260,6 +274,12 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
     if (DBT_Options.eliminateRegisterFills) {
       eliminateRegisterFills(getUnusedRegisters());
     }
+    
+    if (requestPrintTrace) {
+      requestPrintTrace = false;
+      printNextBlocks(preFillBlock, 50);
+    }
+    
     // TODO: maximizeBasicBlocks()
   }
 
@@ -654,8 +674,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
     for (int i = 0; i < unresolvedDirectBranches.size(); i++) {
 
       // Get the jump that we're supposed to resolve
-      UnresolvedJumpInstruction unresolvedInstr = unresolvedDirectBranches
-          .remove(unresolvedDirectBranches.size() - 1);
+      UnresolvedJumpInstruction unresolvedInstr = unresolvedDirectBranches.get(i);
       int targetPc = unresolvedInstr.pc;
       Laziness lazyStateAtJump = unresolvedInstr.lazyStateAtJump;
       OPT_Instruction gotoInstr = unresolvedInstr.instruction;
@@ -663,23 +682,19 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
       if (DBT.VerifyAssertions)
         DBT._assert(Goto.conforms(gotoInstr));
 
-      OPT_BasicBlock targetBB = resolveBranchTarget(targetPc, lazyStateAtJump,
-          unresolvedInstr.type);
+      OPT_BasicBlock targetBB = resolveBranchTarget(targetPc, lazyStateAtJump, unresolvedInstr.type);
 
       if (DBT_Options.debugBranchResolution) {
-        report("Resolving goto " + lazyStateAtJump.makeKey(targetPc) + " "
-            + targetBB);
+        report("Resolved goto in block " + gotoInstr.getBasicBlock()
+            + " to " + lazyStateAtJump.makeKey(targetPc) + " " + targetBB);
       }
 
       // Fix up instruction
       Goto.setTarget(gotoInstr, targetBB.makeJumpTarget());
       gotoInstr.getBasicBlock().insertOut(targetBB);
-
-      if (DBT_Options.debugBranchResolution) {
-        report("Properly resolving goto in block " + gotoInstr.getBasicBlock()
-            + " to " + lazyStateAtJump.makeKey(targetPc) + " " + targetBB);
-      }
     }
+    
+    unresolvedDirectBranches.clear();
   }
 
   /**
@@ -756,6 +771,8 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
 
       resolveSingleDynamicJump(unresolvedSwitch, branchDests);
     }
+    
+    unresolvedDynamicBranches.clear();
   }
 
   /**
@@ -781,7 +798,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
     OPT_BranchOperand default_target = LookupSwitch.getDefault(lookupswitch);
     OPT_Operand value = LookupSwitch.getValue(lookupswitch);
 
-    if (destinations != null) {
+    if (destinations != null && destinations.size() > 0) {
       if ((destinations.size() > 1)
           || (lookupswitch.getBasicBlock().nextBasicBlockInCodeOrder() != default_target.target
               .getBasicBlock())) {
@@ -817,8 +834,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
         lookupswitch.getBasicBlock().insertOut(target);
       }
     } else {
-      // no possibly branch destinations so remove lookupswitch
-      lookupswitch.remove();
+      //we don't yet know where this jump will go, so just exit
     }
   }
 
@@ -975,10 +991,9 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    * @param pc
    *          address of system call instruction
    */
-  public void appendSystemCall(Laziness lazy, int pc) {
+  public void appendSystemCall(Laziness lazy) {
     // We need to make sure that all registers contain their latest values,
-    // before
-    // performing the actual system call.
+    // before performing the actual system call.
     resolveLaziness(lazy);
     spillAllRegisters();
 
@@ -1251,7 +1266,10 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    *          The current laziness state.
    */
   public void appendInterpretedInstruction(int pc, Laziness lazy) {
-    resolveLaziness(lazy);
+    
+    if (lazy != null)
+      resolveLaziness(lazy);
+    
     spillAllRegisters();
 
     // Prepare a local variable of type Interpreter

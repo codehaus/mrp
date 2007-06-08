@@ -24,7 +24,7 @@ public class AutoMappingMemory extends CallBasedMemory {
   public AutoMappingMemory(Memory memoryImplementation) {
     super(AutoMappingMemory.class);
     
-    if (DBT.VerifyAssertions) DBT._assert(mem != null);
+    if (DBT.VerifyAssertions) DBT._assert(memoryImplementation != null);
     
     this.mem = memoryImplementation;
   }

@@ -186,7 +186,10 @@ abstract public class LinuxSystemCalls {
    */
   public void doSysCall() {
     int sysCallNumber = src.getSysCallNumber();
-    System.err.println("Syscall " + sysCallToString(sysCallNumber));
+    
+    if (DBT_Options.debugSyscall)
+      System.err.println("Syscall " + sysCallToString(sysCallNumber));
+    
     arguments = src.getSysCallArguments();
     systemCallTable[sysCallNumber].doSysCall();
   }

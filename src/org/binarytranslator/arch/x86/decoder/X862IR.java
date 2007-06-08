@@ -136,7 +136,7 @@ public class X862IR extends AbstractCodeTranslator implements OPT_HIRGenerator,
    * @return -1
    */
   private int plantSystemCallGateEntry(X86_Laziness lazy, int pc) {
-    appendSystemCall(lazy, pc);
+    appendSystemCall(lazy);
     // Get return address
     X86_DecodedOperand source = X86_DecodedOperand.getStack(X86_ProcessSpace._16BIT ? 16 : 32,
         X86_ProcessSpace._16BIT ? 16 : 32);
