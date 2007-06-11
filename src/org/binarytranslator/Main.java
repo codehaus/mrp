@@ -9,17 +9,11 @@
 package org.binarytranslator;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.binarytranslator.generic.execution.DynamicTranslationController;
 import org.binarytranslator.generic.execution.ExecutionController;
 import org.binarytranslator.generic.execution.GdbController;
 import org.binarytranslator.generic.execution.InterpreterController;
-import org.binarytranslator.generic.execution.ThreadedInterpretationController;
-import org.binarytranslator.generic.execution.ThreadedInterpretationController2;
-import org.binarytranslator.generic.execution.ThreadedInterpretationController3;
-import org.binarytranslator.generic.execution.ThreadedInterpretationController4;
-import org.binarytranslator.generic.execution.ThreadedInterpretationController5;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -68,7 +62,10 @@ public class Main {
       DBT_Options.parseArguments(args);
     } catch (Exception e) {
       System.err.println("Error while parsing command line arguments.");
-      System.err.println(e.getMessage());
+      
+      if (DBT_Options.debugRuntime)
+        e.printStackTrace();
+      
       showUsage();
       return;
     }
