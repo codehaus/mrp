@@ -1,19 +1,19 @@
 Index: build.xml
 ===================================================================
---- build.xml	(revision 12035)
+--- build.xml	(revision 12603)
 +++ build.xml	(working copy)
-@@ -803,8 +803,8 @@
+@@ -848,8 +848,8 @@
             debugLevel="lines,source"
             source="1.5"
             target="1.5"
--           srcdir="${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}"
--           sourcepath="${mmtk.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:${generated.java}:${main.java}:${mmtk-rvm.java}">
-+           srcdir="projects/dbt/ext:${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}"
-+           sourcepath="${mmtk.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:${generated.java}:projects/dbt/ext:${main.java}:${mmtk-rvm.java}">
+-           srcdir="${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}:${classlib.library-interface.non-cpl2.java}:${mmtk-rvm.java}"
+-           sourcepath="${mmtk.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:${main.java}:${mmtk-rvm.java}">
++           srcdir="projects/dbt/ext:${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}:${classlib.library-interface.non-cpl2.java}:${mmtk-rvm.java}"
++           sourcepath="${mmtk.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:projects/dbt/ext:${main.java}:${mmtk-rvm.java}">
        <bootclasspath>
          <pathelement location="${classpath.lib.dir}/classpath.jar"/>
        </bootclasspath>
-@@ -863,7 +863,7 @@
+@@ -907,7 +907,7 @@
      </javac>
    </target>
  
@@ -22,7 +22,7 @@ Index: build.xml
      <!-- create a rt.jar for the RVM -->
      <copy file="${classpath.lib.dir}/classpath.jar" tofile="${build.rt.jar}"/>
      <zip destfile="${build.rt.jar}" update="true" basedir="${build.classes}">
-@@ -883,7 +883,20 @@
+@@ -929,7 +929,20 @@
      </jar>
    </target>
  
@@ -45,9 +45,9 @@ Index: build.xml
    <!-- *                Section for building the boot image                       * -->
 Index: rvm/src-generated/opt-ir/InstructionFormatList.dat
 ===================================================================
---- rvm/src-generated/opt-ir/InstructionFormatList.dat	(revision 12035)
+--- rvm/src-generated/opt-ir/InstructionFormatList.dat	(revision 12603)
 +++ rvm/src-generated/opt-ir/InstructionFormatList.dat	(working copy)
-@@ -149,6 +149,14 @@
+@@ -151,6 +151,14 @@
  "U Cond OPT_ConditionOperand" "U BranchProfile OPT_BranchProfileOperand"
  
  
@@ -64,9 +64,9 @@ Index: rvm/src-generated/opt-ir/InstructionFormatList.dat
  "D Result OPT_RegisterOperand" "U Val1 OPT_Operand" "U Val2 OPT_Operand" \
 Index: rvm/src-generated/opt-ir/OperatorList.dat
 ===================================================================
---- rvm/src-generated/opt-ir/OperatorList.dat	(revision 12035)
+--- rvm/src-generated/opt-ir/OperatorList.dat	(revision 12603)
 +++ rvm/src-generated/opt-ir/OperatorList.dat	(working copy)
-@@ -1255,6 +1255,20 @@
+@@ -1269,6 +1269,20 @@
  
  
  
@@ -89,9 +89,9 @@ Index: rvm/src-generated/opt-ir/OperatorList.dat
  # way in the HIR/LIR that the actual load instruction can except.
 Index: rvm/src-generated/opt-burs/ia32/IA32.rules
 ===================================================================
---- rvm/src-generated/opt-burs/ia32/IA32.rules	(revision 12035)
+--- rvm/src-generated/opt-burs/ia32/IA32.rules	(revision 12603)
 +++ rvm/src-generated/opt-burs/ia32/IA32.rules	(working copy)
-@@ -575,8 +575,9 @@
+@@ -533,8 +533,9 @@
  boolcmp: BOOLEAN_CMP_INT(r,riv)
  13
  EMIT_INSTRUCTION
@@ -103,19 +103,19 @@ Index: rvm/src-generated/opt-burs/ia32/IA32.rules
  
  r:	BOOLEAN_CMP_INT(r,INT_CONSTANT)
  VR(p) == 0 && EQ_NE(BooleanCmp.getCond(P(p)))?37:INFINITE
-@@ -662,8 +663,9 @@
+@@ -640,8 +641,9 @@
  boolcmp: BOOLEAN_CMP_INT(load32,riv)
  15
  EMIT_INSTRUCTION
 -pushCOND(BooleanCmp.getCond(P(p))); \
--EMIT(MIR_Compare.mutate(PL(p), IA32_CMP, consumeMO(), BooleanCmp.getVal2(P(p)))); 
+-EMIT(MIR_Compare.mutate(PL(p), IA32_CMP, consumeMO(), BooleanCmp.getVal2(P(p))));
 +OPT_ConditionOperand cond = BooleanCmp.getCond(P(p)); \
 +pushCOND(cond); \
 +EMIT_Compare(P(p), cond, consumeMO(), BooleanCmp.getVal2(P(p)));
  
  r:	BOOLEAN_CMP_INT(r,load32)
  41
-@@ -675,8 +677,9 @@
+@@ -653,8 +655,9 @@
  boolcmp: BOOLEAN_CMP_INT(r,load32)
  15
  EMIT_INSTRUCTION
@@ -129,9 +129,9 @@ Index: rvm/src-generated/opt-burs/ia32/IA32.rules
  15
 Index: rvm/src/OptDummy.java
 ===================================================================
---- rvm/src/OptDummy.java	(revision 12035)
+--- rvm/src/OptDummy.java	(revision 12603)
 +++ rvm/src/OptDummy.java	(working copy)
-@@ -20,4 +20,5 @@
+@@ -22,4 +22,5 @@
    static org.jikesrvm.compilers.opt.OPT_Compiler a;
    static org.jikesrvm.compilers.opt.VM_OptSaveVolatile g;
    static org.jikesrvm.compilers.opt.OPT_SpecializedMethodPool q;
