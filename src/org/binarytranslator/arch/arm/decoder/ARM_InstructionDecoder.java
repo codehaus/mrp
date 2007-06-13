@@ -286,6 +286,22 @@ public class ARM_InstructionDecoder {
     T createMoveFromStatusRegister(int instr);
     T createMoveToStatusRegister(int instr);
     T createUndefinedInstruction(int instr);
+    
+    T createDataProcessing(short instr);
+    T createSwap(short instr);
+    T createSingleDataTransfer(short instr);
+    T createBlockDataTransfer(short instr);
+    T createshortMultiply(short instr);
+    T createLongMultiply(short instr);
+    T createSoftwareshorterrupt(short instr);
+    T createBranch(short instr);
+    T createBranchExchange(short instr);
+    T createCoprocessorDataTransfer(short instr);
+    T createCoprocessorDataProcessing(short instr);
+    T createCoprocessorRegisterTransfer(short instr);
+    T createMoveFromStatusRegister(short instr);
+    T createMoveToStatusRegister(short instr);
+    T createUndefinedInstruction(short instr);
   }
   
   /**
@@ -295,7 +311,7 @@ public class ARM_InstructionDecoder {
   private static class DefaultFactory implements ARM_InstructionFactory<ARM_Instructions.Instruction> {
 
     public Instruction createBlockDataTransfer(int instr) {
-      return new MultipleDataTransfer(instr);
+      return new BlockDataTransfer(instr);
     }
 
     public Instruction createBranch(int instr) {
@@ -351,6 +367,81 @@ public class ARM_InstructionDecoder {
     }
 
     public Instruction createUndefinedInstruction(int instr) {
+      return null;
+    }
+
+    public Instruction createBlockDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createBranch(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createBranchExchange(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createCoprocessorDataProcessing(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createCoprocessorDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createCoprocessorRegisterTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createDataProcessing(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createLongMultiply(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createMoveFromStatusRegister(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createMoveToStatusRegister(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createSingleDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createSoftwareshorterrupt(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createSwap(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createUndefinedInstruction(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Instruction createshortMultiply(short instr) {
+      // TODO Auto-generated method stub
       return null;
     }
     

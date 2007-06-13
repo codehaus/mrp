@@ -3,7 +3,6 @@ package org.binarytranslator.arch.arm.decoder;
 import java.util.ArrayList;
 
 import org.binarytranslator.DBT;
-import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
@@ -24,15 +23,19 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
   private OPT_Register regMap[] = new OPT_Register[16];
   
   /** The ARM carry flag. */
+  private boolean carryUsed;
   private OPT_Register carryFlag;
   
   /** The ARM zero flag. */
+  private boolean zeroUsed;
   private OPT_Register zeroFlag;
   
   /** The ARM negative flag. */
+  private boolean negativeUsed;
   private OPT_Register negativeFlag;
   
   /** The ARM overflow flag. */
+  private boolean overflowUsed;
   private OPT_Register overflowFlag;
   
   /** Set to true for each register that is in use during the current trace */
@@ -215,22 +218,31 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
   private void spillAllFlags() {
 
     OPT_RegisterOperand ps_registersOp = getArmRegistersReference();
+    OPT_RegisterOperand flag;
     
     //store the carry flag
-    OPT_RegisterOperand flag = new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
-    appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_carryFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_carryFlag_Fref), new OPT_TrueGuardOperand()) );
+    if (carryUsed) {
+      flag = new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
+      appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_carryFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_carryFlag_Fref), new OPT_TrueGuardOperand()) );
+    }
     
     //store the negative flag
-    flag = new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
-    appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_negativeFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_negativeFlag_Fref), new OPT_TrueGuardOperand()) );
+    if (negativeUsed) {
+      flag = new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
+      appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_negativeFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_negativeFlag_Fref), new OPT_TrueGuardOperand()) );
+    }
     
     //store the zero flag
-    flag = new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
-    appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_zeroFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_zeroFlag_Fref), new OPT_TrueGuardOperand()) );
+    if (zeroUsed) {
+      flag = new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
+      appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_zeroFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_zeroFlag_Fref), new OPT_TrueGuardOperand()) );
+    }
 
     //store the overflow flag
-    flag = new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
-    appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_overflowFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_overflowFlag_Fref), new OPT_TrueGuardOperand()) );
+    if (overflowUsed) {
+      flag = new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
+      appendInstruction(PutField.create(PUTFIELD, flag, ps_registersOp.copyRO(), new OPT_AddressConstantOperand(registers_overflowFlag_Fref.peekResolvedField().getOffset()), new OPT_LocationOperand(registers_overflowFlag_Fref), new OPT_TrueGuardOperand()) );
+    }
   }
   
   public void fillAllFlags() {
@@ -308,18 +320,22 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
   }
   
   public OPT_RegisterOperand getCarryFlag() {
+    carryUsed = true;
     return new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
   }
   
   public OPT_RegisterOperand getZeroFlag() {
+    zeroUsed = true;
     return new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
   }
   
   public OPT_RegisterOperand getNegativeFlag() {
+    negativeUsed = true;
     return new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
   }
   
   public OPT_RegisterOperand getOverflowFlag() {
+    overflowUsed = true;
     return new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
   }
   
@@ -328,10 +344,23 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
     
     ArrayList<OPT_Register> unusedRegisters = new ArrayList<OPT_Register>();
     
-    for (int i = 0; i < regUsed.length; i++)
+    for (int i = 0; i < regUsed.length; i++) {
       if (!regUsed[i]) {
         unusedRegisters.add(regMap[i]);
       }
+    }
+    
+    if (!carryUsed)
+      unusedRegisters.add(carryFlag);
+    
+    if (!negativeUsed)
+      unusedRegisters.add(negativeFlag);
+    
+    if (!overflowUsed)
+      unusedRegisters.add(overflowFlag);
+    
+    if (!zeroUsed)
+      unusedRegisters.add(zeroFlag);
     
     return unusedRegisters.toArray(new OPT_Register[unusedRegisters.size()]);
   }
@@ -345,6 +374,15 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
   public void resolveLaziness(Laziness laziness) {
     //NO-OP, as we're not using laziness at the moment
   }
+  
+  @Override
+  public void appendSystemCall(Laziness lazy) {
+    super.appendSystemCall(lazy);
+    
+    //ARM system calls may change all registers
+    for (int i = 0; i < 15; i++)
+      regUsed[i] = true;
+  }
 
   @Override
   protected void spillAllRegisters() {
@@ -353,10 +391,8 @@ public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
     OPT_RegisterOperand ps_registers_regsOp = new OPT_RegisterOperand(
         ps_registers_regs, registers_regs_Tref);
     for (int i = 0; i < regMap.length; i++) {
-      // We can save spills if the trace has no syscalls and the register was
-      // never used
-      if ((DBT_Options.singleInstrTranslation == false)
-          || (regUsed[i] == true)) {
+      // We can save spills if the register was never used
+      if (regUsed[i] == true) {
         appendInstruction(AStore.create(INT_ASTORE,
             new OPT_RegisterOperand(regMap[i], VM_TypeReference.Int),
             ps_registers_regsOp.copyRO(), new OPT_IntConstantOperand(i),

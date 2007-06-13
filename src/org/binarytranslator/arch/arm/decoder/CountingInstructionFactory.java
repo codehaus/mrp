@@ -2,7 +2,7 @@ package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoder.ARM_InstructionFactory;
 
-public class CountingInstructionFactory<T> implements ARM_InstructionFactory<T> {
+public abstract class CountingInstructionFactory<T> implements ARM_InstructionFactory<T> {
   
   private final ARM_InstructionFactory<T> factory;
   

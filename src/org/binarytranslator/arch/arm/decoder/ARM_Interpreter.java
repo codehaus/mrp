@@ -35,7 +35,7 @@ public class ARM_Interpreter implements Interpreter {
   public ARM_Interpreter(ARM_ProcessSpace ps) {
     this.ps = ps;
     this.regs = ps.registers;
-    instructionFactory = new CountingInstructionFactory<ARM_Instruction>(new InterpreterFactory());
+    instructionFactory = new InterpreterFactory(); //new CountingInstructionFactory<ARM_Instruction>(
   }
 
   /** Decodes the instruction at the given address.*/
@@ -340,7 +340,6 @@ public class ARM_Interpreter implements Interpreter {
   
   /** All ARM interpreter instructions implement this interface. */
   private interface ARM_Instruction extends Interpreter.Instruction {
-    /** Returns the condition, under which the given instruction will be executed. */
     Condition getCondition();
   }
 
@@ -351,10 +350,12 @@ public class ARM_Interpreter implements Interpreter {
   private final class ConditionalDecorator implements Interpreter.Instruction {
 
     protected final ARM_Instruction conditionalInstruction;
+    private final Condition condition;
 
     /** Decorates an ARM interpreter instruction, by making it execute conditionally. */
     protected ConditionalDecorator(ARM_Instruction i) {
       conditionalInstruction = i;
+      this.condition = i.getCondition();
     }
     
     public void execute() {
@@ -380,7 +381,7 @@ public class ARM_Interpreter implements Interpreter {
     
    /** Return true if the condition required by the conditional instruction is fulfilled, false otherwise.*/
     private boolean isConditionTrue() {
-      switch (conditionalInstruction.getCondition()) {
+      switch (condition) {
       case AL:
         throw new RuntimeException("ARM32 instructions with a condition of AL (always) should not be decorated with a ConditionalDecorator.");
         
@@ -430,7 +431,7 @@ public class ARM_Interpreter implements Interpreter {
         return regs.isOverflowSet();
         
         default:
-          throw new RuntimeException("Unexpected condition code: " + conditionalInstruction.getCondition());
+          throw new RuntimeException("Unexpected condition code: " + condition);
       }
     }
     
@@ -441,26 +442,27 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** A base class for all data processing interpreter instructions, including CLZ.*/
-  private abstract class DataProcessing extends ARM_Instructions.DataProcessing
-      implements ARM_Instruction {
+  private abstract class DataProcessing implements ARM_Instruction {
+    
+    protected final ARM_Instructions.DataProcessing i;
 
-    protected DataProcessing(int instr) {
-      super(instr);
+    protected DataProcessing(ARM_Instructions.DataProcessing instr) {
+      i = instr;
     }
 
     /** Returns the value of operand 1 of the data processing instruction. This is always a register value. */
     protected int resolveOperand1() {
 
-      if (Rn == ARM_Registers.PC) {
-        return regs.get(Rn) + 8;
+      if (i.Rn == ARM_Registers.PC) {
+        return regs.get(i.Rn) + 8;
       }
 
-      return regs.get(Rn);
+      return regs.get(i.Rn);
     }
 
     /** Returns the value of the rhs-operand of the data processing instruction. */
     protected int resolveOperand2() {
-      return ResolvedOperand.resolve(regs, operand2);
+      return ResolvedOperand.resolve(regs, i.operand2);
     }
 
     public abstract void execute();
@@ -474,11 +476,11 @@ public class ARM_Interpreter implements Interpreter {
     protected final void setAddResult(int lhs, int rhs) {
       setFlagsForAdd(lhs, rhs);
 
-      if (DBT_Options.profileDuringInterpretation && Rd == 15) {
+      if (DBT_Options.profileDuringInterpretation && i.Rd == 15) {
         ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), lhs + rhs, BranchType.INDIRECT_BRANCH);
       }
       
-      regs.set(Rd, lhs + rhs);
+      regs.set(i.Rd, lhs + rhs);
     }
     
     /**
@@ -490,18 +492,18 @@ public class ARM_Interpreter implements Interpreter {
     protected final void setSubResult(int lhs, int rhs) {
       setFlagsForSub(lhs, rhs);
       
-      if (DBT_Options.profileDuringInterpretation && Rd == 15) {
+      if (DBT_Options.profileDuringInterpretation && i.Rd == 15) {
         ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), lhs - rhs, BranchType.INDIRECT_BRANCH);
       }
       
-      regs.set(Rd, lhs - rhs);
+      regs.set(i.Rd, lhs - rhs);
     }
 
     /** Sets the processor flags according to the result of adding <code>lhs</code> and <code>rhs</code>.*/
     protected final void setFlagsForAdd(int lhs, int rhs) {
 
-      if (updateConditionCodes) {
-        if (Rd != 15) {
+      if (i.updateConditionCodes) {
+        if (i.Rd != 15) {
           int result = lhs + rhs;
           boolean carry = Utils.unsignedAddOverflow(lhs, rhs);
           boolean overflow = Utils.signedAddOverflow(lhs, rhs);
@@ -516,8 +518,8 @@ public class ARM_Interpreter implements Interpreter {
     /** Sets the processor flags according to the result of subtracting <code>rhs</code> from <code>lhs</code>.*/
     protected final void setFlagsForSub(int lhs, int rhs) {
 
-      if (updateConditionCodes) {
-        if (Rd != 15) {
+      if (i.updateConditionCodes) {
+        if (i.Rd != 15) {
           int result = lhs - rhs;
           boolean carry = !Utils.unsignedSubOverflow(lhs, rhs);
           boolean overflow = Utils.signedSubOverflow(lhs, rhs);
@@ -528,9 +530,13 @@ public class ARM_Interpreter implements Interpreter {
         }
       }
     }
+    
+    public Condition getCondition() {
+      return i.condition;
+    }
 
     public int getSuccessor(int pc) {
-      if (Rd != 15)
+      if (i.Rd != 15)
         return pc + 4;
       else
         return -1;
@@ -543,7 +549,7 @@ public class ARM_Interpreter implements Interpreter {
      * out value. The value of the barrel shifter is stored within this variable. */
     protected boolean shifterCarryOut;
 
-    protected DataProcessing_Logical(int instr) {
+    protected DataProcessing_Logical(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
     
@@ -552,8 +558,8 @@ public class ARM_Interpreter implements Interpreter {
      * the condition codes are to be modified by this function (because otherwise it won't be used anyway).*/
     protected int resolveOperand2() {
       
-      if (updateConditionCodes) {
-        ResolvedOperand operand = ResolvedOperand.resolveWithShifterCarryOut(regs, operand2);
+      if (i.updateConditionCodes) {
+        ResolvedOperand operand = ResolvedOperand.resolveWithShifterCarryOut(regs, i.operand2);
         shifterCarryOut = operand.getShifterCarryOut();
         return operand.getValue();
       }
@@ -566,22 +572,22 @@ public class ARM_Interpreter implements Interpreter {
      * is set, also sets the flags accordingly. */
     protected final void setLogicalResult(int result) {
       
-      if (DBT_Options.profileDuringInterpretation && Rd == 15) {        
-        if (getOpcode() == Opcode.MOV && operand2.getType() == OperandWrapper.Type.Register && operand2.getRegister() == ARM_Registers.LR)
+      if (DBT_Options.profileDuringInterpretation && i.Rd == 15) {        
+        if (i.getOpcode() == Opcode.MOV && i.operand2.getType() == OperandWrapper.Type.Register && i.operand2.getRegister() == ARM_Registers.LR)
           ps.branchInfo.registerReturn(regs.get(ARM_Registers.PC), result);
         else
           ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
       }
       
-      regs.set(Rd, result);
+      regs.set(i.Rd, result);
       setFlagsForLogicalOperator(result);
     }
 
     /** Sets the condition field for logical operations. */
     protected final void setFlagsForLogicalOperator(int result) {
 
-      if (updateConditionCodes) {
-        if (Rd != 15) {
+      if (i.updateConditionCodes) {
+        if (i.Rd != 15) {
           regs.setFlags(result < 0, result == 0, shifterCarryOut);
         } else {
           regs.restoreSPSR2CPSR();
@@ -593,7 +599,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Binary and. <code>Rd = op1 & op2 </code>.*/
   private final class DataProcessing_And extends DataProcessing_Logical {
 
-    protected DataProcessing_And(int instr) {
+    protected DataProcessing_And(ARM_Instructions.DataProcessing  instr) {
       super(instr);
     }
 
@@ -607,7 +613,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Exclusive or. <code>Rd = op1 ^ op2 </code>.*/
   private final class DataProcessing_Eor extends DataProcessing_Logical {
 
-    protected DataProcessing_Eor(int instr) {
+    protected DataProcessing_Eor(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -621,7 +627,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Add. <code>Rd = op1 + op2 </code>.*/
   private final class DataProcessing_Add extends DataProcessing {
 
-    public DataProcessing_Add(int instr) {
+    public DataProcessing_Add(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -636,7 +642,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Subtract. <code>Rd = op1 - op2 </code>.*/
   private final class DataProcessing_Sub extends DataProcessing {
 
-    public DataProcessing_Sub(int instr) {
+    public DataProcessing_Sub(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
     
@@ -651,7 +657,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Reverse subtract. <code>Rd = op2 - op1</code>.*/
   private final class DataProcessing_Rsb extends DataProcessing {
 
-    protected DataProcessing_Rsb(int instr) {
+    protected DataProcessing_Rsb(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -668,7 +674,7 @@ public class ARM_Interpreter implements Interpreter {
    * not cause an overflow). Then, the normal add-routine is being invoked. */
   private final class DataProcessing_Adc extends DataProcessing {
 
-    protected DataProcessing_Adc(int instr) {
+    protected DataProcessing_Adc(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -686,7 +692,7 @@ public class ARM_Interpreter implements Interpreter {
           regs.setFlags(true, true, true, true);
           
           //set the result to any of the operands
-          regs.set(Rd, operand1);
+          regs.set(i.Rd, operand1);
           return;
         }
       }
@@ -698,7 +704,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Subtract with carry. <code>Rd = op1 - op2 - NOT(CARRY)</code>.*/
   private class DataProcessing_Sbc extends DataProcessing {
 
-    protected DataProcessing_Sbc(int instr) {
+    protected DataProcessing_Sbc(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
     
@@ -727,7 +733,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Reserve subtract with carry. <code>Rd = -op1 + op2 - NOT(CARRY)</code>.*/
   private final class DataProcessing_Rsc extends DataProcessing_Sbc {
 
-    protected DataProcessing_Rsc(int instr) {
+    protected DataProcessing_Rsc(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
     
@@ -746,7 +752,7 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Flags = op1 & op2</code>*/
   private final class DataProcessing_Tst extends DataProcessing_Logical {
 
-    protected DataProcessing_Tst(int instr) {
+    protected DataProcessing_Tst(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -760,7 +766,7 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Flags = op1 ^ op2</code> */
   private final class DataProcessing_Teq extends DataProcessing_Logical {
 
-    protected DataProcessing_Teq(int instr) {
+    protected DataProcessing_Teq(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -774,7 +780,7 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Flags = op1 - op2</code> */
   private final class DataProcessing_Cmp extends DataProcessing {
 
-    protected DataProcessing_Cmp(int instr) {
+    protected DataProcessing_Cmp(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -788,7 +794,7 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Flags = op1 + op2</code>. */
   private final class DataProcessing_Cmn extends DataProcessing {
 
-    protected DataProcessing_Cmn(int instr) {
+    protected DataProcessing_Cmn(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -801,7 +807,7 @@ public class ARM_Interpreter implements Interpreter {
   /** Binary or. <code>Rd = op1 | op2</code>. */
   private final class DataProcessing_Orr extends DataProcessing_Logical {
 
-    protected DataProcessing_Orr(int instr) {
+    protected DataProcessing_Orr(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -814,7 +820,7 @@ public class ARM_Interpreter implements Interpreter {
 
   private final class DataProcessing_Mov extends DataProcessing_Logical {
 
-    protected DataProcessing_Mov(int instr) {
+    protected DataProcessing_Mov(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -830,7 +836,7 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Rd =  op1 & (~op2)</code>.*/
   private final class DataProcessing_Bic extends DataProcessing_Logical {
 
-    protected DataProcessing_Bic(int instr) {
+    protected DataProcessing_Bic(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -846,7 +852,7 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Rd = ~op2</code>.*/
   private final class DataProcessing_Mvn extends DataProcessing_Logical {
 
-    protected DataProcessing_Mvn(int instr) {
+    protected DataProcessing_Mvn(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -861,43 +867,48 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Rd = Number_Of_Leading_Zeroes(op2) </code> */
   private final class DataProcessing_Clz extends DataProcessing {
 
-    protected DataProcessing_Clz(int instr) {
+    protected DataProcessing_Clz(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
     @Override
     public void execute() {
       int result = Integer.numberOfLeadingZeros(resolveOperand2());
-      regs.set(Rd, result);
+      regs.set(i.Rd, result);
     }
   }
 
   /** Swap a register and a memory value. 
    * TODO: At the moment, Pearcolator does not support any way of locking the memory. However, once it does
    * any other memory accesses should be pending until the swap instruction succeeds.*/
-  private final class Swap extends ARM_Instructions.Swap implements
-  ARM_Instruction {
+  private final class Swap implements ARM_Instruction {
+    
+    private final ARM_Instructions.Swap i;
 
-    public Swap(int instr) {
-      super(instr);
+    public Swap(ARM_Instructions.Swap instr) {
+      i = instr;
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public void execute() {
-      int memAddr = regs.get(Rn);
+      int memAddr = regs.get(i.Rn);
       
       //swap exchanges the value of a memory address with the value in a register
-      if (!swapByte) {
+      if (!i.swapByte) {
         int tmp = ps.memory.load32(memAddr);
-        ps.memory.store32(memAddr, regs.get(Rm));
+        ps.memory.store32(memAddr, regs.get(i.Rm));
         
         //according to the ARM architecture reference, the value loaded from a memory address is rotated
         //by the number of ones in the first two bits of the address
-        regs.set(Rd, Integer.rotateRight(tmp, (memAddr & 0x3) * 8));
+        regs.set(i.Rd, Integer.rotateRight(tmp, (memAddr & 0x3) * 8));
       }
       else {
         int tmp = ps.memory.loadUnsigned8(memAddr);
-        ps.memory.store8(memAddr, regs.get(Rm));
-        regs.set(Rd, tmp);
+        ps.memory.store8(memAddr, regs.get(i.Rm));
+        regs.set(i.Rd, tmp);
       }
     }
 
@@ -909,8 +920,10 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Transfer multiple registers at once between the register bank and the memory. */
-  private final class BlockDataTransfer extends ARM_Instructions.MultipleDataTransfer
+  private final class BlockDataTransfer
       implements ARM_Instruction {
+    
+    private final ARM_Instructions.BlockDataTransfer i;
 
     /** the lowest address that we're reading a register from / writing a register to */
     private final int registerCount;
@@ -923,14 +936,14 @@ public class ARM_Interpreter implements Interpreter {
     /** True if the PC should be transferred to, false otherwise. */
     private final boolean transferPC;
 
-    public BlockDataTransfer(int instr) {
-      super(instr);
+    public BlockDataTransfer(ARM_Instructions.BlockDataTransfer instr) {
+      i = instr;
 
-      transferPC = transferRegister(15);
+      transferPC = i.transferRegister(15);
       int regCount = 0;
 
       for (int i = 0; i <= 14; i++)
-        if (transferRegister(i)) {
+        if (this.i.transferRegister(i)) {
           registersToTransfer[regCount++] = i;
         }
 
@@ -941,10 +954,10 @@ public class ARM_Interpreter implements Interpreter {
 
     public void execute() {
       //build the address, which generally ignores the last two bits
-      int startAddress = regs.get(baseRegister) & 0xFFFFFFFC;
+      int startAddress = regs.get(i.baseRegister) & 0xFFFFFFFC;
       
-      if (!incrementBase) {
-        if (postIndexing) {
+      if (!i.incrementBase) {
+        if (i.postIndexing) {
           //post-indexing, backward reading
           startAddress -= (registerCount + (transferPC ? 1 : 0)) * 4;
         } else {
@@ -952,7 +965,7 @@ public class ARM_Interpreter implements Interpreter {
           startAddress -= (registerCount + (transferPC ? 2 : 1)) * 4;
         }
       } else {
-        if (postIndexing) {
+        if (i.postIndexing) {
           //post-indexing, forward reading
           startAddress -= 4;
         } else {
@@ -965,14 +978,14 @@ public class ARM_Interpreter implements Interpreter {
       OperatingMode previousMode = ps.registers.getOperatingMode();
       
       //if we should transfer the user mode registers...
-      if (forceUser) {
+      if (i.forceUser) {
         //... then change the current register map, but do NOT change the current processor mode
         ps.registers.switchOperatingMode(OperatingMode.USR);
         ps.registers.setOperatingModeWithoutRegisterLayout(previousMode);
       }
 
       //are we supposed to load or store multiple registers?
-      if (isLoad) {
+      if (i.isLoad) {
         int nextReg = 0;
 
         while (registersToTransfer[nextReg] != -1) {
@@ -989,7 +1002,7 @@ public class ARM_Interpreter implements Interpreter {
           if (DBT_Options.profileDuringInterpretation)
             ps.branchInfo.registerReturn(regs.get(ARM_Registers.PC), newpc);
 
-          if (forceUser) {
+          if (i.forceUser) {
             //when we are transferring the PC with a forced-user transfer, then we also want to
             //restore the CPSR from the SPSR.
             //However, at the moment our register layout is different from our operating mode.
@@ -1030,16 +1043,16 @@ public class ARM_Interpreter implements Interpreter {
       }
 
       //restore the register layout, if we were transferring the user mode registers
-      if (forceUser) {
+      if (i.forceUser) {
         ps.registers.setOperatingModeWithoutRegisterLayout(OperatingMode.USR);
         ps.registers.switchOperatingMode(previousMode);
       }
 
-      if (writeBack) {
+      if (i.writeBack) {
         //write the last address we read from back to a register
-        if (!incrementBase) {
+        if (!i.incrementBase) {
           //backward reading
-          if (postIndexing) {
+          if (i.postIndexing) {
             //backward reading, post-indexing
             nextAddress = startAddress;
           }
@@ -1050,17 +1063,21 @@ public class ARM_Interpreter implements Interpreter {
         }
         else {
           //forward reading
-          if (postIndexing)
+          if (i.postIndexing)
             nextAddress += 4;
         }
 
-        regs.set(baseRegister, nextAddress);
+        regs.set(i.baseRegister, nextAddress);
       }
     }
 
+    public Condition getCondition() {
+      return i.condition;
+    }
+    
     public int getSuccessor(int pc) {
       //if we're loading values into the PC, then we can't tell where this instruction will be going
-      if (isLoad && transferPC)
+      if (i.isLoad && transferPC)
         return -1;
       else
         return pc + 4;
@@ -1068,38 +1085,45 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Branch to another instruction address. */
-  private final class Branch extends ARM_Instructions.Branch implements
-  ARM_Instruction {
+  private final class Branch implements ARM_Instruction {
+    
+    private final ARM_Instructions.Branch i;
 
-    public Branch(int instr) {
-      super(instr);
+    public Branch(ARM_Instructions.Branch instr) {
+      i = instr;
     }
 
     public void execute() {
       //if we're supposed to link, then write the previous address into the link register
-      if (link) {
+      if (i.link) {
         regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + 4);
         
         if (DBT_Options.profileDuringInterpretation)
-          ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), regs.get(ARM_Registers.PC) + getOffset() + 8, regs.get(ARM_Registers.PC) + 4);
+          ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), regs.get(ARM_Registers.PC) + i.getOffset() + 8, regs.get(ARM_Registers.PC) + 4);
       }
       else {
         if (DBT_Options.profileDuringInterpretation) 
-          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), regs.get(ARM_Registers.PC) + getOffset() + 8, BranchType.DIRECT_BRANCH);
+          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), regs.get(ARM_Registers.PC) + i.getOffset() + 8, BranchType.DIRECT_BRANCH);
       }
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
-      return pc + getOffset() + 8;
+      return pc + i.getOffset() + 8;
     }
   }
 
   /** Branch to another instruction  address and switch between ARM32 and Thumb code on the way.*/
-  private final class BranchExchange extends ARM_Instructions.BranchExchange
+  private final class BranchExchange 
       implements ARM_Instruction {
+    
+    private final ARM_Instructions.BranchExchange i;
 
-    public BranchExchange(int instr) {
-      super(instr);
+    public BranchExchange(ARM_Instructions.BranchExchange instr) {
+      i = instr;
     }
 
     public void execute() {
@@ -1112,42 +1136,45 @@ public class ARM_Interpreter implements Interpreter {
       //the address of the instruction we're jumping to
       int targetAddress;
 
-      switch (target.getType()) {
+      switch (i.target.getType()) {
       case PcRelative:
-        targetAddress = previousAddress + target.getOffset();
+        targetAddress = previousAddress + i.target.getOffset();
         thumb = true;
         break;
 
       case Register:
-        targetAddress = regs.get(target.getRegister());
+        targetAddress = regs.get(i.target.getRegister());
         thumb = (targetAddress & 0x1) != 0;
         targetAddress = targetAddress & 0xFFFFFFFE;
         break;
 
       default:
         throw new RuntimeException("Unexpected Operand type: "
-            + target.getType());
+            + i.target.getType());
       }
 
       //if we're supposed to link, then write the previous address into the link register
-      if (link) {
+      if (i.link) {
         regs.set(ARM_Registers.LR, previousAddress - 4);
         ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), targetAddress, BranchType.CALL);
       }
       else {
         ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), targetAddress, BranchType.DIRECT_BRANCH);
       }
-      
 
       //jump to the new address
       regs.set(ARM_Registers.PC, targetAddress);
       regs.setThumbMode(thumb);
     }
+    
+    public Condition getCondition() {
+      return i.condition;
+    }
 
     public int getSuccessor(int pc) {
       //if we're jumping relative to the PC, then we can predict the next instruction
-      if (target.getType() == OperandWrapper.Type.PcRelative) {
-        return pc + target.getOffset();
+      if (i.target.getType() == OperandWrapper.Type.PcRelative) {
+        return pc + i.target.getOffset();
       } else {
         //otherwise we can't predict it
         return -1;
@@ -1156,33 +1183,39 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Multiply two integers into a register, possibly adding the value of a third register on the way. */
-  private final class IntMultiply extends ARM_Instructions.IntMultiply implements
+  private final class IntMultiply implements
   ARM_Instruction {
+    
+    private final ARM_Instructions.IntMultiply i;
 
-    protected IntMultiply(int instr) {
-      super(instr);
+    protected IntMultiply(ARM_Instructions.IntMultiply instr) {
+      i = instr;
     }
 
     public void execute() {
       //get the two operands
       //we don't need to consider that any operand might be the PC, because the ARM
       //Ref. manual specifies the usage of the PC has undefined results in this operation
-      int operand1 = regs.get(Rm);
-      int operand2 = regs.get(Rs);
+      int operand1 = regs.get(i.Rm);
+      int operand2 = regs.get(i.Rs);
       
       //calculate the result
       int result = operand1 * operand2;
 
-      if (accumulate) {
-        result += regs.get(Rn);
+      if (i.accumulate) {
+        result += regs.get(i.Rn);
       }
 
       //and finally, update the register map
-      regs.set(Rd, result);
+      regs.set(i.Rd, result);
 
-      if (updateConditionCodes) {
+      if (i.updateConditionCodes) {
         regs.setFlags(result < 0, result == 0);
       }
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
@@ -1191,11 +1224,13 @@ public class ARM_Interpreter implements Interpreter {
   }
   
   /** Multiply two longs into a register, possibly adding the value of a third register on the way. */
-  private final class LongMultiply extends ARM_Instructions.LongMultiply implements
+  private final class LongMultiply implements
   ARM_Instruction {
+    
+    private final ARM_Instructions.LongMultiply i;
 
-    protected LongMultiply(int instr) {
-      super(instr);
+    protected LongMultiply(ARM_Instructions.LongMultiply instr) {
+      i = instr;
     }
 
     public void execute() {
@@ -1204,11 +1239,11 @@ public class ARM_Interpreter implements Interpreter {
       // We don't need to consider that any operand might be the PC, because the
       // ARM Ref. manual specifies the usage of the PC has undefined results in this
       // operation
-      long operand1 = regs.get(Rm);
-      long operand2 = regs.get(Rs);
+      long operand1 = regs.get(i.Rm);
+      long operand2 = regs.get(i.Rs);
       
       //get rid of the signs, if we're supposed to do unsigned multiplication
-      if (unsigned) {
+      if (i.unsigned) {
         operand1 = operand1 & 0xFFFFFFFF;
         operand2 = operand2 & 0xFFFFFFFF;
       }
@@ -1216,22 +1251,26 @@ public class ARM_Interpreter implements Interpreter {
       // calculate the result
       long result = operand1 * operand2;
 
-      if (accumulate) {
+      if (i.accumulate) {
         //treat the register as an unsigned value
-        long operand = regs.get(getRdLow());
+        long operand = regs.get(i.getRdLow());
         operand &= 0xFFFFFFFF;
         result += operand; 
 
-        result += regs.get(getRdHigh()) << 32;
+        result += regs.get(i.getRdHigh()) << 32;
       }
 
       // and finally, update the register map
-      regs.set(getRdLow(), (int) result);
-      regs.set(getRdHigh(), (int) (result >>> 32));
+      regs.set(i.getRdLow(), (int) result);
+      regs.set(i.getRdHigh(), (int) (result >>> 32));
 
-      if (updateConditionCodes) {
+      if (i.updateConditionCodes) {
         regs.setFlags(result < 0, result == 0);
       }
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
@@ -1240,23 +1279,27 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Move the value of the program status register into a register. */
-  private final class MoveFromStatusRegister extends
-      ARM_Instructions.MoveFromStatusRegister implements
-      ARM_Instruction {
+  private final class MoveFromStatusRegister implements ARM_Instruction {
+    
+    private final ARM_Instructions.MoveFromStatusRegister i;
 
-    public MoveFromStatusRegister(int instr) {
-      super(instr);
+    public MoveFromStatusRegister(ARM_Instructions.MoveFromStatusRegister instr) {
+      i = instr;
     }
 
     public void execute() {
 
       //do we have to transfer the saved or the current PSR?
-      if (transferSavedPSR) {
-        regs.set(Rd, regs.getSPSR());
+      if (i.transferSavedPSR) {
+        regs.set(i.Rd, regs.getSPSR());
       } 
       else {
-        regs.set(Rd, regs.getCPSR());
+        regs.set(i.Rd, regs.getCPSR());
       }
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
@@ -1265,17 +1308,17 @@ public class ARM_Interpreter implements Interpreter {
     }
   }
   
-  private final class MoveToStatusRegister extends
-    ARM_Instructions.MoveToStatusRegister implements
-      ARM_Instruction {
+  private final class MoveToStatusRegister implements ARM_Instruction {
+    
+    private final ARM_Instructions.MoveToStatusRegister i;
 
-    public MoveToStatusRegister(int instr) {
-      super(instr);
+    public MoveToStatusRegister(ARM_Instructions.MoveToStatusRegister instr) {
+      i = instr;
     }
 
     public void execute() {
       //this variable is going to receive the new psr, which we will set
-      int new_psr = ResolvedOperand.resolve(regs, sourceOperand);
+      int new_psr = ResolvedOperand.resolve(regs, i.sourceOperand);
       
       //are we currently in a privileged mode?
       boolean inPrivilegedMode = (regs.getOperatingMode() != ARM_Registers.OperatingMode.USR);
@@ -1284,7 +1327,7 @@ public class ARM_Interpreter implements Interpreter {
       int old_psr;
       
       //get the currect value for old_psr
-      if (transferSavedPSR) {
+      if (i.transferSavedPSR) {
         //if the current mode does not have a SPSR, then do nothing
         if (inPrivilegedMode && regs.getOperatingMode() != ARM_Registers.OperatingMode.SYS)
           return;
@@ -1296,30 +1339,34 @@ public class ARM_Interpreter implements Interpreter {
       }
 
       //create a new CPSR value according to what pieces of the CPSR we are actually required to set
-      if (!transferControl || !inPrivilegedMode) {
+      if (!i.transferControl || !inPrivilegedMode) {
         new_psr &= 0xFFFFFF00;
         new_psr |= (old_psr & 0xFF);
       }
       
-      if (!transferExtension || !inPrivilegedMode) {
+      if (!i.transferExtension || !inPrivilegedMode) {
         new_psr &= 0xFFFF00FF;
         new_psr |= (old_psr & 0xFF00);
       }
       
-      if (!transferStatus || !inPrivilegedMode) {
+      if (!i.transferStatus || !inPrivilegedMode) {
         new_psr &= 0xFF00FFFF;
         new_psr |= (old_psr & 0xFF0000);
       }
       
-      if (!transferFlags) {
+      if (!i.transferFlags) {
         new_psr &= 0x00FFFFFF;
         new_psr |= (old_psr & 0xFF000000);
       }
       
-      if (transferSavedPSR)
+      if (i.transferSavedPSR)
         regs.setSPSR(new_psr);
       else
         regs.setCPSR(new_psr);
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
@@ -1328,38 +1375,43 @@ public class ARM_Interpreter implements Interpreter {
   }
 
   /** Invoke a software interrupt. */
-  private final class SoftwareInterrupt extends ARM_Instructions.SoftwareInterrupt
-      implements ARM_Instruction {
+  private final class SoftwareInterrupt implements ARM_Instruction {
+    
+    private final ARM_Instructions.SoftwareInterrupt i;
 
-    public SoftwareInterrupt(int instr) {
-      super(instr);
+    public SoftwareInterrupt(ARM_Instructions.SoftwareInterrupt instr) {
+      i = instr;
     }
 
     public void execute() {
       ps.doSysCall();
     }
+    
+    public Condition getCondition() {
+      return i.condition;
+    }
 
     public int getSuccessor(int pc) {
       return -1;
     }
-
   }
 
   /** Transfers a single data item (either a byte, half-byte or word) between a register and memory.
    * This operation can either be a load from or a store to memory. */
-  private final class SingleDataTransfer extends ARM_Instructions.SingleDataTransfer
-      implements ARM_Instruction {
+  private final class SingleDataTransfer implements ARM_Instruction {
+    
+    private final ARM_Instructions.SingleDataTransfer i;
 
-    public SingleDataTransfer(int instr) {
-      super(instr);
+    public SingleDataTransfer(ARM_Instructions.SingleDataTransfer instr) {
+      i = instr;
     }
     
     /** Resolves the offset, which is (when post-indexing is not used) to be added to the 
      * base address to create the final address. */
     private int resolveOffset() {
-      int addrOffset = ResolvedOperand.resolve(regs, offset);
+      int addrOffset = ResolvedOperand.resolve(regs, i.offset);
 
-      if (positiveOffset)
+      if (i.positiveOffset)
         return addrOffset;
       else
         return -1 * addrOffset;
@@ -1369,14 +1421,14 @@ public class ARM_Interpreter implements Interpreter {
     private int resolveAddress() {
 
       //acquire the base address
-      int base = regs.get(Rn);
+      int base = regs.get(i.Rn);
       
       //take ARM's PC offset into account
-      if (Rn == 15)
+      if (i.Rn == 15)
         base += 8;
 
       //if we are not pre-indexing, then just use the base register for the memory access
-      if (!preIndexing)
+      if (!i.preIndexing)
         return base;
       
       return base + resolveOffset();
@@ -1386,7 +1438,7 @@ public class ARM_Interpreter implements Interpreter {
       //should we simulate a user-mode memory access? If yes, store the current mode and fake a switch
       //to user mode.
       OperatingMode previousMode = null;
-      if (forceUserMode) {
+      if (i.forceUserMode) {
         previousMode = ps.registers.getOperatingMode();
         ps.registers.setOperatingModeWithoutRegisterLayout(ARM_Registers.OperatingMode.USR);
       }
@@ -1394,11 +1446,11 @@ public class ARM_Interpreter implements Interpreter {
       //get the address of the memory, that we're supposed access
       int address = resolveAddress();
 
-      if (isLoad) {
+      if (i.isLoad) {
         //we are loading a value from memory. Load it into this variable.
         int value;
 
-        switch (size) {
+        switch (i.size) {
         
         case Word:
           value = ps.memory.load32(address);
@@ -1408,36 +1460,36 @@ public class ARM_Interpreter implements Interpreter {
           break;
 
         case HalfWord:
-          if (signExtend)
+          if (i.signExtend)
             value = ps.memory.loadSigned16(address);
           else
             value = ps.memory.loadUnsigned16(address);
           break;
 
         case Byte:
-          if (signExtend)
+          if (i.signExtend)
             value = ps.memory.loadSigned8(address);
           else
             value = ps.memory.loadUnsigned8(address);
           break;
 
         default:
-          throw new RuntimeException("Unexpected memory size: " + size);
+          throw new RuntimeException("Unexpected memory size: " + i.size);
         }
 
         //finally, write the variable into a register
-        regs.set(Rd, value);
+        regs.set(i.Rd, value);
         
         if (DBT_Options.profileDuringInterpretation) {
-          if (Rd == 15)
+          if (i.Rd == 15)
             ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), value, BranchType.INDIRECT_BRANCH);
         }
       } 
       else {
         //we are store a value from a register to memory.
-        int value = regs.get(Rd);
+        int value = regs.get(i.Rd);
 
-        switch (size) {
+        switch (i.size) {
         case Word:
           ps.memory.store32(address & 0xFFFFFFFE, value);
           break;
@@ -1451,31 +1503,35 @@ public class ARM_Interpreter implements Interpreter {
           break;
 
         default:
-          throw new RuntimeException("Unexpected memory size: " + size);
+          throw new RuntimeException("Unexpected memory size: " + i.size);
         }
       }
       
       //if we were writing in user mode, then switch back to our previous operating mode
-      if (forceUserMode) {
+      if (i.forceUserMode) {
         ps.registers.setOperatingModeWithoutRegisterLayout(previousMode);
       }      
 
       //should the memory address, which we accessed, be written back into a register? 
       //This is used for continuous memory accesses
-      if (writeBack) {
-        if (preIndexing) {
-          regs.set(Rn, address);
+      if (i.writeBack) {
+        if (i.preIndexing) {
+          regs.set(i.Rn, address);
         }
         else {
           //add the offset to the base address and write the result back into Rn
-          regs.set(Rn, address + resolveOffset());
+          regs.set(i.Rn, address + resolveOffset());
         }
       }
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
       //if we're loading to the PC, then the next instruction is undefined
-      if (Rd == ARM_Registers.PC && isLoad)
+      if (i.Rd == ARM_Registers.PC && i.isLoad)
         return -1;
 
       return pc + 4;
@@ -1492,23 +1548,23 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       ps.doUndefinedInstruction();
     }
+    
+    public Condition getCondition() {
+      return Condition.AL;
+    }
 
     public int getSuccessor(int pc) {
       return -1;
-    }
-
-    public Condition getCondition() {
-      return Condition.AL;
     }
   }
   
   private final class DebugNopInstruction implements ARM_Instruction {
 
-    public Condition getCondition() {
-      return Condition.AL;
-    }
-
     public void execute() {
+    }
+    
+    public Condition getCondition() {
+      return Condition.NV;
     }
 
     public int getSuccessor(int pc) {
@@ -1523,60 +1579,59 @@ public class ARM_Interpreter implements Interpreter {
       ARM_InstructionFactory<ARM_Instruction> {
 
     public ARM_Instruction createDataProcessing(int instr) {
-      Opcode opcode = Opcode.values()[Utils.getBits(instr, 21, 24)];
+      ARM_Instructions.DataProcessing i = new ARM_Instructions.DataProcessing(instr);
 
-      switch (opcode) {
+      switch (i.opcode) {
       case ADC:
-        return new DataProcessing_Adc(instr);
+        return new DataProcessing_Adc(i);
       case ADD:
-        return new DataProcessing_Add(instr);
+        return new DataProcessing_Add(i);
       case AND:
-        return new DataProcessing_And(instr);
+        return new DataProcessing_And(i);
       case BIC:
-        return new DataProcessing_Bic(instr);
+        return new DataProcessing_Bic(i);
       case CMN:
-        return new DataProcessing_Cmn(instr);
+        return new DataProcessing_Cmn(i);
       case CMP:
-        return new DataProcessing_Cmp(instr);
+        return new DataProcessing_Cmp(i);
       case EOR:
-        return new DataProcessing_Eor(instr);
+        return new DataProcessing_Eor(i);
       case MOV:
-        return new DataProcessing_Mov(instr);
+        return new DataProcessing_Mov(i);
       case MVN:
-        return new DataProcessing_Mvn(instr);
+        return new DataProcessing_Mvn(i);
       case ORR:
-        return new DataProcessing_Orr(instr);
+        return new DataProcessing_Orr(i);
       case RSB:
-        return new DataProcessing_Rsb(instr);
+        return new DataProcessing_Rsb(i);
       case RSC:
-        return new DataProcessing_Rsc(instr);
+        return new DataProcessing_Rsc(i);
       case SBC:
-        return new DataProcessing_Sbc(instr);
+        return new DataProcessing_Sbc(i);
       case SUB:
-        return new DataProcessing_Sub(instr);
+        return new DataProcessing_Sub(i);
       case TEQ:
-        return new DataProcessing_Teq(instr);
+        return new DataProcessing_Teq(i);
       case TST:
-        return new DataProcessing_Tst(instr);
+        return new DataProcessing_Tst(i);
       case CLZ:
-        return new DataProcessing_Clz(instr);
+        return new DataProcessing_Clz(i);
 
       default:
-        throw new RuntimeException("Unexpected Data Procesing opcode: "
-            + opcode);
+        throw new RuntimeException("Unexpected Data Procesing opcode: " + i.opcode);
       }
     }
 
     public ARM_Instruction createBlockDataTransfer(int instr) {
-      return new BlockDataTransfer(instr);
+      return new BlockDataTransfer(new ARM_Instructions.BlockDataTransfer(instr));
     }
 
     public ARM_Instruction createBranch(int instr) {
-      return new Branch(instr);
+      return new Branch(new ARM_Instructions.Branch(instr));
     }
 
     public ARM_Instruction createBranchExchange(int instr) {
-      return new BranchExchange(instr);
+      return new BranchExchange(new ARM_Instructions.BranchExchange(instr));
     }
 
     public ARM_Instruction createCoprocessorDataProcessing(int instr) {
@@ -1601,35 +1656,110 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public ARM_Instruction createIntMultiply(int instr) {
-      return new IntMultiply(instr);
+      return new IntMultiply(new ARM_Instructions.IntMultiply(instr));
     }
 
     public ARM_Instruction createLongMultiply(int instr) {
-      return new LongMultiply(instr);
+      return new LongMultiply(new ARM_Instructions.LongMultiply(instr));
     }
 
     public ARM_Instruction createMoveFromStatusRegister(int instr) {
-      return new MoveFromStatusRegister(instr);
+      return new MoveFromStatusRegister(new ARM_Instructions.MoveFromStatusRegister(instr));
     }
 
     public ARM_Instruction createMoveToStatusRegister(int instr) {
-      return new MoveToStatusRegister(instr);
+      return new MoveToStatusRegister(new ARM_Instructions.MoveToStatusRegister(instr));
     }
 
     public ARM_Instruction createSingleDataTransfer(int instr) {
-      return new SingleDataTransfer(instr);
+      return new SingleDataTransfer(new ARM_Instructions.SingleDataTransfer(instr));
     }
 
     public ARM_Instruction createSoftwareInterrupt(int instr) {
-      return new SoftwareInterrupt(instr);
+      return new SoftwareInterrupt(new ARM_Instructions.SoftwareInterrupt(instr));
     }
 
     public ARM_Instruction createSwap(int instr) {
-      return new Swap(instr);
+      return new Swap(new ARM_Instructions.Swap(instr));
     }
 
     public ARM_Instruction createUndefinedInstruction(int instr) {
       return new UndefinedInstruction(instr);
+    }
+
+    public ARM_Instruction createBlockDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createBranch(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createBranchExchange(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createCoprocessorDataProcessing(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createCoprocessorDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createCoprocessorRegisterTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createDataProcessing(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createLongMultiply(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createMoveFromStatusRegister(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createMoveToStatusRegister(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createSingleDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createSoftwareshorterrupt(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createSwap(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createUndefinedInstruction(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createshortMultiply(short instr) {
+      // TODO Auto-generated method stub
+      return null;
     }
   }
 }

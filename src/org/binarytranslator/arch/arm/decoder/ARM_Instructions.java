@@ -1,6 +1,7 @@
 package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.DBT;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.OperandWrapper.ShiftType;
 
 /**
  * In the ARM decoder model, the decoding and usage (translating/interpreting/disassembling) of instructions
@@ -26,6 +27,14 @@ public class ARM_Instructions  {
     
     /** @see #getCondition() */
     protected final Condition condition;
+    
+    private Instruction () {
+      this.condition = Condition.AL;
+    }
+    
+    private Instruction (Condition condition) {
+      this.condition = condition;
+    }
 
     private Instruction(int instr) {
       condition = Condition.values()[(instr & 0xF0000000) >>> 28];
@@ -45,52 +54,6 @@ public class ARM_Instructions  {
     public abstract void visit(ARM_InstructionVisitor visitor);
   }
 
-  /** Base class for most instructions that use two registers. */
-  private abstract static class TwoRegistersTemplate extends Instruction {
-
-    /** @see #getRn() */
-    protected final byte Rn;
-
-    /** @see #getRd() */
-    protected final byte Rd;
-
-    public TwoRegistersTemplate(int instr) {
-      super(instr);
-
-      Rd = (byte) Utils.getBits(instr, 12, 15);
-      Rn = (byte) Utils.getBits(instr, 16, 19);
-    }
-
-    /** Returns the number of the operation's destination register, starting from 0.*/
-    public final byte getRd() {
-      return Rd;
-    }
-
-    /** Returns the number of the operation's first operand register, starting from 0.*/
-    public final byte getRn() {
-      return Rn;
-    }
-  }
-
-  /** Base class for most instructions that use three registers. */
-  private abstract static class ThreeRegistersTemplate extends
-      TwoRegistersTemplate {
-
-    /** @see #getRm() */
-    protected final byte Rm;
-
-    public ThreeRegistersTemplate(int instr) {
-      super(instr);
-
-      Rm = (byte) Utils.getBits(instr, 0, 3);
-    }
-
-    /** Returns the number of the second operand register, starting from 0.*/
-    public final byte getRm() {
-      return Rm;
-    }
-  }
-  
   /** Base class for multiply operations. */
   protected abstract static class MultiplyTemplate extends Instruction {
 
@@ -214,6 +177,14 @@ public class ARM_Instructions  {
     /** Creates an operand wrapper representing an offset to the pc.*/
     public static OperandWrapper createPcRelative(int offset) {
       return new PcRelativeOperand(offset);
+    }
+    
+    public static OperandWrapper createRegisterShiftImmediate(byte register, ShiftType type, byte amount) {
+      return new RegisterShiftImmediateOperand(register, type, amount);
+    }
+    
+    public static OperandWrapper createRegisterShiftRegister(byte register, ShiftType type, byte reg2) {
+      return new RegisterShiftRegisterOperand(register, type, reg2);
     }
     
     public static OperandWrapper decodeDataProcessingOperand(int instr) {
@@ -467,7 +438,7 @@ public class ARM_Instructions  {
   }
 
   /** Represents a Data Processing instruction. */
-  public static class DataProcessing extends TwoRegistersTemplate {
+  public final static class DataProcessing extends Instruction {
     
     /** A list of possible DataProcessing operations. The list is orded in ascendingly, with the
      * first opcode corresponding to opcode 0 (zero) in the opcode field of an ARM data processing
@@ -475,6 +446,12 @@ public class ARM_Instructions  {
     public enum Opcode {
       AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN, CLZ
     }
+    
+    /** @see #getRn() */
+    protected final byte Rn;
+
+    /** @see #getRd() */
+    protected final byte Rd;
 
     /** @see #hasSetConditionCodes() */
     protected final boolean updateConditionCodes;
@@ -484,14 +461,153 @@ public class ARM_Instructions  {
     
     /** @see #getOperand2() */
     protected final OperandWrapper operand2;
+    
+    public DataProcessing(short instr) {
+      if (Utils.getBits(instr, 13, 15) == 0) {
+        //shift by immediate, add/subtract register or add/subtract immediate
+        Rd = (byte)Utils.getBits(instr, 0, 2);
+        Rn = (byte)Utils.getBits(instr, 3, 5);
+        updateConditionCodes = true;
+        
+        if (Utils.getBits(instr, 11, 12) == 0) {
+          //shift by immediate
+          opcode = Opcode.MOV;
+          ShiftType type = ShiftType.values()[Utils.getBits(instr, 11, 12)];
+          operand2 = OperandWrapper.createRegisterShiftImmediate(Rn, type, (byte)Utils.getBits(instr, 6, 10));
+        }
+        else {
+          //add/subtract register or add/subtract immediate
+          opcode = Utils.getBit(instr, 9) ? Opcode.SUB : Opcode.ADD;
+          if (Utils.getBit(instr, 10))
+            operand2 = OperandWrapper.createImmediate(Utils.getBits(instr, 6, 8));
+          else
+            operand2 = OperandWrapper.createRegister((byte)Utils.getBits(instr, 6, 8));
+        }
+      }
+      else {
+        if (Utils.getBit(instr, 13)) {
+          //Move, Compare, Add, Subtract immediate
+          Rd = (byte)Utils.getBits(instr, 8, 10);
+          Rn = Rd;
+          operand2 = OperandWrapper.createImmediate(instr & 0xFF);
+          updateConditionCodes = true;
+          
+          switch (Utils.getBits(instr, 11, 12)) {
+          case 0:
+            opcode = Opcode.MOV;
+            break;
+          case 1:
+            opcode = Opcode.CMP;
+            break;
+          case 2:
+            opcode = Opcode.ADD;
+            break;
+          case 3:
+            opcode = Opcode.SUB;
+            break;
+          default:
+            throw new RuntimeException("Values other than 0-4 cannot be represented within 2 bits.");
+          }
+        }
+        else {
+          Rd = (byte)Utils.getBits(instr, 0, 2);
+          byte finalRn = (byte)Utils.getBits(instr, 3, 5); 
+          updateConditionCodes = true;
+          
+          switch (Utils.getBits(instr, 6, 9)) {
+          case 0:
+            opcode = Opcode.AND;
+            operand2 = OperandWrapper.createRegister(Rd);
+            break;
+          case 1:
+            opcode = Opcode.EOR;
+            operand2 = OperandWrapper.createRegister(Rd);
+            break;
+            
+          case 2:
+            opcode = Opcode.MOV;
+            operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.LSL, finalRn);
+            break;
+            
+          case 3:
+            opcode = Opcode.MOV;
+            operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.LSR, finalRn);
+            break;
+            
+          case 4:
+            opcode = Opcode.MOV;
+            operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.ASR, finalRn);
+            break;
+            
+          case 5:
+            opcode = Opcode.ADC;
+            operand2 = OperandWrapper.createRegister(Rd);
+            break;
 
-    /** @see #getRd() */
-    protected final byte Rd;
+          case 6:
+            opcode = Opcode.SBC;
+            operand2 = OperandWrapper.createRegister(finalRn);
+            finalRn = Rd;
+            break;
+            
+          case 7:
+            opcode = Opcode.MOV;
+            operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.ROR, finalRn);
+            break;
+            
+          case 8:
+            opcode = Opcode.TST;
+            operand2 = OperandWrapper.createRegister(finalRn);
+            break;
+            
+          case 9:
+            opcode = Opcode.RSB;
+            operand2 = OperandWrapper.createImmediate(0);
+            break;
+            
+          case 10:
+            opcode = Opcode.CMP;
+            operand2 = OperandWrapper.createRegister(finalRn);
+            break;
+            
+          case 11:
+            opcode = Opcode.CMN;
+            operand2 = OperandWrapper.createRegister(finalRn);
+            break;
+
+          case 12:
+            opcode = Opcode.ORR;
+            operand2 = OperandWrapper.createRegister(Rd);
+            break;
+            
+          case 13:
+            throw new RuntimeException("This is actually a multiply instruction.");
+            
+          case 14:
+            opcode = Opcode.BIC;
+            operand2 = OperandWrapper.createRegister(finalRn);
+            finalRn = Rd;
+            break;
+            
+          case 15:
+            opcode = Opcode.MVN;
+            operand2 = OperandWrapper.createRegister(finalRn);
+            break;
+            
+          default:
+            throw new RuntimeException("Only values 0-15 can be represented within 4 bits.");
+          }
+          
+          Rn = finalRn;
+        }
+      }
+    }
     
     public DataProcessing(int instr) {
       super(instr);
       
       Rd = (byte) Utils.getBits(instr, 12, 15);
+      Rn = (byte) Utils.getBits(instr, 16, 19);
 
       updateConditionCodes = Utils.getBit(instr, 20);
       
@@ -525,11 +641,21 @@ public class ARM_Instructions  {
     public void visit(ARM_InstructionVisitor visitor) {
       visitor.visit(this);
     }
+    
+    /** Returns the number of the operation's destination register, starting from 0.*/
+    public final byte getRd() {
+      return Rd;
+    }
+
+    /** Returns the number of the operation's first operand register, starting from 0.*/
+    public final byte getRn() {
+      return Rn;
+    }
   }
 
   /** Represents a LDR/SDR instruction. */
-  public static class SingleDataTransfer extends
-      TwoRegistersTemplate {
+  public final static class SingleDataTransfer extends
+      Instruction {
     
     public enum TransferSize {
       Byte,
@@ -561,8 +687,17 @@ public class ARM_Instructions  {
     /** @see #getOffset() */
     protected final OperandWrapper offset;
     
+    /** @see #getRn() */
+    protected final byte Rn;
+
+    /** @see #getRd() */
+    protected final byte Rd;
+
     public SingleDataTransfer(int instr) {
       super(instr);
+      
+      Rd = (byte) Utils.getBits(instr, 12, 15);
+      Rn = (byte) Utils.getBits(instr, 16, 19);
 
       preIndexing = Utils.getBit(instr, 24);
       positiveOffset = Utils.getBit(instr, 23);
@@ -620,6 +755,16 @@ public class ARM_Instructions  {
       if (DBT.VerifyAssertions) DBT._assert(Rd != Rn || !writeBack);
     }
     
+    /** Returns the number of the operation's destination register, starting from 0.*/
+    public final byte getRd() {
+      return Rd;
+    }
+
+    /** Returns the number of the operation's first operand register, starting from 0.*/
+    public final byte getRn() {
+      return Rn;
+    }
+    
     /** Returns true, if this memory access shall be treated as if it had been done in user mode. */
     public final boolean forceUserMode() {
       return forceUserMode;
@@ -667,7 +812,7 @@ public class ARM_Instructions  {
   }
   
   /** Represents a normal (not long) multiply instruction. */
-  public static class IntMultiply extends MultiplyTemplate {
+  public final static class IntMultiply extends MultiplyTemplate {
    
     protected IntMultiply(int instr) {
       super(instr);
@@ -682,7 +827,7 @@ public class ARM_Instructions  {
   }
   
   /** Represents a long multiply instruction. */
-  public static class LongMultiply extends MultiplyTemplate {
+  public final static class LongMultiply extends MultiplyTemplate {
     
     /** @see #isUnsigned() */
     protected final boolean unsigned;
@@ -717,13 +862,27 @@ public class ARM_Instructions  {
   }
 
   /** Represents a SWP/SWPB instruction. */
-  public static class Swap extends ThreeRegistersTemplate {
+  public final static class Swap extends Instruction {
 
     /** @see #swapByte() */
     protected final boolean swapByte;
+    
+    /** @see #getRm() */
+    protected final byte Rm;
+    
+    /** @see #getRn() */
+    protected final byte Rn;
+
+    /** @see #getRd() */
+    protected final byte Rd;
 
     public Swap(int instr) {
       super(instr);
+      
+      Rd = (byte) Utils.getBits(instr, 12, 15);
+      Rn = (byte) Utils.getBits(instr, 16, 19);
+      
+      Rm = (byte) Utils.getBits(instr, 0, 3);
       swapByte = Utils.getBit(instr, 22);
     }
 
@@ -731,15 +890,29 @@ public class ARM_Instructions  {
     public final boolean swapByte() {
       return swapByte;
     }
+  
+    /** Returns the number of the second operand register, starting from 0.*/
+    public final byte getRm() {
+      return Rm;
+    }
+    
+    /** Returns the number of the operation's destination register, starting from 0.*/
+    public final byte getRd() {
+      return Rd;
+    }
 
-    @Override
+    /** Returns the number of the operation's first operand register, starting from 0.*/
+    public final byte getRn() {
+      return Rn;
+    }
+
     public void visit(ARM_InstructionVisitor visitor) {
       visitor.visit(this);
     }
   }
 
   /** Represents a LDM/STM instruction. */
-  public static class MultipleDataTransfer extends Instruction {
+  public final static class BlockDataTransfer extends Instruction {
 
     /** @see #postIndexing() */
     protected final boolean postIndexing;
@@ -762,7 +935,7 @@ public class ARM_Instructions  {
     /** Contains a set bit at position N if rN should be transferred using this instruction.*/
     protected final int registerList;
 
-    public MultipleDataTransfer(int instr) {
+    public BlockDataTransfer(int instr) {
       super(instr);
 
       postIndexing = !Utils.getBit(instr, 24);
@@ -819,10 +992,15 @@ public class ARM_Instructions  {
   }
 
   /** Represents a SWI instruction*/
-  public static class SoftwareInterrupt extends Instruction {
+  public final static class SoftwareInterrupt extends Instruction {
 
     /** @see #getInterruptNumber() */
     protected final int interruptNumber;
+    
+    public SoftwareInterrupt(short instr) {
+      super(Condition.AL);
+      interruptNumber = instr & 0xFF;
+    }
 
     public SoftwareInterrupt(int instr) {
       super(instr);
@@ -872,7 +1050,7 @@ public class ARM_Instructions  {
   }
   
   /** Represents a BX instruction set */
-  public static class BranchExchange extends Instruction {
+  public final static class BranchExchange extends Instruction {
 
     /** @see #target() */
     protected final OperandWrapper target;
@@ -919,7 +1097,7 @@ public class ARM_Instructions  {
   }
   
   /** Represents a LDC/STC instruction. */
-  public static class CoprocessorDataTransfer extends CoprocessorTemplate {
+  public final static class CoprocessorDataTransfer extends CoprocessorTemplate {
     
     /** @see #getOffset() */
     protected final int offset;
@@ -1004,7 +1182,7 @@ public class ARM_Instructions  {
   }
   
   /** Represents a CDP instruction. */
-  public static class CoprocessorDataProcessing extends CoprocessorTemplate {
+  public final static class CoprocessorDataProcessing extends CoprocessorTemplate {
     
     /** @see #getOpcode() */
     protected final byte opcode;
@@ -1055,7 +1233,7 @@ public class ARM_Instructions  {
   }
   
   /** Represents a MRC/MCR instruction. */
-  public static class CoprocessorRegisterTransfer extends CoprocessorTemplate {
+  public final static class CoprocessorRegisterTransfer extends CoprocessorTemplate {
     
     /** @see #getOpcode() */
     protected final byte opcode;
@@ -1115,7 +1293,7 @@ public class ARM_Instructions  {
   }
   
   /** Represents a MRS instruction. */
-  public static class MoveFromStatusRegister extends Instruction {
+  public final static class MoveFromStatusRegister extends Instruction {
     
     /** @see #getRd() */
     protected final byte Rd;
@@ -1149,7 +1327,7 @@ public class ARM_Instructions  {
   }
   
   /** Represents a MSR instruction. */
-  public static class MoveToStatusRegister extends Instruction {
+  public final static class MoveToStatusRegister extends Instruction {
     
     /** @see #transferControlField() */
     protected final boolean transferControl;

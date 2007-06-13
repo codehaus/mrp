@@ -31,7 +31,7 @@ public class ARM_Translator implements OPT_Operators {
   /** The current pc that we're translating. */
   protected int pc;
   
-  /** A "quick" pointer to the ARM registers within the process space*/
+  /** A shortcut to the ARM registers within the process space. */
   protected final ARM_Registers regs = null;
   
   private final ARM_InstructionDecoder.ARM_InstructionFactory<ARM_Instruction> translatorFactory = new TranslatorFactory();
@@ -683,8 +683,9 @@ public class ARM_Translator implements OPT_Operators {
 
   /** All ARM interpreter instructions implement this interface. */
   private interface ARM_Instruction  {
-    /** Returns the condition, under which the given instruction will be executed. */
-    Condition getCondition();
+    
+    /** Returns the condition under which this instruction shall be executed. */
+    public Condition getCondition();
     
     /** performs the actual translation.*/
     void translate();
@@ -700,14 +701,20 @@ public class ARM_Translator implements OPT_Operators {
   private final class ConditionalDecorator implements ARM_Instruction {
 
     protected final ARM_Instruction conditionalInstruction;
+    protected final Condition condition;
 
     /** Decorates an ARM interpreter instruction, by making it execute conditionally. */
     protected ConditionalDecorator(ARM_Instruction i) {
       conditionalInstruction = i;
+      this.condition = i.getCondition();
     }
     
     public int getSuccessor(int pc) {
       return pc + 4;
+    }
+    
+    public Condition getCondition() {
+      return condition;
     }
     
     public void translate() {
@@ -719,7 +726,7 @@ public class ARM_Translator implements OPT_Operators {
       arm2ir.getCurrentBlock().insertOut(nextInstruction);
       arm2ir.getCurrentBlock().insertOut(condBlock);
       
-      switch (conditionalInstruction.getCondition()) {
+      switch (condition) {
       case AL:
         throw new RuntimeException("ARM32 instructions with a condition of AL (always) should not be decorated with a ConditionalDecorator.");
         
@@ -795,7 +802,7 @@ public class ARM_Translator implements OPT_Operators {
         break;
         
         default:
-          throw new RuntimeException("Unexpected condition code: " + conditionalInstruction.getCondition());
+          throw new RuntimeException("Unexpected condition code: " + condition);
       }
 
       arm2ir.setCurrentBlock(condBlock);
@@ -873,10 +880,6 @@ public class ARM_Translator implements OPT_Operators {
       
       arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
     }
-
-    public Condition getCondition() {
-      return conditionalInstruction.getCondition();
-    }
     
     @Override
     public String toString() {
@@ -885,26 +888,28 @@ public class ARM_Translator implements OPT_Operators {
   }
 
   /** A base class for all data processing interpreter instructions, including CLZ.*/
-  private abstract class DataProcessing extends ARM_Instructions.DataProcessing
+  private abstract class DataProcessing 
       implements ARM_Instruction {
+    
+    protected final ARM_Instructions.DataProcessing i;
 
-    protected DataProcessing(int instr) {
-      super(instr);
+    protected DataProcessing(ARM_Instructions.DataProcessing instr) {
+      i = instr;
     }
 
     /** Returns the value of operand 1 of the data processing instruction. This is always a register value. */
     protected OPT_Operand resolveOperand1() {
 
-      if (Rn == ARM_Registers.PC) {
+      if (i.Rn == ARM_Registers.PC) {
         return new OPT_IntConstantOperand(pc + 8);
       }
 
-      return arm2ir.getRegister(Rn);
+      return arm2ir.getRegister(i.Rn);
     }
 
     /** Returns the value of the rhs-operand of the data processing instruction. */
     protected OPT_Operand resolveOperand2() {
-      return ResolvedOperand.resolve(ARM_Translator.this, operand2);
+      return ResolvedOperand.resolve(ARM_Translator.this, i.operand2);
     }
     
     /** Returns the register into which the result of a data processing operation shall be stored. */
@@ -918,8 +923,8 @@ public class ARM_Translator implements OPT_Operators {
     /** Sets the processor flags according to the result of adding <code>lhs</code> and <code>rhs</code>.*/
     protected final void setAddResult(OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs) {
 
-      if (updateConditionCodes) {
-        if (Rd != 15) {
+      if (i.updateConditionCodes) {
+        if (i.Rd != 15) {
           setAddFlags(result, lhs, rhs);
         } 
         else {
@@ -928,15 +933,15 @@ public class ARM_Translator implements OPT_Operators {
         }
       }
       
-      if (Rd == 15) {
+      if (i.Rd == 15) {
         
-        if (updateConditionCodes)
+        if (i.updateConditionCodes)
           arm2ir.appendBranch(result, lazy, BranchType.INDIRECT_BRANCH);
         else 
           arm2ir.appendTraceExit(lazy, result);
       }
       else {
-        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(Rd), result.copy()) );
+        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(i.Rd), result.copy()) );
       }
     }
 
@@ -970,8 +975,8 @@ public class ARM_Translator implements OPT_Operators {
     /** Sets the processor flags according to the result of subtracting <code>rhs</code> from <code>lhs</code>.*/
     protected final void setSubResult(OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs) {
 
-      if (updateConditionCodes) {
-        if (Rd != 15) {
+      if (i.updateConditionCodes) {
+        if (i.Rd != 15) {
           setSubFlags(result, lhs, rhs);
         } 
         else {
@@ -980,14 +985,14 @@ public class ARM_Translator implements OPT_Operators {
         }
       }
 
-      if (Rd == 15) {
-        if (updateConditionCodes)
+      if (i.Rd == 15) {
+        if (i.updateConditionCodes)
           arm2ir.appendBranch(result, lazy, BranchType.INDIRECT_BRANCH);
         else 
           arm2ir.appendTraceExit(lazy, result);
       }
       else {
-        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(Rd), result.copy()) );
+        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(i.Rd), result.copy()) );
       }
     }
 
@@ -1018,9 +1023,13 @@ public class ARM_Translator implements OPT_Operators {
       arm2ir.appendInstruction(BooleanCmp.create(
           BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
     }
+    
+    public Condition getCondition() {
+      return i.condition;
+    }
 
     public int getSuccessor(int pc) {
-      if (Rd != 15)
+      if (i.Rd != 15)
         return pc + 4;
       else
         return -1;
@@ -1029,8 +1038,7 @@ public class ARM_Translator implements OPT_Operators {
   
   private abstract class DataProcessing_Logical extends DataProcessing {
     
-    
-    protected DataProcessing_Logical(int instr) {
+    protected DataProcessing_Logical(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
     
@@ -1039,8 +1047,8 @@ public class ARM_Translator implements OPT_Operators {
      * the condition codes are to be modified by this function (because otherwise it won't be used anyway).*/
     protected OPT_Operand resolveOperand2() {
       
-      if (updateConditionCodes) {
-        return ResolvedOperand.resolveAndStoreShifterCarryOutToCarry(ARM_Translator.this, operand2);
+      if (i.updateConditionCodes) {
+        return ResolvedOperand.resolveAndStoreShifterCarryOutToCarry(ARM_Translator.this, i.operand2);
       }
       else {
         return super.resolveOperand2();
@@ -1050,8 +1058,8 @@ public class ARM_Translator implements OPT_Operators {
     /** Sets the condition field for logical operations. */
     protected final void setLogicalResult(OPT_RegisterOperand result) {
 
-      if (updateConditionCodes) {
-        if (Rd != 15) {
+      if (i.updateConditionCodes) {
+        if (i.Rd != 15) {
           setLogicalFlags(result);          
         } else {
           OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
@@ -1059,22 +1067,22 @@ public class ARM_Translator implements OPT_Operators {
         }
       }
       
-      if (Rd == 15) {
-        if (updateConditionCodes) {
+      if (i.Rd == 15) {
+        if (i.updateConditionCodes) {
           arm2ir.appendTraceExit(lazy, result);
         }
         else {
           BranchType branchType = BranchType.INDIRECT_BRANCH;
           
           //Mark "MOV pc, lr" instructions as returns
-          if (opcode == Opcode.MOV && operand2.getType() == OperandWrapper.Type.Register && operand2.getRegister() == ARM_Registers.LR)
+          if (i.opcode == Opcode.MOV && i.operand2.getType() == OperandWrapper.Type.Register && i.operand2.getRegister() == ARM_Registers.LR)
             branchType = BranchType.RETURN;
           
           arm2ir.appendBranch(result, lazy, branchType);
         }
       }
       else {
-        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(Rd), result.copy()) );
+        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(i.Rd), result.copy()) );
       }
     }
 
@@ -1099,7 +1107,7 @@ public class ARM_Translator implements OPT_Operators {
   /** Binary and. <code>Rd = op1 & op2 </code>.*/
   private final class DataProcessing_And extends DataProcessing_Logical {
 
-    protected DataProcessing_And(int instr) {
+    protected DataProcessing_And(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1116,7 +1124,7 @@ public class ARM_Translator implements OPT_Operators {
   /** Exclusive or. <code>Rd = op1 ^ op2 </code>.*/
   private final class DataProcessing_Eor extends DataProcessing_Logical {
 
-    protected DataProcessing_Eor(int instr) {
+    protected DataProcessing_Eor(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1133,7 +1141,7 @@ public class ARM_Translator implements OPT_Operators {
   /** Add. <code>Rd = op1 + op2 </code>.*/
   private final class DataProcessing_Add extends DataProcessing {
 
-    public DataProcessing_Add(int instr) {
+    public DataProcessing_Add(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1152,7 +1160,7 @@ public class ARM_Translator implements OPT_Operators {
   /** Subtract. <code>Rd = op1 - op2 </code>.*/
   private final class DataProcessing_Sub extends DataProcessing {
 
-    public DataProcessing_Sub(int instr) {
+    public DataProcessing_Sub(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
     
@@ -1171,7 +1179,7 @@ public class ARM_Translator implements OPT_Operators {
   /** Reverse subtract. <code>Rd = op2 - op1</code>.*/
   private final class DataProcessing_Rsb extends DataProcessing {
 
-    protected DataProcessing_Rsb(int instr) {
+    protected DataProcessing_Rsb(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1192,7 +1200,7 @@ public class ARM_Translator implements OPT_Operators {
    * not cause an overflow). Then, the normal add-routine is being invoked. */
   private final class DataProcessing_Adc extends DataProcessing {
 
-    protected DataProcessing_Adc(int instr) {
+    protected DataProcessing_Adc(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1225,7 +1233,7 @@ public class ARM_Translator implements OPT_Operators {
   /** Subtract with carry. <code>Rd = op1 - op2 - NOT(CARRY)</code>.*/
   private class DataProcessing_Sbc extends DataProcessing {
 
-    protected DataProcessing_Sbc(int instr) {
+    protected DataProcessing_Sbc(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
     
@@ -1256,7 +1264,7 @@ public class ARM_Translator implements OPT_Operators {
   /** Reserve subtract with carry. <code>Rd = -op1 + op2 - NOT(CARRY)</code>.*/
   private final class DataProcessing_Rsc extends DataProcessing_Sbc {
 
-    protected DataProcessing_Rsc(int instr) {
+    protected DataProcessing_Rsc(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
     
@@ -1275,7 +1283,7 @@ public class ARM_Translator implements OPT_Operators {
    * <code>Flags = op1 & op2</code>*/
   private final class DataProcessing_Tst extends DataProcessing_Logical {
 
-    protected DataProcessing_Tst(int instr) {
+    protected DataProcessing_Tst(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1291,7 +1299,7 @@ public class ARM_Translator implements OPT_Operators {
    * <code>Flags = op1 ^ op2</code> */
   private final class DataProcessing_Teq extends DataProcessing_Logical {
 
-    protected DataProcessing_Teq(int instr) {
+    protected DataProcessing_Teq(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1307,7 +1315,7 @@ public class ARM_Translator implements OPT_Operators {
    * <code>Flags = op1 - op2</code> */
   private final class DataProcessing_Cmp extends DataProcessing {
 
-    protected DataProcessing_Cmp(int instr) {
+    protected DataProcessing_Cmp(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1326,7 +1334,7 @@ public class ARM_Translator implements OPT_Operators {
    * <code>Flags = op1 + op2</code>. */
   private final class DataProcessing_Cmn extends DataProcessing {
 
-    protected DataProcessing_Cmn(int instr) {
+    protected DataProcessing_Cmn(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1344,7 +1352,7 @@ public class ARM_Translator implements OPT_Operators {
   /** Binary or. <code>Rd = op1 | op2</code>. */
   private final class DataProcessing_Orr extends DataProcessing_Logical {
 
-    protected DataProcessing_Orr(int instr) {
+    protected DataProcessing_Orr(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1361,7 +1369,7 @@ public class ARM_Translator implements OPT_Operators {
 
   private final class DataProcessing_Mov extends DataProcessing_Logical {
 
-    protected DataProcessing_Mov(int instr) {
+    protected DataProcessing_Mov(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1380,7 +1388,7 @@ public class ARM_Translator implements OPT_Operators {
    * <code>Rd =  op1 & (~op2)</code>.*/
   private final class DataProcessing_Bic extends DataProcessing_Logical {
 
-    protected DataProcessing_Bic(int instr) {
+    protected DataProcessing_Bic(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1403,7 +1411,7 @@ public class ARM_Translator implements OPT_Operators {
    * <code>Rd = ~op2</code>.*/
   private final class DataProcessing_Mvn extends DataProcessing_Logical {
 
-    protected DataProcessing_Mvn(int instr) {
+    protected DataProcessing_Mvn(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1419,7 +1427,7 @@ public class ARM_Translator implements OPT_Operators {
    * <code>Rd = Number_Of_Leading_Zeroes(op2) </code> */
   private final class DataProcessing_Clz extends DataProcessing {
 
-    protected DataProcessing_Clz(int instr) {
+    protected DataProcessing_Clz(ARM_Instructions.DataProcessing instr) {
       super(instr);
     }
 
@@ -1455,22 +1463,24 @@ public class ARM_Translator implements OPT_Operators {
   /** Swap a register and a memory value. 
    * TODO: At the moment, Pearcolator does not support any way of locking the memory. However, once it does
    * any other memory accesses should be pending until the swap instruction succeeds.*/
-  private final class Swap extends ARM_Instructions.Swap implements
+  private final class Swap implements
   ARM_Instruction {
+    
+    private final ARM_Instructions.Swap i;
 
-    public Swap(int instr) {
-      super(instr);
+    public Swap(ARM_Instructions.Swap instr) {
+      i = instr;
     }
 
     public void translate() {
-      OPT_Operand memAddr = arm2ir.getRegister(Rn);
+      OPT_Operand memAddr = arm2ir.getRegister(i.Rn);
       OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
-      OPT_RegisterOperand result = arm2ir.getRegister(Rd);
+      OPT_RegisterOperand result = arm2ir.getRegister(i.Rd);
       
       //swap exchanges the value of a memory address with the value in a register
-      if (!swapByte) {
+      if (!i.swapByte) {
         ps.memory.translateLoad32(memAddr, tmp);
-        ps.memory.translateStore32(memAddr, arm2ir.getRegister(Rm));
+        ps.memory.translateStore32(memAddr, arm2ir.getRegister(i.Rm));
         
         //according to the ARM architecture reference, the value loaded from a memory address is rotated
         //by the number of ones in the first two bits of the address
@@ -1483,9 +1493,13 @@ public class ARM_Translator implements OPT_Operators {
       }
       else {
         ps.memory.translateLoadUnsigned8(memAddr.copy(), tmp);
-        ps.memory.translateStore8(memAddr, arm2ir.getRegister(Rm));
+        ps.memory.translateStore8(memAddr, arm2ir.getRegister(i.Rm));
         arm2ir.appendInstruction(Move.create(INT_MOVE, result, tmp.copy()));
       }
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
@@ -1496,8 +1510,10 @@ public class ARM_Translator implements OPT_Operators {
   }
 
   /** Transfer multiple registers at once between the register bank and the memory. */
-  private final class BlockDataTransfer extends ARM_Instructions.MultipleDataTransfer
+  private final class BlockDataTransfer 
       implements ARM_Instruction {
+    
+    private final ARM_Instructions.BlockDataTransfer i;
 
     /** the lowest address that we're reading a register from / writing a register to */
     private final int registerCount;
@@ -1510,15 +1526,15 @@ public class ARM_Translator implements OPT_Operators {
     /** True if the PC should be transferred to, false otherwise. */
     private final boolean transferPC;
 
-    public BlockDataTransfer(int instr) {
-      super(instr);
+    public BlockDataTransfer(ARM_Instructions.BlockDataTransfer instr) {
+      i = instr;
 
-      transferPC = transferRegister(15);
+      transferPC = i.transferRegister(15);
       int regCount = 0;
 
-      for (int i = 0; i <= 14; i++)
-        if (transferRegister(i)) {
-          registersToTransfer[regCount++] = i;
+      for (int n = 0; n <= 14; n++)
+        if (i.transferRegister(n)) {
+          registersToTransfer[regCount++] = n;
         }
 
       registersToTransfer[regCount] = -1;      
@@ -1527,7 +1543,7 @@ public class ARM_Translator implements OPT_Operators {
 
     public void translate() {
       //This instruction gets very complex when forceUser is set, which is why we are interpreting that special and rare instruction
-      if (forceUser) {
+      if (i.forceUser) {
         arm2ir.appendInterpretedInstruction(pc, lazy);
         arm2ir.appendTraceExit(lazy, arm2ir.getRegister(ARM_Registers.PC));
         
@@ -1536,10 +1552,10 @@ public class ARM_Translator implements OPT_Operators {
       
       //build the address, which generally ignores the last two bits
       OPT_RegisterOperand startAddress = arm2ir.getTempInt(0);
-      arm2ir.appendInstruction(Binary.create(INT_AND, startAddress, arm2ir.getRegister(baseRegister), new OPT_IntConstantOperand(0xFFFFFFFC)));
+      arm2ir.appendInstruction(Binary.create(INT_AND, startAddress, arm2ir.getRegister(i.baseRegister), new OPT_IntConstantOperand(0xFFFFFFFC)));
       
-      if (!incrementBase) {
-        if (postIndexing) {
+      if (!i.incrementBase) {
+        if (i.postIndexing) {
           //post-indexing, backward reading
           //startAddress -= (registerCount + (transferPC ? 1 : 0)) * 4;
           OPT_Operand offset = new OPT_IntConstantOperand((registerCount + (transferPC ? 1 : 0)) * 4);
@@ -1551,7 +1567,7 @@ public class ARM_Translator implements OPT_Operators {
           arm2ir.appendInstruction(Binary.create(INT_SUB, startAddress.copyRO(), startAddress.copy(), offset));
         }
       } else {
-        if (postIndexing) {
+        if (i.postIndexing) {
           //post-indexing, forward reading
           //startAddress -= 4;
           OPT_Operand offset = new OPT_IntConstantOperand(4);
@@ -1566,7 +1582,7 @@ public class ARM_Translator implements OPT_Operators {
       arm2ir.appendInstruction(Move.create(INT_MOVE, nextAddress, startAddress.copy()));
 
       //are we supposed to load or store multiple registers?
-      if (isLoad) {
+      if (i.isLoad) {
         int nextReg = 0;
 
         while (registersToTransfer[nextReg] != -1) {
@@ -1643,13 +1659,13 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     private void translateWriteback(OPT_RegisterOperand startAddress, OPT_RegisterOperand nextAddress) {
-      if (writeBack) {
-        OPT_RegisterOperand writeBackTarget = arm2ir.getRegister(baseRegister);
+      if (i.writeBack) {
+        OPT_RegisterOperand writeBackTarget = arm2ir.getRegister(i.baseRegister);
         
         //write the last address we read from back to a register
-        if (!incrementBase) {
+        if (!i.incrementBase) {
           //backward reading
-          if (postIndexing) {
+          if (i.postIndexing) {
             //backward reading, post-indexing
             arm2ir.appendInstruction(Move.create(INT_MOVE, writeBackTarget, startAddress));
           }
@@ -1660,7 +1676,7 @@ public class ARM_Translator implements OPT_Operators {
         }
         else {
           //forward reading
-          if (postIndexing) {
+          if (i.postIndexing) {
             arm2ir.appendInstruction(Binary.create(INT_ADD, writeBackTarget, nextAddress, new OPT_IntConstantOperand(4)));
           }
           else {
@@ -1669,10 +1685,14 @@ public class ARM_Translator implements OPT_Operators {
         }
       }
     }
+    
+    public Condition getCondition() {
+      return i.condition;
+    }
 
     public int getSuccessor(int pc) {
       //if we're loading values into the PC, then we can't tell where this instruction will be going
-      if (isLoad && transferPC)
+      if (i.isLoad && transferPC)
         return -1;
       else
         return pc + 4;
@@ -1680,17 +1700,19 @@ public class ARM_Translator implements OPT_Operators {
   }
 
   /** Branch to another instruction address. */
-  private final class Branch extends ARM_Instructions.Branch implements
+  private final class Branch implements
   ARM_Instruction {
+    
+    private final ARM_Instructions.Branch i;
 
-    public Branch(int instr) {
-      super(instr);
+    public Branch(ARM_Instructions.Branch instr) {
+      i = instr;
     }
 
     public void translate() {
       
       //if we're supposed to link, then write the previous address into the link register
-      if (link) {        
+      if (i.link) {        
         arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + 4)));
       }
       else {
@@ -1698,23 +1720,29 @@ public class ARM_Translator implements OPT_Operators {
         arm2ir.getCurrentBlock().deleteNormalOut();
       }
       
-      if (link)
-        arm2ir.appendCall(pc + getOffset() + 8, lazy, pc + 4);
+      if (i.link)
+        arm2ir.appendCall(pc + i.getOffset() + 8, lazy, pc + 4);
       else
-        arm2ir.appendBranch(pc + getOffset() + 8, lazy, BranchType.DIRECT_BRANCH);
+        arm2ir.appendBranch(pc + i.getOffset() + 8, lazy, BranchType.DIRECT_BRANCH);
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
-      return pc + getOffset() + 8;
+      return pc + i.getOffset() + 8;
     }
   }
 
   /** Branch to another instruction address and switch between ARM32 and Thumb code on the way.*/
-  private final class BranchExchange extends ARM_Instructions.BranchExchange
+  private final class BranchExchange 
       implements ARM_Instruction {
+    
+    private final ARM_Instructions.BranchExchange i;
 
-    public BranchExchange(int instr) {
-      super(instr);
+    public BranchExchange(ARM_Instructions.BranchExchange instr) {
+      i = instr;
     }
 
     public void translate() {
@@ -1728,9 +1756,9 @@ public class ARM_Translator implements OPT_Operators {
       //1 if we're supposed to switch to thumb mode after this call, 0 otherwise
       OPT_Operand enableThumb;
 
-      switch (target.getType()) {
+      switch (i.target.getType()) {
       case PcRelative:
-        targetAddress = new OPT_IntConstantOperand(previousAddress + target.getOffset());
+        targetAddress = new OPT_IntConstantOperand(previousAddress + i.target.getOffset());
         
         //Call regs.setThumbMode(true) to enable thumb execution
         enableThumb = new OPT_IntConstantOperand(1);
@@ -1738,21 +1766,21 @@ public class ARM_Translator implements OPT_Operators {
 
       case Register:
         OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
-        arm2ir.appendInstruction(Binary.create(INT_AND, tmp, arm2ir.getRegister(target.getRegister()), new OPT_IntConstantOperand(0xFFFFFFFE) ));
+        arm2ir.appendInstruction(Binary.create(INT_AND, tmp, arm2ir.getRegister(i.target.getRegister()), new OPT_IntConstantOperand(0xFFFFFFFE) ));
         targetAddress = tmp;
         
         OPT_RegisterOperand tmp2 = arm2ir.getTempInt(1);
-        arm2ir.appendInstruction(Binary.create(INT_AND, tmp2, arm2ir.getRegister(target.getRegister()), new OPT_IntConstantOperand(0x1) ));
+        arm2ir.appendInstruction(Binary.create(INT_AND, tmp2, arm2ir.getRegister(i.target.getRegister()), new OPT_IntConstantOperand(0x1) ));
         enableThumb = tmp2;
         break;
 
       default:
         throw new RuntimeException("Unexpected Operand type: "
-            + target.getType());
+            + i.target.getType());
       }
       
       //write the next address into the link register, if requested so.
-      if (link) {
+      if (i.link) {
         arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(previousAddress - 4)));
       }
       
@@ -1765,6 +1793,10 @@ public class ARM_Translator implements OPT_Operators {
       //ending the trace with this method
       arm2ir.appendTraceExit(lazy, targetAddress);
     }
+    
+    public Condition getCondition() {
+      return i.condition;
+    }
 
     public int getSuccessor(int pc) {
       return -1;
@@ -1772,30 +1804,31 @@ public class ARM_Translator implements OPT_Operators {
   }
 
   /** Multiply two integers into a register, possibly adding the value of a third register on the way. */
-  private final class IntMultiply extends ARM_Instructions.IntMultiply implements
-  ARM_Instruction {
+  private final class IntMultiply implements ARM_Instruction {
+    
+    private final ARM_Instructions.IntMultiply i;
 
-    protected IntMultiply(int instr) {
-      super(instr);
+    protected IntMultiply(ARM_Instructions.IntMultiply instr) {
+      i = instr;
     }
 
     public void translate() {
       //get the two operands
       //we don't need to consider that any operand might be the PC, because the ARM
       //Ref. manual specifies the usage of the PC has undefined results in this operation
-      OPT_Operand operand1 = arm2ir.getRegister(Rm);
-      OPT_Operand operand2 = arm2ir.getRegister(Rs);
-      OPT_RegisterOperand result = arm2ir.getRegister(Rd);
+      OPT_Operand operand1 = arm2ir.getRegister(i.Rm);
+      OPT_Operand operand2 = arm2ir.getRegister(i.Rs);
+      OPT_RegisterOperand result = arm2ir.getRegister(i.Rd);
 
       //calculate the result
       arm2ir.appendInstruction(Binary.create(INT_MUL, result, operand1, operand2));
 
-      if (accumulate) {
-        OPT_Operand operand3 = arm2ir.getRegister(Rn);        
+      if (i.accumulate) {
+        OPT_Operand operand3 = arm2ir.getRegister(i.Rn);        
         arm2ir.appendInstruction(Binary.create(INT_ADD, result.copyRO(), result.copy(), operand3));
       }
 
-      if (updateConditionCodes) {
+      if (i.updateConditionCodes) {
         //set the negative flag
         arm2ir.appendInstruction(BooleanCmp.create(
             BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result.copyRO(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
@@ -1806,17 +1839,23 @@ public class ARM_Translator implements OPT_Operators {
       }
     }
     
+    public Condition getCondition() {
+      return i.condition;
+    }
+    
     public int getSuccessor(int pc) {
       return pc + 4;
     }
   }
     
   /** Multiply two longs into a register, possibly adding the value of a third register on the way. */
-  private final class LongMultiply extends ARM_Instructions.LongMultiply implements
+  private final class LongMultiply  implements
   ARM_Instruction {
+    
+    private final ARM_Instructions.LongMultiply i;
 
-    protected LongMultiply(int instr) {
-      super(instr);
+    protected LongMultiply(ARM_Instructions.LongMultiply instr) {
+      i = instr;
     }
 
     public void translate() {
@@ -1829,10 +1868,10 @@ public class ARM_Translator implements OPT_Operators {
       OPT_RegisterOperand result = arm2ir.getTempLong(2);
       
       //fill the two operands
-      arm2ir.appendInstruction(Unary.create(INT_2LONG, operand1, arm2ir.getRegister(Rm)));
-      arm2ir.appendInstruction(Unary.create(INT_2LONG, operand2, arm2ir.getRegister(Rs)));
+      arm2ir.appendInstruction(Unary.create(INT_2LONG, operand1, arm2ir.getRegister(i.Rm)));
+      arm2ir.appendInstruction(Unary.create(INT_2LONG, operand2, arm2ir.getRegister(i.Rs)));
       
-      if (unsigned) {
+      if (i.unsigned) {
         //treat the original ints as unsigned, so get rid of the signs for the longs
         arm2ir.appendInstruction(Binary.create(LONG_AND, operand1.copyRO(), operand1.copy(), new OPT_LongConstantOperand(0xFFFFFFFF)));
         arm2ir.appendInstruction(Binary.create(LONG_AND, operand2.copyRO(), operand2.copy(), new OPT_LongConstantOperand(0xFFFFFFFF)));
@@ -1841,21 +1880,21 @@ public class ARM_Translator implements OPT_Operators {
       //multiply the two operands
       arm2ir.appendInstruction(Binary.create(LONG_MUL, result.copyRO(), operand1.copy(), operand2.copy()));
 
-      if (accumulate) {          
+      if (i.accumulate) {          
         //treat the accum. value as an unsigned value
-        OPT_Operand operand3 = arm2ir.getRegister(getRdLow());
+        OPT_Operand operand3 = arm2ir.getRegister(i.getRdLow());
         OPT_RegisterOperand tmp = arm2ir.getTempLong(0);
         arm2ir.appendInstruction(Unary.create(INT_2LONG, tmp, operand3));
         arm2ir.appendInstruction(Binary.create(LONG_AND, tmp.copyRO(), tmp.copy(), new OPT_LongConstantOperand(0xFFFFFFFF)));
         arm2ir.appendInstruction(Binary.create(LONG_ADD, result.copyRO(), result.copy(), tmp.copy()));
         
-        operand3 = arm2ir.getRegister(getRdHigh());
+        operand3 = arm2ir.getRegister(i.getRdHigh());
         arm2ir.appendInstruction(Unary.create(INT_2LONG, tmp.copyRO(), operand3));
         arm2ir.appendInstruction(Binary.create(LONG_SHL, tmp.copyRO(), tmp.copy(), new OPT_IntConstantOperand(32)));
         arm2ir.appendInstruction(Binary.create(INT_ADD, result.copyRO(), result.copy(), operand3.copy()));
       }
 
-      if (updateConditionCodes) {
+      if (i.updateConditionCodes) {
         //set the negative flag
         arm2ir.appendInstruction(BooleanCmp.create(
             BOOLEAN_CMP_LONG, arm2ir.getNegativeFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
@@ -1865,6 +1904,10 @@ public class ARM_Translator implements OPT_Operators {
             BOOLEAN_CMP_LONG, arm2ir.getZeroFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
       }
     }
+    
+    public Condition getCondition() {
+      return i.condition;
+    }
 
     public int getSuccessor(int pc) {
       return pc + 4;
@@ -1872,12 +1915,13 @@ public class ARM_Translator implements OPT_Operators {
   }
     
   /** Move the value of the program status register into a register. */
-  private final class MoveFromStatusRegister extends
-      ARM_Instructions.MoveFromStatusRegister implements
+  private final class MoveFromStatusRegister implements
       ARM_Instruction {
+    
+    private final ARM_Instructions.MoveFromStatusRegister i;
 
-    public MoveFromStatusRegister(int instr) {
-      super(instr);
+    public MoveFromStatusRegister(ARM_Instructions.MoveFromStatusRegister instr) {
+      i = instr;
     }
 
     public void translate() {
@@ -1885,11 +1929,11 @@ public class ARM_Translator implements OPT_Operators {
       //write the current flags back to the registers class
       arm2ir.spillAllFlags(lazy);
       
-      OPT_RegisterOperand psrValue = arm2ir.getRegister(Rd);
+      OPT_RegisterOperand psrValue = arm2ir.getRegister(i.Rd);
       OPT_Instruction call;
       
       //do we have to transfer the saved or the current PSR?
-      if (transferSavedPSR) {
+      if (i.transferSavedPSR) {
          call = createCallToRegisters("getSPSR", "()V", 0);
       }
       else {
@@ -1899,6 +1943,10 @@ public class ARM_Translator implements OPT_Operators {
       Call.setResult(call, psrValue);
       arm2ir.appendCustomCall(call);
     }
+    
+    public Condition getCondition() {
+      return i.condition;
+    }
 
     public int getSuccessor(int pc) {
       //Rd should never be the PC, so we can safely predict the next instruction
@@ -1906,16 +1954,21 @@ public class ARM_Translator implements OPT_Operators {
     }
   }
   
-  private final class MoveToStatusRegister extends
-    ARM_Instructions.MoveToStatusRegister implements
+  private final class MoveToStatusRegister implements
       ARM_Instruction {
+    
+    private final ARM_Instructions.MoveToStatusRegister i;
 
-    public MoveToStatusRegister(int instr) {
-      super(instr);
+    public MoveToStatusRegister(ARM_Instructions.MoveToStatusRegister instr) {
+      i = instr;
     }
 
     public void translate() {
       arm2ir.appendInterpretedInstruction(pc, lazy);
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
@@ -1924,39 +1977,55 @@ public class ARM_Translator implements OPT_Operators {
   }
 
   /** Invoke a software interrupt. */
-  private final class SoftwareInterrupt extends ARM_Instructions.SoftwareInterrupt
-      implements ARM_Instruction {
+  private final class SoftwareInterrupt implements ARM_Instruction {
+    
+    private final ARM_Instructions.SoftwareInterrupt i;
 
-    public SoftwareInterrupt(int instr) {
-      super(instr);
+    public SoftwareInterrupt(ARM_Instructions.SoftwareInterrupt instr) {
+      i = instr;
     }
 
     public void translate() {
       arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.PC), new OPT_IntConstantOperand(pc)));
       arm2ir.appendSystemCall(lazy);
+      
+      OPT_BasicBlock curBlock = arm2ir.getCurrentBlock();
+      OPT_BasicBlock syscallWasJump = arm2ir.createBlockAfterCurrent();
+      OPT_BasicBlock nextInstruction = arm2ir.getNextBlock();
+      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), arm2ir.getRegister(ARM_Registers.PC), new OPT_IntConstantOperand(pc+4), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), OPT_BranchProfileOperand.always()));
+      curBlock.insertOut(nextInstruction);
+      
+      arm2ir.setCurrentBlock(syscallWasJump);
+      syscallWasJump.deleteNormalOut();
       arm2ir.appendBranch(arm2ir.getRegister(ARM_Registers.PC), lazy, BranchType.INDIRECT_BRANCH);
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
-      return -1;
+      return pc + 4;
     }
   }
 
   /** Transfers a single data item (either a byte, half-byte or word) between a register and memory.
    * This operation can either be a load from or a store to memory. */
-  private final class SingleDataTransfer extends ARM_Instructions.SingleDataTransfer
+  private final class SingleDataTransfer 
       implements ARM_Instruction {
+    
+    private final ARM_Instructions.SingleDataTransfer i;
 
-    public SingleDataTransfer(int instr) {
-      super(instr);
+    public SingleDataTransfer(ARM_Instructions.SingleDataTransfer instr) {
+      i = instr;
     }
     
     /** Resolves the offset, which is (when post-indexing is not used) to be added to the 
      * base address to create the final address. */
     private OPT_Operand resolveOffset() {
-      OPT_Operand positiveOffset = ResolvedOperand.resolve(ARM_Translator.this, offset);
+      OPT_Operand positiveOffset = ResolvedOperand.resolve(ARM_Translator.this, i.offset);
       
-      if (this.positiveOffset) {
+      if (i.positiveOffset) {
         return positiveOffset;
       }
       else {
@@ -1972,13 +2041,13 @@ public class ARM_Translator implements OPT_Operators {
       OPT_Operand base;
 
       //acquire the base address
-      if (Rn == 15)
+      if (i.Rn == 15)
         base = new OPT_IntConstantOperand(pc + 8);
       else
-        base = arm2ir.getRegister(Rn);
+        base = arm2ir.getRegister(i.Rn);
 
       //if we are not pre-indexing, then just use the base register for the memory access
-      if (!preIndexing)
+      if (!i.preIndexing)
         return base;
       
       //add the offset to the base register
@@ -1994,7 +2063,7 @@ public class ARM_Translator implements OPT_Operators {
       //stores the current operating mode
       OPT_RegisterOperand currentOperatingMode = null;
       
-      if (forceUserMode) {
+      if (i.forceUserMode) {
         OPT_Instruction call_getOperatingMode = createCallToRegisters("getOperatingMode", "()A", 0);
         currentOperatingMode = arm2ir.getTempOperatingMode();
         
@@ -2010,11 +2079,11 @@ public class ARM_Translator implements OPT_Operators {
       //get the address of the memory, that we're supposed access
       OPT_Operand address = resolveAddress();
 
-      if (isLoad) {
+      if (i.isLoad) {
         //we are loading a value from memory. Load it into this variable.
-        OPT_RegisterOperand value = arm2ir.getRegister(Rd);
+        OPT_RegisterOperand value = arm2ir.getRegister(i.Rd);
 
-        switch (size) {
+        switch (i.size) {
         
         case Word:
           //perform the actual memory access
@@ -2037,28 +2106,28 @@ public class ARM_Translator implements OPT_Operators {
           break;
 
         case HalfWord:
-          if (signExtend)
+          if (i.signExtend)
             ps.memory.translateLoadSigned16(address, value);
           else
             ps.memory.translateLoadUnsigned16(address, value);
           break;
 
         case Byte:
-          if (signExtend)
+          if (i.signExtend)
             ps.memory.translateLoadSigned8(address, value);
           else
             ps.memory.translateLoadUnsigned8(address, value);
           break;
 
         default:
-          throw new RuntimeException("Unexpected memory size: " + size);
+          throw new RuntimeException("Unexpected memory size: " + i.size);
         }
       } 
       else {
         //we are store a value from a register to memory.
-        OPT_RegisterOperand value = arm2ir.getRegister(Rd);
+        OPT_RegisterOperand value = arm2ir.getRegister(i.Rd);
         
-        switch (size) {
+        switch (i.size) {
         case Word:
           OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
           arm2ir.appendInstruction(Binary.create(INT_AND, tmp, address, new OPT_IntConstantOperand(0xFFFFFFFE)));
@@ -2074,12 +2143,12 @@ public class ARM_Translator implements OPT_Operators {
           break;
 
         default:
-          throw new RuntimeException("Unexpected memory size: " + size);
+          throw new RuntimeException("Unexpected memory size: " + i.size);
         }
       }
       
       //if we were writing in user mode, then switch back to our previous operating mode
-      if (forceUserMode) {
+      if (i.forceUserMode) {
         OPT_Instruction call_setOperatingModeWithoutRegisterLayout = createCallToRegisters("setOperatingModeWithoutRegisterLayout", "(A)", 1);
         Call.setParam(call_setOperatingModeWithoutRegisterLayout, 1, currentOperatingMode);
         arm2ir.appendCustomCall(call_setOperatingModeWithoutRegisterLayout);        
@@ -2087,10 +2156,10 @@ public class ARM_Translator implements OPT_Operators {
 
       //should the memory address, which we accessed, be written back into a register? 
       //This is used for continuous memory accesses
-      if (writeBack) {
-        OPT_RegisterOperand writeBackTarget = arm2ir.getRegister(Rn);
+      if (i.writeBack) {
+        OPT_RegisterOperand writeBackTarget = arm2ir.getRegister(i.Rn);
         
-        if (preIndexing) {
+        if (i.preIndexing) {
           arm2ir.appendInstruction(Move.create(INT_MOVE, writeBackTarget, address.copy()));
         }
         else {
@@ -2100,15 +2169,19 @@ public class ARM_Translator implements OPT_Operators {
         }
       }
       
-      if (isLoad && Rd == ARM_Registers.PC) {
+      if (i.isLoad && i.Rd == ARM_Registers.PC) {
         //we are actually loading to the program counter here
-        arm2ir.appendBranch(arm2ir.getRegister(Rd), lazy, BranchType.INDIRECT_BRANCH);
+        arm2ir.appendBranch(arm2ir.getRegister(i.Rd), lazy, BranchType.INDIRECT_BRANCH);
       }
+    }
+    
+    public Condition getCondition() {
+      return i.condition;
     }
 
     public int getSuccessor(int pc) {
       //if we're loading to the PC, then the next instruction is undefined
-      if (Rd == ARM_Registers.PC && isLoad)
+      if (i.Rd == ARM_Registers.PC && i.isLoad)
         return -1;
 
       return pc + 4;
@@ -2156,60 +2229,60 @@ public class ARM_Translator implements OPT_Operators {
       ARM_InstructionFactory<ARM_Instruction> {
 
     public ARM_Instruction createDataProcessing(int instr) {
-      Opcode opcode = Opcode.values()[Utils.getBits(instr, 21, 24)];
+      ARM_Instructions.DataProcessing i = new ARM_Instructions.DataProcessing(instr);
 
-      switch (opcode) {
+      switch (i.opcode) {
       case ADC:
-        return new DataProcessing_Adc(instr);
+        return new DataProcessing_Adc(i);
       case ADD:
-        return new DataProcessing_Add(instr);
+        return new DataProcessing_Add(i);
       case AND:
-        return new DataProcessing_And(instr);
+        return new DataProcessing_And(i);
       case BIC:
-        return new DataProcessing_Bic(instr);
+        return new DataProcessing_Bic(i);
       case CMN:
-        return new DataProcessing_Cmn(instr);
+        return new DataProcessing_Cmn(i);
       case CMP:
-        return new DataProcessing_Cmp(instr);
+        return new DataProcessing_Cmp(i);
       case EOR:
-        return new DataProcessing_Eor(instr);
+        return new DataProcessing_Eor(i);
       case MOV:
-        return new DataProcessing_Mov(instr);
+        return new DataProcessing_Mov(i);
       case MVN:
-        return new DataProcessing_Mvn(instr);
+        return new DataProcessing_Mvn(i);
       case ORR:
-        return new DataProcessing_Orr(instr);
+        return new DataProcessing_Orr(i);
       case RSB:
-        return new DataProcessing_Rsb(instr);
+        return new DataProcessing_Rsb(i);
       case RSC:
-        return new DataProcessing_Rsc(instr);
+        return new DataProcessing_Rsc(i);
       case SBC:
-        return new DataProcessing_Sbc(instr);
+        return new DataProcessing_Sbc(i);
       case SUB:
-        return new DataProcessing_Sub(instr);
+        return new DataProcessing_Sub(i);
       case TEQ:
-        return new DataProcessing_Teq(instr);
+        return new DataProcessing_Teq(i);
       case TST:
-        return new DataProcessing_Tst(instr);
+        return new DataProcessing_Tst(i);
       case CLZ:
-        return new DataProcessing_Clz(instr);
+        return new DataProcessing_Clz(i);
 
       default:
         throw new RuntimeException("Unexpected Data Procesing opcode: "
-            + opcode);
+            + i.opcode);
       }
     }
 
     public ARM_Instruction createBlockDataTransfer(int instr) {
-      return new BlockDataTransfer(instr);
+      return new BlockDataTransfer(new ARM_Instructions.BlockDataTransfer(instr));
     }
 
     public ARM_Instruction createBranch(int instr) {
-      return new Branch(instr);
+      return new Branch(new ARM_Instructions.Branch(instr));
     }
 
     public ARM_Instruction createBranchExchange(int instr) {
-      return new BranchExchange(instr);
+      return new BranchExchange(new ARM_Instructions.BranchExchange(instr));
     }
 
     public ARM_Instruction createCoprocessorDataProcessing(int instr) {
@@ -2234,35 +2307,110 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public ARM_Instruction createIntMultiply(int instr) {
-      return new IntMultiply(instr);
+      return new IntMultiply(new ARM_Instructions.IntMultiply(instr));
     }
 
     public ARM_Instruction createLongMultiply(int instr) {
-      return new LongMultiply(instr);
+      return new LongMultiply(new ARM_Instructions.LongMultiply(instr));
     }
 
     public ARM_Instruction createMoveFromStatusRegister(int instr) {
-      return new MoveFromStatusRegister(instr);
+      return new MoveFromStatusRegister(new ARM_Instructions.MoveFromStatusRegister(instr));
     }
 
     public ARM_Instruction createMoveToStatusRegister(int instr) {
-      return new MoveToStatusRegister(instr);
+      return new MoveToStatusRegister(new ARM_Instructions.MoveToStatusRegister(instr));
     }
 
     public ARM_Instruction createSingleDataTransfer(int instr) {
-      return new SingleDataTransfer(instr);
+      return new SingleDataTransfer(new ARM_Instructions.SingleDataTransfer(instr));
     }
 
     public ARM_Instruction createSoftwareInterrupt(int instr) {
-      return new SoftwareInterrupt(instr);
+      return new SoftwareInterrupt(new ARM_Instructions.SoftwareInterrupt(instr));
     }
 
     public ARM_Instruction createSwap(int instr) {
-      return new Swap(instr);
+      return new Swap(new ARM_Instructions.Swap(instr));
     }
 
     public ARM_Instruction createUndefinedInstruction(int instr) {
       return new UndefinedInstruction(instr);
+    }
+
+    public ARM_Instruction createBlockDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createBranch(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createBranchExchange(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createCoprocessorDataProcessing(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createCoprocessorDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createCoprocessorRegisterTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createDataProcessing(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createLongMultiply(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createMoveFromStatusRegister(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createMoveToStatusRegister(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createSingleDataTransfer(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createSoftwareshorterrupt(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createSwap(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createUndefinedInstruction(short instr) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public ARM_Instruction createshortMultiply(short instr) {
+      // TODO Auto-generated method stub
+      return null;
     }
   }
 }

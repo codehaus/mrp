@@ -1,7 +1,7 @@
 package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction;
-import org.binarytranslator.arch.arm.decoder.ARM_Instructions.MultipleDataTransfer;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.BlockDataTransfer;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Branch;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.BranchExchange;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.CoprocessorDataProcessing;
@@ -320,7 +320,7 @@ public final class ARM_Disassembler {
           instr.getRd(), instr.getRm(), instr.getRn()));
     }
 
-    public void visit(MultipleDataTransfer instr) {
+    public void visit(BlockDataTransfer instr) {
       String mnemonic = instr.isLoad() ? "LDM" : "STM";
       String baseRegister = "r" + instr.getBaseRegister();
 
