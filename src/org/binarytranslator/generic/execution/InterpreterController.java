@@ -1,6 +1,5 @@
 package org.binarytranslator.generic.execution;
 
-import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoder;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -29,7 +28,5 @@ public class InterpreterController extends ExecutionController {
       else
         ps.setCurrentInstructionAddress(pc);
     }
-    
-    System.out.println(ARM_InstructionDecoder.fastpathCount);
   }
 }

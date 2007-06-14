@@ -165,13 +165,21 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
   /** Map to locate HIR basic blocks to re-use translation within a trace */
   protected final HashMap<Laziness.Key, OPT_BasicBlock> blockMap;
 
+  /** This class stores information about a jump instruction within the current trace, whose
+   * target has not yet been resolved. */
   private final static class UnresolvedJumpInstruction {
+    
+    /** A reference to the jump instruction within the code. This is either a GOTO or SWITCH instruction. */
     public final OPT_Instruction instruction;
 
+    /** The lazy state at the jump location. */
     public final Laziness lazyStateAtJump;
 
+    /** Depending on the type of the branch, this value either stores the address from which the branch
+     * is taken or the target address of the branch. */
     public final int pc;
 
+    /** Identifies the type of branch. */
     public final BranchType type;
 
     public UnresolvedJumpInstruction(OPT_Instruction instruction,
@@ -185,14 +193,12 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
 
   /**
    * List of unresolved direct branches. The destinations of direct branches are
-   * already known at translation time.
-   */
+   * already known at translation time. */
   private final ArrayList<UnresolvedJumpInstruction> unresolvedDirectBranches;
 
   /**
    * List of unresolved dynamic branches. Dynamics branches have a destination
-   * address that is only determined at runtime.
-   */
+   * address that is only determined at runtime. */
   private final ArrayList<UnresolvedJumpInstruction> unresolvedDynamicBranches;
 
   /**
@@ -564,8 +570,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    */
   public void appendBranch(int targetPC, Laziness targetLaziness, BranchType branchType) {
     
-    if (DBT.VerifyAssertions && branchType == BranchType.CALL) throw new RuntimeException("Use the more specific appendCall to create dynamic calls.");
-    
+    if (DBT.VerifyAssertions && branchType == BranchType.CALL) throw new RuntimeException("Use the more specific appendCall to create dynamic calls.");    
     appendStaticBranch(targetPC, targetLaziness, branchType, -1);
   }
   
@@ -834,28 +839,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
         lookupswitch.getBasicBlock().insertOut(target);
       }
     } else {
-      //we don't yet know where this jump will go, so just exit
-    }
-  }
-
-  /**
-   * Resolves all dynamic jump targets by making sure the respective basic
-   * blocks exist.
-   */
-  private void resolveAllDynamicBranchTargets() {
-    for (int i = 0; i < unresolvedDynamicBranches.size(); i++) {
-
-      UnresolvedJumpInstruction unresolvedSwitch = unresolvedDynamicBranches
-          .get(i);
-
-      Laziness lazy = unresolvedSwitch.lazyStateAtJump;
-      Set<Integer> branchDests = getLikelyJumpTargets(unresolvedSwitch.pc);
-
-      if (branchDests != null) {
-        for (int dest_pc : branchDests) {
-          resolveBranchTarget(dest_pc, lazy, unresolvedSwitch.type);
-        }
-      }
+      //we don't yet know where this jump will go, so just do nothing, which will exit the trace
     }
   }
 
@@ -890,15 +874,15 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
   protected boolean shallTraceStop() {
     if (DBT_Options.singleInstrTranslation && (numberOfInstructions >= 1)) {
       return true;
-    } else {
-      switch (gc.options.getOptLevel()) {
-      case 0:
-        return numberOfInstructions > DBT_Options.instrOpt0;
-      case 1:
-        return numberOfInstructions > DBT_Options.instrOpt1;
-      default:
-        return numberOfInstructions > DBT_Options.instrOpt2;
-      }
+    }
+    
+    switch (gc.options.getOptLevel()) {
+    case 0:
+      return numberOfInstructions > DBT_Options.instrOpt0;
+    case 1:
+      return numberOfInstructions > DBT_Options.instrOpt1;
+    default:
+      return numberOfInstructions > DBT_Options.instrOpt2;
     }
   }
 

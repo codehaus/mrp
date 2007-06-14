@@ -616,24 +616,28 @@ public class ELF_File {
   /** Identifies a named segment range. */
   private enum SegmentRange {
     /** SUN reserved segments */
-    SunReserved(0x6ffffffa, 0x6fffffff, "SUN Reserved Segment"),
+    SunReserved(0x6ffffffaL, 0x6fffffffL, "SUN Reserved Segment"),
     
     /** OS reserved segment types */
-    OperatingSystem(0x60000000, 0x6fffffff, ("Operating System Segment")),
+    OperatingSystem(0x60000000L, 0x6fffffffL, "Operating System Segment"),
     
     /** processor reserved segment types */
-    Processor(0x70000000, 0x7fffffff, "Processor Segment"),
+    Processor(0x70000000L, 0x7fffffffL, "Processor Segment"),
     
     /** remaining (unknown) segment types */
-    Unknown(0x0, 0xffffffff, "Unknown Segment"); 
+    Unknown(0x0, 0xffffffffL, "Unknown Segment"); 
     
-    private int lowAddress;
-    private int highAddress;
+    private long lowAddress;
+    private long highAddress;
     private String description;
     
-    private SegmentRange(int from, int to, String description) {
+    private SegmentRange(long from, long to, String description) {
       
-      if (DBT.VerifyAssertions) DBT._assert(from < to);
+      //assert(from < to) as unsigned.
+      if (DBT.VerifyAssertions && from > to) {
+        System.err.println("Invalid range for Segment: " + description);
+        DBT._assert(false);
+      }
       
       lowAddress = from;
       highAddress = to;

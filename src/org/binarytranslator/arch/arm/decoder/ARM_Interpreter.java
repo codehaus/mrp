@@ -40,9 +40,17 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Decodes the instruction at the given address.*/
   public Instruction decode(int pc) {
-
-    int binaryInstruction = ps.memory.loadInstruction32(pc);
-    ARM_Instruction instruction = ARM_InstructionDecoder.decode(binaryInstruction, instructionFactory);
+    
+    ARM_Instruction instruction;
+    
+    if ((pc & 1) != 0) {
+      short binaryInstruction = (short)ps.memory.loadInstruction16(pc & 0xFFFFFFFE);
+      instruction = ARM_InstructionDecoder.Thumb.decode(binaryInstruction, instructionFactory);  
+    }
+    else {
+      int binaryInstruction = ps.memory.loadInstruction32(pc);
+      instruction = ARM_InstructionDecoder.ARM32.decode(binaryInstruction, instructionFactory);
+    }
     
     if (instruction.getCondition() != Condition.AL) {
       return new ConditionalDecorator(instruction);
@@ -55,7 +63,6 @@ public class ARM_Interpreter implements Interpreter {
   public String toString() {
     return instructionFactory.toString();
   }
-  
   
   private abstract static class ResolvedOperand {
     
@@ -99,10 +106,10 @@ public class ARM_Interpreter implements Interpreter {
         int reg = operand.getRegister();
         
         //mind the arm pc offset
-        value = regs.get(reg);
-        
-        if (reg == 15)
-          value += 8;
+        if (reg == ARM_Registers.PC)
+          value =  regs.readPC();
+        else
+          value = regs.get(reg);
         
         return;
 
@@ -111,9 +118,14 @@ public class ARM_Interpreter implements Interpreter {
         value = resolveShift(regs, operand);
         return;
 
-      case PcRelative:
-        value = regs.get(ARM_Registers.PC) + 8 + operand.getOffset();
-        break;
+      case RegisterOffset:
+        if (operand.getRegister() == ARM_Registers.PC)
+          value = regs.readPC();
+        else
+          value =regs.get(operand.getRegister());
+        
+        value += operand.getOffset();
+        return;
         
       default:
         throw new RuntimeException("Unexpected wrapped operand type: "
@@ -128,11 +140,11 @@ public class ARM_Interpreter implements Interpreter {
           DBT._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister ||
                       operand.getType() == OperandWrapper.Type.RegisterShiftedRegister);
 
-      int value = regs.get(operand.getRegister());
-      
       //consider the "usual" ARM program counter offset
       if (operand.getRegister() == ARM_Registers.PC)
-        value += 8;
+        value = regs.readPC();
+      else
+        value = regs.get(operand.getRegister());
       
       byte shiftAmount;
 
@@ -213,10 +225,10 @@ public class ARM_Interpreter implements Interpreter {
           int reg = operand.getRegister();
           
           //mind the arm pc offset
-          value = regs.get(reg);
-          
-          if (reg == 15)
-            value += 8;
+          if (reg == ARM_Registers.PC)
+            value = regs.readPC();
+          else
+            value = regs.get(reg);
           
           return;
 
@@ -225,7 +237,7 @@ public class ARM_Interpreter implements Interpreter {
           value = resolveShift(regs, operand);
           return;
 
-        case PcRelative:
+        case RegisterOffset:
           throw new RuntimeException("This operand type does not produce a shifter carry out.");
           
         default:
@@ -241,11 +253,13 @@ public class ARM_Interpreter implements Interpreter {
             DBT._assert(operand.getType() == OperandWrapper.Type.ImmediateShiftedRegister ||
                         operand.getType() == OperandWrapper.Type.RegisterShiftedRegister);
 
-        int value = regs.get(operand.getRegister());
+        int value;
         
         //consider the "usual" ARM program counter offset
         if (operand.getRegister() == ARM_Registers.PC)
-          value += 8;
+          value = regs.readPC();
+        else
+          value = regs.get(operand.getRegister());
         
         byte shiftAmount;
 
@@ -454,7 +468,7 @@ public class ARM_Interpreter implements Interpreter {
     protected int resolveOperand1() {
 
       if (i.Rn == ARM_Registers.PC) {
-        return regs.get(i.Rn) + 8;
+        return regs.readPC();
       }
 
       return regs.get(i.Rn);
@@ -585,7 +599,7 @@ public class ARM_Interpreter implements Interpreter {
 
     /** Sets the condition field for logical operations. */
     protected final void setFlagsForLogicalOperator(int result) {
-
+      
       if (i.updateConditionCodes) {
         if (i.Rd != 15) {
           regs.setFlags(result < 0, result == 0, shifterCarryOut);
@@ -1038,7 +1052,7 @@ public class ARM_Interpreter implements Interpreter {
         //also transfer the program counter, if requested so
         if (transferPC) {
           nextAddress += 4;
-          ps.memory.store32(nextAddress, regs.get(15) + 8);
+          ps.memory.store32(nextAddress, regs.readPC());
         }
       }
 
@@ -1096,14 +1110,14 @@ public class ARM_Interpreter implements Interpreter {
     public void execute() {
       //if we're supposed to link, then write the previous address into the link register
       if (i.link) {
-        regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + 4);
+        regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + (regs.getThumbMode() ? 2 : 4));
         
         if (DBT_Options.profileDuringInterpretation)
-          ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), regs.get(ARM_Registers.PC) + i.getOffset() + 8, regs.get(ARM_Registers.PC) + 4);
+          ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), regs.readPC() + i.getOffset(), regs.get(ARM_Registers.PC) + 4);
       }
       else {
         if (DBT_Options.profileDuringInterpretation) 
-          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), regs.get(ARM_Registers.PC) + i.getOffset() + 8, BranchType.DIRECT_BRANCH);
+          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), regs.readPC() + i.getOffset(), BranchType.DIRECT_BRANCH);
       }
     }
     
@@ -1128,7 +1142,7 @@ public class ARM_Interpreter implements Interpreter {
 
     public void execute() {
       //remember the previous address
-      int previousAddress = regs.get(ARM_Registers.PC) + 8;
+      
       
       //are we supposed to jump to thumb (thumb=true) or ARM32 (thumb=false)?
       boolean thumb;
@@ -1137,7 +1151,14 @@ public class ARM_Interpreter implements Interpreter {
       int targetAddress;
 
       switch (i.target.getType()) {
-      case PcRelative:
+      case RegisterOffset:
+        int previousAddress; 
+        
+        if (i.target.getRegister() == ARM_Registers.PC)
+          previousAddress = regs.readPC();
+        else
+          previousAddress = regs.get(i.target.getRegister());
+        
         targetAddress = previousAddress + i.target.getOffset();
         thumb = true;
         break;
@@ -1155,7 +1176,7 @@ public class ARM_Interpreter implements Interpreter {
 
       //if we're supposed to link, then write the previous address into the link register
       if (i.link) {
-        regs.set(ARM_Registers.LR, previousAddress - 4);
+        regs.set(ARM_Registers.LR, regs.readPC() - (regs.getThumbMode() ? 2 : 4));
         ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), targetAddress, BranchType.CALL);
       }
       else {
@@ -1173,7 +1194,7 @@ public class ARM_Interpreter implements Interpreter {
 
     public int getSuccessor(int pc) {
       //if we're jumping relative to the PC, then we can predict the next instruction
-      if (i.target.getType() == OperandWrapper.Type.PcRelative) {
+      if (i.target.getType() == OperandWrapper.Type.RegisterOffset) {
         return pc + i.target.getOffset();
       } else {
         //otherwise we can't predict it
@@ -1421,11 +1442,13 @@ public class ARM_Interpreter implements Interpreter {
     private int resolveAddress() {
 
       //acquire the base address
-      int base = regs.get(i.Rn);
+      int base; 
       
       //take ARM's PC offset into account
-      if (i.Rn == 15)
-        base += 8;
+      if (i.Rn == ARM_Registers.PC)
+        base = regs.readPC();
+      else
+        base = regs.get(i.Rn);
 
       //if we are not pre-indexing, then just use the base register for the memory access
       if (!i.preIndexing)
@@ -1688,78 +1711,103 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public ARM_Instruction createBlockDataTransfer(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new BlockDataTransfer(new ARM_Instructions.BlockDataTransfer(instr));
     }
 
     public ARM_Instruction createBranch(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new Branch(new ARM_Instructions.Branch(instr));
     }
 
     public ARM_Instruction createBranchExchange(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new BranchExchange(new ARM_Instructions.BranchExchange(instr));
     }
 
     public ARM_Instruction createCoprocessorDataProcessing(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      throw new RuntimeException("Instruction type not supported by thumb.");
     }
 
     public ARM_Instruction createCoprocessorDataTransfer(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      throw new RuntimeException("Instruction type not supported by thumb.");
     }
 
     public ARM_Instruction createCoprocessorRegisterTransfer(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      throw new RuntimeException("Instruction type not supported by thumb.");
     }
 
     public ARM_Instruction createDataProcessing(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      ARM_Instructions.DataProcessing i = new ARM_Instructions.DataProcessing(instr);
+
+      switch (i.opcode) {
+      case ADC:
+        return new DataProcessing_Adc(i);
+      case ADD:
+        return new DataProcessing_Add(i);
+      case AND:
+        return new DataProcessing_And(i);
+      case BIC:
+        return new DataProcessing_Bic(i);
+      case CMN:
+        return new DataProcessing_Cmn(i);
+      case CMP:
+        return new DataProcessing_Cmp(i);
+      case EOR:
+        return new DataProcessing_Eor(i);
+      case MOV:
+        return new DataProcessing_Mov(i);
+      case MVN:
+        return new DataProcessing_Mvn(i);
+      case ORR:
+        return new DataProcessing_Orr(i);
+      case RSB:
+        return new DataProcessing_Rsb(i);
+      case RSC:
+        return new DataProcessing_Rsc(i);
+      case SBC:
+        return new DataProcessing_Sbc(i);
+      case SUB:
+        return new DataProcessing_Sub(i);
+      case TEQ:
+        return new DataProcessing_Teq(i);
+      case TST:
+        return new DataProcessing_Tst(i);
+      case CLZ:
+        return new DataProcessing_Clz(i);
+
+      default:
+        throw new RuntimeException("Unexpected Data Procesing opcode: " + i.opcode);
+      }
     }
 
     public ARM_Instruction createLongMultiply(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      throw new RuntimeException("Instruction type not supported by thumb.");
     }
 
     public ARM_Instruction createMoveFromStatusRegister(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      throw new RuntimeException("Instruction type not supported by thumb.");
     }
 
     public ARM_Instruction createMoveToStatusRegister(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      throw new RuntimeException("Instruction type not supported by thumb.");
     }
 
     public ARM_Instruction createSingleDataTransfer(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new SingleDataTransfer(new ARM_Instructions.SingleDataTransfer(instr));
     }
 
-    public ARM_Instruction createSoftwareshorterrupt(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+    public ARM_Instruction createSoftwareInterrupt(short instr) {
+      return new SoftwareInterrupt(new ARM_Instructions.SoftwareInterrupt(instr));
     }
 
     public ARM_Instruction createSwap(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      throw new RuntimeException("Instruction type not supported by thumb.");
     }
 
     public ARM_Instruction createUndefinedInstruction(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new UndefinedInstruction(instr);
     }
 
-    public ARM_Instruction createshortMultiply(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+    public ARM_Instruction createIntMultiply(short instr) {
+      return new IntMultiply(new ARM_Instructions.IntMultiply(instr));
     }
   }
 }

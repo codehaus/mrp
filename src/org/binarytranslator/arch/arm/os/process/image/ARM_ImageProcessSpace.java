@@ -25,8 +25,16 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   public void doSysCall() {
     
     //check the SWI instrution to make sure, that we're actually doing an Angel call here
-    int instruction = memory.loadInstruction32(getCurrentInstructionAddress());
-    ARM_Instructions.Instruction instr = ARM_InstructionDecoder.decode(instruction);
+    ARM_Instructions.Instruction instr;
+    
+    if (registers.getThumbMode()) {
+      short instruction = (short)memory.loadInstruction16(getCurrentInstructionAddress());
+      instr = ARM_InstructionDecoder.Thumb.decode(instruction);
+    }
+    else {
+      int instruction = memory.loadInstruction32(getCurrentInstructionAddress());
+      instr = ARM_InstructionDecoder.ARM32.decode(instruction);
+    }
     
     if (DBT.VerifyAssertions) {
       DBT._assert(instr instanceof ARM_Instructions.SoftwareInterrupt);

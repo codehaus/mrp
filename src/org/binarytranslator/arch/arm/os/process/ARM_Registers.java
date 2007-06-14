@@ -7,10 +7,10 @@ public final class ARM_Registers {
 
   /** Symbolic constants for the registers in ARM that have a special function. 
    * Note that (except for the PC), those registers can also be used as general purpose registers*/
-  public final static int FP = 11; //frame pointer
-  public final static int SP = 13; //stack pointer
-  public final static int LR = 14; //link register
-  public final static int PC = 15; //program counter
+  public final static byte FP = 11; //frame pointer
+  public final static byte SP = 13; //stack pointer
+  public final static byte LR = 14; //link register
+  public final static byte PC = 15; //program counter
 
   /**
    * The currently visible ARM general purpose registers. Register 15 also
@@ -282,6 +282,19 @@ public final class ARM_Registers {
     if (VM.VerifyAssertions) VM._assert(operatingMode != OperatingMode.USR);
     
     setCPSR(getSPSR());
+  }
+  
+  /**
+   * Reads the program counter as a ARM/thumb instruction would read it. This implies adding an offset of 8 (ARM)
+   * or 4 (Thumb) to the program counter itself.
+   */
+  public int readPC() {
+    if (getThumbMode()) {
+      return get(ARM_Registers.PC) + 4;
+    }
+    else {
+      return get(ARM_Registers.PC) + 8;
+    }
   }
   
   /**

@@ -70,7 +70,7 @@ public class DBT_Options {
   /**
    * Set this to true to translate only one instruction at a time.
    */
-  public static boolean singleInstrTranslation = true;
+  public static boolean singleInstrTranslation = false;
 
   /**
    * Eliminate unneeded filling of register
@@ -126,10 +126,12 @@ public class DBT_Options {
   public final static int GID = 100;
   
   /** Stores the arguments given to the DBT by the user. These are NOT the arguments given to the executable. */
-  private final static HashMap<String, String> dbtArguments = new HashMap<String, String>();
+  private static HashMap<String, String> dbtArguments = null;
   
   /** Read and parse the command line arguments.  */
   public static void parseArguments(String[] args) {
+    
+    dbtArguments = new HashMap<String, String>();
 
     try {
       ArrayList<String> remainingArguments = new ArrayList<String>();

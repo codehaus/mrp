@@ -177,4 +177,9 @@ public class AutoMappingMemory extends CallBasedMemory {
   public void changeProtection(int address, int len, boolean newRead, boolean newWrite, boolean newExec) {
     mem.changeProtection(address, len, newRead, newWrite, newExec);
   }
+
+  @Override
+  public int loadInstruction16(int addr) {
+    return mem.loadInstruction16(addr);
+  }
 }

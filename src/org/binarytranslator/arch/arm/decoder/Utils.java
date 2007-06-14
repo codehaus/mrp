@@ -18,6 +18,15 @@ public class Utils {
       DBT._assert(bit >= 0 && bit <= 31);
     return (word & (1 << bit)) != 0;
   }
+  
+  /**
+   * Same functions as {@link #getBit(int, int)} for shorts.
+   */
+  static final boolean getBit(short word, int bit) {
+    if (DBT.VerifyAssertions)
+      DBT._assert(bit >= 0 && bit <= 15);
+    return (word & (1 << bit)) != 0;
+  }
 
   /**
    * Extracts a subsequence of bits from a word and shifts the beginning of that subsequence to 
@@ -38,13 +47,23 @@ public class Utils {
     
     return (word & ((1 << (to + 1)) - 1)) >> from;
   }
+  
+  /**
+   * Same function as {@link #getBits(int, int, int)} for shorts.
+   */
+  static final int getBits(short word, int from, int to) {
+    if (DBT.VerifyAssertions)
+      DBT._assert(from < to && from >= 0 && to < 15);
+    
+    return (word & ((1 << (to + 1)) - 1)) >> from;
+  }
 
   /** 
    * Sign extends a given value.
    * @param value
    *  The value to sign extends.
    * @param bitsUsed
-   *  The number bits used within this values.
+   *  The number bits used within this value.
    * @return
    *  A sign extended value.
    */

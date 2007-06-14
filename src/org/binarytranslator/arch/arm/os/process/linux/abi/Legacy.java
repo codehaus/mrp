@@ -48,8 +48,16 @@ public class Legacy implements LinuxSystemCallGenerator {
   public int getSysCallNumber() {
     //ARM syscalls are trigged by a SWI instruction, which includes the syscall number within its opcode.
     //therefore, we are going to decode the instruction first
-    int instruction = ps.memory.loadInstruction32(ps.getCurrentInstructionAddress());
-    ARM_Instructions.Instruction instr = ARM_InstructionDecoder.decode(instruction);
+    ARM_Instructions.Instruction instr;
+    
+    if (ps.registers.getThumbMode()) {
+      short instruction = (short)ps.memory.loadInstruction16(ps.getCurrentInstructionAddress());
+      instr = ARM_InstructionDecoder.Thumb.decode(instruction);
+    }
+    else {
+      int instruction = ps.memory.loadInstruction32(ps.getCurrentInstructionAddress());
+      instr = ARM_InstructionDecoder.ARM32.decode(instruction);      
+    }
     
     if (DBT.VerifyAssertions) {
       if (!(instr instanceof ARM_Instructions.SoftwareInterrupt)) {

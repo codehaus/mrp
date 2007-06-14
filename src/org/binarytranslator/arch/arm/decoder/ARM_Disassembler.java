@@ -17,6 +17,7 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.SingleDataTransfer
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.SoftwareInterrupt;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Swap;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
+import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.generic.decoder.DisassembledInstruction;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -40,10 +41,18 @@ public final class ARM_Disassembler {
    * @return A disassembled ARM instruction.
    */
   public final static DisassembledInstruction disassemble(int address,
-      ProcessSpace ps) {
+      ARM_ProcessSpace ps) {
 
-    int binaryInstruction = ps.memory.loadInstruction32(address);
-    Instruction decodedInstruction = ARM_InstructionDecoder.decode(binaryInstruction);
+    Instruction decodedInstruction;
+    
+    if ((address & 0x1) == 1) {
+      short binaryInstruction = (short)ps.memory.loadInstruction16(address & 0xFFFFFFFE);
+      decodedInstruction = ARM_InstructionDecoder.Thumb.decode(binaryInstruction);
+    }
+    else {
+      int binaryInstruction = ps.memory.loadInstruction32(address);
+      decodedInstruction = ARM_InstructionDecoder.ARM32.decode(binaryInstruction);
+    }
     
     DisassemblingVisitor disassembler = new DisassemblingVisitor(address);
     decodedInstruction.visit(disassembler);
@@ -170,7 +179,7 @@ public final class ARM_Disassembler {
         return String.format("r%d %s #%d", op.getRegister(), op.getShiftType(),
             op.getShiftAmount());
 
-      case PcRelative:
+      case RegisterOffset:
         if (address != -1)
           return String.format("#0x%x", op.getOffset() + address + 8);
         else

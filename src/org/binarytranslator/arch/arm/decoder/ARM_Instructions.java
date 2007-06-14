@@ -2,6 +2,7 @@ package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.OperandWrapper.ShiftType;
+import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 
 /**
  * In the ARM decoder model, the decoding and usage (translating/interpreting/disassembling) of instructions
@@ -149,7 +150,7 @@ public class ARM_Instructions  {
     /** Describes the type of the operand. */
     public enum Type {
       Immediate,
-      PcRelative,
+      RegisterOffset,
       Register,
       ImmediateShiftedRegister,
       RegisterShiftedRegister,
@@ -175,8 +176,8 @@ public class ARM_Instructions  {
     }
     
     /** Creates an operand wrapper representing an offset to the pc.*/
-    public static OperandWrapper createPcRelative(int offset) {
-      return new PcRelativeOperand(offset);
+    public static OperandWrapper createRegisterOffset(byte register, int offset) {
+      return new RegisterOffsetOperand(register, offset);
     }
     
     public static OperandWrapper createRegisterShiftImmediate(byte register, ShiftType type, byte amount) {
@@ -329,17 +330,19 @@ public class ARM_Instructions  {
       }
     }
     
-    protected static class PcRelativeOperand extends OperandWrapper {
+    protected static class RegisterOffsetOperand extends OperandWrapper {
       
       protected final int offset;
+      protected final byte register;
       
-      protected PcRelativeOperand(int offset) {
+      protected RegisterOffsetOperand(byte register, int offset) {
         this.offset = offset;
+        this.register = register;
       }
       
       @Override
       public byte getRegister() {
-        return 15;
+        return register;
       }
       
       @Override
@@ -349,7 +352,7 @@ public class ARM_Instructions  {
 
       @Override
       public Type getType() {
-        return Type.PcRelative;
+        return Type.RegisterOffset;
       }
     }
     
@@ -463,6 +466,46 @@ public class ARM_Instructions  {
     protected final OperandWrapper operand2;
     
     public DataProcessing(short instr) {
+      
+      if (Utils.getBits(instr, 12, 15) == 0xA) {
+        //add to SP or PC (load address)
+        opcode = Opcode.ADD;
+        updateConditionCodes = false;
+        Rd = (byte)Utils.getBits(instr, 8, 10);
+        Rn = (byte)(Utils.getBit(instr, 11) ? ARM_Registers.SP : ARM_Registers.PC);
+        operand2 = OperandWrapper.createImmediate(instr & 0xFF);
+        
+        return;
+      }
+      
+      if (Utils.getBits(instr, 12, 15) == 0xB) {
+        //add offset to SP
+        updateConditionCodes = false;
+        opcode = Utils.getBit(instr, 7) ? Opcode.SUB : Opcode.ADD;
+        Rd = (byte)ARM_Registers.SP;
+        Rn = (byte)ARM_Registers.SP;
+        operand2 = OperandWrapper.createImmediate(instr & 0x7F);
+        
+        return;
+      }
+      
+      if (Utils.getBits(instr, 14, 15) == 0x7) {
+        //first instruction of a long bl/blx
+        if (DBT.VerifyAssertions) DBT._assert(Utils.getBits(instr, 11, 12) == 2);
+        
+        //extract and sign-extend the offset
+        int offset = Utils.getBits(instr, 0, 10);
+        offset = Utils.signExtend(offset, 11) << 12;
+        operand2 = OperandWrapper.createImmediate(offset);
+        
+        opcode = Opcode.MOV;
+        Rd = ARM_Registers.LR;
+        updateConditionCodes = false;
+        Rn = 0;
+        
+        return;
+      }
+      
       if (Utils.getBits(instr, 13, 15) == 0) {
         //shift by immediate, add/subtract register or add/subtract immediate
         Rd = (byte)Utils.getBits(instr, 0, 2);
@@ -506,99 +549,130 @@ public class ARM_Instructions  {
             opcode = Opcode.SUB;
             break;
           default:
-            throw new RuntimeException("Values other than 0-4 cannot be represented within 2 bits.");
+            throw new RuntimeException("Values other than 0-3 cannot be represented within 2 bits.");
           }
         }
         else {
-          Rd = (byte)Utils.getBits(instr, 0, 2);
-          byte finalRn = (byte)Utils.getBits(instr, 3, 5); 
-          updateConditionCodes = true;
           
-          switch (Utils.getBits(instr, 6, 9)) {
-          case 0:
-            opcode = Opcode.AND;
-            operand2 = OperandWrapper.createRegister(Rd);
-            break;
-          case 1:
-            opcode = Opcode.EOR;
-            operand2 = OperandWrapper.createRegister(Rd);
-            break;
+          if (Utils.getBit(instr, 10)) {
+            //special data processing
+            Rd = (byte)(Utils.getBits(instr, 0, 2) + (Utils.getBit(instr, 7) ?  8 : 0));
+            Rn = Rd;
+            operand2 = OperandWrapper.createRegister((byte)(Utils.getBits(instr, 3, 5) + (Utils.getBit(instr, 6) ?  8 : 0)));
+            updateConditionCodes = true;
             
-          case 2:
-            opcode = Opcode.MOV;
-            operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.LSL, finalRn);
-            break;
-            
-          case 3:
-            opcode = Opcode.MOV;
-            operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.LSR, finalRn);
-            break;
-            
-          case 4:
-            opcode = Opcode.MOV;
-            operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.ASR, finalRn);
-            break;
-            
-          case 5:
-            opcode = Opcode.ADC;
-            operand2 = OperandWrapper.createRegister(Rd);
-            break;
-
-          case 6:
-            opcode = Opcode.SBC;
-            operand2 = OperandWrapper.createRegister(finalRn);
-            finalRn = Rd;
-            break;
-            
-          case 7:
-            opcode = Opcode.MOV;
-            operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.ROR, finalRn);
-            break;
-            
-          case 8:
-            opcode = Opcode.TST;
-            operand2 = OperandWrapper.createRegister(finalRn);
-            break;
-            
-          case 9:
-            opcode = Opcode.RSB;
-            operand2 = OperandWrapper.createImmediate(0);
-            break;
-            
-          case 10:
-            opcode = Opcode.CMP;
-            operand2 = OperandWrapper.createRegister(finalRn);
-            break;
-            
-          case 11:
-            opcode = Opcode.CMN;
-            operand2 = OperandWrapper.createRegister(finalRn);
-            break;
-
-          case 12:
-            opcode = Opcode.ORR;
-            operand2 = OperandWrapper.createRegister(Rd);
-            break;
-            
-          case 13:
-            throw new RuntimeException("This is actually a multiply instruction.");
-            
-          case 14:
-            opcode = Opcode.BIC;
-            operand2 = OperandWrapper.createRegister(finalRn);
-            finalRn = Rd;
-            break;
-            
-          case 15:
-            opcode = Opcode.MVN;
-            operand2 = OperandWrapper.createRegister(finalRn);
-            break;
-            
-          default:
-            throw new RuntimeException("Only values 0-15 can be represented within 4 bits.");
+            switch (Utils.getBits(instr, 8, 9)) {
+            case 0:
+              opcode = Opcode.ADD;
+              break;
+              
+            case 1:
+              opcode = Opcode.CMP;
+              break;
+              
+            case 2:
+              opcode = Opcode.MOV;
+              break;
+              
+            case 3:
+              throw new RuntimeException("This case is actually a BranchExchange.");
+              
+            default:
+              throw new RuntimeException("Only the values 0-3 can be represented within 2 bits.");
+            }
           }
-          
-          Rn = finalRn;
+          else {
+            //data processing-register
+            Rd = (byte)Utils.getBits(instr, 0, 2);
+            byte finalRn = (byte)Utils.getBits(instr, 3, 5); 
+            updateConditionCodes = true;
+            
+            switch (Utils.getBits(instr, 6, 9)) {
+            case 0:
+              opcode = Opcode.AND;
+              operand2 = OperandWrapper.createRegister(Rd);
+              break;
+            case 1:
+              opcode = Opcode.EOR;
+              operand2 = OperandWrapper.createRegister(Rd);
+              break;
+              
+            case 2:
+              opcode = Opcode.MOV;
+              operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.LSL, finalRn);
+              break;
+              
+            case 3:
+              opcode = Opcode.MOV;
+              operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.LSR, finalRn);
+              break;
+              
+            case 4:
+              opcode = Opcode.MOV;
+              operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.ASR, finalRn);
+              break;
+              
+            case 5:
+              opcode = Opcode.ADC;
+              operand2 = OperandWrapper.createRegister(Rd);
+              break;
+  
+            case 6:
+              opcode = Opcode.SBC;
+              operand2 = OperandWrapper.createRegister(finalRn);
+              finalRn = Rd;
+              break;
+              
+            case 7:
+              opcode = Opcode.MOV;
+              operand2 = OperandWrapper.createRegisterShiftRegister(Rd, ShiftType.ROR, finalRn);
+              break;
+              
+            case 8:
+              opcode = Opcode.TST;
+              operand2 = OperandWrapper.createRegister(finalRn);
+              break;
+              
+            case 9:
+              opcode = Opcode.RSB;
+              operand2 = OperandWrapper.createImmediate(0);
+              break;
+              
+            case 10:
+              opcode = Opcode.CMP;
+              operand2 = OperandWrapper.createRegister(finalRn);
+              break;
+              
+            case 11:
+              opcode = Opcode.CMN;
+              operand2 = OperandWrapper.createRegister(finalRn);
+              break;
+  
+            case 12:
+              opcode = Opcode.ORR;
+              operand2 = OperandWrapper.createRegister(Rd);
+              break;
+              
+            case 13:
+              throw new RuntimeException("This is actually a multiply instruction.");
+              
+            case 14:
+              opcode = Opcode.BIC;
+              operand2 = OperandWrapper.createRegister(finalRn);
+              finalRn = Rd;
+              break;
+              
+            case 15:
+              opcode = Opcode.MVN;
+              operand2 = OperandWrapper.createRegister(finalRn);
+              break;
+              
+            default:
+              throw new RuntimeException("Only values 0-15 can be represented within 4 bits.");
+            }
+            
+            Rn = finalRn;
+          }
         }
       }
     }
@@ -692,6 +766,67 @@ public class ARM_Instructions  {
 
     /** @see #getRd() */
     protected final byte Rd;
+    
+    public SingleDataTransfer(short instr) {
+      
+      writeBack = false;
+      preIndexing = true;
+      forceUserMode = false;
+      positiveOffset = true;
+      
+      if (Utils.getBits(instr, 11, 15) == 0x9 ||
+          Utils.getBits(instr, 12, 15) == 0x9) {
+        //load from literal pool or stack load/store
+        Rd = (byte) Utils.getBits(instr, 8, 10);
+        offset = OperandWrapper.createImmediate(instr & 0xFF);
+        isLoad = Utils.getBit(instr, 11);
+        signExtend = false;
+        size = TransferSize.Word;
+        Rn = (byte)(Utils.getBit(instr, 15) ? ARM_Registers.SP : ARM_Registers.PC);
+      }
+      else {
+        //load/store register offset, load/store byte/word immediate offset or load/store halfword immediate offset
+        Rd = (byte)Utils.getBits(instr, 0, 2);
+        Rn = (byte)Utils.getBits(instr, 3, 5);
+        
+        if (Utils.getBits(instr, 13, 15) == 0x5) {
+          //load store register offset
+          offset = OperandWrapper.createRegister((byte)Utils.getBits(instr, 6, 8));
+          
+          if (Utils.getBit(instr, 9)) {
+            //load store byte/halfword
+            signExtend = Utils.getBit(instr, 10);
+            isLoad = signExtend || Utils.getBit(instr, 11);
+            
+            if (!signExtend)
+              size = TransferSize.HalfWord;
+            else
+              size = Utils.getBit(instr, 11) ? TransferSize.HalfWord : TransferSize.Byte;
+          }
+          else {
+            //load store byte/word
+            size = Utils.getBit(instr, 10) ? TransferSize.Byte : TransferSize.Word;
+            isLoad = Utils.getBit(instr, 11);
+            signExtend = false;
+          }
+        }
+        else {
+          //load/store word/halfword/byte with immediate offset
+          offset = OperandWrapper.createImmediate(Utils.getBits(instr, 6, 10));
+          isLoad = Utils.getBit(instr, 11);
+          signExtend = false;
+          
+          if (Utils.getBit(instr, 13)) {
+            //transfer word/byte
+            size = Utils.getBit(instr, 12) ? TransferSize.Byte : TransferSize.Word;
+          }
+          else {
+            //transfer Half-word
+            size = TransferSize.HalfWord;
+          }
+        }
+      }
+    }
 
     public SingleDataTransfer(int instr) {
       super(instr);
@@ -934,6 +1069,38 @@ public class ARM_Instructions  {
 
     /** Contains a set bit at position N if rN should be transferred using this instruction.*/
     protected final int registerList;
+    
+    public BlockDataTransfer(short instr) {
+      forceUser = false;
+      writeBack = true;
+      isLoad = Utils.getBit(instr, 11);
+      incrementBase = postIndexing = isLoad;
+      
+      int regList = instr & 0xFF;
+      
+      if (Utils.getBit(instr, 14)) {
+        //PUSH / POP registers
+        baseRegister = ARM_Registers.SP;
+        
+        if (Utils.getBit(instr, 8)) {
+          //this is a procedure entry/return
+          if (isLoad) {
+            //procedure return, load pc
+            regList |= (1 << ARM_Registers.PC);
+          }
+          else {
+            //procedure entry, push lr
+            regList |= (1 << ARM_Registers.LR);
+          }
+        }
+      }
+      else {
+        //LDMIA/STMIA
+        baseRegister = (byte)Utils.getBits(instr, 8, 10);
+      }
+      
+      registerList = regList;
+    }
 
     public BlockDataTransfer(int instr) {
       super(instr);
@@ -1026,6 +1193,23 @@ public class ARM_Instructions  {
 
     /** @see #getOffset() */
     protected final int offset;
+    
+    public Branch(short instr) {
+      super (Utils.getBit(instr, 13) ? Condition.values()[Utils.getBits(instr, 8, 11)] : Condition.AL);
+      
+      if (Utils.getBit(instr, 13)) {
+        offset = instr & 0xFF;
+        link = false;
+      }
+      else {
+        offset = Utils.getBits(instr, 0, 10);
+        link = Utils.getBit(instr, 12);
+        
+        //only the second instruction of a long branch is actually a branch
+        if (DBT.VerifyAssertions && link) DBT._assert(Utils.getBit(instr, 11));
+      }
+      
+    }
 
     public Branch(int instr) {
       super(instr);
@@ -1057,6 +1241,19 @@ public class ARM_Instructions  {
     
     /** @see #link() */
     protected final boolean link;
+    
+    public BranchExchange(short instr) {
+      
+      if (Utils.getBit(instr, 15)) {
+        link = true;
+        target = OperandWrapper.createRegisterOffset(ARM_Registers.LR, Utils.getBits(instr, 0, 10));
+      }
+      else {
+        link = Utils.getBit(instr, 7);
+        int register = Utils.getBits(instr, 3, 6);
+        target = OperandWrapper.createRegister((byte)register);
+      }
+    }
 
     public BranchExchange(int instr) {
       super(Utils.getBit(instr, 27) ? 0xE0000000 : instr);
@@ -1072,7 +1269,7 @@ public class ARM_Instructions  {
         if (Utils.getBit(instr, 24))
           jumpTarget += 2;
         
-        target = OperandWrapper.createPcRelative(jumpTarget);
+        target = OperandWrapper.createRegisterOffset(ARM_Registers.PC, jumpTarget);
       }
       else {
         link = Utils.getBit(instr, 5);

@@ -160,6 +160,13 @@ public abstract class Memory {
    * @return the result
    */
   public abstract int loadInstruction8(int addr);
+  
+  /**
+   * Perform a 8bit load from memory that must be executable
+   * @param addr the address of the value to load
+   * @return the result
+   */
+  public abstract int loadInstruction16(int addr);
 
   /**
    * Perform a 32bit load from memory that must be executable

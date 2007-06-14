@@ -41,13 +41,31 @@ public class ARM_Translator implements OPT_Operators {
     this.arm2ir = arm2ir;
   }
   
+  /** Returns true if we're currently executing thumb instructions, false otherwise. */
+  public boolean inThumb() {
+    return (pc & 0x1) == 1;
+  }
+  
+  public int readPC() {
+    if (inThumb()) {
+      return (pc + 4) & 0xFFFFFFFE;
+    }
+    else {
+      return pc + 8;
+    }
+  }
+  
   public int translateInstruction(int pc, ARM_Laziness lazy) {
     this.pc = pc;
     this.lazy = lazy;
-    
+    boolean thumb = (pc & 1) != 0;
     int instruction;
+    
     try {
-      instruction = ps.memory.loadInstruction32(pc);
+      if (thumb)
+        instruction = ps.memory.loadInstruction16(pc & 0xFFFFFFFE);
+      else
+        instruction = ps.memory.loadInstruction32(pc);
     }
     catch (NullPointerException e) {
       if (DBT_Options.debugTranslation)
@@ -67,9 +85,13 @@ public class ARM_Translator implements OPT_Operators {
         arm2ir.appendTraceExit(lazy, new OPT_IntConstantOperand(pc));
         return -1;
       }
-    
     }
-    ARM_Instruction instr = ARM_InstructionDecoder.decode(instruction, translatorFactory);
+    ARM_Instruction instr;
+    
+    if (thumb)
+      instr = ARM_InstructionDecoder.Thumb.decode((short)instruction, translatorFactory);
+    else
+      instr = ARM_InstructionDecoder.ARM32.decode(instruction, translatorFactory);
     
     if (instr.getCondition() != Condition.AL) {
       instr = new ConditionalDecorator(instr);
@@ -192,7 +214,7 @@ public class ARM_Translator implements OPT_Operators {
 
           if (reg == 15) {
             // mind the ARM pc offset
-            value = new OPT_IntConstantOperand(translator.pc + 8);
+            value = new OPT_IntConstantOperand( translator.readPC() );
             return;
           }
 
@@ -204,9 +226,14 @@ public class ARM_Translator implements OPT_Operators {
           value = resolveShift(operand);
           return;
 
-        case PcRelative:
-          value = new OPT_IntConstantOperand(translator.pc + 8
-              + operand.getOffset());
+        case RegisterOffset:
+          if (operand.getRegister() == ARM_Registers.PC) {
+            value = new OPT_IntConstantOperand(translator.readPC() + operand.getOffset());
+          }
+          else {
+            value = translator.arm2ir.getTempInt(9);
+            translator.arm2ir.appendInstruction(Binary.create(INT_ADD, (OPT_RegisterOperand)value, translator.arm2ir.getRegister(operand.getRegister()), new OPT_IntConstantOperand(operand.getOffset())));
+          }
           return;
 
         default:
@@ -228,7 +255,7 @@ public class ARM_Translator implements OPT_Operators {
         // consider the "usual" ARM program counter offset
         OPT_Operand shiftedOperand;
         if (operand.getRegister() == 15)
-          shiftedOperand = new OPT_IntConstantOperand(translator.pc + 8);
+          shiftedOperand = new OPT_IntConstantOperand( translator.readPC() );
         else
           shiftedOperand = translator.arm2ir.getRegister(operand.getRegister());
 
@@ -401,7 +428,7 @@ public class ARM_Translator implements OPT_Operators {
 
           if (reg == 15) {
             // mind the ARM pc offset
-            value = new OPT_IntConstantOperand(translator.pc + 8);
+            value = new OPT_IntConstantOperand( translator.readPC() );
             return;
           }
 
@@ -413,7 +440,7 @@ public class ARM_Translator implements OPT_Operators {
           value = resolveShift(operand);
           return;
 
-        case PcRelative:
+        case RegisterOffset:
           throw new RuntimeException("This operand type does not produce a shifter carry out.");
 
         default:
@@ -441,7 +468,7 @@ public class ARM_Translator implements OPT_Operators {
         // consider the "usual" ARM program counter offset
         OPT_Operand shiftedOperand;
         if (operand.getRegister() == 15)
-          shiftedOperand = new OPT_IntConstantOperand(translator.pc + 8);
+          shiftedOperand = new OPT_IntConstantOperand( translator.readPC() );
         else
           shiftedOperand = translator.arm2ir.getRegister(operand.getRegister());
 
@@ -901,7 +928,7 @@ public class ARM_Translator implements OPT_Operators {
     protected OPT_Operand resolveOperand1() {
 
       if (i.Rn == ARM_Registers.PC) {
-        return new OPT_IntConstantOperand(pc + 8);
+        return new OPT_IntConstantOperand( readPC() );
       }
 
       return arm2ir.getRegister(i.Rn);
@@ -1029,7 +1056,7 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public int getSuccessor(int pc) {
-      if (i.Rd != 15)
+      if (i.Rd != ARM_Registers.PC)
         return pc + 4;
       else
         return -1;
@@ -1059,7 +1086,7 @@ public class ARM_Translator implements OPT_Operators {
     protected final void setLogicalResult(OPT_RegisterOperand result) {
 
       if (i.updateConditionCodes) {
-        if (i.Rd != 15) {
+        if (i.Rd != ARM_Registers.PC) {
           setLogicalFlags(result);          
         } else {
           OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
@@ -1067,7 +1094,7 @@ public class ARM_Translator implements OPT_Operators {
         }
       }
       
-      if (i.Rd == 15) {
+      if (i.Rd == ARM_Registers.PC) {
         if (i.updateConditionCodes) {
           arm2ir.appendTraceExit(lazy, result);
         }
@@ -1651,7 +1678,7 @@ public class ARM_Translator implements OPT_Operators {
         //also transfer the program counter, if requested so
         if (transferPC) {
           arm2ir.appendInstruction(Binary.create(INT_ADD, nextAddress.copyRO(), nextAddress.copy(), new OPT_IntConstantOperand(4)));
-          ps.memory.translateStore32(nextAddress.copy(), new OPT_IntConstantOperand(pc + 8));
+          ps.memory.translateStore32(nextAddress.copy(), new OPT_IntConstantOperand( readPC() ));
         }
       }
 
@@ -1721,9 +1748,9 @@ public class ARM_Translator implements OPT_Operators {
       }
       
       if (i.link)
-        arm2ir.appendCall(pc + i.getOffset() + 8, lazy, pc + 4);
+        arm2ir.appendCall( readPC() + i.getOffset(), lazy, pc + 4);
       else
-        arm2ir.appendBranch(pc + i.getOffset() + 8, lazy, BranchType.DIRECT_BRANCH);
+        arm2ir.appendBranch(readPC() + i.getOffset(), lazy, BranchType.DIRECT_BRANCH);
     }
     
     public Condition getCondition() {
@@ -1731,7 +1758,7 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public int getSuccessor(int pc) {
-      return pc + i.getOffset() + 8;
+      return readPC() + i.getOffset();
     }
   }
 
@@ -1748,7 +1775,7 @@ public class ARM_Translator implements OPT_Operators {
     public void translate() {
       
       //remember the previous address
-      int previousAddress = pc + 8;
+      int previousAddress = readPC();
       
       //the address of the instruction we're jumping to
       OPT_Operand targetAddress;
@@ -1757,11 +1784,17 @@ public class ARM_Translator implements OPT_Operators {
       OPT_Operand enableThumb;
 
       switch (i.target.getType()) {
-      case PcRelative:
-        targetAddress = new OPT_IntConstantOperand(previousAddress + i.target.getOffset());
+      case RegisterOffset:
+        if (i.target.getRegister() == ARM_Registers.PC)
+          targetAddress = new OPT_IntConstantOperand(previousAddress + i.target.getOffset());
+        else {
+          OPT_RegisterOperand tmp = arm2ir.getTempInt(2);
+          arm2ir.appendInstruction(Binary.create(INT_ADD, tmp, arm2ir.getRegister(i.target.getRegister()), new OPT_IntConstantOperand(i.target.getOffset())));
+          targetAddress = tmp;
+        }
         
         //Call regs.setThumbMode(true) to enable thumb execution
-        enableThumb = new OPT_IntConstantOperand(1);
+        enableThumb = new OPT_IntConstantOperand(inThumb() ? 0 : 1);
         break;
 
       case Register:
@@ -1781,7 +1814,7 @@ public class ARM_Translator implements OPT_Operators {
       
       //write the next address into the link register, if requested so.
       if (i.link) {
-        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(previousAddress - 4)));
+        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(previousAddress - (inThumb() ? 2 : 4))));
       }
       
       //set the correct processor mode (thumb or not)
@@ -2042,7 +2075,7 @@ public class ARM_Translator implements OPT_Operators {
 
       //acquire the base address
       if (i.Rn == 15)
-        base = new OPT_IntConstantOperand(pc + 8);
+        base = new OPT_IntConstantOperand(readPC());
       else
         base = arm2ir.getRegister(i.Rn);
 
@@ -2393,7 +2426,7 @@ public class ARM_Translator implements OPT_Operators {
       return null;
     }
 
-    public ARM_Instruction createSoftwareshorterrupt(short instr) {
+    public ARM_Instruction createSoftwareInterrupt(short instr) {
       // TODO Auto-generated method stub
       return null;
     }
@@ -2408,7 +2441,7 @@ public class ARM_Translator implements OPT_Operators {
       return null;
     }
 
-    public ARM_Instruction createshortMultiply(short instr) {
+    public ARM_Instruction createIntMultiply(short instr) {
       // TODO Auto-generated method stub
       return null;
     }

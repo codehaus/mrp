@@ -542,4 +542,9 @@ public class ByteAddressedMemory extends CallBasedMemory {
       len -= PAGE_SIZE;
     }
   }
+
+  @Override
+  public int loadInstruction16(int addr) {
+    return (loadInstruction8(addr + 1) << 8) | loadInstruction8(addr);
+  }
 }
