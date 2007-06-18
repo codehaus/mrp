@@ -336,10 +336,14 @@ public class ARM_InstructionDecoder {
         }
         else {
           //bit8==bit9==bit10==1?
-          if ((instr & 0x70) == 0x70)
+          if ((instr & 0x700) == 0x700)
             return factory.createBranchExchange(instr);
           
-          return factory.createDataProcessing(instr);
+          //We're not treating multiplication as data processing
+          if (Utils.getBits(instr, 6, 10) == 13)
+            return factory.createIntMultiply(instr);
+          else
+            return factory.createDataProcessing(instr);
         }
       }
     }
@@ -361,20 +365,15 @@ public class ARM_InstructionDecoder {
 
       @Override
       <T> T decode(short instr, ARM_InstructionFactory<T> factory) {
-        if (Utils.getBit(instr, 11)) {
-          return factory.createSingleDataTransfer(instr);
+        //bit9==bit10==bit11==1?
+        if ((instr & 0x0E00) == 0x0E00) {
+          if (Utils.getBit(instr, 8))
+            return factory.createSoftwareInterrupt(instr);
+          else
+            return factory.createUndefinedInstruction(instr);
         }
-        else {
-          //bit9==bit10==bit11==1?
-          if ((instr & 0xE0) == 0xE0) {
-            if (Utils.getBit(instr, 8))
-              return factory.createSoftwareInterrupt(instr);
-            else
-              return factory.createUndefinedInstruction(instr);
-          }
-          
-          return factory.createBranch(instr);
-        }
+        
+        return factory.createBranch(instr);
       }
     }
     
@@ -424,7 +423,7 @@ public class ARM_InstructionDecoder {
      */
     static <T> T decode(short instruction, ARM_InstructionFactory<T> factory) {
 
-      int bits_12_15 = Utils.getBits(instruction, 12, 15);
+      int bits_12_15 = (instruction & 0xF000) >>> 12;
       return prefixDecoders[bits_12_15].decode(instruction, factory);
     }
     

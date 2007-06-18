@@ -22,6 +22,8 @@ public class ARM_Instructions  {
   /** A base class for all (conditional) ARM instructions. */
   public abstract static class Instruction {
     
+    protected final boolean isThumb;
+    
     public enum Condition {
       EQ, NE, CS, CC, MI, PL, VS, VC, HI, LS, GE, LT, GT, LE, AL, NV
     }
@@ -31,14 +33,21 @@ public class ARM_Instructions  {
     
     private Instruction () {
       this.condition = Condition.AL;
+      this.isThumb = true;
     }
     
     private Instruction (Condition condition) {
       this.condition = condition;
+      this.isThumb = true;
     }
 
     private Instruction(int instr) {
       condition = Condition.values()[(instr & 0xF0000000) >>> 28];
+      this.isThumb = false;
+    }
+    
+    public final int size() {
+      return isThumb ? 2 : 4;
     }
 
     /** Returns the condition code that specifies, under which circumstances this operation shall be executed. */
@@ -53,69 +62,6 @@ public class ARM_Instructions  {
     
     /** All instruction classes are meant to implement the visitor pattern. This is the pattern's visit method. */
     public abstract void visit(ARM_InstructionVisitor visitor);
-  }
-
-  /** Base class for multiply operations. */
-  protected abstract static class MultiplyTemplate extends Instruction {
-
-    /** @see #updateConditionCodes() */
-    protected final boolean updateConditionCodes;
-    
-    /** @see #accumulate() */
-    protected final boolean accumulate;
-    
-    /** @see #getRs() */
-    protected final byte Rs;
-    
-    /** @see #getRn() */
-    protected final byte Rn;
-    
-    /** @see #getRm() */
-    protected final byte Rm;
-    
-    /** @see #getRd() */
-    protected final byte Rd; 
-
-    protected MultiplyTemplate(int instr) {
-      super(instr);
-      
-      updateConditionCodes = Utils.getBit(instr, 20);
-      accumulate = Utils.getBit(instr, 21);
-      Rd = (byte) Utils.getBits(instr, 16, 19);
-      Rn = (byte) Utils.getBits(instr, 12, 15);
-      Rs = (byte) Utils.getBits(instr, 8, 11);
-      Rm = (byte) Utils.getBits(instr, 0, 3);
-    }
-
-    /** Returns true, if the condition codes shall be updated by the result of this operation. */
-    public final boolean updateConditionCodes() {
-      return updateConditionCodes;
-    }
-
-    /** Returns true, if this is the accumulate version of the instruction. */
-    public final boolean accumulate() {
-      return accumulate;
-    }
-    
-    /** Returns the register number of the Rs operand register. */
-    public final byte getRs() {
-      return Rs;
-    }
-    
-    /** Returns the register number of the Rm operand register. */
-    public final byte getRm() {
-      return Rm;
-    }
-    
-    /** Returns the register number of the Rn operand register. */
-    public final byte getRn() {
-      return Rn;
-    }
-    
-    /** Returns the register number of the Rd destination register. */
-    public final byte getRd() {
-      return Rd;
-    }
   }
   
   /** Base class for coprocessor instructions. */
@@ -473,7 +419,7 @@ public class ARM_Instructions  {
         updateConditionCodes = false;
         Rd = (byte)Utils.getBits(instr, 8, 10);
         Rn = (byte)(Utils.getBit(instr, 11) ? ARM_Registers.SP : ARM_Registers.PC);
-        operand2 = OperandWrapper.createImmediate(instr & 0xFF);
+        operand2 = OperandWrapper.createImmediate((instr & 0xFF) << 2);
         
         return;
       }
@@ -484,12 +430,12 @@ public class ARM_Instructions  {
         opcode = Utils.getBit(instr, 7) ? Opcode.SUB : Opcode.ADD;
         Rd = (byte)ARM_Registers.SP;
         Rn = (byte)ARM_Registers.SP;
-        operand2 = OperandWrapper.createImmediate(instr & 0x7F);
+        operand2 = OperandWrapper.createImmediate((instr & 0x7F) << 2);
         
         return;
       }
       
-      if (Utils.getBits(instr, 14, 15) == 0x7) {
+      if (Utils.getBits(instr, 13, 15) == 0x7) {
         //first instruction of a long bl/blx
         if (DBT.VerifyAssertions) DBT._assert(Utils.getBits(instr, 11, 12) == 2);
         
@@ -512,7 +458,7 @@ public class ARM_Instructions  {
         Rn = (byte)Utils.getBits(instr, 3, 5);
         updateConditionCodes = true;
         
-        if (Utils.getBits(instr, 11, 12) == 0) {
+        if (Utils.getBits(instr, 11, 12) != 0x3) {
           //shift by immediate
           opcode = Opcode.MOV;
           ShiftType type = ShiftType.values()[Utils.getBits(instr, 11, 12)];
@@ -559,19 +505,21 @@ public class ARM_Instructions  {
             Rd = (byte)(Utils.getBits(instr, 0, 2) + (Utils.getBit(instr, 7) ?  8 : 0));
             Rn = Rd;
             operand2 = OperandWrapper.createRegister((byte)(Utils.getBits(instr, 3, 5) + (Utils.getBit(instr, 6) ?  8 : 0)));
-            updateConditionCodes = true;
             
             switch (Utils.getBits(instr, 8, 9)) {
             case 0:
               opcode = Opcode.ADD;
+              updateConditionCodes = false;
               break;
               
             case 1:
               opcode = Opcode.CMP;
+              updateConditionCodes = true;
               break;
               
             case 2:
               opcode = Opcode.MOV;
+              updateConditionCodes = false;
               break;
               
             case 3:
@@ -631,6 +579,7 @@ public class ARM_Instructions  {
             case 8:
               opcode = Opcode.TST;
               operand2 = OperandWrapper.createRegister(finalRn);
+              finalRn = Rd;
               break;
               
             case 9:
@@ -641,11 +590,13 @@ public class ARM_Instructions  {
             case 10:
               opcode = Opcode.CMP;
               operand2 = OperandWrapper.createRegister(finalRn);
+              finalRn = Rd;
               break;
               
             case 11:
               opcode = Opcode.CMN;
               operand2 = OperandWrapper.createRegister(finalRn);
+              finalRn = Rd;
               break;
   
             case 12:
@@ -778,7 +729,7 @@ public class ARM_Instructions  {
           Utils.getBits(instr, 12, 15) == 0x9) {
         //load from literal pool or stack load/store
         Rd = (byte) Utils.getBits(instr, 8, 10);
-        offset = OperandWrapper.createImmediate(instr & 0xFF);
+        offset = OperandWrapper.createImmediate((instr & 0xFF) * 4);
         isLoad = Utils.getBit(instr, 11);
         signExtend = false;
         size = TransferSize.Word;
@@ -812,7 +763,6 @@ public class ARM_Instructions  {
         }
         else {
           //load/store word/halfword/byte with immediate offset
-          offset = OperandWrapper.createImmediate(Utils.getBits(instr, 6, 10));
           isLoad = Utils.getBit(instr, 11);
           signExtend = false;
           
@@ -823,6 +773,23 @@ public class ARM_Instructions  {
           else {
             //transfer Half-word
             size = TransferSize.HalfWord;
+          }
+          
+          switch (size) {
+          case Word:
+            offset = OperandWrapper.createImmediate(Utils.getBits(instr, 6, 10) << 2);
+            break;
+            
+          case HalfWord:
+            offset = OperandWrapper.createImmediate(Utils.getBits(instr, 6, 10) << 1);
+            break;
+            
+          case Byte:
+            offset = OperandWrapper.createImmediate(Utils.getBits(instr, 6, 10));
+            break;
+            
+          default:
+            throw new RuntimeException("Unexpected transfer size.");
           }
         }
       }
@@ -947,13 +914,77 @@ public class ARM_Instructions  {
   }
   
   /** Represents a normal (not long) multiply instruction. */
-  public final static class IntMultiply extends MultiplyTemplate {
+  public final static class IntMultiply extends Instruction {
+    
+    /** @see #updateConditionCodes() */
+    protected final boolean updateConditionCodes;
+    
+    /** @see #accumulate() */
+    protected final boolean accumulate;
+    
+    /** @see #getRs() */
+    protected final byte Rs;
+    
+    /** @see #getRn() */
+    protected final byte Rn;
+    
+    /** @see #getRm() */
+    protected final byte Rm;
+    
+    /** @see #getRd() */
+    protected final byte Rd; 
+    
+    protected IntMultiply(short instr) {
+      updateConditionCodes = true;
+      accumulate = false;
+      Rd = (byte)Utils.getBits(instr, 0, 2);
+      Rm = (byte)Utils.getBits(instr, 3, 5);
+      Rn = Rd;
+      Rs = Rd;
+    }
    
     protected IntMultiply(int instr) {
       super(instr);
       
+      updateConditionCodes = Utils.getBit(instr, 20);
+      accumulate = Utils.getBit(instr, 21);
+      Rd = (byte) Utils.getBits(instr, 16, 19);
+      Rn = (byte) Utils.getBits(instr, 12, 15);
+      Rs = (byte) Utils.getBits(instr, 8, 11);
+      Rm = (byte) Utils.getBits(instr, 0, 3);
+      
       //check for instruction combinations that show undefined behaviour on ARM
       if (DBT.VerifyAssertions) DBT._assert((accumulate || Rn == 0) && Rd != 15);
+    }
+    
+    /** Returns true, if the condition codes shall be updated by the result of this operation. */
+    public final boolean updateConditionCodes() {
+      return updateConditionCodes;
+    }
+
+    /** Returns true, if this is the accumulate version of the instruction. */
+    public final boolean accumulate() {
+      return accumulate;
+    }
+    
+    /** Returns the register number of the Rs operand register. */
+    public final byte getRs() {
+      return Rs;
+    }
+    
+    /** Returns the register number of the Rm operand register. */
+    public final byte getRm() {
+      return Rm;
+    }
+    
+    /** Returns the register number of the Rn operand register. */
+    public final byte getRn() {
+      return Rn;
+    }
+    
+    /** Returns the register number of the Rd destination register. */
+    public final byte getRd() {
+      return Rd;
     }
 
     public void visit(ARM_InstructionVisitor visitor) {
@@ -962,7 +993,25 @@ public class ARM_Instructions  {
   }
   
   /** Represents a long multiply instruction. */
-  public final static class LongMultiply extends MultiplyTemplate {
+  public final static class LongMultiply extends Instruction {
+    
+    /** @see #updateConditionCodes() */
+    protected final boolean updateConditionCodes;
+    
+    /** @see #accumulate() */
+    protected final boolean accumulate;
+    
+    /** @see #getRs() */
+    protected final byte Rs;
+    
+    /** @see #getRn() */
+    protected final byte RdLow;
+    
+    /** @see #getRm() */
+    protected final byte Rm;
+    
+    /** @see #getRd() */
+    protected final byte RdHigh; 
     
     /** @see #isUnsigned() */
     protected final boolean unsigned;
@@ -971,19 +1020,45 @@ public class ARM_Instructions  {
       super(instr);
       
       unsigned = Utils.getBit(instr, 22);
+      updateConditionCodes = Utils.getBit(instr, 20);
+      accumulate = Utils.getBit(instr, 21);
+      RdHigh = (byte) Utils.getBits(instr, 16, 19);
+      RdLow = (byte) Utils.getBits(instr, 12, 15);
+      Rs = (byte) Utils.getBits(instr, 8, 11);
+      Rm = (byte) Utils.getBits(instr, 0, 3);
       
       //check for instruction combinations that show undefined behaviour on ARM
-      if (DBT.VerifyAssertions) DBT._assert(Rd != 15);
+      if (DBT.VerifyAssertions) DBT._assert(RdHigh != 15 && RdLow != 15);
+    }
+    
+    /** Returns true, if the condition codes shall be updated by the result of this operation. */
+    public final boolean updateConditionCodes() {
+      return updateConditionCodes;
+    }
+
+    /** Returns true, if this is the accumulate version of the instruction. */
+    public final boolean accumulate() {
+      return accumulate;
+    }
+    
+    /** Returns the register number of the Rs operand register. */
+    public final byte getRs() {
+      return Rs;
+    }
+    
+    /** Returns the register number of the Rm operand register. */
+    public final byte getRm() {
+      return Rm;
     }
     
     /** Long multiplication stores its result in two registers. This function gets the register which receives the high int. */
     public final byte getRdHigh() {
-      return Rd;
+      return RdHigh;
     }
 
     /** Long multiplication stores its result in two registers. This function gets the register which receives the low int. */
     public final byte getRdLow() {
-      return Rn;
+      return RdLow;
     }
     
     /** Returns true, if this is an unsigned multiplication or false if it is a signed multiplication. */
@@ -1074,11 +1149,12 @@ public class ARM_Instructions  {
       forceUser = false;
       writeBack = true;
       isLoad = Utils.getBit(instr, 11);
-      incrementBase = postIndexing = isLoad;
       
       int regList = instr & 0xFF;
       
-      if (Utils.getBit(instr, 14)) {
+      if (!Utils.getBit(instr, 14)) {
+        incrementBase = postIndexing = isLoad;
+        
         //PUSH / POP registers
         baseRegister = ARM_Registers.SP;
         
@@ -1097,6 +1173,7 @@ public class ARM_Instructions  {
       else {
         //LDMIA/STMIA
         baseRegister = (byte)Utils.getBits(instr, 8, 10);
+        incrementBase = postIndexing = true;
       }
       
       registerList = regList;
@@ -1192,18 +1269,22 @@ public class ARM_Instructions  {
     protected final boolean link;
 
     /** @see #getOffset() */
-    protected final int offset;
+    protected final OperandWrapper offset;
     
     public Branch(short instr) {
-      super (Utils.getBit(instr, 13) ? Condition.values()[Utils.getBits(instr, 8, 11)] : Condition.AL);
-      
-      if (Utils.getBit(instr, 13)) {
-        offset = instr & 0xFF;
+      super (Utils.getBit(instr, 13) ? Condition.AL : Condition.values()[Utils.getBits(instr, 8, 11)]);
+            
+      if (!Utils.getBit(instr, 13)) {
+        offset = OperandWrapper.createImmediate(Utils.signExtend(instr & 0xFF, 8) << 1);
         link = false;
       }
       else {
-        offset = Utils.getBits(instr, 0, 10);
         link = Utils.getBit(instr, 12);
+        
+        if (link)
+          offset = OperandWrapper.createRegisterOffset(link ? ARM_Registers.LR : ARM_Registers.PC, (Utils.getBits(instr, 0, 10) << 1) - 2);
+        else
+          offset = OperandWrapper.createImmediate(Utils.signExtend(Utils.getBits(instr, 0, 10), 11) << 1);
         
         //only the second instruction of a long branch is actually a branch
         if (DBT.VerifyAssertions && link) DBT._assert(Utils.getBit(instr, 11));
@@ -1214,7 +1295,7 @@ public class ARM_Instructions  {
     public Branch(int instr) {
       super(instr);
       link = Utils.getBit(instr, 24);
-      offset = Utils.signExtend((instr & 0xFFFFFF) << 2, 26);
+      offset = OperandWrapper.createImmediate(Utils.signExtend((instr & 0xFFFFFF) << 2, 26));
     }
 
     /** Should the current PC be put into the lr? */
@@ -1223,7 +1304,7 @@ public class ARM_Instructions  {
     }
 
     /** The offset of the target address to the PC */
-    public final int getOffset() {
+    public final OperandWrapper getOffset() {
       return offset;
     }
 

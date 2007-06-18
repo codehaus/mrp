@@ -53,7 +53,7 @@ public class Utils {
    */
   static final int getBits(short word, int from, int to) {
     if (DBT.VerifyAssertions)
-      DBT._assert(from < to && from >= 0 && to < 15);
+      DBT._assert(from < to && from >= 0 && to <= 15);
     
     return (word & ((1 << (to + 1)) - 1)) >> from;
   }

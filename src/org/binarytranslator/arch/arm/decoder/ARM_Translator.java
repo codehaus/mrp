@@ -1686,7 +1686,7 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     private void translateWriteback(OPT_RegisterOperand startAddress, OPT_RegisterOperand nextAddress) {
-      if (i.writeBack) {
+      if (i.writeBack && !i.transferRegister(i.baseRegister)) {
         OPT_RegisterOperand writeBackTarget = arm2ir.getRegister(i.baseRegister);
         
         //write the last address we read from back to a register
@@ -1737,20 +1737,38 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public void translate() {
+            
+      if (i.offset.getType() == OperandWrapper.Type.Immediate) {
+        //we can directly resolve this branch to a fixed address
+        if (i.link)
+          arm2ir.appendCall( readPC() + i.getOffset().getImmediate(), lazy, pc + i.size());
+        else
+          arm2ir.appendBranch(readPC() + i.getOffset().getImmediate(), lazy, BranchType.DIRECT_BRANCH);        
+      }
+      else {
+        
+        OPT_Operand offset = ResolvedOperand.resolve(ARM_Translator.this, i.offset);
+        OPT_RegisterOperand dest = arm2ir.getTempInt(0);
+        
+        arm2ir.appendInstruction(Binary.create(INT_ADD, dest, offset, new OPT_IntConstantOperand(readPC())));
+        
+        if (i.link) {
+          arm2ir.appendCall(dest, lazy, pc + i.size());
+        }
+        else {
+          arm2ir.appendBranch(dest, lazy, BranchType.INDIRECT_BRANCH);
+        }
+      }
       
       //if we're supposed to link, then write the previous address into the link register
-      if (i.link) {        
+      if (i.link) {
         arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + 4)));
       }
       else {
         //we should never be returning from the goto
         arm2ir.getCurrentBlock().deleteNormalOut();
       }
-      
-      if (i.link)
-        arm2ir.appendCall( readPC() + i.getOffset(), lazy, pc + 4);
-      else
-        arm2ir.appendBranch(readPC() + i.getOffset(), lazy, BranchType.DIRECT_BRANCH);
+
     }
     
     public Condition getCondition() {
@@ -1758,7 +1776,10 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public int getSuccessor(int pc) {
-      return readPC() + i.getOffset();
+      if (i.offset.getType() == OperandWrapper.Type.Immediate)
+        return readPC() + i.getOffset().getImmediate();
+      else
+        return -1;
     }
   }
 
@@ -2086,6 +2107,13 @@ public class ARM_Translator implements OPT_Operators {
       //add the offset to the base register
       OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
       arm2ir.appendInstruction(Binary.create(INT_ADD, tmp, base, resolveOffset()));
+      
+      if (i.isThumb && i.isLoad && i.Rn == ARM_Registers.PC) {
+        //with thumb, bit 1 of the address is always ignored - address = address & 0xFFFFFFFC;
+        //see ARM reference manual for further details
+        arm2ir.appendInstruction(Binary.create(INT_AND, tmp.copyRO(), tmp.copy(), new OPT_IntConstantOperand(0xFFFFFFFC)));
+      }
+      
       return tmp.copy();
     }
 

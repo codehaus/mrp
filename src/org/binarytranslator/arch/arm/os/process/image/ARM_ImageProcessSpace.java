@@ -28,7 +28,9 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
     ARM_Instructions.Instruction instr;
     
     if (registers.getThumbMode()) {
-      short instruction = (short)memory.loadInstruction16(getCurrentInstructionAddress());
+      int instrAddr = getCurrentInstructionAddress() & 0xFFFFFFFE;
+      System.out.println("Thumb syscall at: " + instrAddr);
+      short instruction = (short)memory.loadInstruction16(instrAddr);
       instr = ARM_InstructionDecoder.Thumb.decode(instruction);
     }
     else {
@@ -44,11 +46,11 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
     //Use a mask to let both calls start from the same address
     int sysCallNr = ((ARM_Instructions.SoftwareInterrupt)instr).getInterruptNumber();
     
-    if (sysCallNr == 0x123456) {    
+    if (sysCallNr == 0x123456 || sysCallNr == 0xab) {    
       sysCalls.doSysCall(registers.get(0));
       
       //simulate a proper return from syscalls
-      setCurrentInstructionAddress(getCurrentInstructionAddress() + 4);
+      setCurrentInstructionAddress(getCurrentInstructionAddress() + instr.size());
     }
     else {
       //switch the operating mode to Supervisor

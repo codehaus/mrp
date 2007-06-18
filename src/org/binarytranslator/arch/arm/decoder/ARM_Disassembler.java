@@ -19,7 +19,6 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Swap;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.generic.decoder.DisassembledInstruction;
-import org.binarytranslator.generic.os.process.ProcessSpace;
 
 /**
  * This class transfers an ARM instruction into a human-readable assembly
@@ -54,7 +53,7 @@ public final class ARM_Disassembler {
       decodedInstruction = ARM_InstructionDecoder.ARM32.decode(binaryInstruction);
     }
     
-    DisassemblingVisitor disassembler = new DisassemblingVisitor(address);
+    DisassemblingVisitor disassembler = new DisassemblingVisitor();
     decodedInstruction.visit(disassembler);
 
     return disassembler.result;
@@ -130,15 +129,7 @@ public final class ARM_Disassembler {
     /** This field receives the disassembled instruction. */
     private ARM_DisassembledInstruction result;
 
-    /** The address of the instruction which is currently decoded or -1, if that address is not known. */
-    private int address;
-
     private DisassemblingVisitor() {
-      this.address = -1;
-    }
-
-    private DisassemblingVisitor(int address) {
-      this.address = address;
     }
 
     /** Wraps a decoded assembly statement within an {@link ARM_DisassembledInstruction} object and
@@ -180,10 +171,7 @@ public final class ARM_Disassembler {
             op.getShiftAmount());
 
       case RegisterOffset:
-        if (address != -1)
-          return String.format("#0x%x", op.getOffset() + address + 8);
-        else
-          return String.format("#<%d + pc>", op.getOffset());
+          return String.format("#<r%d + %d>", op.getRegister(), op.getOffset());
 
       case Register:
         return "r" + op.getRegister();
@@ -361,11 +349,7 @@ public final class ARM_Disassembler {
     public void visit(Branch instr) {
 
       String mnemonic = instr.link() ? "BL" : "B";
-      
-      if (address != -1)
-        setResult(String.format("%s%s #%d", mnemonic, cond(instr), instr.getOffset() + address + 8));
-      else
-        setResult(String.format("%s%s #<%d + pc>", mnemonic, cond(instr), instr.getOffset()));
+      setResult(String.format("%s%s [PC + %s]", mnemonic, cond(instr), operand(instr.offset)));
     }
 
     public void visit(BranchExchange instr) {

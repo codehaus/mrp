@@ -19,7 +19,7 @@ import java.util.Map.Entry;
 public class DBT_Options {
   
   /** Remove features that will only work on jikes? */
-  public final static boolean buildForSunVM = false;
+  public final static boolean buildForSunVM = true;
   
   /** Enable the profiling of application during interpretation? */
   public final static boolean profileDuringInterpretation = true;
@@ -102,7 +102,7 @@ public class DBT_Options {
   public static boolean debugTranslation = true;
 
   /** In ProcessSpace, print syscall numbers. */
-  public static boolean debugSyscall = false;
+  public static boolean debugSyscall = true;
 
   /** In ProcessSpace, print syscall numbers. */
   public static boolean debugSyscallMore = false;

@@ -374,21 +374,25 @@ public class ARM_Interpreter implements Interpreter {
     
     public void execute() {
       if (isConditionTrue()) {
-        conditionalInstruction.execute();
-        
         int nextInstruction = conditionalInstruction.getSuccessor(ps.getCurrentInstructionAddress());
+        conditionalInstruction.execute();
         
         if (nextInstruction != -1)
           ps.setCurrentInstructionAddress(nextInstruction);
       }
-      else
-        ps.setCurrentInstructionAddress(ps.getCurrentInstructionAddress()+4);
+      else {
+        ps.setCurrentInstructionAddress(ps.getCurrentInstructionAddress() + (regs.getThumbMode() ? 2 : 4));
+      }
     }
 
     public int getSuccessor(int pc) {
       //if this instruction is not a jump, then we can tell what the next instruction will be.
-      if (conditionalInstruction.getSuccessor(pc) == pc + 4)
-        return pc + 4;
+
+      int conditionalSuccessor = conditionalInstruction.getSuccessor(pc);
+      boolean thumbMode = (pc & 0x1) == 1;
+      
+      if (conditionalSuccessor == pc + 4 && !thumbMode)
+        return conditionalSuccessor; //ARM may have conditional non-jump instructions
       else
         return -1;
     }
@@ -463,12 +467,22 @@ public class ARM_Interpreter implements Interpreter {
     protected DataProcessing(ARM_Instructions.DataProcessing instr) {
       i = instr;
     }
+    
+    @Override
+    public String toString() {
+      return i.toString();
+    }
 
     /** Returns the value of operand 1 of the data processing instruction. This is always a register value. */
     protected int resolveOperand1() {
 
       if (i.Rn == ARM_Registers.PC) {
-        return regs.readPC();
+        int value = regs.readPC();
+        
+        if (i.isThumb && !i.updateConditionCodes && i.opcode == Opcode.ADD)
+          value = value & 0xFFFFFFFC;
+        
+        return value;
       }
 
       return regs.get(i.Rn);
@@ -551,7 +565,7 @@ public class ARM_Interpreter implements Interpreter {
 
     public int getSuccessor(int pc) {
       if (i.Rd != 15)
-        return pc + 4;
+        return pc + i.size();
       else
         return -1;
     }
@@ -925,11 +939,16 @@ public class ARM_Interpreter implements Interpreter {
         regs.set(i.Rd, tmp);
       }
     }
+    
+    @Override
+    public String toString() {
+      return i.toString();
+    }
 
     public int getSuccessor(int pc) {
       //according to the ARM Architecture reference, using the pc as Rd yields an undefined
       //result. Therefore, we can safely assume that this instruction never equals a branch
-      return pc + 4;
+      return pc + i.size();
     }
   }
 
@@ -1036,7 +1055,7 @@ public class ARM_Interpreter implements Interpreter {
           }
           else {
             //shall we switch to thumb mode
-            regs.set(ARM_Registers.PC, newpc & 0xFFFFFFFE);
+            regs.set(ARM_Registers.PC, newpc);
             regs.setThumbMode((newpc & 0x1) != 0);
           }
         }
@@ -1062,7 +1081,7 @@ public class ARM_Interpreter implements Interpreter {
         ps.registers.switchOperatingMode(previousMode);
       }
 
-      if (i.writeBack) {
+      if (i.writeBack && !i.transferRegister(i.baseRegister)) {
         //write the last address we read from back to a register
         if (!i.incrementBase) {
           //backward reading
@@ -1089,12 +1108,17 @@ public class ARM_Interpreter implements Interpreter {
       return i.condition;
     }
     
+    @Override
+    public String toString() {
+      return i.toString();
+    }
+    
     public int getSuccessor(int pc) {
       //if we're loading values into the PC, then we can't tell where this instruction will be going
       if (i.isLoad && transferPC)
         return -1;
       else
-        return pc + 4;
+        return pc + i.size();
     }
   }
 
@@ -1108,25 +1132,53 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
+
+      int destination;
+      BranchType branchType;
+      
+      if (i.offset.getType() != OperandWrapper.Type.Immediate) {
+        branchType = BranchType.INDIRECT_BRANCH;
+      }
+      else {
+        branchType = BranchType.DIRECT_BRANCH;
+      }
+      
+      destination = regs.readPC() + ResolvedOperand.resolve(regs, i.offset); 
+      
+      if (DBT_Options.profileDuringInterpretation) {
+        if (i.link) {
+          ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), destination, regs.get(ARM_Registers.PC) + i.size());
+        }
+        else { 
+          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), destination, branchType);
+        }
+      }
+      
       //if we're supposed to link, then write the previous address into the link register
       if (i.link) {
         regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + (regs.getThumbMode() ? 2 : 4));
-        
-        if (DBT_Options.profileDuringInterpretation)
-          ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), regs.readPC() + i.getOffset(), regs.get(ARM_Registers.PC) + 4);
       }
-      else {
-        if (DBT_Options.profileDuringInterpretation) 
-          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), regs.readPC() + i.getOffset(), BranchType.DIRECT_BRANCH);
-      }
+      
+      if (regs.getThumbMode())
+        destination |= 1;
+      
+      regs.set(ARM_Registers.PC, destination);
     }
     
     public Condition getCondition() {
       return i.condition;
     }
+    
+    @Override
+    public String toString() {
+      return i.toString();
+    }
 
     public int getSuccessor(int pc) {
-      return pc + i.getOffset() + 8;
+      if (i.offset.getType() == OperandWrapper.Type.Immediate)
+        return (pc + 2*i.size() + i.getOffset().getImmediate()) | (pc & 1);
+      else
+        return -1;
     }
   }
 
@@ -1164,9 +1216,13 @@ public class ARM_Interpreter implements Interpreter {
         break;
 
       case Register:
-        targetAddress = regs.get(i.target.getRegister());
+        if (i.target.getRegister() != ARM_Registers.PC)
+          targetAddress = regs.get(i.target.getRegister());
+        else
+          targetAddress = regs.readPC();
+        
         thumb = (targetAddress & 0x1) != 0;
-        targetAddress = targetAddress & 0xFFFFFFFE;
+        //targetAddress = targetAddress & 0xFFFFFFFE;
         break;
 
       default:
@@ -1177,7 +1233,7 @@ public class ARM_Interpreter implements Interpreter {
       //if we're supposed to link, then write the previous address into the link register
       if (i.link) {
         regs.set(ARM_Registers.LR, regs.readPC() - (regs.getThumbMode() ? 2 : 4));
-        ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), targetAddress, BranchType.CALL);
+        ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), targetAddress, regs.get(ARM_Registers.PC) + i.size());
       }
       else {
         ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), targetAddress, BranchType.DIRECT_BRANCH);
@@ -1191,10 +1247,15 @@ public class ARM_Interpreter implements Interpreter {
     public Condition getCondition() {
       return i.condition;
     }
+    
+    @Override
+    public String toString() {
+      return i.toString();
+    }
 
     public int getSuccessor(int pc) {
       //if we're jumping relative to the PC, then we can predict the next instruction
-      if (i.target.getType() == OperandWrapper.Type.RegisterOffset) {
+      if (i.target.getType() == OperandWrapper.Type.RegisterOffset && i.target.getRegister() == ARM_Registers.PC) {
         return pc + i.target.getOffset();
       } else {
         //otherwise we can't predict it
@@ -1238,9 +1299,14 @@ public class ARM_Interpreter implements Interpreter {
     public Condition getCondition() {
       return i.condition;
     }
+    
+    @Override
+    public String toString() {
+      return i.toString();
+    }
 
     public int getSuccessor(int pc) {
-      return pc + 4;
+      return pc + i.size();
     }
   }
   
@@ -1293,9 +1359,14 @@ public class ARM_Interpreter implements Interpreter {
     public Condition getCondition() {
       return i.condition;
     }
+    
+    @Override
+    public String toString() {
+      return i.toString();
+    }
 
     public int getSuccessor(int pc) {
-      return pc + 4;
+      return pc + i.size();
     }
   }
 
@@ -1319,13 +1390,18 @@ public class ARM_Interpreter implements Interpreter {
       }
     }
     
+    @Override
+    public String toString() {
+      return i.toString();
+    }
+    
     public Condition getCondition() {
       return i.condition;
     }
 
     public int getSuccessor(int pc) {
       //Rd should never be the PC, so we can safely predict the next instruction
-      return pc + 4;
+      return pc + i.size();
     }
   }
   
@@ -1389,9 +1465,14 @@ public class ARM_Interpreter implements Interpreter {
     public Condition getCondition() {
       return i.condition;
     }
+    
+    @Override
+    public String toString() {
+      return i.toString();
+    }
 
     public int getSuccessor(int pc) {
-      return pc+4;
+      return pc + i.size();
     }
   }
 
@@ -1410,6 +1491,11 @@ public class ARM_Interpreter implements Interpreter {
     
     public Condition getCondition() {
       return i.condition;
+    }
+    
+    @Override
+    public String toString() {
+      return i.toString();
     }
 
     public int getSuccessor(int pc) {
@@ -1445,8 +1531,13 @@ public class ARM_Interpreter implements Interpreter {
       int base; 
       
       //take ARM's PC offset into account
-      if (i.Rn == ARM_Registers.PC)
+      if (i.Rn == ARM_Registers.PC) {
         base = regs.readPC();
+        
+        //Thumb mode has this weird way of accessing the PC sometimes
+        if (i.isThumb && i.isLoad)
+          base = base & 0xFFFFFFFC;
+      }
       else
         base = regs.get(i.Rn);
 
@@ -1504,7 +1595,7 @@ public class ARM_Interpreter implements Interpreter {
         regs.set(i.Rd, value);
         
         if (DBT_Options.profileDuringInterpretation) {
-          if (i.Rd == 15)
+          if (i.Rd == ARM_Registers.PC)
             ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), value, BranchType.INDIRECT_BRANCH);
         }
       } 
@@ -1551,13 +1642,18 @@ public class ARM_Interpreter implements Interpreter {
     public Condition getCondition() {
       return i.condition;
     }
+    
+    @Override
+    public String toString() {
+      return i.toString();
+    }
 
     public int getSuccessor(int pc) {
       //if we're loading to the PC, then the next instruction is undefined
       if (i.Rd == ARM_Registers.PC && i.isLoad)
         return -1;
 
-      return pc + 4;
+      return pc + i.size();
     }
   }
 
@@ -1582,6 +1678,12 @@ public class ARM_Interpreter implements Interpreter {
   }
   
   private final class DebugNopInstruction implements ARM_Instruction {
+    
+    private boolean isThumb;
+    
+    public DebugNopInstruction(boolean isThumb) {
+      this.isThumb = isThumb;
+    }
 
     public void execute() {
     }
@@ -1591,7 +1693,7 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public int getSuccessor(int pc) {
-      return pc+4;
+      return pc + (isThumb ? 2 : 4);
     }
     
   }
@@ -1661,21 +1763,21 @@ public class ARM_Interpreter implements Interpreter {
       //TODO: Implement coprocessor instructions
       /*throw new RuntimeException(
           "Coprocessor instructions are not yet supported.");*/
-      return new DebugNopInstruction();
+      return new DebugNopInstruction(false);
     }
 
     public ARM_Instruction createCoprocessorDataTransfer(int instr) {
       //    TODO: Implement coprocessor instructions
       /*throw new RuntimeException(
           "Coprocessor instructions are not yet supported.");*/
-      return new DebugNopInstruction();
+      return new DebugNopInstruction(false);
     }
 
     public ARM_Instruction createCoprocessorRegisterTransfer(int instr) {
       //    TODO: Implement coprocessor instructions
       /*throw new RuntimeException(
           "Coprocessor instructions are not yet supported.");*/
-      return new DebugNopInstruction();
+      return new DebugNopInstruction(false);
     }
 
     public ARM_Instruction createIntMultiply(int instr) {

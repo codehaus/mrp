@@ -289,11 +289,13 @@ public final class ARM_Registers {
    * or 4 (Thumb) to the program counter itself.
    */
   public int readPC() {
-    if (getThumbMode()) {
-      return get(ARM_Registers.PC) + 4;
+    int pc = get(ARM_Registers.PC);
+    
+    if ((pc & 0x1) == 1) {
+      return (pc & 0xFFFFFFFE) + 4;
     }
     else {
-      return get(ARM_Registers.PC) + 8;
+      return pc + 8;
     }
   }
   
@@ -377,7 +379,7 @@ public final class ARM_Registers {
    *  Processor in thumb mode?
    */
   public boolean getThumbMode() {
-    return thumbMode;
+    return thumbMode || ((get(ARM_Registers.PC) & 1) != 0);
   }
   
   /**
