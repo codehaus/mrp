@@ -489,31 +489,17 @@ public class ARM_InstructionDecoder {
 
     T createDataProcessing(short instr);
 
-    T createSwap(short instr);
-
     T createSingleDataTransfer(short instr);
 
     T createBlockDataTransfer(short instr);
 
     T createIntMultiply(short instr);
-
-    T createLongMultiply(short instr);
-
+    
     T createSoftwareInterrupt(short instr);
 
     T createBranch(short instr);
 
     T createBranchExchange(short instr);
-
-    T createCoprocessorDataTransfer(short instr);
-
-    T createCoprocessorDataProcessing(short instr);
-
-    T createCoprocessorRegisterTransfer(short instr);
-
-    T createMoveFromStatusRegister(short instr);
-
-    T createMoveToStatusRegister(short instr);
 
     T createUndefinedInstruction(short instr);
   }
@@ -597,32 +583,8 @@ public class ARM_InstructionDecoder {
       return new BranchExchange(instr);
     }
 
-    public Instruction createCoprocessorDataProcessing(short instr) {
-      throw new RuntimeException("Thumb does not support coprocessor instructions.");
-    }
-
-    public Instruction createCoprocessorDataTransfer(short instr) {
-      throw new RuntimeException("Thumb does not support coprocessor instructions.");
-    }
-
-    public Instruction createCoprocessorRegisterTransfer(short instr) {
-      throw new RuntimeException("Thumb does not support coprocessor instructions.");
-    }
-
     public Instruction createDataProcessing(short instr) {
       return new DataProcessing(instr);
-    }
-
-    public Instruction createLongMultiply(short instr) {
-      throw new RuntimeException("Thumb does not support long multiplications.");
-    }
-
-    public Instruction createMoveFromStatusRegister(short instr) {
-      throw new RuntimeException("Thumb does not support status register transfers.");
-    }
-
-    public Instruction createMoveToStatusRegister(short instr) {
-      throw new RuntimeException("Thumb does not support status register transfers.");
     }
 
     public Instruction createSingleDataTransfer(short instr) {
@@ -631,10 +593,6 @@ public class ARM_InstructionDecoder {
 
     public Instruction createSoftwareInterrupt(short instr) {
       return new SoftwareInterrupt(instr);
-    }
-
-    public Instruction createSwap(short instr) {
-      throw new RuntimeException("Thumb does not support SWAP instructions.");
     }
 
     public Instruction createUndefinedInstruction(short instr) {

@@ -231,8 +231,9 @@ public class ARM_Translator implements OPT_Operators {
             value = new OPT_IntConstantOperand(translator.readPC() + operand.getOffset());
           }
           else {
-            value = translator.arm2ir.getTempInt(9);
-            translator.arm2ir.appendInstruction(Binary.create(INT_ADD, (OPT_RegisterOperand)value, translator.arm2ir.getRegister(operand.getRegister()), new OPT_IntConstantOperand(operand.getOffset())));
+            OPT_RegisterOperand tmp = translator.arm2ir.getTempInt(9);
+            translator.arm2ir.appendInstruction(Binary.create(INT_ADD, tmp, translator.arm2ir.getRegister(operand.getRegister()), new OPT_IntConstantOperand(operand.getOffset())));
+            value = tmp.copy();
           }
           return;
 
@@ -737,7 +738,9 @@ public class ARM_Translator implements OPT_Operators {
     }
     
     public int getSuccessor(int pc) {
-      return pc + 4;
+      
+      boolean thumbMode = (pc & 0x1) == 1;
+      return pc + (thumbMode ? 2 : 4);
     }
     
     public Condition getCondition() {
@@ -928,7 +931,12 @@ public class ARM_Translator implements OPT_Operators {
     protected OPT_Operand resolveOperand1() {
 
       if (i.Rn == ARM_Registers.PC) {
-        return new OPT_IntConstantOperand( readPC() );
+        int value = readPC();
+        
+        if (i.isThumb && !i.updateConditionCodes && i.opcode == Opcode.ADD)
+          value = value & 0xFFFFFFFC;
+        
+        return new OPT_IntConstantOperand( value );
       }
 
       return arm2ir.getRegister(i.Rn);
@@ -1057,7 +1065,7 @@ public class ARM_Translator implements OPT_Operators {
 
     public int getSuccessor(int pc) {
       if (i.Rd != ARM_Registers.PC)
-        return pc + 4;
+        return pc + i.size();
       else
         return -1;
     }
@@ -1532,7 +1540,7 @@ public class ARM_Translator implements OPT_Operators {
     public int getSuccessor(int pc) {
       //according to the ARM Architecture reference, using the pc as Rd yields an undefined
       //result. Therefore, we can safely assume that this instruction never equals a branch
-      return pc + 4;
+      return pc + i.size();
     }
   }
 
@@ -1722,7 +1730,7 @@ public class ARM_Translator implements OPT_Operators {
       if (i.isLoad && transferPC)
         return -1;
       else
-        return pc + 4;
+        return pc + i.size();
     }
   }
 
@@ -1737,37 +1745,46 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public void translate() {
-      
-      
-      //if we're supposed to link, then write the previous address into the link register
-      if (i.link) {
-        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + 4)));
-      }
-      else {
-        //we should never be returning from the goto
-        arm2ir.getCurrentBlock().deleteNormalOut();
-      }
-       
+ 
       //can we pre-calculate to where we're branching?
       if (i.offset.getType() == OperandWrapper.Type.Immediate) {
+        
+        int destination = readPC() + i.offset.getImmediate();
+        
+        if (inThumb())
+          destination |= 1;
+        
         //we can directly resolve this branch to a fixed address
-        if (i.link)
-          arm2ir.appendCall(readPC() + i.getOffset().getImmediate(), lazy, pc + i.size());
-        else
-          arm2ir.appendBranch(readPC() + i.getOffset().getImmediate(), lazy, BranchType.DIRECT_BRANCH);        
+        if (i.link) {
+          //put the return address into the link register, then branch
+          arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + i.size())));
+          arm2ir.appendCall(destination, lazy, pc + i.size());
+        }
+        else {
+          //just branch and never return from it
+          arm2ir.appendBranch(destination, lazy, BranchType.DIRECT_BRANCH);
+          arm2ir.getCurrentBlock().deleteNormalOut();
+        }
       }
       else {
         //the branch target is not known at compile time
         OPT_Operand offset = ResolvedOperand.resolve(ARM_Translator.this, i.offset);
-        OPT_RegisterOperand dest = arm2ir.getTempInt(0);
-        
-        arm2ir.appendInstruction(Binary.create(INT_ADD, dest, offset, new OPT_IntConstantOperand(readPC())));
+        OPT_RegisterOperand dest = arm2ir.getTempInt(0);        
+       
+        if (inThumb())
+          arm2ir.appendInstruction(Binary.create(INT_ADD, dest, offset, new OPT_IntConstantOperand(readPC() | 1)));
+        else
+          arm2ir.appendInstruction(Binary.create(INT_ADD, dest, offset, new OPT_IntConstantOperand(readPC())));
         
         if (i.link) {
+          //put the return address into the link register, then branch
+          arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + i.size())));
           arm2ir.appendCall(dest, lazy, pc + i.size());
         }
         else {
+          //just branch and never return from it
           arm2ir.appendBranch(dest, lazy, BranchType.INDIRECT_BRANCH);
+          arm2ir.getCurrentBlock().deleteNormalOut();
         }
       }
 
@@ -1817,17 +1834,18 @@ public class ARM_Translator implements OPT_Operators {
         }
         
         //Call regs.setThumbMode(true) to enable thumb execution
-        enableThumb = new OPT_IntConstantOperand(inThumb() ? 0 : 1);
+        enableThumb = new OPT_IntConstantOperand(1);
         break;
 
       case Register:
-        OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
-        arm2ir.appendInstruction(Binary.create(INT_AND, tmp, arm2ir.getRegister(i.target.getRegister()), new OPT_IntConstantOperand(0xFFFFFFFE) ));
-        targetAddress = tmp;
+        if (i.target.getRegister() == ARM_Registers.PC)
+          targetAddress = new OPT_IntConstantOperand(readPC());
+        else
+          targetAddress = arm2ir.getRegister(i.target.getRegister());
         
-        OPT_RegisterOperand tmp2 = arm2ir.getTempInt(1);
-        arm2ir.appendInstruction(Binary.create(INT_AND, tmp2, arm2ir.getRegister(i.target.getRegister()), new OPT_IntConstantOperand(0x1) ));
-        enableThumb = tmp2;
+        OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
+        arm2ir.appendInstruction(Binary.create(INT_AND, tmp, arm2ir.getRegister(i.target.getRegister()), new OPT_IntConstantOperand(0x1) ));
+        enableThumb = tmp;
         break;
 
       default:
@@ -1837,7 +1855,7 @@ public class ARM_Translator implements OPT_Operators {
       
       //write the next address into the link register, if requested so.
       if (i.link) {
-        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(previousAddress - (inThumb() ? 2 : 4))));
+        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(previousAddress - i.size())));
       }
       
       //set the correct processor mode (thumb or not)
@@ -1900,7 +1918,7 @@ public class ARM_Translator implements OPT_Operators {
     }
     
     public int getSuccessor(int pc) {
-      return pc + 4;
+      return pc + i.size();
     }
   }
     
@@ -1966,7 +1984,7 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public int getSuccessor(int pc) {
-      return pc + 4;
+      return pc + i.size();
     }
   }
     
@@ -2006,7 +2024,7 @@ public class ARM_Translator implements OPT_Operators {
 
     public int getSuccessor(int pc) {
       //Rd should never be the PC, so we can safely predict the next instruction
-      return pc + 4;
+      return pc + i.size();
     }
   }
   
@@ -2028,7 +2046,7 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public int getSuccessor(int pc) {
-      return pc+4;
+      return pc + i.size();
     }
   }
 
@@ -2061,7 +2079,7 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public int getSuccessor(int pc) {
-      return pc + 4;
+      return pc + i.size();
     }
   }
 
@@ -2247,7 +2265,7 @@ public class ARM_Translator implements OPT_Operators {
       if (i.Rd == ARM_Registers.PC && i.isLoad)
         return -1;
 
-      return pc + 4;
+      return pc + i.size();
     }
   }
 
@@ -2272,6 +2290,12 @@ public class ARM_Translator implements OPT_Operators {
   }
   
   private final class DebugNopInstruction implements ARM_Instruction {
+    
+    private final boolean thumb;
+    
+    public DebugNopInstruction(boolean thumb) {
+      this.thumb = thumb;
+    }
 
     public Condition getCondition() {
       return Condition.AL;
@@ -2281,7 +2305,7 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public int getSuccessor(int pc) {
-      return pc+4;
+      return pc + (thumb ? 2 : 4);
     }
     
   }
@@ -2352,21 +2376,21 @@ public class ARM_Translator implements OPT_Operators {
       //TODO: Implement coprocessor instructions
       /*throw new RuntimeException(
           "Coprocessor instructions are not yet supported.");*/
-      return new DebugNopInstruction();
+      return new DebugNopInstruction(false);
     }
 
     public ARM_Instruction createCoprocessorDataTransfer(int instr) {
       //    TODO: Implement coprocessor instructions
       /*throw new RuntimeException(
           "Coprocessor instructions are not yet supported.");*/
-      return new DebugNopInstruction();
+      return new DebugNopInstruction(false);
     }
 
     public ARM_Instruction createCoprocessorRegisterTransfer(int instr) {
       //    TODO: Implement coprocessor instructions
       /*throw new RuntimeException(
           "Coprocessor instructions are not yet supported.");*/
-      return new DebugNopInstruction();
+      return new DebugNopInstruction(false);
     }
 
     public ARM_Instruction createIntMultiply(int instr) {
@@ -2402,78 +2426,76 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public ARM_Instruction createBlockDataTransfer(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new BlockDataTransfer(new ARM_Instructions.BlockDataTransfer(instr));
     }
 
     public ARM_Instruction createBranch(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new Branch(new ARM_Instructions.Branch(instr));
     }
 
     public ARM_Instruction createBranchExchange(short instr) {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    public ARM_Instruction createCoprocessorDataProcessing(short instr) {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    public ARM_Instruction createCoprocessorDataTransfer(short instr) {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    public ARM_Instruction createCoprocessorRegisterTransfer(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new BranchExchange(new ARM_Instructions.BranchExchange(instr));
     }
 
     public ARM_Instruction createDataProcessing(short instr) {
-      // TODO Auto-generated method stub
-      return null;
-    }
+      ARM_Instructions.DataProcessing i = new ARM_Instructions.DataProcessing(instr);
 
-    public ARM_Instruction createLongMultiply(short instr) {
-      // TODO Auto-generated method stub
-      return null;
-    }
+      switch (i.opcode) {
+      case ADC:
+        return new DataProcessing_Adc(i);
+      case ADD:
+        return new DataProcessing_Add(i);
+      case AND:
+        return new DataProcessing_And(i);
+      case BIC:
+        return new DataProcessing_Bic(i);
+      case CMN:
+        return new DataProcessing_Cmn(i);
+      case CMP:
+        return new DataProcessing_Cmp(i);
+      case EOR:
+        return new DataProcessing_Eor(i);
+      case MOV:
+        return new DataProcessing_Mov(i);
+      case MVN:
+        return new DataProcessing_Mvn(i);
+      case ORR:
+        return new DataProcessing_Orr(i);
+      case RSB:
+        return new DataProcessing_Rsb(i);
+      case RSC:
+        return new DataProcessing_Rsc(i);
+      case SBC:
+        return new DataProcessing_Sbc(i);
+      case SUB:
+        return new DataProcessing_Sub(i);
+      case TEQ:
+        return new DataProcessing_Teq(i);
+      case TST:
+        return new DataProcessing_Tst(i);
+      case CLZ:
+        return new DataProcessing_Clz(i);
 
-    public ARM_Instruction createMoveFromStatusRegister(short instr) {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    public ARM_Instruction createMoveToStatusRegister(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      default:
+        throw new RuntimeException("Unexpected Data Procesing opcode: "
+            + i.opcode);
+      }
     }
 
     public ARM_Instruction createSingleDataTransfer(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new SingleDataTransfer(new ARM_Instructions.SingleDataTransfer(instr));
     }
 
     public ARM_Instruction createSoftwareInterrupt(short instr) {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    public ARM_Instruction createSwap(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new SoftwareInterrupt(new ARM_Instructions.SoftwareInterrupt(instr));
     }
 
     public ARM_Instruction createUndefinedInstruction(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new UndefinedInstruction(instr);
     }
 
     public ARM_Instruction createIntMultiply(short instr) {
-      // TODO Auto-generated method stub
-      return null;
+      return new IntMultiply(new ARM_Instructions.IntMultiply(instr));
     }
   }
 }

@@ -1157,7 +1157,7 @@ public class ARM_Interpreter implements Interpreter {
       
       //if we're supposed to link, then write the previous address into the link register
       if (i.link) {
-        regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + (regs.getThumbMode() ? 2 : 4));
+        regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + i.size());
       }
       
       if (regs.getThumbMode())
@@ -1194,9 +1194,6 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public void execute() {
-      //remember the previous address
-      
-      
       //are we supposed to jump to thumb (thumb=true) or ARM32 (thumb=false)?
       boolean thumb;
       
@@ -1212,7 +1209,7 @@ public class ARM_Interpreter implements Interpreter {
         else
           previousAddress = regs.get(i.target.getRegister());
         
-        targetAddress = previousAddress + i.target.getOffset();
+        targetAddress = (previousAddress + i.target.getOffset()) | 1;
         thumb = true;
         break;
 
@@ -1825,18 +1822,6 @@ public class ARM_Interpreter implements Interpreter {
       return new BranchExchange(new ARM_Instructions.BranchExchange(instr));
     }
 
-    public ARM_Instruction createCoprocessorDataProcessing(short instr) {
-      throw new RuntimeException("Instruction type not supported by thumb.");
-    }
-
-    public ARM_Instruction createCoprocessorDataTransfer(short instr) {
-      throw new RuntimeException("Instruction type not supported by thumb.");
-    }
-
-    public ARM_Instruction createCoprocessorRegisterTransfer(short instr) {
-      throw new RuntimeException("Instruction type not supported by thumb.");
-    }
-
     public ARM_Instruction createDataProcessing(short instr) {
       ARM_Instructions.DataProcessing i = new ARM_Instructions.DataProcessing(instr);
 
@@ -1881,28 +1866,12 @@ public class ARM_Interpreter implements Interpreter {
       }
     }
 
-    public ARM_Instruction createLongMultiply(short instr) {
-      throw new RuntimeException("Instruction type not supported by thumb.");
-    }
-
-    public ARM_Instruction createMoveFromStatusRegister(short instr) {
-      throw new RuntimeException("Instruction type not supported by thumb.");
-    }
-
-    public ARM_Instruction createMoveToStatusRegister(short instr) {
-      throw new RuntimeException("Instruction type not supported by thumb.");
-    }
-
     public ARM_Instruction createSingleDataTransfer(short instr) {
       return new SingleDataTransfer(new ARM_Instructions.SingleDataTransfer(instr));
     }
 
     public ARM_Instruction createSoftwareInterrupt(short instr) {
       return new SoftwareInterrupt(new ARM_Instructions.SoftwareInterrupt(instr));
-    }
-
-    public ARM_Instruction createSwap(short instr) {
-      throw new RuntimeException("Instruction type not supported by thumb.");
     }
 
     public ARM_Instruction createUndefinedInstruction(short instr) {
