@@ -3,6 +3,7 @@ package org.binarytranslator.arch.arm.decoder;
 import org.binarytranslator.DBT;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.OperandWrapper.ShiftType;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
+import org.binarytranslator.generic.decoder.Utils;
 
 /**
  * In the ARM decoder model, the decoding and usage (translating/interpreting/disassembling) of instructions
@@ -1671,5 +1672,23 @@ public class ARM_Instructions  {
     public void visit(ARM_InstructionVisitor visitor) {
       visitor.visit(this);
     }
+  }
+  
+  public interface ARM_InstructionVisitor {
+
+    void visit(DataProcessing instr);
+    void visit(SingleDataTransfer instr);
+    void visit(IntMultiply instr);
+    void visit(LongMultiply instr);
+    void visit(Swap instr);
+    void visit(BlockDataTransfer instr);
+    void visit(SoftwareInterrupt instr);
+    void visit(Branch instr);
+    void visit(BranchExchange instr);
+    void visit(CoprocessorDataTransfer instr);
+    void visit(CoprocessorDataProcessing instr);
+    void visit(CoprocessorRegisterTransfer instr);
+    void visit(MoveFromStatusRegister instr);
+    void visit(MoveToStatusRegister instr);
   }
 }

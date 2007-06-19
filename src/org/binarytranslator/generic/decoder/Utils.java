@@ -1,4 +1,4 @@
-package org.binarytranslator.arch.arm.decoder;
+package org.binarytranslator.generic.decoder;
 
 import org.binarytranslator.DBT;
 
@@ -13,7 +13,7 @@ public class Utils {
    * @return
    *  True, if the given bit is set within the word, false otherwise.
    */
-  static final boolean getBit(int word, int bit) {
+  public static final boolean getBit(int word, int bit) {
     if (DBT.VerifyAssertions)
       DBT._assert(bit >= 0 && bit <= 31);
     return (word & (1 << bit)) != 0;
@@ -22,7 +22,7 @@ public class Utils {
   /**
    * Same functions as {@link #getBit(int, int)} for shorts.
    */
-  static final boolean getBit(short word, int bit) {
+  public static final boolean getBit(short word, int bit) {
     if (DBT.VerifyAssertions)
       DBT._assert(bit >= 0 && bit <= 15);
     return (word & (1 << bit)) != 0;
@@ -41,7 +41,7 @@ public class Utils {
    * @return
    *  A zero-based version of the bit sequence.
    */
-  static final int getBits(int word, int from, int to) {
+  public static final int getBits(int word, int from, int to) {
     if (DBT.VerifyAssertions)
       DBT._assert(from < to && from >= 0 && to < 31);
     
@@ -51,7 +51,7 @@ public class Utils {
   /**
    * Same function as {@link #getBits(int, int, int)} for shorts.
    */
-  static final int getBits(short word, int from, int to) {
+  public static final int getBits(short word, int from, int to) {
     if (DBT.VerifyAssertions)
       DBT._assert(from < to && from >= 0 && to <= 15);
     
@@ -67,7 +67,7 @@ public class Utils {
    * @return
    *  A sign extended value.
    */
-  static int signExtend(int value, int bitsUsed) {
+  public static int signExtend(int value, int bitsUsed) {
     return (value << (32 - bitsUsed)) >> (32 - bitsUsed);
   }
   

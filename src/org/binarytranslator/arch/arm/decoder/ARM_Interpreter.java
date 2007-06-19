@@ -11,6 +11,7 @@ import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
 import org.binarytranslator.generic.branch.BranchLogic.BranchType;
 import org.binarytranslator.generic.decoder.Interpreter;
+import org.binarytranslator.generic.decoder.Utils;
 
 import com.sun.org.apache.bcel.internal.generic.InstructionFactory;
 

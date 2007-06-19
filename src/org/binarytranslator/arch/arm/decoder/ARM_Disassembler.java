@@ -16,6 +16,7 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.OperandWrapper;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.SingleDataTransfer;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.SoftwareInterrupt;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Swap;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.ARM_InstructionVisitor;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.generic.decoder.DisassembledInstruction;

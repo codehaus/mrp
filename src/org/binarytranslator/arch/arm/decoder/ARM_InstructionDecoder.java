@@ -1,6 +1,7 @@
 package org.binarytranslator.arch.arm.decoder;
 
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.*;
+import org.binarytranslator.generic.decoder.Utils;
 
 /**
  * This class decodes an ARM or Thumb instruction and uses a user-supplied
