@@ -11,6 +11,10 @@ package org.binarytranslator.generic.branch;
 import java.util.HashSet;
 import java.util.Comparator;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
 /**
  * Objects capturing information about what looks like a method
  */
@@ -18,7 +22,7 @@ class ProcedureInformation {
   /**
    * Entry point to the procedure
    */
-  private int entry;
+  private final int entry;
 
   /**
    * Set of locations that call the procedure and the corressponding return
@@ -44,6 +48,10 @@ class ProcedureInformation {
       return ((ProcedureInformation) o1).entry
           - ((ProcedureInformation) o2).entry;
     }
+  }
+  
+  private ProcedureInformation(int entry) {
+    this.entry = entry;
   }
 
   /**
@@ -91,7 +99,98 @@ class ProcedureInformation {
       returnSites = new HashSet<Integer>();
     }
     returnSites.add(new Integer(pc));
-    // TODO: capture that the instruction prior to ret is a call
-    // site to this procedure
+  }
+  
+  /**
+   * Serializes this object to an XML document.
+   *  
+   * @param doc
+   *  The XML document that the object shall be serialized to.
+   * @param parentNode
+   *  The node within <code>doc</code> that the object shall be serialized to.
+   */
+  public void toXML(Document doc, Element parentNode) {
+    Element procedure = parentNode;
+    procedure.setAttribute("entry", Integer.toString(entry));
+    
+    Element callSites = doc.createElement("callsites");
+    for (CallAndReturnAddress caller : callSitesAndReturnAddresses) {
+      Element callerNode = doc.createElement("call");
+      callerNode.setAttribute("from", Integer.toString(caller.getCallSite()));
+      callerNode.setAttribute("return", Integer.toString(caller.getReturnAddress()));
+      callSites.appendChild(callerNode);
+    }
+    procedure.appendChild(callSites);
+    
+    Element returnSites = doc.createElement("returnsites");
+    for (Integer returnSite : this.returnSites) {
+      Element returnSiteNode = doc.createElement("return");
+      returnSiteNode.setAttribute("at", returnSite.toString());
+      returnSites.appendChild(returnSiteNode);
+    }
+    procedure.appendChild(returnSites);
+  }
+  
+  /**
+   * Loads a {@link ProcedureInformation} object from an XML element, given that the object
+   * was previously persisted by {@link #toXML(Document, Element)}.
+   * @param node
+   *  The XML element that had been provided to {@link #toXML(Document, Element)}.
+   */
+  public static ProcedureInformation fromXML(Element node) {
+    
+    ProcedureInformation pi = new ProcedureInformation(Integer.parseInt(node.getAttribute("entry")));
+    
+    for (int i = 0; i < node.getChildNodes().getLength(); i++) {
+      Node childNode = node.getChildNodes().item(i);
+      
+      //skip non-element nodes
+      if (childNode.getNodeType() != Node.ELEMENT_NODE)
+        continue;
+      
+      if (childNode.getNodeName().equals("callsites")) {
+        //parse call sites
+        for (int n = 0; n < childNode.getChildNodes().getLength(); n++) {
+          Node callsite = childNode.getChildNodes().item(n);
+          
+          //skip non-element nodes
+          if (callsite.getNodeType() != Node.ELEMENT_NODE)
+            continue;
+          
+          if (callsite.getNodeName().equals("call"))
+            throw new Error("The given XML node is not a valid ProcedureInformation entity.");
+          
+          int callFrom = Integer.parseInt(((Element)callsite).getAttribute("from"));
+          int callReturn = Integer.parseInt(((Element)callsite).getAttribute("return"));
+          
+          pi.callSitesAndReturnAddresses.add(new CallAndReturnAddress(callFrom, callReturn));
+        }
+      }
+      else if (childNode.getNodeName().equals("returnsites")) {
+        //parse return sites
+        for (int n = 0; n < childNode.getChildNodes().getLength(); n++) {
+          Node callsite = childNode.getChildNodes().item(n);
+          
+          //skip non-element nodes
+          if (callsite.getNodeType() != Node.ELEMENT_NODE)
+            continue;
+          
+          if (callsite.getNodeName().equals("return"))
+            throw new Error("The given XML node is not a valid ProcedureInformation entity.");
+          
+          int returnAt = Integer.parseInt(((Element)callsite).getAttribute("at"));
+          pi.returnSites.add(returnAt);
+        }
+      }
+      else {
+        throw new Error("The given XML node is not a valid ProcedureInformation entity.");
+      }      
+    }
+    
+    
+    
+    
+    
+    return pi;
   }
 }
