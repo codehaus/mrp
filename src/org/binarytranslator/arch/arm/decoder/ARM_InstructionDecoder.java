@@ -582,7 +582,7 @@ public class ARM_InstructionDecoder {
     }
 
     public Instruction createUndefinedInstruction(int instr) {
-      return null;
+      return new UndefinedInstruction(instr);
     }
 
     public Instruction createBlockDataTransfer(short instr) {
@@ -638,7 +638,7 @@ public class ARM_InstructionDecoder {
     }
 
     public Instruction createUndefinedInstruction(short instr) {
-      return null;
+      return new UndefinedInstruction(instr);
     }
 
     public Instruction createIntMultiply(short instr) {

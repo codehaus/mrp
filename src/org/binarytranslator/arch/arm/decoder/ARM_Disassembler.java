@@ -17,6 +17,7 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.SingleDataTransfer
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.SoftwareInterrupt;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Swap;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.ARM_InstructionVisitor;
+import org.binarytranslator.arch.arm.decoder.ARM_Instructions.UndefinedInstruction;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.generic.decoder.DisassembledInstruction;
@@ -437,6 +438,10 @@ public final class ARM_Disassembler {
 
       setResult(String.format("MSR%s %s, %s", cond(instr), fields,
           operand(instr.getSource())));
+    }
+
+    public void visit(UndefinedInstruction instr) {
+      setResult("--- (Undefined " + (instr.isThumb ? "Thumb" : "ARM") + " instruction, code 0x" + Integer.toHexString(instr.binaryInstruction) + ")");      
     }
   }
 }

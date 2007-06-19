@@ -1737,16 +1737,27 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public void translate() {
-            
+      
+      
+      //if we're supposed to link, then write the previous address into the link register
+      if (i.link) {
+        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + 4)));
+      }
+      else {
+        //we should never be returning from the goto
+        arm2ir.getCurrentBlock().deleteNormalOut();
+      }
+       
+      //can we pre-calculate to where we're branching?
       if (i.offset.getType() == OperandWrapper.Type.Immediate) {
         //we can directly resolve this branch to a fixed address
         if (i.link)
-          arm2ir.appendCall( readPC() + i.getOffset().getImmediate(), lazy, pc + i.size());
+          arm2ir.appendCall(readPC() + i.getOffset().getImmediate(), lazy, pc + i.size());
         else
           arm2ir.appendBranch(readPC() + i.getOffset().getImmediate(), lazy, BranchType.DIRECT_BRANCH);        
       }
       else {
-        
+        //the branch target is not known at compile time
         OPT_Operand offset = ResolvedOperand.resolve(ARM_Translator.this, i.offset);
         OPT_RegisterOperand dest = arm2ir.getTempInt(0);
         
@@ -1758,15 +1769,6 @@ public class ARM_Translator implements OPT_Operators {
         else {
           arm2ir.appendBranch(dest, lazy, BranchType.INDIRECT_BRANCH);
         }
-      }
-      
-      //if we're supposed to link, then write the previous address into the link register
-      if (i.link) {
-        arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(ARM_Registers.LR), new OPT_IntConstantOperand(pc + 4)));
-      }
-      else {
-        //we should never be returning from the goto
-        arm2ir.getCurrentBlock().deleteNormalOut();
       }
 
     }

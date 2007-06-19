@@ -47,6 +47,11 @@ public class ARM_Instructions  {
       this.isThumb = false;
     }
     
+    public Instruction(boolean isThumb) {
+      condition = Condition.AL;
+      this.isThumb = isThumb;
+    }
+
     public final int size() {
       return isThumb ? 2 : 4;
     }
@@ -1674,9 +1679,31 @@ public class ARM_Instructions  {
     }
   }
   
+  public static class UndefinedInstruction extends Instruction {
+    
+    protected final int binaryInstruction;
+    
+    public UndefinedInstruction(short instruction) {
+      super(false);
+      this.binaryInstruction = instruction;
+    }
+    
+    public UndefinedInstruction(int instruction) {
+      super(true);
+      this.binaryInstruction = instruction;
+    }
+
+    @Override
+    public void visit(ARM_InstructionVisitor visitor) {
+      visitor.visit(this);
+    }
+    
+  }
+  
   public interface ARM_InstructionVisitor {
 
     void visit(DataProcessing instr);
+    void visit(UndefinedInstruction instr);
     void visit(SingleDataTransfer instr);
     void visit(IntMultiply instr);
     void visit(LongMultiply instr);
