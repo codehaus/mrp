@@ -473,8 +473,9 @@ public class ARM_Instructions  {
         else {
           //add/subtract register or add/subtract immediate
           opcode = Utils.getBit(instr, 9) ? Opcode.SUB : Opcode.ADD;
-          if (Utils.getBit(instr, 10))
+          if (Utils.getBit(instr, 10)) {
             operand2 = OperandWrapper.createImmediate(Utils.getBits(instr, 6, 8));
+          }
           else
             operand2 = OperandWrapper.createRegister((byte)Utils.getBits(instr, 6, 8));
         }
@@ -746,7 +747,7 @@ public class ARM_Instructions  {
         Rd = (byte)Utils.getBits(instr, 0, 2);
         Rn = (byte)Utils.getBits(instr, 3, 5);
         
-        if (Utils.getBits(instr, 13, 15) == 0x5) {
+        if (Utils.getBits(instr, 12, 15) == 0x5) {
           //load store register offset
           offset = OperandWrapper.createRegister((byte)Utils.getBits(instr, 6, 8));
           

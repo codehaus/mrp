@@ -933,7 +933,7 @@ public class ARM_Translator implements OPT_Operators {
       if (i.Rn == ARM_Registers.PC) {
         int value = readPC();
         
-        if (i.isThumb && !i.updateConditionCodes && i.opcode == Opcode.ADD)
+        if (i.isThumb && !i.updateConditionCodes && i.opcode == Opcode.ADD && i.operand2.getType() == OperandWrapper.Type.Immediate)
           value = value & 0xFFFFFFFC;
         
         return new OPT_IntConstantOperand( value );
@@ -959,7 +959,7 @@ public class ARM_Translator implements OPT_Operators {
     protected final void setAddResult(OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs) {
 
       if (i.updateConditionCodes) {
-        if (i.Rd != 15) {
+        if (i.Rd != ARM_Registers.PC) {
           setAddFlags(result, lhs, rhs);
         } 
         else {
@@ -968,7 +968,11 @@ public class ARM_Translator implements OPT_Operators {
         }
       }
       
-      if (i.Rd == 15) {
+      if (i.Rd == ARM_Registers.PC) {
+        
+        if (inThumb()) {
+          arm2ir.appendInstruction(Binary.create(INT_OR, result.copyRO(), result.copy(), new OPT_IntConstantOperand(1)));
+        }
         
         if (i.updateConditionCodes)
           arm2ir.appendBranch(result, lazy, BranchType.INDIRECT_BRANCH);
@@ -1011,7 +1015,7 @@ public class ARM_Translator implements OPT_Operators {
     protected final void setSubResult(OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs) {
 
       if (i.updateConditionCodes) {
-        if (i.Rd != 15) {
+        if (i.Rd != ARM_Registers.PC) {
           setSubFlags(result, lhs, rhs);
         } 
         else {
@@ -1020,7 +1024,12 @@ public class ARM_Translator implements OPT_Operators {
         }
       }
 
-      if (i.Rd == 15) {
+      if (i.Rd == ARM_Registers.PC) {
+        
+        if (inThumb()) {
+          arm2ir.appendInstruction(Binary.create(INT_OR, result.copyRO(), result.copy(), new OPT_IntConstantOperand(1)));
+        }
+        
         if (i.updateConditionCodes)
           arm2ir.appendBranch(result, lazy, BranchType.INDIRECT_BRANCH);
         else 
@@ -1640,7 +1649,7 @@ public class ARM_Translator implements OPT_Operators {
           translateWriteback(startAddress.copyRO(), nextAddress.copyRO());
           
           //shall we switch to thumb mode?
-          OPT_BasicBlock finishInstruction = arm2ir.createBlockAfterCurrentNotInCFG();
+          /*OPT_BasicBlock finishInstruction = arm2ir.createBlockAfterCurrentNotInCFG();
           OPT_BasicBlock switchToARMBlock = arm2ir.createBlockAfterCurrentNotInCFG();
           OPT_BasicBlock switchToThumbBlock = arm2ir.createBlockAfterCurrentNotInCFG();
           
@@ -1671,6 +1680,8 @@ public class ARM_Translator implements OPT_Operators {
           
           //according to the APCS, these types of instructions are usually function returns
           arm2ir.setCurrentBlock(finishInstruction);
+          arm2ir.appendBranch(regPC, lazy, BranchType.RETURN);*/
+          
           arm2ir.appendBranch(regPC, lazy, BranchType.RETURN);
           return;
         }

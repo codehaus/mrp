@@ -480,7 +480,8 @@ public class ARM_Interpreter implements Interpreter {
       if (i.Rn == ARM_Registers.PC) {
         int value = regs.readPC();
         
-        if (i.isThumb && !i.updateConditionCodes && i.opcode == Opcode.ADD)
+        //this is a very special instruction encoding that demands that the PC is read with an ARM32 mask.
+        if (i.isThumb && !i.updateConditionCodes && i.opcode == Opcode.ADD && i.operand2.getType() == OperandWrapper.Type.Immediate)
           value = value & 0xFFFFFFFC;
         
         return value;
@@ -504,12 +505,18 @@ public class ARM_Interpreter implements Interpreter {
      */
     protected final void setAddResult(int lhs, int rhs) {
       setFlagsForAdd(lhs, rhs);
-
-      if (DBT_Options.profileDuringInterpretation && i.Rd == 15) {
-        ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), lhs + rhs, BranchType.INDIRECT_BRANCH);
+      int result = lhs + rhs;
+      
+      if (i.Rd == ARM_Registers.PC) {
+        if (regs.getThumbMode())
+          result |= 1;
+          
+        if (DBT_Options.profileDuringInterpretation) {
+          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
+        }
       }
       
-      regs.set(i.Rd, lhs + rhs);
+      regs.set(i.Rd, result);
     }
     
     /**
@@ -520,12 +527,18 @@ public class ARM_Interpreter implements Interpreter {
      */
     protected final void setSubResult(int lhs, int rhs) {
       setFlagsForSub(lhs, rhs);
+      int result = lhs - rhs;
       
-      if (DBT_Options.profileDuringInterpretation && i.Rd == 15) {
-        ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), lhs - rhs, BranchType.INDIRECT_BRANCH);
+      if (i.Rd == ARM_Registers.PC) {
+        if (regs.getThumbMode())
+          result |= 1;
+          
+        if (DBT_Options.profileDuringInterpretation) {
+          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
+        }
       }
       
-      regs.set(i.Rd, lhs - rhs);
+      regs.set(i.Rd, result);
     }
 
     /** Sets the processor flags according to the result of adding <code>lhs</code> and <code>rhs</code>.*/
