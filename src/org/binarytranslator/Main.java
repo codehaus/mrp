@@ -99,7 +99,7 @@ public class Main {
 
     report("Sucessfully created process.");
     
-    if (DBT_Options.debugPS) {
+    if (DBT_Options.debugRuntime) {
       System.out.println("***** INITIAL PROCESS SPACE *****\n");
       System.out.println(ps);
     }

@@ -19,7 +19,7 @@ import java.util.Map.Entry;
 public class DBT_Options {
   
   /** Remove features that will only work on jikes? */
-  public final static boolean buildForSunVM = true;
+  public final static boolean buildForSunVM = false;
   
   /** Enable the profiling of application during interpretation? */
   public final static boolean profileDuringInterpretation = true;
@@ -35,9 +35,6 @@ public class DBT_Options {
   
   /** Arguments given to the executable.*/
   public static String[] executableArguments = null;
-
-  /** The initial optimisation level */
-  public static int initialOptLevel = 0;
 
   /**  Instructions to translate for an optimisation level 0 trace */
   public static int instrOpt0 = 684;
@@ -61,32 +58,16 @@ public class DBT_Options {
   /** Should direct branches be resolved before dynamic branches? */
   public static boolean resolveDirectBranchesFirst = true;
 
-  /**
-   * Use global branch information rather than local (within the trace)
-   * information when optimisation level is greater than or equal to this value
-   */
-  public static int globalBranchLevel = 3;
-
-  /**
-   * Set this to true to translate only one instruction at a time.
-   */
+  /** Set this to true to translate only one instruction at a time. */
   public static boolean singleInstrTranslation = false;
 
-  /**
-   * Eliminate unneeded filling of register
-   */
+  /** Eliminate unneeded filling of register */
   public final static boolean eliminateRegisterFills = true;
 
-  // -oO Translation debugging options Oo-
-
-  /**
-   * Print dissassembly of translated instructions.
-   */
+  /** Print dissassembly of translated instructions. */
   public static boolean debugInstr = true;
 
-  /**
-   * Print information about the lazy resolution of branch addresses...
-   */
+  /** Print information about the lazy resolution of branch addresses...*/
   public static boolean debugBranchResolution = true;
 
   /** During code translation, print information about the creation of basic blocks. */
@@ -112,12 +93,6 @@ public class DBT_Options {
 
   /** Print out messages from the memory system */
   public static boolean debugMemory = false;
-
-  /** Print out process space between instructions */
-  public final static boolean debugPS = false;
-
-  /** When printing process space, omit floating point registers. */
-  public final static boolean debugPS_OmitFP = false;
 
   /** The user ID for the user running the command */
   public final static int UID = 1000;
@@ -180,10 +155,6 @@ public class DBT_Options {
       debugSyscall = Boolean.parseBoolean(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscallMore")) {
       debugSyscallMore = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:globalBranchLevel")) {
-      globalBranchLevel = Integer.parseInt(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:initialOptLevel")) {
-      initialOptLevel = Integer.parseInt(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:instrOpt0")) {
       instrOpt0 = Integer.parseInt(value);
     } else if (arg.equalsIgnoreCase("-X:dbt:instrOpt1")) {

@@ -661,7 +661,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
     
     OPT_BasicBlock fallThrough = createBlockAfterCurrent();
     OPT_Instruction switchInstr;
-    switchInstr = LookupSwitch.create(LOOKUPSWITCH, targetAddress, null, null, fallThrough.makeJumpTarget(), null, 0);
+    switchInstr = LookupSwitch.create(LOOKUPSWITCH, targetAddress.copyRO(), null, null, fallThrough.makeJumpTarget(), null, 0);
     appendInstruction(switchInstr);
     
     UnresolvedJumpInstruction unresolvedInfo = new UnresolvedJumpInstruction(switchInstr, (Laziness)lazyStateAtJump.clone(), currentPC, branchType);
@@ -669,7 +669,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
 
     setCurrentBlock(fallThrough);
     appendRecordUncaughtBranch(currentPC, targetAddress.copyRO(), branchType, retAddr);
-    appendTraceExit((Laziness) lazyStateAtJump.clone(), targetAddress.copyRO());
+    appendTraceExit((Laziness) lazyStateAtJump.clone(), targetAddress);
     
   }
 
@@ -855,7 +855,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
 
     // Copy the value into the register specified by gc.resultReg.
     appendInstruction(Move.create(INT_MOVE, new OPT_RegisterOperand(
-        gc.resultReg, VM_TypeReference.Int), nextPc));
+        gc.resultReg, VM_TypeReference.Int), nextPc.copy()));
     resolveLaziness(laziness);
     appendInstruction(Goto.create(GOTO, finishBlock.makeJumpTarget()));
     currentBlock.deleteNormalOut();
@@ -1086,7 +1086,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
       Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer
       Call.setParam(s, 1, new OPT_IntConstantOperand(pc)); // Address of branch
       // instruction
-      Call.setParam(s, 2, destination); // Destination of branch value
+      Call.setParam(s, 2, destination.copy()); // Destination of branch value
       Call.setParam(s, 3, new OPT_IntConstantOperand(branchType.ordinal())); // Branch type
       Call.setParam(s, 4, new OPT_IntConstantOperand(retAddr)); // return address
       // value
