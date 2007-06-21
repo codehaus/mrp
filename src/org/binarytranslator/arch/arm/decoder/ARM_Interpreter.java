@@ -465,8 +465,12 @@ public class ARM_Interpreter implements Interpreter {
     
     protected final ARM_Instructions.DataProcessing i;
 
+    /** If this bit is set, a special way of reading the program counter is enabled, that is only needed for a single Thumb instruction *sigh*. */
+    private final boolean specialThumbPcMode; 
+
     protected DataProcessing(ARM_Instructions.DataProcessing instr) {
       i = instr;
+      specialThumbPcMode = i.isThumb && !i.updateConditionCodes && i.opcode == Opcode.ADD && i.operand2.getType() == OperandWrapper.Type.Immediate;
     }
     
     @Override
@@ -481,7 +485,7 @@ public class ARM_Interpreter implements Interpreter {
         int value = regs.readPC();
         
         //this is a very special instruction encoding that demands that the PC is read with an ARM32 mask.
-        if (i.isThumb && !i.updateConditionCodes && i.opcode == Opcode.ADD && i.operand2.getType() == OperandWrapper.Type.Immediate)
+        if (specialThumbPcMode)
           value = value & 0xFFFFFFFC;
         
         return value;
@@ -545,7 +549,7 @@ public class ARM_Interpreter implements Interpreter {
     protected final void setFlagsForAdd(int lhs, int rhs) {
 
       if (i.updateConditionCodes) {
-        if (i.Rd != 15) {
+        if (i.Rd != ARM_Registers.PC) {
           int result = lhs + rhs;
           boolean carry = Utils.unsignedAddOverflow(lhs, rhs);
           boolean overflow = Utils.signedAddOverflow(lhs, rhs);
@@ -561,7 +565,7 @@ public class ARM_Interpreter implements Interpreter {
     protected final void setFlagsForSub(int lhs, int rhs) {
 
       if (i.updateConditionCodes) {
-        if (i.Rd != 15) {
+        if (i.Rd != ARM_Registers.PC) {
           int result = lhs - rhs;
           boolean carry = !Utils.unsignedSubOverflow(lhs, rhs);
           boolean overflow = Utils.signedSubOverflow(lhs, rhs);
@@ -578,7 +582,7 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public int getSuccessor(int pc) {
-      if (i.Rd != 15)
+      if (i.Rd != ARM_Registers.PC)
         return pc + i.size();
       else
         return -1;
@@ -614,11 +618,17 @@ public class ARM_Interpreter implements Interpreter {
      * is set, also sets the flags accordingly. */
     protected final void setLogicalResult(int result) {
       
-      if (DBT_Options.profileDuringInterpretation && i.Rd == 15) {        
-        if (i.getOpcode() == Opcode.MOV && i.operand2.getType() == OperandWrapper.Type.Register && i.operand2.getRegister() == ARM_Registers.LR)
-          ps.branchInfo.registerReturn(regs.get(ARM_Registers.PC), result);
-        else
-          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
+      if (i.Rd == ARM_Registers.PC) {
+        
+        if (regs.getThumbMode())
+          result |= 1;
+        
+        if (DBT_Options.profileDuringInterpretation) {        
+          if (i.getOpcode() == Opcode.MOV && i.operand2.getType() == OperandWrapper.Type.Register && i.operand2.getRegister() == ARM_Registers.LR)
+            ps.branchInfo.registerReturn(regs.get(ARM_Registers.PC), result);
+          else
+            ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
+        }
       }
       
       regs.set(i.Rd, result);
@@ -629,7 +639,7 @@ public class ARM_Interpreter implements Interpreter {
     protected final void setFlagsForLogicalOperator(int result) {
       
       if (i.updateConditionCodes) {
-        if (i.Rd != 15) {
+        if (i.Rd != ARM_Registers.PC) {
           regs.setFlags(result < 0, result == 0, shifterCarryOut);
         } else {
           regs.restoreSPSR2CPSR();
@@ -972,9 +982,6 @@ public class ARM_Interpreter implements Interpreter {
     
     private final ARM_Instructions.BlockDataTransfer i;
 
-    /** the lowest address that we're reading a register from / writing a register to */
-    private final int registerCount;
-
     /** An array that contains the registers to be transferd in ascending order. 
      * The list is delimited by setting the entry after the last register index to -1.
      * The PC is not included in this list, if it shall be transferred.  */
@@ -982,11 +989,21 @@ public class ARM_Interpreter implements Interpreter {
 
     /** True if the PC should be transferred to, false otherwise. */
     private final boolean transferPC;
+    
+    /** Offset of the first memory address from the value stoted in the base register. */
+    private final int startAddressOffset;
+    
+    /** After adding this offset to <code>startAddress</code>, the resulting value will be written back into the
+     * base register. */
+    private final int writebackOffset;
+    
+    /** Should writeback be performed? */
+    private final boolean doWriteback;
 
     public BlockDataTransfer(ARM_Instructions.BlockDataTransfer instr) {
       i = instr;
 
-      transferPC = i.transferRegister(15);
+      transferPC = i.transferRegister(ARM_Registers.PC);
       int regCount = 0;
 
       for (int i = 0; i <= 14; i++)
@@ -996,30 +1013,62 @@ public class ARM_Interpreter implements Interpreter {
 
       registersToTransfer[regCount] = -1;
       
-      registerCount = regCount;
-    }
-
-    public void execute() {
-      //build the address, which generally ignores the last two bits
-      int startAddress = regs.get(i.baseRegister) & 0xFFFFFFFC;
+      if (transferPC)
+        regCount++;
       
       if (!i.incrementBase) {
         if (i.postIndexing) {
           //post-indexing, backward reading
-          startAddress -= (registerCount + (transferPC ? 1 : 0)) * 4;
+          startAddressOffset = regCount * -4;
         } else {
           //pre-indexing, backward-reading
-          startAddress -= (registerCount + (transferPC ? 2 : 1)) * 4;
+          startAddressOffset = (regCount + 1) * -4;
         }
       } else {
         if (i.postIndexing) {
           //post-indexing, forward reading
-          startAddress -= 4;
+          startAddressOffset = -4;
         } else {
           //pre-indexing, forward reading
           //no need to adjust the start address
+          startAddressOffset = 0;
         }
       }
+      
+      if (!i.writeBack || i.transferRegister(i.baseRegister)) {
+        //do not change the register
+        doWriteback = false;
+        writebackOffset = 0;
+      }
+      else {
+        doWriteback = true;
+        
+        if (!i.incrementBase) {
+          //backward reading
+          if (i.postIndexing) {
+            //backward reading, post-indexing
+            writebackOffset = 0;
+          }
+          else {
+            //backward reading, pre-indexing
+            writebackOffset = 4;
+          }
+        }
+        else {
+          //forward reading
+          if (i.postIndexing) {
+            writebackOffset = (regCount + 1) * 4;
+          }
+          else {
+            writebackOffset = regCount * 4;
+          }
+        }
+      }
+    }
+
+    public void execute() {
+      //build the address, which generally ignores the last two bits
+      final int startAddress = (regs.get(i.baseRegister) & 0xFFFFFFFC) + startAddressOffset;
       int nextAddress = startAddress;
       
       OperatingMode previousMode = ps.registers.getOperatingMode();
@@ -1041,7 +1090,7 @@ public class ARM_Interpreter implements Interpreter {
               .load32(nextAddress));
         }
 
-        //if we also transferred the program counter
+        //Are we also supposed to transfer the program counter?
         if (transferPC) {
           nextAddress += 4;
           int newpc = ps.memory.load32(nextAddress);
@@ -1095,27 +1144,8 @@ public class ARM_Interpreter implements Interpreter {
         ps.registers.switchOperatingMode(previousMode);
       }
 
-      if (i.writeBack && !i.transferRegister(i.baseRegister)) {
-        //write the last address we read from back to a register
-        if (!i.incrementBase) {
-          //backward reading
-          if (i.postIndexing) {
-            //backward reading, post-indexing
-            nextAddress = startAddress;
-          }
-          else {
-            //backward reading, pre-indexing
-            nextAddress = startAddress + 4;
-          }
-        }
-        else {
-          //forward reading
-          if (i.postIndexing)
-            nextAddress += 4;
-        }
-
-        regs.set(i.baseRegister, nextAddress);
-      }
+      if (doWriteback)
+        regs.set(i.baseRegister, startAddress + writebackOffset);
     }
 
     public Condition getCondition() {
