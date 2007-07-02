@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.binarytranslator.generic.execution.ExecutionController;
+
 /**
  * Options for controlling the emulator
  */
@@ -44,6 +46,8 @@ public class DBT_Options {
 
   /** Instructions to translate for an optimisation level 2 trace */
   public static int instrOpt2 = 1500;
+  
+  public static ExecutionController.Type executionController = ExecutionController.Type.Translator;
 
   /**
    * Favour backward branch optimization. Translate backward branch addresses
@@ -135,42 +139,51 @@ public class DBT_Options {
       catch (NumberFormatException e) {
         throw new Error("Argument " + arg + " is not a valid integer.");
       }
+      catch (Exception e) {
+        throw new Error("Error while parsing argument '" + arg + "'.", e);
+      }
     }
   }
   
-  /**
-   * Parses a single argument into the options class.
-   */
+  /** Parses a single argument into the options class. */
   private static void parseSingleArgument(String arg, String value) {
+    
+    if (!arg.startsWith("-X:dbt:")) {
+      throw new Error("Invalid argument. Argument prefix '-X:dbt:' expected.");
+    }
+    
+    arg = arg.substring(7);
 
-    if (arg.equalsIgnoreCase("-X:dbt:debugInstr")) {
+    if (arg.equalsIgnoreCase("debugInstr")) {
       debugInstr = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:debugRuntime")) {
+    } else if (arg.equalsIgnoreCase("debugRuntime")) {
       debugRuntime = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:debugBranchResolution")) {
+    } else if (arg.equalsIgnoreCase("debugBranchResolution")) {
       debugBranchResolution = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:debugMemory")) {
+    } else if (arg.equalsIgnoreCase("debugMemory")) {
       debugMemory = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscall")) {
+    } else if (arg.equalsIgnoreCase("debugSyscall")) {
       debugSyscall = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:debugSyscallMore")) {
+    } else if (arg.equalsIgnoreCase("debugSyscallMore")) {
       debugSyscallMore = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:instrOpt0")) {
+    } else if (arg.equalsIgnoreCase("instrOpt0")) {
       instrOpt0 = Integer.parseInt(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:instrOpt1")) {
+    } else if (arg.equalsIgnoreCase("instrOpt1")) {
       instrOpt1 = Integer.parseInt(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:instrOpt2")) {
+    } else if (arg.equalsIgnoreCase("instrOpt2")) {
       instrOpt2 = Integer.parseInt(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:singleInstrTranslation")) {
+    } else if (arg.equalsIgnoreCase("singleInstrTranslation")) {
       singleInstrTranslation = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:resolveDirectBranchesFirst")) {
+    } else if (arg.equalsIgnoreCase("resolveDirectBranchesFirst")) {
       resolveDirectBranchesFirst = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:gdbStub")) {
+    } else if (arg.equalsIgnoreCase("gdbStub")) {
       gdbStub = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("-X:dbt:gdbStubPort")) {
+    } else if (arg.equalsIgnoreCase("gdbStubPort")) {
       gdbStubPort = Integer.parseInt(value);
+    } else if (arg.equalsIgnoreCase("controller")) {
+      executionController = ExecutionController.Type.valueOf(value);
     } else {
-      throw new Error("DBT Options: Unknown emulator option " + arg);
+      throw new Error("Unknown DBT option: " + arg);
     }
   }
   

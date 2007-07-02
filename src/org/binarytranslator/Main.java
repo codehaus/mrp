@@ -104,19 +104,30 @@ public class Main {
       System.out.println(ps);
     }
 
-    //Create an execution controller and pass execution on to it
-    ExecutionController controller;
-    
+    //on SUN's VM, only the interpreter has been tested 
     if (DBT_Options.buildForSunVM) {
-      controller = new InterpreterController(ps);
+      DBT_Options.executionController = ExecutionController.Type.Interpreter;
+      
     }
-    else {
-      if (DBT_Options.gdbStub) {
-        controller = new GdbController(DBT_Options.gdbStubPort, ps);
-      }
-      else {
+    
+    //Create an execution controller and pass execution on to it
+    ExecutionController controller = null;
+    
+    switch (DBT_Options.executionController) {
+      case Interpreter:
+        controller = new InterpreterController(ps);
+        break;
+        
+      case Translator:
         controller = new DynamicTranslationController(ps);
-      }
+        break;
+        
+      case GDB:
+        controller = new GdbController(DBT_Options.gdbStubPort, ps);
+        break;
+        
+      default:
+        throw new Error("Unknown requested controller: " + DBT_Options.executionController);
     }
     
     controller.run();
