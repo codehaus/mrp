@@ -23,6 +23,7 @@ import org.jikesrvm.classloader.VM_Class;
 import org.jikesrvm.classloader.VM_MemberReference;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_BytecodeStream;
+import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.runtime.VM_Statics;
 import org.jikesrvm.runtime.VM_DynamicLink;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
@@ -147,8 +148,8 @@ public final class DBT_Trace extends VM_NormalMethod {
   private static final VM_Atom invokeCodeDescriptor;
 
   static {
-    dummyRunner = java.lang.JikesRVMSupport.getTypeForClass(
-        DummyDynamicCodeRunner.class).asClass();
+    dummyRunner = VM_TypeReference.findOrCreate(DummyDynamicCodeRunner.class).resolve().asClass();
+
     VM_Atom memName = VM_Atom.findOrCreateAsciiAtom("invokeCode");
     invokeCodeDescriptor = VM_Atom
         .findOrCreateAsciiAtom("(Lorg/jikesrvm/ArchitectureSpecific$VM_CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
