@@ -8,9 +8,10 @@
  */
 package org.binarytranslator.generic.decoder;
 
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import org.binarytranslator.DBT;
@@ -65,7 +66,7 @@ import org.jikesrvm.compilers.opt.ir.OPT_TypeOperand;
  * The start block branches to a prefill block that loads all the register
  * values</li>
  * <li>Translation starts from the PC value given in the DBT_Trace.</li>
- * <li>Translation translates PPC instructions to HIR using the
+ * <li>Translation translates subject instructions to HIR using the
  * translateInstruction method. This and the derived decoder object contain the
  * utilities required to aid an instruction translation.</li>
  * <li>The trace ends when the branch prediction deems it necessary. The
@@ -86,10 +87,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
   /** Method ProcessSpace.doSysCall */
   public static final VM_Method sysCallMethod;
 
-  /**
-   * VM_TypeReference of
-   * org.binarytranslator.generic.fault.BadInstructionException
-   */
+  /** VM_TypeReference of org.binarytranslator.generic.fault.BadInstructionException */
   public static final VM_Class badInstrKlass;
 
   /** Method BadInstructionException.<init> */
@@ -99,15 +97,13 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
   public static final VM_Method recordUncaughtBranchMethod;
 
   static {
-    psTref = java.lang.JikesRVMSupport.getTypeForClass(ProcessSpace.class)
-        .getTypeRef();
+    psTref = VM_TypeReference.findOrCreate(ProcessSpace.class);
     VM_MethodReference sysCallMethRef = (VM_MethodReference) VM_MemberReference
         .findOrCreate(psTref, VM_Atom.findOrCreateAsciiAtom("doSysCall"),
             VM_Atom.findOrCreateAsciiAtom("()V"));
     sysCallMethod = sysCallMethRef.resolveInvokeSpecial();
 
-    badInstrKlass = java.lang.JikesRVMSupport.getTypeForClass(
-        BadInstructionException.class).asClass();
+    badInstrKlass = VM_TypeReference.findOrCreate(BadInstructionException.class).resolve().asClass();
 
     VM_MethodReference badInstrKlassInitMethRef = (VM_MethodReference) VM_MemberReference
         .findOrCreate(
@@ -174,32 +170,35 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
 
     /** The lazy state at the jump location. */
     public final Laziness lazyStateAtJump;
+    
+    /** Stores the target of the jump instruction or -1, if this value is unknown. */
+    public final int targetPC;
 
-    /** Depending on the type of the branch, this value either stores the address from which the branch
-     * is taken or the target address of the branch. */
+    /** Stores the address, at which the jump occurs*/
     public final int pc;
 
     /** Identifies the type of branch. */
     public final BranchType type;
 
     public UnresolvedJumpInstruction(OPT_Instruction instruction,
-        Laziness lazyStateAtJump, int pc, BranchType type) {
+        Laziness lazyStateAtJump, int pc, int targetPC, BranchType type) {
       this.instruction = instruction;
       this.lazyStateAtJump = lazyStateAtJump;
       this.pc = pc;
       this.type = type;
+      this.targetPC = targetPC;
     }
   }
 
   /**
    * List of unresolved direct branches. The destinations of direct branches are
    * already known at translation time. */
-  private final ArrayList<UnresolvedJumpInstruction> unresolvedDirectBranches;
+  private final List<UnresolvedJumpInstruction> unresolvedDirectBranches;
 
   /**
    * List of unresolved dynamic branches. Dynamics branches have a destination
    * address that is only determined at runtime. */
-  private final ArrayList<UnresolvedJumpInstruction> unresolvedDynamicBranches;
+  private final List<UnresolvedJumpInstruction> unresolvedDynamicBranches;
 
   /**
    * Constructor
@@ -232,8 +231,8 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
     finishBlock = createBlockAfterCurrent();
 
     // Fix up stores
-    unresolvedDirectBranches = new ArrayList<UnresolvedJumpInstruction>();
-    unresolvedDynamicBranches = new ArrayList<UnresolvedJumpInstruction>();
+    unresolvedDirectBranches = new LinkedList<UnresolvedJumpInstruction>();
+    unresolvedDynamicBranches = new LinkedList<UnresolvedJumpInstruction>();
   }
 
   /** Returns the number of previously translated instructions within this trace. */
@@ -258,21 +257,15 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
     // Translate from the current program counter
     translateSubTrace(createInitialLaziness(), currentPC);
 
-    // Translating the subtrace finished so resolve any unresolved
-    // branches
-    /*if (!DBT_Options.resolveDirectBranchesFirst) {
-      resolveAllDynamicBranchTargets();
-    }*/
+    // Translating the subtrace finished so resolve any unresolved branches
+    
+    while (unresolvedDirectBranches.size() > 0 || unresolvedDynamicBranches.size() > 0) {
+      // Resolve all open direct branches first
+      resolveAllDirectBranches();
 
-    // Resolve all open direct branches first
-    resolveAllDirectBranches();
-
-    /*if (DBT_Options.resolveDirectBranchesFirst) {
-      resolveAllDynamicBranchTargets();
-    }*/
-
-    // Resolve unresolved dynamic jumps
-    resolveDynamicBranches();
+      // Resolve unresolved dynamic jumps
+      resolveAllDynamicBranches();
+    }
 
     // Finish up the trace
     finishTrace();
@@ -296,6 +289,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    */
   private void translateSubTrace(Laziness lazy, int pc) {
     currentPC = pc;
+    
     if (shallTraceStop()) {
       // Record mapping of this pc value and laziness to this block
       registerMapping(pc, lazy, currentBlock);
@@ -597,7 +591,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
     OPT_Instruction jump = Goto.create(GOTO, null);
     appendInstruction(jump);
     UnresolvedJumpInstruction unresolvedJump = new UnresolvedJumpInstruction(
-        jump, (Laziness) targetLaziness.clone(), targetPC, BranchType.CALL);
+        jump, (Laziness) targetLaziness.clone(), currentPC, targetPC, BranchType.CALL);
     unresolvedDirectBranches.add(unresolvedJump);
     
     if (branchType == BranchType.CALL)
@@ -664,7 +658,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
     switchInstr = LookupSwitch.create(LOOKUPSWITCH, targetAddress.copyRO(), null, null, fallThrough.makeJumpTarget(), null, 0);
     appendInstruction(switchInstr);
     
-    UnresolvedJumpInstruction unresolvedInfo = new UnresolvedJumpInstruction(switchInstr, (Laziness)lazyStateAtJump.clone(), currentPC, branchType);
+    UnresolvedJumpInstruction unresolvedInfo = new UnresolvedJumpInstruction(switchInstr, (Laziness)lazyStateAtJump.clone(), currentPC, -1, branchType);
     unresolvedDynamicBranches.add(unresolvedInfo);
 
     setCurrentBlock(fallThrough);
@@ -676,18 +670,18 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
   /** Resolve all unresolved direct branch instructions. */
   private void resolveAllDirectBranches() {
 
-    for (int i = 0; i < unresolvedDirectBranches.size(); i++) {
+    while (unresolvedDirectBranches.size() > 0) {
 
       // Get the jump that we're supposed to resolve
-      UnresolvedJumpInstruction unresolvedInstr = unresolvedDirectBranches.get(i);
-      int targetPc = unresolvedInstr.pc;
+      UnresolvedJumpInstruction unresolvedInstr = unresolvedDirectBranches.remove(0);
+      int targetPc = unresolvedInstr.targetPC;
       Laziness lazyStateAtJump = unresolvedInstr.lazyStateAtJump;
       OPT_Instruction gotoInstr = unresolvedInstr.instruction;
 
       if (DBT.VerifyAssertions)
         DBT._assert(Goto.conforms(gotoInstr));
 
-      OPT_BasicBlock targetBB = resolveBranchTarget(targetPc, lazyStateAtJump, unresolvedInstr.type);
+      OPT_BasicBlock targetBB = resolveBranchTarget(targetPc, unresolvedInstr);
 
       if (DBT_Options.debugBranchResolution) {
         report("Resolved goto in block " + gotoInstr.getBasicBlock()
@@ -698,8 +692,33 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
       Goto.setTarget(gotoInstr, targetBB.makeJumpTarget());
       gotoInstr.getBasicBlock().insertOut(targetBB);
     }
-    
-    unresolvedDirectBranches.clear();
+  }
+  
+  /**
+   * This function is being called to decide whether a branch to <code>targetPc</code> (caused by the 
+   * jump instruction <code>jump</code>) shall be inlined into the trace. This function is only called when
+   * the jump target is not part of the current trace anyway.
+   * 
+   * This function may be overriden to fine-tune whether certain branches shall be inlined or not.
+   * 
+   * @param targetPc
+   *  The address that we're jumping to.
+   * @param jump
+   *  Detailled information describing the jump.
+   * @return
+   *  True to make the system inline the target of this branch, false otherwise.
+   */
+  protected boolean inlineBranchInstruction(int targetPc, UnresolvedJumpInstruction jump) {
+    /*
+     * The target Block is not yet translated. We do not want to inline it
+     * into the current trace if a) DBT_Options.singleInstrTranslation is
+     * enabled b) The jump target has already been compiled as a separate method
+     * within the code cache c) The trace is already too long d) the branch is
+     * supposedly a CALL or RETURN
+     */
+    return DBT_Options.singleInstrTranslation == false
+           && ps.codeCache.tryGet(targetPc) == null && !shallTraceStop()
+           && jump.type != BranchType.CALL && jump.type != BranchType.RETURN;
   }
 
   /**
@@ -713,31 +732,21 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    * 
    * @param targetPc
    *          The address of the target basic block that.
-   * @param lazyStateAtJump
-   *          The lazy state with which we would be entering the block.
+   * @param jump
+   *          The branch instruction that we are trying to resolve.
    * @return A basic block that is equivalent to the program counter address
    *         <code>targetPc</code> in the original binary.
    */
-  private OPT_BasicBlock resolveBranchTarget(int targetPc,
-      Laziness lazyStateAtJump, BranchType branchtype) {
+  private OPT_BasicBlock resolveBranchTarget(int targetPc, UnresolvedJumpInstruction jump) {
     // Resolve the address of the target block
-    OPT_BasicBlock targetBB = findMapping(targetPc, lazyStateAtJump);
+    OPT_BasicBlock targetBB = findMapping(targetPc, jump.lazyStateAtJump);
 
     // If the target is already part of this trace, then just use the
     // precompiled target
     if (targetBB != null)
       return targetBB;
 
-    /*
-     * The target Block is not yet translated. We do not want to translate it
-     * into the current trace if a) DBT_Options.singleInstrTranslation is
-     * enabled b) The jump target has already been compiled as a separate method
-     * within the code cache c) The trace is already too long d) the branch is
-     * supposedly a CALL or RETURN
-     */
-    if (DBT_Options.singleInstrTranslation == true
-        || ps.codeCache.tryGet(targetPc) != null || shallTraceStop()
-        || branchtype == BranchType.CALL || branchtype == BranchType.RETURN) {
+    if (inlineBranchInstruction(targetPc, jump)) {
 
       // Just exit the trace and continue at the target address in a new trace
       if (currentBlock.getNumberOfRealInstructions() != 0) {
@@ -748,12 +757,12 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
       }
 
       targetBB = currentBlock;
-      appendTraceExit(lazyStateAtJump, new OPT_IntConstantOperand(targetPc));
-      registerMapping(targetPc, lazyStateAtJump, targetBB);
+      appendTraceExit(jump.lazyStateAtJump, new OPT_IntConstantOperand(targetPc));
+      registerMapping(targetPc, jump.lazyStateAtJump, targetBB);
     } else {
       // Otherwise we will translate the jump into the trace
-      translateSubTrace((Laziness) lazyStateAtJump.clone(), targetPc);
-      targetBB = findMapping(targetPc, lazyStateAtJump);
+      translateSubTrace((Laziness) jump.lazyStateAtJump.clone(), targetPc);
+      targetBB = findMapping(targetPc, jump.lazyStateAtJump);
     }
 
     if (DBT.VerifyAssertions)
@@ -766,18 +775,15 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    * Resolves all dynamic branches that have been added with
    * {@link #appendBranch(OPT_RegisterOperand, Laziness, BranchType)}.
    */
-  private void resolveDynamicBranches() {
+  private void resolveAllDynamicBranches() {
 
-    for (int i = 0; i < unresolvedDynamicBranches.size(); i++) {
+    while (unresolvedDynamicBranches.size() > 0) {
 
-      UnresolvedJumpInstruction unresolvedSwitch = unresolvedDynamicBranches
-          .get(i);
+      UnresolvedJumpInstruction unresolvedSwitch = unresolvedDynamicBranches.remove(0);
       Set<Integer> branchDests = getLikelyJumpTargets(unresolvedSwitch.pc);
 
       resolveSingleDynamicJump(unresolvedSwitch, branchDests);
     }
-    
-    unresolvedDynamicBranches.clear();
   }
 
   /**
@@ -815,8 +821,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
         int match_no = 0;
         for (int dest_pc : destinations) {
 
-          OPT_BasicBlock target = resolveBranchTarget(dest_pc,
-              unresolvedJump.lazyStateAtJump, unresolvedJump.type);
+          OPT_BasicBlock target = resolveBranchTarget(dest_pc, unresolvedJump);
 
           LookupSwitch.setMatch(lookupswitch, match_no,
               new OPT_IntConstantOperand(dest_pc));
@@ -830,8 +835,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
       } else {
         int dest_pc = destinations.iterator().next();
 
-        OPT_BasicBlock target = resolveBranchTarget(dest_pc,
-            unresolvedJump.lazyStateAtJump, unresolvedJump.type);
+        OPT_BasicBlock target = resolveBranchTarget(dest_pc, unresolvedJump);
 
         IfCmp.mutate(lookupswitch, INT_IFCMP, null, value,
             new OPT_IntConstantOperand(dest_pc), OPT_ConditionOperand.EQUAL(),
