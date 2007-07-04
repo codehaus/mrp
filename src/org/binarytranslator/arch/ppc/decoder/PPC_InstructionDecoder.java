@@ -11704,7 +11704,7 @@ final class bc_decoder extends PPC_InstructionDecoder {
     }
     
     if (LK == 0)
-      ppc2ir.appendBranch(target_address, lazy, BranchType.DIRECT_BRANCH);
+      ppc2ir.appendBranch(target_address, lazy);
     else
       ppc2ir.appendCall(target_address, lazy, pc + 4);
 
@@ -11727,7 +11727,7 @@ final class bc_decoder extends PPC_InstructionDecoder {
           ppc2ir.setCurrentBlock(instructionEndBlock);
           ppc2ir.setNextBlock(ppc2ir.createBlockAfterCurrent());
 
-          ppc2ir.appendBranch(pc + 4, lazy, BranchType.DIRECT_BRANCH);
+          ppc2ir.appendBranch(pc + 4, lazy);
           return target_address;
         }
       }

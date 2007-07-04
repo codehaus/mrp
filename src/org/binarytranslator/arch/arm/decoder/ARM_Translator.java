@@ -833,8 +833,8 @@ public class ARM_Translator implements OPT_Operators {
         
         default:
           throw new RuntimeException("Unexpected condition code: " + condition);
-      }
-
+      }     
+      
       arm2ir.setCurrentBlock(condBlock);
       conditionalInstruction.translate();
     }
@@ -1773,7 +1773,7 @@ public class ARM_Translator implements OPT_Operators {
         }
         else {
           //just branch and never return from it
-          arm2ir.appendBranch(destination, lazy, BranchType.DIRECT_BRANCH);
+          arm2ir.appendBranch(destination, lazy);
           arm2ir.getCurrentBlock().deleteNormalOut();
         }
       }
@@ -1798,7 +1798,6 @@ public class ARM_Translator implements OPT_Operators {
           arm2ir.getCurrentBlock().deleteNormalOut();
         }
       }
-
     }
     
     public Condition getCondition() {

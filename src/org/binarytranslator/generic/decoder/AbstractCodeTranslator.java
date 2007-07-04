@@ -34,6 +34,7 @@ import org.jikesrvm.compilers.opt.ir.BBend;
 import org.jikesrvm.compilers.opt.ir.Call;
 import org.jikesrvm.compilers.opt.ir.Goto;
 import org.jikesrvm.compilers.opt.ir.IfCmp;
+import org.jikesrvm.compilers.opt.ir.IfCmp2;
 import org.jikesrvm.compilers.opt.ir.LookupSwitch;
 import org.jikesrvm.compilers.opt.ir.Move;
 import org.jikesrvm.compilers.opt.ir.New;
@@ -559,13 +560,25 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    *          The address where we shall jump to.
    * @param targetLaziness
    *          The current at the point of jump.
-   * @param branchType
-   *          The type of branch that best describes this jump.
    */
-  public void appendBranch(int targetPC, Laziness targetLaziness, BranchType branchType) {
+  public void appendBranch(int targetPC, Laziness targetLaziness) {
+        
+    appendStaticBranch(Goto.create(GOTO, null), targetPC, targetLaziness, BranchType.DIRECT_BRANCH, -1);
+  }
+  
+  /**
+   * Appends the conditional branch instruction <code>conditional</code> that jumps to the address
+   * <code>targetPc</code> to the current block. 
+   * 
+   * @param targetPC
+   *          The address where we shall jump to.
+   * @param targetLaziness
+   *          The current at the point of jump.
+   */
+  public void appendConditionalBranch(OPT_Instruction conditional, int targetPC, Laziness targetLaziness) {
     
-    if (DBT.VerifyAssertions && branchType == BranchType.CALL) throw new RuntimeException("Use the more specific appendCall to create dynamic calls.");    
-    appendStaticBranch(targetPC, targetLaziness, branchType, -1);
+    if (DBT.VerifyAssertions) DBT._assert(IfCmp.conforms(conditional) || IfCmp2.conforms(conditional));
+    appendStaticBranch(conditional, targetPC, targetLaziness, BranchType.DIRECT_BRANCH, -1);
   }
   
   /**
@@ -582,16 +595,15 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    */
   public void appendCall(int targetPC, Laziness targetLaziness, int retAddr) {
 
-    appendStaticBranch(targetPC, targetLaziness, BranchType.CALL, retAddr);
+    appendStaticBranch(Goto.create(GOTO, null), targetPC, targetLaziness, BranchType.CALL, retAddr);
   }
 
-  private void appendStaticBranch(int targetPC, Laziness targetLaziness, BranchType branchType, int retAddr) {
+  private void appendStaticBranch(OPT_Instruction branch, int targetPC, Laziness targetLaziness, BranchType branchType, int retAddr) {
     // Place a GOTO instruction at this point. However, this instruction
     // serves more as a placeholder and might be mutated later on.
-    OPT_Instruction jump = Goto.create(GOTO, null);
-    appendInstruction(jump);
+    appendInstruction(branch);
     UnresolvedJumpInstruction unresolvedJump = new UnresolvedJumpInstruction(
-        jump, (Laziness) targetLaziness.clone(), currentPC, targetPC, BranchType.CALL);
+        branch, (Laziness) targetLaziness.clone(), currentPC, targetPC, BranchType.CALL);
     unresolvedDirectBranches.add(unresolvedJump);
     
     if (branchType == BranchType.CALL)
@@ -677,10 +689,6 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
       int targetPc = unresolvedInstr.targetPC;
       Laziness lazyStateAtJump = unresolvedInstr.lazyStateAtJump;
       OPT_Instruction gotoInstr = unresolvedInstr.instruction;
-
-      if (DBT.VerifyAssertions)
-        DBT._assert(Goto.conforms(gotoInstr));
-
       OPT_BasicBlock targetBB = resolveBranchTarget(targetPc, unresolvedInstr);
 
       if (DBT_Options.debugBranchResolution) {
@@ -688,9 +696,28 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
             + " to " + lazyStateAtJump.makeKey(targetPc) + " " + targetBB);
       }
 
-      // Fix up instruction
-      Goto.setTarget(gotoInstr, targetBB.makeJumpTarget());
+      // Fix up instruction      
+      setBranchTarget(gotoInstr, targetBB.makeJumpTarget());
       gotoInstr.getBasicBlock().insertOut(targetBB);
+    }
+  }
+  
+  /**
+   * Sets the target of the branching instruction <code>branch</code> to <code>target</code>. 
+   * @param branch
+   *  A branching instruction. Either a Goto or  
+   * @param target
+   *  The jump target.
+   */
+  private void setBranchTarget(OPT_Instruction branch, OPT_BranchOperand target) {
+    if (Goto.conforms(branch)) {
+      Goto.setTarget(branch, target);
+    }
+    else if (IfCmp.conforms(branch)) {
+      IfCmp.setTarget(branch, target);
+    }
+    else if (IfCmp2.conforms(branch)) {
+      IfCmp2.setTarget1(branch, target);
     }
   }
   

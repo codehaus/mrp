@@ -4035,7 +4035,7 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
     translationHelper.appendInstruction(gotoInstr);
     
     translationHelper.setCurrentBlock(executeBranch);
-    translationHelper.appendBranch(target_address, lazy, BranchType.DIRECT_BRANCH);
+    translationHelper.appendBranch(target_address, lazy);
     
     translationHelper.setCurrentBlock(fallThrough);
     return pc + length;
@@ -4169,7 +4169,7 @@ class X86_Jmp_OpcodeDecoder extends X86_OpcodeDecoder {
     if (modrm == null) {
       target_address = absolute ? immediate : pc + length + immediate;
       translationHelper.getCurrentBlock().deleteNormalOut();
-      translationHelper.appendBranch(target_address, lazy, BranchType.DIRECT_BRANCH);
+      translationHelper.appendBranch(target_address, lazy);
     } else {
       int operandSize;
       if (prefix3 == null) {
