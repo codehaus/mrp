@@ -21,7 +21,7 @@ import org.binarytranslator.generic.execution.ExecutionController;
 public class DBT_Options {
   
   /** Remove features that will only work on jikes? */
-  public final static boolean buildForSunVM = false;
+  public final static boolean buildForSunVM = true;
   
   /** Enable the profiling of application during interpretation? */
   public final static boolean profileDuringInterpretation = true;
@@ -47,6 +47,7 @@ public class DBT_Options {
   /** Instructions to translate for an optimisation level 2 trace */
   public static int instrOpt2 = 1500;
   
+  /** Determines how the program will be run (i.e. interpreted, translated etc.) */
   public static ExecutionController.Type executionController = ExecutionController.Type.Translator;
 
   /**

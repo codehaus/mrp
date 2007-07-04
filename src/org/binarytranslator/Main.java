@@ -10,6 +10,7 @@ package org.binarytranslator;
 
 import java.io.File;
 
+import org.binarytranslator.generic.execution.PredecodingThreadedInterpreter;
 import org.binarytranslator.generic.execution.DynamicTranslationController;
 import org.binarytranslator.generic.execution.ExecutionController;
 import org.binarytranslator.generic.execution.GdbController;
@@ -106,7 +107,7 @@ public class Main {
 
     //on SUN's VM, only the interpreter has been tested 
     if (DBT_Options.buildForSunVM) {
-      DBT_Options.executionController = ExecutionController.Type.Interpreter;
+      DBT_Options.executionController = ExecutionController.Type.PredecodingThreadedInterpreter;
       
     }
     
@@ -114,6 +115,11 @@ public class Main {
     ExecutionController controller = null;
     
     switch (DBT_Options.executionController) {
+    
+      case PredecodingThreadedInterpreter:
+        controller = new PredecodingThreadedInterpreter(ps); //new PredecodingThreadedInterpreter(ps);
+      break;
+      
       case Interpreter:
         controller = new InterpreterController(ps);
         break;
