@@ -8,7 +8,7 @@ public abstract class ExecutionController {
   public enum Type {
     Translator,
     Interpreter,
-    PredecodingThreadedInterpreter,
+    PredecodingInterpreter,
     GDB
   }
   

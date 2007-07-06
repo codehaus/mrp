@@ -11,8 +11,8 @@ package org.binarytranslator.arch.ppc.decoder;
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
-import org.binarytranslator.generic.branch.BranchLogic;
-import org.binarytranslator.generic.branch.BranchLogic.BranchType;
+import org.binarytranslator.generic.branchprofile.BranchProfile;
+import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.Binary;
@@ -4026,7 +4026,7 @@ final class bclr_decoder extends PPC_InstructionDecoder {
       branchAddress = ppc2ir.getLRRegister();
     }
     
-    ppc2ir.appendBranch(branchAddress, lazy, BranchLogic.BranchType.RETURN);
+    ppc2ir.appendBranch(branchAddress, lazy, BranchProfile.BranchType.RETURN);
 
     // stop translation on branch always
     if (BO == 0x14) {

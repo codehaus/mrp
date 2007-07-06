@@ -6,7 +6,7 @@
  *
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
-package org.binarytranslator.generic.branch;
+package org.binarytranslator.generic.branchprofile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,7 +36,7 @@ import org.xml.sax.SAXException;
  * Object capturing branches and jumps so that traces can avoid terminating on
  * branches whose destinations aren't known
  */
-public class BranchLogic {
+public class BranchProfile {
   
   public enum BranchType {
     INDIRECT_BRANCH,
@@ -52,14 +52,14 @@ public class BranchLogic {
   private final SortedMap<Integer, Set<Integer>> branchSitesAndDestinations;
 
   /** Global branch information */
-  private static BranchLogic global;
+  private static BranchProfile global;
 
   /**
    * Constructor has 2 functions: (1) when making a local trace we don't want to
    * consider as many procedure return points as may be known for the full
    * program. (2) making sure switch like branches are all recorded globally
    */
-  public BranchLogic() {
+  public BranchProfile() {
     if (global == null) {
       global = this;
       branchSitesAndDestinations = new TreeMap<Integer, Set<Integer>>();

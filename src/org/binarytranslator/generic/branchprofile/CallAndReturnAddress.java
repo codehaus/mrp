@@ -6,7 +6,7 @@
  *
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
-package org.binarytranslator.generic.branch;
+package org.binarytranslator.generic.branchprofile;
 
 /**
  * Object for recording a call site and its corresponding return address

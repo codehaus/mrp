@@ -3,15 +3,14 @@ package org.binarytranslator.generic.execution;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
 public final class PredecodingThreadedInterpreter extends ExecutionController {
-  private HashMap<Integer, List<Interpreter.Instruction>> traceCache = new HashMap<Integer, List<Interpreter.Instruction>>();
-  private Interpreter interpreter;
+  private final HashMap<Integer, List<Interpreter.Instruction>> traceCache = new HashMap<Integer, List<Interpreter.Instruction>>();
+  private final Interpreter interpreter;
   
   private List<Interpreter.Instruction> getTrace(int pc) {
     List<Interpreter.Instruction> cachedTrace = traceCache.get(pc);
@@ -58,11 +57,11 @@ public final class PredecodingThreadedInterpreter extends ExecutionController {
   
   public PredecodingThreadedInterpreter(ProcessSpace ps) {
     super(ps);
+    interpreter = ps.createInstructionInterpreter();
   }
 
   @Override
   public void run() {
-    interpreter = ps.createInstructionInterpreter();
     int pc = ps.getCurrentInstructionAddress();
 
     while (!ps.finished) {

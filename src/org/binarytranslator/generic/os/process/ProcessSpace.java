@@ -14,8 +14,8 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
-import org.binarytranslator.generic.branch.BranchLogic;
-import org.binarytranslator.generic.branch.BranchLogic.BranchType;
+import org.binarytranslator.generic.branchprofile.BranchProfile;
+import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.binarytranslator.generic.decoder.CodeCache;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
@@ -33,7 +33,7 @@ import org.vmmagic.pragma.Uninterruptible;
 public abstract class ProcessSpace {
 
   /** A record of branches to guide translation */
-  public final BranchLogic branchInfo;
+  public final BranchProfile branchInfo;
 
   /** Has a system call been called to terminate the process? */
   public boolean finished = false;
@@ -123,7 +123,7 @@ public abstract class ProcessSpace {
    * Constructor
    */
   protected ProcessSpace() {
-    branchInfo = new BranchLogic();
+    branchInfo = new BranchProfile();
     codeCache = new CodeCache();
   }
   

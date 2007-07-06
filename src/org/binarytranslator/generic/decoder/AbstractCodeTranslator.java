@@ -16,7 +16,7 @@ import java.util.Set;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
-import org.binarytranslator.generic.branch.BranchLogic.BranchType;
+import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.binarytranslator.generic.decoder.Laziness.Key;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;

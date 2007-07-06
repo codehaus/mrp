@@ -6,7 +6,7 @@
  *
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
-package org.binarytranslator.generic.branch;
+package org.binarytranslator.generic.branchprofile;
 
 import java.util.HashSet;
 import java.util.Comparator;

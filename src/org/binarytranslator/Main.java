@@ -107,7 +107,7 @@ public class Main {
 
     //on SUN's VM, only the interpreter has been tested 
     if (DBT_Options.buildForSunVM) {
-      DBT_Options.executionController = ExecutionController.Type.PredecodingThreadedInterpreter;
+      DBT_Options.executionController = ExecutionController.Type.PredecodingInterpreter;
       
     }
     
@@ -116,7 +116,7 @@ public class Main {
     
     switch (DBT_Options.executionController) {
     
-      case PredecodingThreadedInterpreter:
+      case PredecodingInterpreter:
         controller = new PredecodingThreadedInterpreter(ps); //new PredecodingThreadedInterpreter(ps);
       break;
       

@@ -9,7 +9,7 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condit
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
-import org.binarytranslator.generic.branch.BranchLogic.BranchType;
+import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_MemberReference;
 import org.jikesrvm.classloader.VM_Method;

@@ -21,7 +21,7 @@ import org.binarytranslator.generic.execution.ExecutionController;
 public class DBT_Options {
   
   /** Remove features that will only work on jikes? */
-  public final static boolean buildForSunVM = true;
+  public final static boolean buildForSunVM = false;
   
   /** Enable the profiling of application during interpretation? */
   public final static boolean profileDuringInterpretation = true;
