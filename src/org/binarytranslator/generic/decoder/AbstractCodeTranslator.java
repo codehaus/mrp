@@ -1141,6 +1141,8 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    *          a hint to allow for reuse of temps across instructions
    */
   public OPT_RegisterOperand getTempInt(int num) {
+    if (DBT.VerifyAssertions) DBT._assert(num < 10);
+    
     if (intTemps == null) {
       intTemps = new OPT_Register[10];
     }
@@ -1164,10 +1166,14 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    *          a hint to allow for reuse of temps across instructions
    */
   public OPT_RegisterOperand getTempLong(int num) {
+    if (DBT.VerifyAssertions) DBT._assert(num < 10);
+    
     if (longTemps == null) {
       longTemps = new OPT_Register[10];
     }
+    
     OPT_Register result = longTemps[num];
+    
     if (result == null) {
       OPT_RegisterOperand regOp = gc.temps.makeTempLong();
       longTemps[num] = regOp.register;
@@ -1211,7 +1217,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    */
   public OPT_RegisterOperand getTempFloat(int num) {
     if (DBT.VerifyAssertions)
-      DBT._assert((num == 0) || (num == 1));
+      DBT._assert(num == 0 || num == 1);
     if (floatTemps == null) {
       floatTemps = new OPT_Register[2];
     }
@@ -1237,6 +1243,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
   public OPT_RegisterOperand getTempDouble(int num) {
     if (DBT.VerifyAssertions)
       DBT._assert(num == 0);
+    
     OPT_Register result = doubleTemp;
     if (result == null) {
       OPT_RegisterOperand regOp = gc.temps.makeTempDouble();

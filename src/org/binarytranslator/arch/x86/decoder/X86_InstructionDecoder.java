@@ -13,7 +13,6 @@ import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.binarytranslator.generic.decoder.InstructionDecoder;
-import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;

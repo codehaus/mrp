@@ -12,7 +12,6 @@ import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
-import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls.SystemCall;
 
 /**
  * Linux system call handling class
