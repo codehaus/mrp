@@ -16,6 +16,7 @@ import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.generic.branchprofile.BranchProfile;
 import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.CodeCache;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
@@ -23,7 +24,6 @@ import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.vmmagic.pragma.Uninterruptible;
 
 /**
@@ -69,9 +69,20 @@ public abstract class ProcessSpace {
    * @param trace 
    * @return a HIR generator
    */
-
-  public abstract OPT_HIRGenerator createHIRGenerator(
-      OPT_GenerationContext context, DBT_Trace trace);
+  public abstract CodeTranslator createTranslator(
+      OPT_GenerationContext context, DBT_Trace trace) throws UnsupportedOperationException ;
+  
+  /** 
+   * Returns an instance of {@link Interpreter} that can be used to interpret instructions
+   * for this process space. 
+   * */
+  public Interpreter createInterpreter() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException();
+  }
+  
+  /** Return a string disassembly of the instuction at the given address*/
+  @Uninterruptible
+  public abstract String disassembleInstruction(int pc) throws UnsupportedOperationException ;
 
   /**
    * Given an ELF binary loader, create the appropriate process space
@@ -126,12 +137,6 @@ public abstract class ProcessSpace {
     branchInfo = new BranchProfile();
     codeCache = new CodeCache();
   }
-  
-  /** Returns an instance of {@link Interpreter} that can be used to interpret instructions
-   * for this process space. */
-  public Interpreter createInstructionInterpreter() throws UnsupportedOperationException {
-    throw new UnsupportedOperationException();
-  }
 
   /** Record a branch instruction */
   public void recordUncaughtBranch(int location, int destination, int code, int returnAddress) {
@@ -161,10 +166,6 @@ public abstract class ProcessSpace {
 
   /** Sets the current instruction's address */
   public abstract void setCurrentInstructionAddress(int pc);
-
-  /** Return a string disassembly of the instuction at the given address*/
-  @Uninterruptible
-  public abstract String disassembleInstruction(int pc);
 
   /** Return as an integer the current instruction's address*/
   public abstract int getCurrentStackAddress();

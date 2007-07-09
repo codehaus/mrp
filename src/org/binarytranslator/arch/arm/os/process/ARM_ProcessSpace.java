@@ -7,13 +7,13 @@ import org.binarytranslator.arch.arm.decoder.ARM_Disassembler;
 import org.binarytranslator.arch.arm.decoder.ARM_Interpreter;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.vmmagic.pragma.Uninterruptible;
 
 public abstract class ARM_ProcessSpace extends ProcessSpace {
@@ -49,7 +49,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
-  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context, DBT_Trace trace) {
+  public CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) {
     return new ARM2IR(context, trace);
   }
 
@@ -73,7 +73,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   }
   
   @Override
-  public Interpreter createInstructionInterpreter() throws UnsupportedOperationException {
+  public Interpreter createInterpreter() throws UnsupportedOperationException {
     return new ARM_Interpreter(this);
   }
 

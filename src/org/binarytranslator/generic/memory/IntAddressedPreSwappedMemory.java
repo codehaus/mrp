@@ -17,7 +17,7 @@ import org.jikesrvm.compilers.opt.ir.*;
 
 import java.io.RandomAccessFile;
 
-import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.memory.IntAddressedMemory;
 
 /**
@@ -376,7 +376,7 @@ public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
    * Generate memory prologue,... for the beignning of a trace. e.g. Loading the
    * page table into a register
    */
-  public void initTranslate(AbstractCodeTranslator helper) {
+  public void initTranslate(CodeTranslator helper) {
     super.initTranslate(helper);
     vpnReg = helper.makeTemp(VM_TypeReference.Int).register;
     offsetReg = helper.makeTemp(VM_TypeReference.Int).register;

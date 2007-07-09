@@ -12,7 +12,6 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
-import org.binarytranslator.generic.decoder.InstructionDecoder;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
@@ -22,7 +21,7 @@ import static org.jikesrvm.compilers.opt.ir.OPT_Operators.*;
 /**
  * Decoder for X86 instructions
  */
-public class X86_InstructionDecoder extends InstructionDecoder {
+public class X86_InstructionDecoder extends X86_AbstractInstructionDecoder {
 
   /*
    * Process defaults
@@ -711,7 +710,7 @@ public class X86_InstructionDecoder extends InstructionDecoder {
    *          instruction and instruction address
    * @return the next instruction interpreter
    */
-  public InstructionDecoder interpret(ProcessSpace ps, int pc)
+  public X86_AbstractInstructionDecoder interpret(ProcessSpace ps, int pc)
       throws BadInstructionException {
     X86_InstructionDecoder decoder = getDecoder(ps, pc);
     System.err.println("Attempt to interpret " + decoder.disassemble(ps, pc));

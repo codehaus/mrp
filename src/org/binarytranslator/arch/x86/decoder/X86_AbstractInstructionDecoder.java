@@ -6,16 +6,17 @@
  *
  * (C) Copyright Ian Rogers, The University of Manchester 2003-2006
  */
-package org.binarytranslator.generic.decoder;
+package org.binarytranslator.arch.x86.decoder;
 
 import org.binarytranslator.generic.os.process.ProcessSpace;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.fault.BadInstructionException;
 
 /**
  * A decoder is a class capable of translating, interpretting or disassembling
  * an instruction
  */
-public abstract class InstructionDecoder {
+public abstract class X86_AbstractInstructionDecoder {
   /**
    * Translate a single instruction
    * 
@@ -28,7 +29,7 @@ public abstract class InstructionDecoder {
    * @return the address of the next instruction or -1 if this instruction has
    *         branched to the end of the trace
    */
-  public int translate(AbstractCodeTranslator translationHelper, ProcessSpace ps,
+  public int translate(CodeTranslator translationHelper, ProcessSpace ps,
       Object lazy, int pc) {
     throw new Error("TODO");
   }
@@ -41,7 +42,7 @@ public abstract class InstructionDecoder {
    *          instruction and instruction address
    * @return the next instruction interpreter
    */
-  public InstructionDecoder interpret(ProcessSpace ps)
+  public X86_AbstractInstructionDecoder interpret(ProcessSpace ps)
       throws BadInstructionException {
     throw new Error("TODO");
   }

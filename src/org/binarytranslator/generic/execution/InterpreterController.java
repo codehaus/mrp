@@ -11,7 +11,7 @@ public class InterpreterController extends ExecutionController {
 
   @Override
   public void run() {
-    Interpreter interpreter = ps.createInstructionInterpreter();
+    Interpreter interpreter = ps.createInterpreter();
     
     int pc = ps.getCurrentInstructionAddress();
 

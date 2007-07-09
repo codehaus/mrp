@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.os.process.PPC_ProcessSpace;
-import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.binarytranslator.vmInterface.DBT_Trace;
@@ -42,7 +42,7 @@ import org.jikesrvm.compilers.opt.ir.PutField;
  * 
  * @author Richard Matley, Ian Rogers
  */
-public final class PPC2IR extends AbstractCodeTranslator implements OPT_HIRGenerator,
+public final class PPC2IR extends CodeTranslator implements OPT_HIRGenerator,
     OPT_Operators, OPT_Constants {
 
   // -oO Caches of references to process space entities Oo-

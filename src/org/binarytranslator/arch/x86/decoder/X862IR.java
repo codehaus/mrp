@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.x86.os.process.X86_ProcessSpace;
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
-import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.binarytranslator.vmInterface.DBT_Trace;
@@ -25,7 +25,7 @@ import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.OPT_Constants;
 import org.jikesrvm.compilers.opt.ir.*;
 
-public class X862IR extends AbstractCodeTranslator implements OPT_HIRGenerator,
+public class X862IR extends CodeTranslator implements OPT_HIRGenerator,
     OPT_Operators, OPT_Constants {
 
   private static final VM_TypeReference  psTref;

@@ -6,7 +6,7 @@ import org.binarytranslator.DBT;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
-import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.classloader.VM_Atom;
@@ -17,7 +17,7 @@ import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.ir.*;
 
-public class ARM2IR extends AbstractCodeTranslator implements OPT_HIRGenerator {
+public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
 
   /** Mapping of ARM registers to HIR registers */
   private OPT_Register regMap[] = new OPT_Register[16];

@@ -14,6 +14,7 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.ppc.decoder.PPC2IR;
 import org.binarytranslator.arch.ppc.decoder.PPC_InstructionDecoder;
 import org.binarytranslator.arch.ppc.os.process.linux.PPC_LinuxProcessSpace;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.memory.ByteAddressedByteSwapMemory;
@@ -22,7 +23,6 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.jikesrvm.ppc.PPC_Disassembler;
 import org.vmmagic.pragma.Uninterruptible;
 
@@ -140,7 +140,7 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
-  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context, DBT_Trace trace) {
+  public CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) {
     return new PPC2IR(context, trace);
   }
 

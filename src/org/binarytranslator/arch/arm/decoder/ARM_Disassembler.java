@@ -21,6 +21,7 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.UndefinedInstructi
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.generic.decoder.DisassembledInstruction;
+import org.binarytranslator.generic.decoder.Disassembler;
 
 /**
  * This class transfers an ARM instruction into a human-readable assembly
@@ -41,7 +42,7 @@ public final class ARM_Disassembler {
    *          The process space from which the instruction is read.
    * @return A disassembled ARM instruction.
    */
-  public final static DisassembledInstruction disassemble(int address,
+  public final static Disassembler.Instruction disassemble(int address,
       ARM_ProcessSpace ps) {
 
     Instruction decodedInstruction;
@@ -70,7 +71,7 @@ public final class ARM_Disassembler {
    *          The instruction that is to be decoded.
    * @return A human-readable version of the given instruction.
    */
-  final static DisassembledInstruction disassemble(
+  final static Disassembler.Instruction disassemble(
       ARM_Instructions.Instruction instruction) {
 
     DisassemblingVisitor disassembler = new DisassemblingVisitor();
@@ -81,7 +82,7 @@ public final class ARM_Disassembler {
 
   /** Represents a disassembled ARM instruction. */
   private final static class ARM_DisassembledInstruction implements
-      DisassembledInstruction {
+  Disassembler.Instruction {
 
     /** A readable version of the diassembled instruction. */
     private final String instruction;
@@ -129,7 +130,7 @@ public final class ARM_Disassembler {
       ARM_InstructionVisitor {
 
     /** This field receives the disassembled instruction. */
-    private ARM_DisassembledInstruction result;
+    private Disassembler.Instruction result;
 
     private DisassemblingVisitor() {
     }

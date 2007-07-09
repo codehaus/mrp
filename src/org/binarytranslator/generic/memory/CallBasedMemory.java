@@ -10,7 +10,7 @@ package org.binarytranslator.generic.memory;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
-import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.classloader.VM_Atom;
@@ -99,7 +99,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   /**
    * A translation helper for generating code
    */
-  protected AbstractCodeTranslator helper;
+  protected CodeTranslator helper;
 
   /**
    * The generation context we're translating within
@@ -161,7 +161,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * Generate memory prologue,... for the beignning of a trace. e.g. Loading the
    * page table into a register
    */
-  public void initTranslate(AbstractCodeTranslator helper) {
+  public void initTranslate(CodeTranslator helper) {
     this.helper = helper;
     this.gc = helper.getGenerationContext();
     OPT_RegisterOperand memoryOp = helper.makeTemp(memoryType);

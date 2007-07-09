@@ -57,7 +57,7 @@ public final class PredecodingThreadedInterpreter extends ExecutionController {
   
   public PredecodingThreadedInterpreter(ProcessSpace ps) {
     super(ps);
-    interpreter = ps.createInstructionInterpreter();
+    interpreter = ps.createInterpreter();
   }
 
   @Override

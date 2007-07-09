@@ -111,7 +111,7 @@ public class ARM_RuntimeLinker extends JavaRuntimeLinker {
     int pc = startPC;
     ps.setCurrentInstructionAddress(startPC);
     
-    Interpreter interpreter = ps.createInstructionInterpreter();
+    Interpreter interpreter = ps.createInterpreter();
     
     ((ARM_ProcessSpace)ps).registers.set(ARM_Registers.LR, startPC);
   

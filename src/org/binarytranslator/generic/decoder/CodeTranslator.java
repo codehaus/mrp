@@ -44,6 +44,7 @@ import org.jikesrvm.compilers.opt.ir.OPT_BranchOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_BranchProfileOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
 import org.jikesrvm.compilers.opt.ir.OPT_Instruction;
 import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_MethodOperand;
@@ -76,8 +77,8 @@ import org.jikesrvm.compilers.opt.ir.OPT_TypeOperand;
  * </dd>
  * </dl>
  */
-public abstract class AbstractCodeTranslator implements OPT_Constants,
-    OPT_Operators {
+public abstract class CodeTranslator implements OPT_Constants,
+    OPT_Operators, OPT_HIRGenerator {
 
   /** The trace that we're currently translating code for. */
   protected final DBT_Trace trace;
@@ -207,7 +208,7 @@ public abstract class AbstractCodeTranslator implements OPT_Constants,
    * @param context
    *          The JRVM generation context for this trace.
    */
-  protected AbstractCodeTranslator(OPT_GenerationContext context,
+  protected CodeTranslator(OPT_GenerationContext context,
       DBT_Trace trace) {
 
     // Store the trace that we're invoked from

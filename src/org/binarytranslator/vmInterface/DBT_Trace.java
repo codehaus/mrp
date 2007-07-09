@@ -11,7 +11,7 @@ package org.binarytranslator.vmInterface;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.binarytranslator.generic.decoder.AbstractCodeTranslator;
+import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DummyDynamicCodeRunner;
 import org.binarytranslator.DBT;
@@ -124,7 +124,7 @@ public final class DBT_Trace extends VM_NormalMethod {
    * @return a HIR generator
    */
   public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
-    return ps.createHIRGenerator(context, this);
+    return ps.createTranslator(context, this);
   }
 
   /**
@@ -268,18 +268,18 @@ public final class DBT_Trace extends VM_NormalMethod {
   public void getDynamicLink(VM_DynamicLink dynamicLink, int bcIndex) {
     switch (bcIndex) {
     case DO_SYSCALL:
-      dynamicLink.set(AbstractCodeTranslator.sysCallMethod.getMemberRef()
+      dynamicLink.set(CodeTranslator.sysCallMethod.getMemberRef()
           .asMethodReference(), JBC_invokevirtual);
       break;
     case RECORD_BRANCH:
-      dynamicLink.set(AbstractCodeTranslator.recordUncaughtBranchMethod.getMemberRef()
+      dynamicLink.set(CodeTranslator.recordUncaughtBranchMethod.getMemberRef()
           .asMethodReference(), JBC_invokevirtual);
       break;
     case BAD_INSTRUCTION_NEW:
       DBT.fail("Todo: dynamic linking for new bad instruction exception");
       break;
     case BAD_INSTRUCTION_INIT:
-      dynamicLink.set(AbstractCodeTranslator.badInstrKlassInitMethod.getMemberRef()
+      dynamicLink.set(CodeTranslator.badInstrKlassInitMethod.getMemberRef()
           .asMethodReference(), JBC_invokespecial);
       break;
     case MEMORY_STORE8:
