@@ -18,6 +18,7 @@ import org.binarytranslator.generic.branchprofile.BranchProfile;
 import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.CodeCache;
+import org.binarytranslator.generic.decoder.Disassembler;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.memory.Memory;
@@ -80,9 +81,15 @@ public abstract class ProcessSpace {
     throw new UnsupportedOperationException();
   }
   
+  public Disassembler createDisassembler() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException();
+  }
+  
   /** Return a string disassembly of the instuction at the given address*/
   @Uninterruptible
-  public abstract String disassembleInstruction(int pc) throws UnsupportedOperationException ;
+  public String disassembleInstruction(int pc) throws UnsupportedOperationException {
+    return createDisassembler().disassemble(pc).asString();
+  }
 
   /**
    * Given an ELF binary loader, create the appropriate process space
