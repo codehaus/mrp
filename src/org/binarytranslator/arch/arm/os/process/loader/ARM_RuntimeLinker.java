@@ -70,7 +70,7 @@ public class ARM_RuntimeLinker extends JavaRuntimeLinker {
         
         if (symbol.isUndefined()) {
           String symbolName = strTab.lookup(symbol.nameIdx);
-          value = resolveSymbolAddress(symbolName);
+          value = resolveSymbolAddress(symbolName, lib);
           
           if (value == -1) {
             //we allow only weak symbols to be unresolved

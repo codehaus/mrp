@@ -119,6 +119,7 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
    * This function is the main entry point into the dynamic linker and will steer the whole
    * linking process.
    */
+  @Override
   public final void link() throws IOException {
     ELF_File.DynamicSection dynSection = file.getDynamicSection();
     
@@ -193,7 +194,7 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
    */
   protected void callInitRoutines() throws IOException {
     //the linker has a special symbol that determines if we're currently starting up
-    int dl_starting_up = resolveSymbolAddress("_dl_starting_up");
+    int dl_starting_up = resolveSymbolAddress("_dl_starting_up", null);
     
     if (dl_starting_up != -1)
       ps.memory.store32(dl_starting_up, 1);
@@ -392,10 +393,13 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
    *  
    * @param symbol
    *  The name of the symbol that is to be resolved.
+   * @param obj
+   *  The shared object for which we are trying to resolve the symbol address. Local symbols from
+   *  this object will be returned as a match as well.
    * @return
    *  The address of the symbol or -1, if the symbol's address could not be resolved.
    */
-  protected final int resolveSymbolAddress(String symbol) throws IOException {
+  protected final int resolveSymbolAddress(String symbol, SharedObject obj) throws IOException {
     Iterator<SharedObject> libs = libraries.iterator();
     
     //iterate over the symbol table of every library that we already loaded
@@ -406,8 +410,10 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
       //see if <symbol> is defined within this library
       SymbolTable.Entry entry = hashTab.lookup(symbol);
       
-      if (entry != null && !entry.isUndefined())
-        return entry.value + lib.loadedAt;
+      if (entry != null && !entry.isUndefined() && entry.binding != SymbolTable.STB_LOCAL) {   
+        if (entry.binding == SymbolTable.STB_GLOBAL || lib == obj)
+          return entry.value + lib.loadedAt;
+      }
     }
     
     return -1;
