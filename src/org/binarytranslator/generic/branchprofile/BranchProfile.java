@@ -12,10 +12,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -49,10 +51,101 @@ public class BranchProfile {
   private final SortedMap<Integer, ProcedureInformation> procedures;
 
   /** A set of switch like branchs sites and their destinations */
-  private final SortedMap<Integer, Set<Integer>> branchSitesAndDestinations;
+  private final SortedMap<Integer, BranchInformation> branchSites;
 
   /** Global branch information */
   private static BranchProfile global;
+  
+  /**
+   * Stores information on a single branch location. */
+  private final static class BranchInformation {
+     
+    /** How often the branch instruction has been executed. */
+    private int executionCount;
+    
+    /** The target addresses of the branch and how often they have been branched to. */
+    private final Map<Integer, Integer> destinationsAndFrequencies;
+    
+    public BranchInformation() {
+      this.destinationsAndFrequencies = new HashMap<Integer, Integer>();
+    }
+    
+    public BranchInformation(HashMap<Integer, Integer> destinationsAndFrequencies) {
+      this.destinationsAndFrequencies = destinationsAndFrequencies;
+      executionCount = 0;
+      
+      for (Entry<Integer, Integer> target : destinationsAndFrequencies.entrySet()) {
+        executionCount += target.getValue();
+      }
+    }
+    
+    public void profile(int target) {
+      executionCount++;
+      Integer targetCount = destinationsAndFrequencies.get(target);
+      
+      targetCount = (targetCount == null) ? 1 : targetCount + 1;
+      destinationsAndFrequencies.put(target, targetCount);
+    }
+    
+    /** Returns a list of addresses that this branch jumps to. */
+    public Set<Integer> getTargets() {
+      return destinationsAndFrequencies.keySet();
+    }
+    
+    public Map<Integer, Integer> getTargetsAndFrequencies() {
+      return destinationsAndFrequencies;
+    }
+    
+    public void registerTargetSite(int target) {
+      if (destinationsAndFrequencies.get(target) == null)
+        destinationsAndFrequencies.put(target, 0);
+    }
+    
+    /**
+     * Loads a {@link BranchInformation} object from an XML element, given that the object
+     * was previously persisted by {@link #toXML(Document, Element)}.
+     * @param node
+     *  The XML element that had been provided to {@link #toXML(Document, Element)}.
+     * @throws IOException 
+     */
+    public static BranchInformation fromXML(Element node) throws IOException {
+      HashMap<Integer, Integer> targetsAndFrequencies = new HashMap<Integer, Integer>();
+      
+      for (int n = 0; n < node.getChildNodes().getLength(); n++) {
+        Node target = node.getChildNodes().item(n);
+        
+        if (target.getNodeType() != Node.ELEMENT_NODE)
+          continue;
+        
+        if (!target.getNodeName().equals("target"))
+          throw new IOException("File is not a valid XML branch profile.");
+        
+        int targetAddress = Integer.parseInt(((Element)target).getAttribute("address"));
+        int branchCount = Integer.parseInt(((Element)target).getAttribute("address"));
+        targetsAndFrequencies.put(targetAddress, branchCount);
+      }
+      
+      return new BranchInformation(targetsAndFrequencies);
+    }
+    
+    public void toXML(Document doc, Element parentNode) {
+      Element branchInfo = parentNode;
+      
+      Element targets = doc.createElement("targets");
+      
+      for (Entry<Integer, Integer> branchTarget : destinationsAndFrequencies.entrySet()) {
+        int targetAddress = branchTarget.getKey();
+        int branchCount = branchTarget.getValue();
+        
+        Element branchTargetElement = doc.createElement("target");
+        branchInfo.appendChild(branchTargetElement);
+        branchTargetElement.setAttribute("address", Integer.toString(targetAddress));
+        branchTargetElement.setAttribute("branchCount", Integer.toString(branchCount));
+      }
+      
+      branchInfo.appendChild(targets);
+    }
+  }
 
   /**
    * Constructor has 2 functions: (1) when making a local trace we don't want to
@@ -62,10 +155,10 @@ public class BranchProfile {
   public BranchProfile() {
     if (global == null) {
       global = this;
-      branchSitesAndDestinations = new TreeMap<Integer, Set<Integer>>();
+      branchSites = new TreeMap<Integer, BranchInformation>();
     } 
     else {
-      branchSitesAndDestinations = global.branchSitesAndDestinations;
+      branchSites = global.branchSites;
     }
     procedures = new TreeMap<Integer, ProcedureInformation>();
   }
@@ -80,7 +173,7 @@ public class BranchProfile {
    * @param ret
    *  the address that will be returned to
    */
-  public void registerCall(int pc, int dest, int ret) {
+  public void registerCallSite(int pc, int dest, int ret) {
     ProcedureInformation procedure = procedures.get(dest);
     
     if (procedure != null) {
@@ -90,26 +183,65 @@ public class BranchProfile {
       procedures.put(dest, procedure);
     }
     
-    registerBranch(pc, dest);
+    registerDynamicBranchSite(pc, dest);
+  }
+  
+  /**
+   * Register a function return.
+   * 
+   * @param pc
+   *          the address of the return instruction
+   */
+  public void registerReturnSite(int pc) {
+    
+    ProcedureInformation procedure = getLikelyProcedure(pc);
+    
+    if (procedure != null) {
+      procedure.registerReturn(pc);
+    }
   }
 
   /**
    * Register a function return.
    * 
    * @param pc
-   *          the address of the branch instruction
+   *          the address of the return  instruction
    * @param lr
    *          the return address (value of the link register)
    */
-  public void registerReturn(int pc, int lr) {
+  public void registerReturnSite(int pc, int lr) {
     
     ProcedureInformation procedure = getLikelyProcedure(pc);
     
     if (procedure != null) {
-      procedure.registerReturn(pc, lr);
+      procedure.registerReturn(pc);
     }
     
-    registerBranch(pc, lr);
+    registerDynamicBranchSite(pc, lr);
+  }
+  
+  /**
+   * Appends a branch from <code>origin</code> to <code>target</code> to the branch profile.
+   * 
+   * @param origin
+   *  The address that the branch is taking place from.
+   * @param target
+   *  The branch target address.
+   */
+  public void registerDynamicBranchSite(int origin, int target) {
+    //Perform the general branch registration, too
+    BranchInformation branch = branchSites.get(origin);
+    
+    if (branch != null) {
+      branch.registerTargetSite(target);
+      // This destination address is already registered
+      return;
+    } 
+    else {
+      branch = new BranchInformation();
+      branch.registerTargetSite(target);
+      branchSites.put(origin, branch);
+    }
   }
 
   /**
@@ -128,57 +260,18 @@ public class BranchProfile {
       }
     }
     return null;
-  }
-
+  } 
+  
   /**
-   * Registers a branch from the address <code>origin</code> to the address <code>target</code>.
-   * The type of branch is determined by <code>type</code>, which is an ordinal from the 
-   * {@link BranchType} enum.
+   * Records that a branch from <code>origin</code> to <code>target</code> has been observed while the program is running.
    * 
    * @param origin
-   *  The address from which the branch occurs. 
+   *  The address from which the branch took place.
    * @param target
-   *  The address to which the program is branching.
-   * @param type
-   *  The most likely type of the branch. This is taken from the {@link BranchType} enum. 
+   *  The address to which it took place.
    */
-  public void registerBranch(int origin, int target, BranchType type) {
-      
-    switch (type) {
-    case CALL:
-      throw new RuntimeException("Use the more specific registerCall() for these cases.");
-
-    case RETURN:
-      registerReturn(origin, target);
-      break;
-      
-    default:
-      registerBranch(origin, target);
-    }    
-  }
-
-  /**
-   * Appends a recorded branch from <code>origin</code> to <code>target</code> to the branch profile.
-   * 
-   * @param origin
-   *  The address that the branch is taking place from.
-   * @param target
-   *  The branch target address.
-   */
-  private void registerBranch(int origin, int target) {
-    //Perform the general branch registration, too
-    Set<Integer> dests = branchSitesAndDestinations.get(origin);
-    
-    if (dests != null && dests.contains(target)) {
-      // This destination address is already registered
-      return;
-    } 
-    else {
-      dests = new HashSet<Integer>();
-      branchSitesAndDestinations.put(origin, dests);
-    }
-    
-    dests.add(target);
+  public void profileBranch(int origin, int target) {
+    throw new RuntimeException("Not yet implemented.");
   }
   
   /**
@@ -191,7 +284,8 @@ public class BranchProfile {
    *  translated binary, if this list is not complete. 
    */
   public Set<Integer> getKnownBranchTargets(int pc) {
-    return branchSitesAndDestinations.get(pc);
+    BranchInformation branch = branchSites.get(pc); 
+    return (branch == null) ? null : branch.getTargets();
   }
   
   public void loadFromXML(String filename) throws IOException {
@@ -234,17 +328,9 @@ public class BranchProfile {
       if (!siteNode.getNodeName().equals("origin") || siteNode.getNodeType() != Node.ELEMENT_NODE)
         throw new IOException("File is not a valid XML branch profile.");
       
-      int pc = Integer.parseInt(((Element)siteNode).getAttribute("address"));
-      
-      for (int n = 0; n < siteNode.getChildNodes().getLength(); n++) {
-        Node target = siteNode.getChildNodes().item(n);
-        
-        if (!target.getNodeName().equals("target") || target.getNodeType() != Node.ELEMENT_NODE)
-          throw new IOException("File is not a valid XML branch profile.");
-        
-        int targetAddress = Integer.parseInt(((Element)target).getAttribute("address"));
-        registerBranch(pc, targetAddress);
-      }
+      int address = Integer.parseInt(((Element)siteNode).getAttribute("address"));
+      BranchInformation branchInfo = BranchInformation.fromXML((Element)siteNode);
+      branchSites.put(address, branchInfo);
     }
   }
   
@@ -289,17 +375,16 @@ public class BranchProfile {
     
     Element branchesElement = doc.createElement("branches");
     root.appendChild(branchesElement);
-    
-    for (int pc : branchSitesAndDestinations.keySet()) {
-      Element branchSiteElement = doc.createElement("origin");
-      branchesElement.appendChild(branchSiteElement);
-      branchSiteElement.setAttribute("address", Integer.toString(pc));
+
+    for (Entry<Integer, BranchInformation> branch : branchSites.entrySet()) {
       
-      for (int target : getKnownBranchTargets(pc)) {
-        Element branchTargetElement = doc.createElement("target");
-        branchSiteElement.appendChild(branchTargetElement);
-        branchTargetElement.setAttribute("address", Integer.toString(target));
-      }
+      int address = branch.getKey();
+      BranchInformation branchInfo = branch.getValue();
+      
+      Element branchSiteElement = doc.createElement("branch");
+      branchesElement.appendChild(branchSiteElement);
+      branchSiteElement.setAttribute("address", Integer.toString(address));
+      branchInfo.toXML(doc, branchSiteElement);
     }
     
     //Output the resulting XML document

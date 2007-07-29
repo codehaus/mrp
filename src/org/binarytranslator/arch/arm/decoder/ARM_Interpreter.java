@@ -9,7 +9,6 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condit
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
-import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.decoder.Utils;
 
@@ -23,7 +22,7 @@ import com.sun.org.apache.bcel.internal.generic.InstructionFactory;
  * @author Michael Baer
  */
 public class ARM_Interpreter implements Interpreter {
-
+ 
   /** The process space that we're interpreting.*/
   protected final ARM_ProcessSpace ps;
   
@@ -31,7 +30,7 @@ public class ARM_Interpreter implements Interpreter {
   protected final ARM_Registers regs;
   
   /** The interpreter factory is creating the final instructions, which implement the Interpreter.Instruction interface. */
-  protected final ARM_InstructionFactory<ARM_Instruction> instructionFactory;
+  protected final InterpreterFactory instructionFactory;
 
   public ARM_Interpreter(ARM_ProcessSpace ps) {
     this.ps = ps;
@@ -41,8 +40,10 @@ public class ARM_Interpreter implements Interpreter {
 
   /** Decodes the instruction at the given address.*/
   public Instruction decode(int pc) {
-    
+        
     ARM_Instruction instruction;
+    
+    instructionFactory.setInstructionAddress(pc);
     
     if ((pc & 1) != 0) {
       short binaryInstruction = (short)ps.memory.loadInstruction16(pc & 0xFFFFFFFE);
@@ -54,7 +55,7 @@ public class ARM_Interpreter implements Interpreter {
     }
     
     if (instruction.getCondition() != Condition.AL) {
-      return new ConditionalDecorator(instruction);
+      return new ConditionalDecorator(instruction, pc);
     }
     
     return instruction;
@@ -123,7 +124,7 @@ public class ARM_Interpreter implements Interpreter {
         if (operand.getRegister() == ARM_Registers.PC)
           value = regs.readPC();
         else
-          value =regs.get(operand.getRegister());
+          value = regs.get(operand.getRegister());
         
         value += operand.getOffset();
         return;
@@ -364,43 +365,66 @@ public class ARM_Interpreter implements Interpreter {
    * instruction (or not). The instruction classes itself do not check any conditions. */
   private final class ConditionalDecorator implements Interpreter.Instruction {
 
+    /** The conditional instruction. */
     protected final ARM_Instruction conditionalInstruction;
-    private final Condition condition;
+    
+    /** The address of the successor of the conditional instruction. Can be -1, if it cannot be determined statically. */
+    private final int conditionTrueSuccessor;
+    
+    /** The successor of this instruction, if the condition evaluates to false.*/
+    private final int conditionFalseSuccessor;
+    
+    /** The address of the successor of this instrction if it is constant, otherwise -1. */
+    private final int successorInstruction;
+    
+    /** The address of this instruction. */
+    private final int instructionAddress;
 
     /** Decorates an ARM interpreter instruction, by making it execute conditionally. */
-    protected ConditionalDecorator(ARM_Instruction i) {
-      conditionalInstruction = i;
-      this.condition = i.getCondition();
+    protected ConditionalDecorator(ARM_Instruction i, int pc) {
+      this.conditionalInstruction = i;
+      
+      conditionTrueSuccessor = conditionalInstruction.getSuccessor(pc);
+      boolean inThumbMode = (pc & 1) == 0;
+      
+      if (conditionTrueSuccessor == pc + 4 && !inThumbMode)
+        successorInstruction = conditionTrueSuccessor; //ARM may have conditional instruction that are not jumps
+      else
+        successorInstruction = -1;
+      
+      conditionFalseSuccessor = pc + (inThumbMode ? 2 : 4);
+      instructionAddress = pc;
     }
     
     public void execute() {
+      
       if (isConditionTrue()) {
-        int nextInstruction = conditionalInstruction.getSuccessor(ps.getCurrentInstructionAddress());
         conditionalInstruction.execute();
         
-        if (nextInstruction != -1)
-          ps.setCurrentInstructionAddress(nextInstruction);
+        if (conditionTrueSuccessor != -1) {
+          ps.setCurrentInstructionAddress(conditionTrueSuccessor);
+        }
+        
+        if (successorInstruction != -1) {
+          ps.branchInfo.profileBranch(instructionAddress, conditionTrueSuccessor);
+        }
       }
       else {
-        ps.setCurrentInstructionAddress(ps.getCurrentInstructionAddress() + (regs.getThumbMode() ? 2 : 4));
+        ps.setCurrentInstructionAddress(conditionFalseSuccessor);
+        
+        if (successorInstruction != -1) {
+          ps.branchInfo.profileBranch(instructionAddress, conditionFalseSuccessor);
+        }
       }
     }
 
     public int getSuccessor(int pc) {
-      //if this instruction is not a jump, then we can tell what the next instruction will be.
-
-      int conditionalSuccessor = conditionalInstruction.getSuccessor(pc);
-      boolean thumbMode = (pc & 0x1) == 1;
-      
-      if (conditionalSuccessor == pc + 4 && !thumbMode)
-        return conditionalSuccessor; //ARM may have conditional non-jump instructions
-      else
-        return -1;
+      return successorInstruction;
     }
     
    /** Return true if the condition required by the conditional instruction is fulfilled, false otherwise.*/
     private boolean isConditionTrue() {
-      switch (condition) {
+      switch (conditionalInstruction.getCondition()) {
       case AL:
         throw new RuntimeException("ARM32 instructions with a condition of AL (always) should not be decorated with a ConditionalDecorator.");
         
@@ -450,7 +474,7 @@ public class ARM_Interpreter implements Interpreter {
         return regs.isOverflowSet();
         
         default:
-          throw new RuntimeException("Unexpected condition code: " + condition);
+          throw new RuntimeException("Unexpected condition code: " + conditionalInstruction.getCondition());
       }
     }
     
@@ -514,10 +538,6 @@ public class ARM_Interpreter implements Interpreter {
       if (i.Rd == ARM_Registers.PC) {
         if (regs.getThumbMode())
           result |= 1;
-          
-        if (DBT_Options.profileDuringInterpretation) {
-          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
-        }
       }
       
       regs.set(i.Rd, result);
@@ -533,13 +553,8 @@ public class ARM_Interpreter implements Interpreter {
       setFlagsForSub(lhs, rhs);
       int result = lhs - rhs;
       
-      if (i.Rd == ARM_Registers.PC) {
-        if (regs.getThumbMode())
-          result |= 1;
-          
-        if (DBT_Options.profileDuringInterpretation) {
-          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
-        }
+      if (i.Rd == ARM_Registers.PC && regs.getThumbMode()) {
+        result |= 1;
       }
       
       regs.set(i.Rd, result);
@@ -595,8 +610,13 @@ public class ARM_Interpreter implements Interpreter {
      * out value. The value of the barrel shifter is stored within this variable. */
     protected boolean shifterCarryOut;
 
-    protected DataProcessing_Logical(ARM_Instructions.DataProcessing instr) {
+    protected DataProcessing_Logical(ARM_Instructions.DataProcessing instr, int instructionAddress) {
       super(instr);
+      
+      if (DBT_Options.profileDuringInterpretation) {        
+        if (i.getOpcode() == Opcode.MOV && i.operand2.getType() == OperandWrapper.Type.Register && i.operand2.getRegister() == ARM_Registers.LR)
+          ps.branchInfo.registerReturnSite(instructionAddress);
+      }
     }
     
     /** If the given OperandWrapper involves shifting a register, then this function will decoder the shift
@@ -622,13 +642,6 @@ public class ARM_Interpreter implements Interpreter {
         
         if (regs.getThumbMode())
           result |= 1;
-        
-        if (DBT_Options.profileDuringInterpretation) {        
-          if (i.getOpcode() == Opcode.MOV && i.operand2.getType() == OperandWrapper.Type.Register && i.operand2.getRegister() == ARM_Registers.LR)
-            ps.branchInfo.registerReturn(regs.get(ARM_Registers.PC), result);
-          else
-            ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), result, BranchType.INDIRECT_BRANCH);
-        }
       }
       
       regs.set(i.Rd, result);
@@ -651,8 +664,8 @@ public class ARM_Interpreter implements Interpreter {
   /** Binary and. <code>Rd = op1 & op2 </code>.*/
   private final class DataProcessing_And extends DataProcessing_Logical {
 
-    protected DataProcessing_And(ARM_Instructions.DataProcessing  instr) {
-      super(instr);
+    protected DataProcessing_And(ARM_Instructions.DataProcessing instr, int instructionAddress) {
+      super(instr, instructionAddress);
     }
 
     @Override
@@ -665,8 +678,8 @@ public class ARM_Interpreter implements Interpreter {
   /** Exclusive or. <code>Rd = op1 ^ op2 </code>.*/
   private final class DataProcessing_Eor extends DataProcessing_Logical {
 
-    protected DataProcessing_Eor(ARM_Instructions.DataProcessing instr) {
-      super(instr);
+    protected DataProcessing_Eor(ARM_Instructions.DataProcessing instr, int instructionAddress) {
+      super(instr, instructionAddress);
     }
 
     @Override
@@ -804,8 +817,8 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Flags = op1 & op2</code>*/
   private final class DataProcessing_Tst extends DataProcessing_Logical {
 
-    protected DataProcessing_Tst(ARM_Instructions.DataProcessing instr) {
-      super(instr);
+    protected DataProcessing_Tst(ARM_Instructions.DataProcessing instr, int instructionAddress) {
+      super(instr, instructionAddress);
     }
 
     @Override
@@ -818,8 +831,8 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Flags = op1 ^ op2</code> */
   private final class DataProcessing_Teq extends DataProcessing_Logical {
 
-    protected DataProcessing_Teq(ARM_Instructions.DataProcessing instr) {
-      super(instr);
+    protected DataProcessing_Teq(ARM_Instructions.DataProcessing instr, int instructionAddress) {
+      super(instr, instructionAddress);
     }
 
     @Override
@@ -859,8 +872,8 @@ public class ARM_Interpreter implements Interpreter {
   /** Binary or. <code>Rd = op1 | op2</code>. */
   private final class DataProcessing_Orr extends DataProcessing_Logical {
 
-    protected DataProcessing_Orr(ARM_Instructions.DataProcessing instr) {
-      super(instr);
+    protected DataProcessing_Orr(ARM_Instructions.DataProcessing instr, int instructionAddress) {
+      super(instr, instructionAddress);
     }
 
     @Override
@@ -872,8 +885,8 @@ public class ARM_Interpreter implements Interpreter {
 
   private final class DataProcessing_Mov extends DataProcessing_Logical {
 
-    protected DataProcessing_Mov(ARM_Instructions.DataProcessing instr) {
-      super(instr);
+    protected DataProcessing_Mov(ARM_Instructions.DataProcessing instr, int instructionAddress) {
+      super(instr, instructionAddress);
     }
 
     @Override
@@ -888,8 +901,8 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Rd =  op1 & (~op2)</code>.*/
   private final class DataProcessing_Bic extends DataProcessing_Logical {
 
-    protected DataProcessing_Bic(ARM_Instructions.DataProcessing instr) {
-      super(instr);
+    protected DataProcessing_Bic(ARM_Instructions.DataProcessing instr, int instructionAddress) {
+      super(instr, instructionAddress);
     }
 
     @Override
@@ -904,8 +917,8 @@ public class ARM_Interpreter implements Interpreter {
    * <code>Rd = ~op2</code>.*/
   private final class DataProcessing_Mvn extends DataProcessing_Logical {
 
-    protected DataProcessing_Mvn(ARM_Instructions.DataProcessing instr) {
-      super(instr);
+    protected DataProcessing_Mvn(ARM_Instructions.DataProcessing instr, int instructionAddress) {
+      super(instr, instructionAddress);
     }
 
     @Override
@@ -1000,21 +1013,25 @@ public class ARM_Interpreter implements Interpreter {
     /** Should writeback be performed? */
     private final boolean doWriteback;
 
-    public BlockDataTransfer(ARM_Instructions.BlockDataTransfer instr) {
+    public BlockDataTransfer(ARM_Instructions.BlockDataTransfer instr, int instructionAddress) {
       i = instr;
 
       transferPC = i.transferRegister(ARM_Registers.PC);
       int regCount = 0;
 
-      for (int i = 0; i <= 14; i++)
+      for (int i = 0; i <= 14; i++) {
         if (this.i.transferRegister(i)) {
           registersToTransfer[regCount++] = i;
         }
+      }
 
       registersToTransfer[regCount] = -1;
       
       if (transferPC)
         regCount++;
+      
+      if (DBT_Options.profileDuringInterpretation)
+        ps.branchInfo.registerReturnSite(instructionAddress);
       
       if (!i.incrementBase) {
         if (i.postIndexing) {
@@ -1095,9 +1112,6 @@ public class ARM_Interpreter implements Interpreter {
           nextAddress += 4;
           int newpc = ps.memory.load32(nextAddress);
           
-          if (DBT_Options.profileDuringInterpretation)
-            ps.branchInfo.registerReturn(regs.get(ARM_Registers.PC), newpc);
-
           if (i.forceUser) {
             //when we are transferring the PC with a forced-user transfer, then we also want to
             //restore the CPSR from the SPSR.
@@ -1177,30 +1191,18 @@ public class ARM_Interpreter implements Interpreter {
 
     public void execute() {
 
-      int destination;
-      BranchType branchType;
-      
-      if (i.offset.getType() != OperandWrapper.Type.Immediate) {
-        branchType = BranchType.INDIRECT_BRANCH;
-      }
-      else {
-        branchType = BranchType.DIRECT_BRANCH;
-      }
-      
+      int destination;    
       destination = regs.readPC() + ResolvedOperand.resolve(regs, i.offset); 
-      
-      if (DBT_Options.profileDuringInterpretation) {
-        if (i.link) {
-          ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), destination, regs.get(ARM_Registers.PC) + i.size());
-        }
-        else { 
-          ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), destination, branchType);
-        }
-      }
       
       //if we're supposed to link, then write the previous address into the link register
       if (i.link) {
-        regs.set(ARM_Registers.LR, regs.get(ARM_Registers.PC) + i.size());
+        int returnAddress = regs.get(ARM_Registers.PC) + i.size();
+        
+        if (DBT_Options.profileDuringInterpretation) {
+          ps.branchInfo.registerCallSite(regs.get(ARM_Registers.PC), destination, returnAddress);
+        }
+        
+        regs.set(ARM_Registers.LR, returnAddress);
       }
       
       if (regs.getThumbMode())
@@ -1273,11 +1275,12 @@ public class ARM_Interpreter implements Interpreter {
 
       //if we're supposed to link, then write the previous address into the link register
       if (i.link) {
-        regs.set(ARM_Registers.LR, regs.readPC() - (regs.getThumbMode() ? 2 : 4));
-        ps.branchInfo.registerCall(regs.get(ARM_Registers.PC), targetAddress, regs.get(ARM_Registers.PC) + i.size());
-      }
-      else {
-        ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), targetAddress, BranchType.DIRECT_BRANCH);
+        int returnAddress = regs.readPC() - i.size();
+        regs.set(ARM_Registers.LR, returnAddress);
+        
+        if (DBT_Options.profileDuringInterpretation) {
+          ps.branchInfo.registerCallSite(regs.get(ARM_Registers.PC), targetAddress, returnAddress);
+        }
       }
 
       //jump to the new address
@@ -1372,8 +1375,8 @@ public class ARM_Interpreter implements Interpreter {
       
       //get rid of the signs, if we're supposed to do unsigned multiplication
       if (i.unsigned) {
-        operand1 = operand1 & 0xFFFFFFFF;
-        operand2 = operand2 & 0xFFFFFFFF;
+        operand1 &= 0xFFFFFFFF;
+        operand2 &= 0xFFFFFFFF;
       }
 
       // calculate the result
@@ -1634,11 +1637,6 @@ public class ARM_Interpreter implements Interpreter {
 
         //finally, write the variable into a register
         regs.set(i.Rd, value);
-        
-        if (DBT_Options.profileDuringInterpretation) {
-          if (i.Rd == ARM_Registers.PC)
-            ps.branchInfo.registerBranch(regs.get(ARM_Registers.PC), value, BranchType.INDIRECT_BRANCH);
-        }
       } 
       else {
         //we are store a value from a register to memory.
@@ -1743,6 +1741,8 @@ public class ARM_Interpreter implements Interpreter {
    * the ARM_InstructionDecoder, which uses an abstract factory pattern to decode an instruction. */
   private class InterpreterFactory implements
       ARM_InstructionFactory<ARM_Instruction> {
+        
+    private int instructionAddress;
 
     public ARM_Instruction createDataProcessing(int instr) {
       ARM_Instructions.DataProcessing i = new ARM_Instructions.DataProcessing(instr);
@@ -1753,21 +1753,21 @@ public class ARM_Interpreter implements Interpreter {
       case ADD:
         return new DataProcessing_Add(i);
       case AND:
-        return new DataProcessing_And(i);
+        return new DataProcessing_And(i, instructionAddress);
       case BIC:
-        return new DataProcessing_Bic(i);
+        return new DataProcessing_Bic(i, instructionAddress);
       case CMN:
         return new DataProcessing_Cmn(i);
       case CMP:
         return new DataProcessing_Cmp(i);
       case EOR:
-        return new DataProcessing_Eor(i);
+        return new DataProcessing_Eor(i, instructionAddress);
       case MOV:
-        return new DataProcessing_Mov(i);
+        return new DataProcessing_Mov(i, instructionAddress);
       case MVN:
-        return new DataProcessing_Mvn(i);
+        return new DataProcessing_Mvn(i, instructionAddress);
       case ORR:
-        return new DataProcessing_Orr(i);
+        return new DataProcessing_Orr(i, instructionAddress);
       case RSB:
         return new DataProcessing_Rsb(i);
       case RSC:
@@ -1777,9 +1777,9 @@ public class ARM_Interpreter implements Interpreter {
       case SUB:
         return new DataProcessing_Sub(i);
       case TEQ:
-        return new DataProcessing_Teq(i);
+        return new DataProcessing_Teq(i, instructionAddress);
       case TST:
-        return new DataProcessing_Tst(i);
+        return new DataProcessing_Tst(i, instructionAddress);
       case CLZ:
         return new DataProcessing_Clz(i);
 
@@ -1788,8 +1788,12 @@ public class ARM_Interpreter implements Interpreter {
       }
     }
 
+    public void setInstructionAddress(int pc) {
+      instructionAddress = pc;
+    }
+
     public ARM_Instruction createBlockDataTransfer(int instr) {
-      return new BlockDataTransfer(new ARM_Instructions.BlockDataTransfer(instr));
+      return new BlockDataTransfer(new ARM_Instructions.BlockDataTransfer(instr), instructionAddress);
     }
 
     public ARM_Instruction createBranch(int instr) {
@@ -1854,7 +1858,7 @@ public class ARM_Interpreter implements Interpreter {
     }
 
     public ARM_Instruction createBlockDataTransfer(short instr) {
-      return new BlockDataTransfer(new ARM_Instructions.BlockDataTransfer(instr));
+      return new BlockDataTransfer(new ARM_Instructions.BlockDataTransfer(instr), instructionAddress);
     }
 
     public ARM_Instruction createBranch(short instr) {
@@ -1874,21 +1878,21 @@ public class ARM_Interpreter implements Interpreter {
       case ADD:
         return new DataProcessing_Add(i);
       case AND:
-        return new DataProcessing_And(i);
+        return new DataProcessing_And(i, instructionAddress);
       case BIC:
-        return new DataProcessing_Bic(i);
+        return new DataProcessing_Bic(i, instructionAddress);
       case CMN:
         return new DataProcessing_Cmn(i);
       case CMP:
         return new DataProcessing_Cmp(i);
       case EOR:
-        return new DataProcessing_Eor(i);
+        return new DataProcessing_Eor(i, instructionAddress);
       case MOV:
-        return new DataProcessing_Mov(i);
+        return new DataProcessing_Mov(i, instructionAddress);
       case MVN:
-        return new DataProcessing_Mvn(i);
+        return new DataProcessing_Mvn(i, instructionAddress);
       case ORR:
-        return new DataProcessing_Orr(i);
+        return new DataProcessing_Orr(i, instructionAddress);
       case RSB:
         return new DataProcessing_Rsb(i);
       case RSC:
@@ -1898,9 +1902,9 @@ public class ARM_Interpreter implements Interpreter {
       case SUB:
         return new DataProcessing_Sub(i);
       case TEQ:
-        return new DataProcessing_Teq(i);
+        return new DataProcessing_Teq(i, instructionAddress);
       case TST:
-        return new DataProcessing_Tst(i);
+        return new DataProcessing_Tst(i, instructionAddress);
       case CLZ:
         return new DataProcessing_Clz(i);
 

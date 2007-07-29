@@ -8,7 +8,7 @@ import java.util.List;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
-public final class PredecodingThreadedInterpreter extends ExecutionController {
+public class PredecodingThreadedInterpreter extends ExecutionController {
   private final HashMap<Integer, List<Interpreter.Instruction>> traceCache = new HashMap<Integer, List<Interpreter.Instruction>>();
   private final Interpreter interpreter;
   
@@ -42,16 +42,19 @@ public final class PredecodingThreadedInterpreter extends ExecutionController {
     return newTrace;
   }
   
-  private void executeTrace(List<Interpreter.Instruction> trace, int pc) {
+  protected void executeTrace(List<Interpreter.Instruction> trace, int pc) {
     
     Iterator<Interpreter.Instruction> instructions = trace.iterator();
-    while (instructions.hasNext()) {
+    while (true) {
       Interpreter.Instruction instr = instructions.next();
       instr.execute();
-      pc = instr.getSuccessor(pc);
       
-      if (pc != -1)
+      if (instructions.hasNext()) {
+        pc = instr.getSuccessor(pc);
         ps.setCurrentInstructionAddress(pc);
+      }
+      else
+        break;
     }
   }
   
@@ -61,7 +64,7 @@ public final class PredecodingThreadedInterpreter extends ExecutionController {
   }
 
   @Override
-  public void run() {
+  public final void run() {
     int pc = ps.getCurrentInstructionAddress();
 
     while (!ps.finished) {

@@ -1,5 +1,9 @@
 package org.binarytranslator.generic.decoder;
 
+/**
+ * TODO: Add comments for this interface.
+ *
+ */
 public interface Interpreter {
   
   public interface Instruction {

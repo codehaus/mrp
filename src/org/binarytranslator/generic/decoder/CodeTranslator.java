@@ -607,13 +607,15 @@ public abstract class CodeTranslator implements OPT_Constants,
         branch, (Laziness) targetLaziness.clone(), currentPC, targetPC, BranchType.CALL);
     unresolvedDirectBranches.add(unresolvedJump);
     
-    if (branchType == BranchType.CALL)
-      ps.branchInfo.registerCall(currentPC, targetPC, retAddr);
-    else
-    if (branchType == BranchType.RETURN)
-      ps.branchInfo.registerReturn(currentPC, targetPC);
-    else
-      ps.branchInfo.registerBranch(currentPC, targetPC, branchType);
+    switch (branchType) {
+      case CALL:
+        ps.branchInfo.registerCallSite(currentPC, targetPC, retAddr);
+        break;
+      
+      case RETURN:
+        ps.branchInfo.registerReturnSite(currentPC, targetPC);
+        break;
+    }    
   }
   
   /**
@@ -929,7 +931,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    *          the destination of the branch instruction
    */
   public void registerBranchAndLink(int pc, int ret, int dest) {
-    ps.branchInfo.registerCall(pc, ret, dest);
+    ps.branchInfo.registerCallSite(pc, ret, dest);
   }
 
   /**

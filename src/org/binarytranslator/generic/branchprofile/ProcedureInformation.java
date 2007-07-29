@@ -91,13 +91,12 @@ class ProcedureInformation {
    * 
    * @param pc
    *          the address of the branch instruction
-   * @param ret
-   *          the address that will be returned to
    */
-  public void registerReturn(int pc, int ret) {
+  public void registerReturn(int pc) {
     if (returnSites == null) {
       returnSites = new HashSet<Integer>();
     }
+    
     returnSites.add(new Integer(pc));
   }
   
@@ -186,11 +185,7 @@ class ProcedureInformation {
         throw new Error("The given XML node is not a valid ProcedureInformation entity.");
       }      
     }
-    
-    
-    
-    
-    
+
     return pi;
   }
 }

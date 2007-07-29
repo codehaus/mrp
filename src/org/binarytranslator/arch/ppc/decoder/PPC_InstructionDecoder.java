@@ -3942,7 +3942,7 @@ final class bclr_decoder extends PPC_InstructionDecoder {
     int target_address = ps.lr;
     if (LK != 0) {
       ps.lr = ps.getCurrentInstructionAddress() + 4;
-      ps.branchInfo.registerCall(ps.getCurrentInstructionAddress(), ps
+      ps.branchInfo.registerCallSite(ps.getCurrentInstructionAddress(), ps
           .getCurrentInstructionAddress() + 4, target_address);
     }
     // decode BO
@@ -4593,7 +4593,7 @@ final class bcctr_decoder extends PPC_InstructionDecoder {
     int target_address = ps.ctr;
     if (LK != 0) {
       ps.lr = ps.getCurrentInstructionAddress() + 4;
-      ps.branchInfo.registerCall(ps.getCurrentInstructionAddress(), ps
+      ps.branchInfo.registerCallSite(ps.getCurrentInstructionAddress(), ps
           .getCurrentInstructionAddress() + 4, target_address);
     }
     // decode BO
@@ -11618,7 +11618,7 @@ final class bc_decoder extends PPC_InstructionDecoder {
     }
     if (LK != 0) {
       ps.lr = ps.getCurrentInstructionAddress() + 4;
-      ps.branchInfo.registerCall(ps.getCurrentInstructionAddress(), ps
+      ps.branchInfo.registerCallSite(ps.getCurrentInstructionAddress(), ps
           .getCurrentInstructionAddress() + 4, target_address);
     }
     // decode BO
@@ -11767,7 +11767,7 @@ final class b_decoder extends PPC_InstructionDecoder {
     }
     if (lk != 0) {
       ps.lr = ps.getCurrentInstructionAddress() + 4;
-      ps.branchInfo.registerCall(ps.getCurrentInstructionAddress(), ps
+      ps.branchInfo.registerCallSite(ps.getCurrentInstructionAddress(), ps
           .getCurrentInstructionAddress() + 4, target_address);
     }
     ps.setCurrentInstructionAddress(target_address);

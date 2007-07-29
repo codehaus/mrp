@@ -35,7 +35,7 @@ public abstract class JavaRuntimeLinker extends RuntimeLinker {
   private int nextMemoryBlock = 1024*1024*1024; //start mapping libraries at 1GB (0x40000000)
   
   /** Maps a library name to a filename. */
-  protected final HashMap<String, String> libNames = new HashMap<String, String>();;
+  protected final HashMap<String, String> libNames = new HashMap<String, String>();
 
   public static class SharedObject {
     /** The libary's name. */

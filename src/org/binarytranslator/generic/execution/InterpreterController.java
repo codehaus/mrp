@@ -1,5 +1,6 @@
 package org.binarytranslator.generic.execution;
 
+import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -22,12 +23,19 @@ public class InterpreterController extends ExecutionController {
       
       instruction.execute();
       //System.out.println(ps.toString());
-      pc = instruction.getSuccessor(pc);
+      int nextInstruction = instruction.getSuccessor(pc);
       
-      if (pc == -1)
-        pc = ps.getCurrentInstructionAddress();
-      else
-        ps.setCurrentInstructionAddress(pc);
+      if (nextInstruction == -1) {
+        nextInstruction = ps.getCurrentInstructionAddress();
+        
+        if (DBT_Options.profileDuringInterpretation)
+          ps.branchInfo.profileBranch(pc, ps.getCurrentInstructionAddress());
+      }
+      else {
+        ps.setCurrentInstructionAddress(nextInstruction);
+      }
+      
+      pc = nextInstruction;
     }
   }
 }

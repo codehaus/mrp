@@ -155,15 +155,15 @@ public abstract class ProcessSpace {
     
     switch (type) {
     case CALL:
-      branchInfo.registerCall(location, destination, returnAddress);
+      branchInfo.registerCallSite(location, destination, returnAddress);
       return;
       
     case RETURN:
-      branchInfo.registerReturn(location, destination);
+      branchInfo.registerReturnSite(location, destination);
       return;
       
     default:
-      branchInfo.registerBranch(location, destination, BranchType.values()[code]);
+      branchInfo.registerDynamicBranchSite(location, destination);
     }
   }
 
