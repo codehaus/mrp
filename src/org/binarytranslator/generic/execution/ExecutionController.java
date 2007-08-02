@@ -9,6 +9,7 @@ public abstract class ExecutionController {
     Translator,
     Interpreter,
     PredecodingInterpreter,
+    StagedEmulation,
     GDB
   }
   

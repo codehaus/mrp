@@ -19,20 +19,15 @@ import org.w3c.dom.Node;
  * Objects capturing information about what looks like a method
  */
 class ProcedureInformation {
-  /**
-   * Entry point to the procedure
-   */
+  
+  /** Entry point to the procedure */
   private final int entry;
 
-  /**
-   * Set of locations that call the procedure and the corressponding return
-   * address
-   */
+  /** Set of locations that call the procedure and the corressponding return
+   *  address. */
   private HashSet<CallAndReturnAddress> callSitesAndReturnAddresses;
 
-  /**
-   * Set of locations within the procedure that return
-   */
+  /** Set of locations within the procedure that return */
   private HashSet<Integer> returnSites;
 
   /**
@@ -50,8 +45,15 @@ class ProcedureInformation {
     }
   }
   
-  private ProcedureInformation(int entry) {
+  /**
+   * Constructor
+   * 
+   * @param entry
+   *          starting address of the procedure
+   */
+  public ProcedureInformation(int entry) {
     this.entry = entry;
+    callSitesAndReturnAddresses = new HashSet<CallAndReturnAddress>();
   }
 
   /**
@@ -64,23 +66,32 @@ class ProcedureInformation {
    * @param returnAddress
    *          the corresponding return address
    */
-  ProcedureInformation(int entry, int callSite, int returnAddress) {
-    this.entry = entry;
-    callSitesAndReturnAddresses = new HashSet<CallAndReturnAddress>();
+  public ProcedureInformation(int entry, int callSite, int returnAddress) {
+    this(entry);
+    
     callSitesAndReturnAddresses.add(new CallAndReturnAddress(callSite,
         returnAddress));
+  }
+  
+  /**
+   * Returns the address at which this procedure starts.
+   * @return
+   *  The address at which the procedure starts.
+   */
+  public int getEntryAddress() {
+    return entry;
   }
 
   /**
    * Register a call (branch and link) instruction
    * 
-   * @param pc
-   *          the address of the branch instruction
+   * @param atAddress
+   *          the address of the call instruction
    * @param ret
    *          the address that will be returned to
    */
-  public void registerCall(int pc, int ret) {
-    CallAndReturnAddress call_tuple = new CallAndReturnAddress(pc, ret);
+  public void registerCall(int atAddress, int ret) {
+    CallAndReturnAddress call_tuple = new CallAndReturnAddress(atAddress, ret);
     if (!callSitesAndReturnAddresses.contains(call_tuple)) {
       callSitesAndReturnAddresses.add(call_tuple);
     }
@@ -89,15 +100,15 @@ class ProcedureInformation {
   /**
    * Register a return (branch to link register) instruction
    * 
-   * @param pc
+   * @param atAddress
    *          the address of the branch instruction
    */
-  public void registerReturn(int pc) {
+  public void registerReturn(int atAddress) {
     if (returnSites == null) {
       returnSites = new HashSet<Integer>();
     }
     
-    returnSites.add(new Integer(pc));
+    returnSites.add(new Integer(atAddress));
   }
   
   /**
@@ -121,13 +132,17 @@ class ProcedureInformation {
     }
     procedure.appendChild(callSites);
     
-    Element returnSites = doc.createElement("returnsites");
-    for (Integer returnSite : this.returnSites) {
-      Element returnSiteNode = doc.createElement("return");
-      returnSiteNode.setAttribute("at", returnSite.toString());
-      returnSites.appendChild(returnSiteNode);
+    if (returnSites != null) {
+      Element returnSitesElement = doc.createElement("returnsites");
+      procedure.appendChild(returnSitesElement);
+      
+      for (Integer returnSite : returnSites) {
+        Element returnSiteNode = doc.createElement("return");
+        returnSiteNode.setAttribute("at", returnSite.toString());
+        returnSitesElement.appendChild(returnSiteNode);
+      }
+     
     }
-    procedure.appendChild(returnSites);
   }
   
   /**
@@ -156,7 +171,7 @@ class ProcedureInformation {
           if (callsite.getNodeType() != Node.ELEMENT_NODE)
             continue;
           
-          if (callsite.getNodeName().equals("call"))
+          if (!callsite.getNodeName().equals("call"))
             throw new Error("The given XML node is not a valid ProcedureInformation entity.");
           
           int callFrom = Integer.parseInt(((Element)callsite).getAttribute("from"));
@@ -166,6 +181,9 @@ class ProcedureInformation {
         }
       }
       else if (childNode.getNodeName().equals("returnsites")) {
+        
+        pi.returnSites = new HashSet<Integer>();
+        
         //parse return sites
         for (int n = 0; n < childNode.getChildNodes().getLength(); n++) {
           Node callsite = childNode.getChildNodes().item(n);
@@ -174,7 +192,7 @@ class ProcedureInformation {
           if (callsite.getNodeType() != Node.ELEMENT_NODE)
             continue;
           
-          if (callsite.getNodeName().equals("return"))
+          if (!callsite.getNodeName().equals("return"))
             throw new Error("The given XML node is not a valid ProcedureInformation entity.");
           
           int returnAt = Integer.parseInt(((Element)callsite).getAttribute("at"));

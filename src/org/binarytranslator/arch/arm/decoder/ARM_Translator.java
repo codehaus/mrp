@@ -58,11 +58,10 @@ public class ARM_Translator implements OPT_Operators {
   public int translateInstruction(int pc, ARM_Laziness lazy) {
     this.pc = pc;
     this.lazy = lazy;
-    boolean thumb = (pc & 1) != 0;
     int instruction;
     
     try {
-      if (thumb)
+      if (inThumb())
         instruction = ps.memory.loadInstruction16(pc & 0xFFFFFFFE);
       else
         instruction = ps.memory.loadInstruction32(pc);
@@ -88,7 +87,7 @@ public class ARM_Translator implements OPT_Operators {
     }
     ARM_Instruction instr;
     
-    if (thumb)
+    if (inThumb())
       instr = ARM_InstructionDecoder.Thumb.decode((short)instruction, translatorFactory);
     else
       instr = ARM_InstructionDecoder.ARM32.decode(instruction, translatorFactory);
@@ -756,79 +755,99 @@ public class ARM_Translator implements OPT_Operators {
       arm2ir.getCurrentBlock().insertOut(nextInstruction);
       arm2ir.getCurrentBlock().insertOut(condBlock);
       
+      //Query the branch profile to get the probability that this instruction is going to get executed
+      float skipProbability = ps.branchInfo.getBranchProbability(pc, pc + (inThumb() ? 2 : 4));
+      OPT_BranchProfileOperand profileOperand;
+      
+      if (skipProbability == -1 || skipProbability == 0.5f) {
+        profileOperand = new OPT_BranchProfileOperand();
+      }
+      else if (skipProbability > 0.8f) {
+        profileOperand = OPT_BranchProfileOperand.always();
+      }
+      else if (skipProbability > 0.5f) {
+        profileOperand = OPT_BranchProfileOperand.likely();
+      }
+      else if (skipProbability < 0.2f) {
+        profileOperand = OPT_BranchProfileOperand.never();
+      }
+      else {
+        profileOperand = OPT_BranchProfileOperand.unlikely();
+      }
+      
       switch (condition) {
       case AL:
         throw new RuntimeException("ARM32 instructions with a condition of AL (always) should not be decorated with a ConditionalDecorator.");
         
       case CC:
         //return !regs.isCarrySet();
-        translateCondition(nextInstruction, arm2ir.getCarryFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getCarryFlag(), OPT_ConditionOperand.NOT_EQUAL());
         break;
         
       case CS:
         //return regs.isCarrySet();
-        translateCondition(nextInstruction, arm2ir.getCarryFlag(), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getCarryFlag(), OPT_ConditionOperand.EQUAL());
         break;
         
       case EQ:
         //return regs.isZeroSet();
-        translateCondition(nextInstruction, arm2ir.getZeroFlag(), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getZeroFlag(), OPT_ConditionOperand.EQUAL());
         break;
         
       case GE:
         //return regs.isNegativeSet() == regs.isOverflowSet();
-        translateCondition(nextInstruction, arm2ir.getNegativeFlag(), OPT_ConditionOperand.EQUAL(), arm2ir.getOverflowFlag());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getNegativeFlag(), OPT_ConditionOperand.EQUAL(), arm2ir.getOverflowFlag());
         break;
         
       case GT:
-        translateCondition_GT(nextInstruction);
+        translateCondition_GT(nextInstruction, profileOperand);
         break;
         
       case HI:
-        translateCondition_HI(nextInstruction);
+        translateCondition_HI(nextInstruction, profileOperand);
         break;
         
       case LE:
-        translateCondition_LE(nextInstruction);
+        translateCondition_LE(nextInstruction, profileOperand);
         break;
         
       case LS:
-        translateCondition_LS(nextInstruction, condBlock);
+        translateCondition_LS(nextInstruction, profileOperand, condBlock);
         break;
         
       case LT:
         //return regs.isNegativeSet() != regs.isOverflowSet();
-        translateCondition(nextInstruction, arm2ir.getNegativeFlag(), OPT_ConditionOperand.NOT_EQUAL(), arm2ir.getOverflowFlag());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getNegativeFlag(), OPT_ConditionOperand.NOT_EQUAL(), arm2ir.getOverflowFlag());
         break;
         
       case MI:
         //return regs.isNegativeSet();
-        translateCondition(nextInstruction, arm2ir.getNegativeFlag(), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getNegativeFlag(), OPT_ConditionOperand.EQUAL());
         break;
         
       case NE:
         //return !regs.isZeroSet();
-        translateCondition(nextInstruction, arm2ir.getZeroFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getZeroFlag(), OPT_ConditionOperand.NOT_EQUAL());
         break;
         
       case NV:
         //never execute this instruction
-        translateCondition(nextInstruction, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction, profileOperand, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL());
         break;
         
       case PL:
         //return !regs.isNegativeSet();
-        translateCondition(nextInstruction, arm2ir.getNegativeFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getNegativeFlag(), OPT_ConditionOperand.NOT_EQUAL());
         break;
         
       case VC:
         //return !regs.isOverflowSet();
-        translateCondition(nextInstruction, arm2ir.getOverflowFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getOverflowFlag(), OPT_ConditionOperand.NOT_EQUAL());
         break;
         
       case VS:
         //return regs.isOverflowSet();
-        translateCondition(nextInstruction, arm2ir.getOverflowFlag(), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction, profileOperand, arm2ir.getOverflowFlag(), OPT_ConditionOperand.EQUAL());
         break;
         
         default:
@@ -839,17 +858,17 @@ public class ARM_Translator implements OPT_Operators {
       conditionalInstruction.translate();
     }
     
-    private void translateCondition(OPT_BasicBlock nextInstruction, OPT_Operand operand, OPT_ConditionOperand condition) {
-      translateCondition(nextInstruction, operand, condition, new OPT_IntConstantOperand(1));
+    private void translateCondition(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability, OPT_Operand operand, OPT_ConditionOperand condition) {
+      translateCondition(nextInstruction, skipProbability, operand, condition, new OPT_IntConstantOperand(1));
     }
     
-    private void translateCondition(OPT_BasicBlock nextInstruction, OPT_Operand lhs, OPT_ConditionOperand condition, OPT_Operand rhs) {
+    private void translateCondition(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability, OPT_Operand lhs, OPT_ConditionOperand condition, OPT_Operand rhs) {
       
       condition = condition.flipCode();
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), lhs, rhs, condition, nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), lhs, rhs, condition, nextInstruction.makeJumpTarget(), skipProbability));
     }
     
-    private void translateCondition_HI(OPT_BasicBlock nextInstruction) {
+    private void translateCondition_HI(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability) {
       //return regs.isCarrySet() && !regs.isZeroSet();
       OPT_Operand carry = arm2ir.getCarryFlag();
       OPT_Operand zero = arm2ir.getZeroFlag();
@@ -858,10 +877,10 @@ public class ARM_Translator implements OPT_Operators {
       arm2ir.appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_OR, result, carry,
           new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
       
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), skipProbability));
     }
     
-    private void translateCondition_LS(OPT_BasicBlock nextInstruction, OPT_BasicBlock actualInstruction) {
+    private void translateCondition_LS(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability, OPT_BasicBlock actualInstruction) {
       //return !regs.isCarrySet() || regs.isZeroSet();
       OPT_Operand carry = arm2ir.getCarryFlag();
       OPT_Operand zero = arm2ir.getZeroFlag();
@@ -869,7 +888,7 @@ public class ARM_Translator implements OPT_Operators {
       OPT_RegisterOperand result = arm2ir.getTempInt(0);
       
       arm2ir.appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, result, carry, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), skipProbability));
       
 /*      cond1.deleteNormalOut();
       cond1.insertOut(cond2);
@@ -885,7 +904,7 @@ public class ARM_Translator implements OPT_Operators {
       cond2.insertOut(actualInstruction);*/
     }
     
-    private void translateCondition_GT(OPT_BasicBlock nextInstruction) {
+    private void translateCondition_GT(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability) {
       //return (regs.isNegativeSet() == regs.isOverflowSet()) && !regs.isZeroSet();
       OPT_Operand negative = arm2ir.getNegativeFlag();
       OPT_Operand overflow = arm2ir.getOverflowFlag();
@@ -895,10 +914,10 @@ public class ARM_Translator implements OPT_Operators {
       arm2ir.appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_OR, result, negative,
           overflow, OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
       
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), skipProbability));
     }
     
-    private void translateCondition_LE(OPT_BasicBlock nextInstruction) {
+    private void translateCondition_LE(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability) {
       //return regs.isZeroSet() || (regs.isNegativeSet() != regs.isOverflowSet());
       OPT_Operand negative = arm2ir.getNegativeFlag();
       OPT_Operand overflow = arm2ir.getOverflowFlag();
@@ -908,7 +927,7 @@ public class ARM_Translator implements OPT_Operators {
       arm2ir.appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, result, negative,
           overflow, OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
       
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
+      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), skipProbability));
     }
     
     @Override

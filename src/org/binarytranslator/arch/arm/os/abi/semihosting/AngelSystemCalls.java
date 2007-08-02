@@ -13,6 +13,7 @@ import java.util.Map;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
+import org.binarytranslator.Main;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 
 /**
@@ -691,6 +692,7 @@ public class AngelSystemCalls {
     @Override
     public void execute() {
       ps.finished = true;
+      Main.onExit(0);
     }
     
   }

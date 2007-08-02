@@ -385,7 +385,7 @@ public class ARM_Interpreter implements Interpreter {
       this.conditionalInstruction = i;
       
       conditionTrueSuccessor = conditionalInstruction.getSuccessor(pc);
-      boolean inThumbMode = (pc & 1) == 0;
+      boolean inThumbMode = (pc & 1) == 1;
       
       if (conditionTrueSuccessor == pc + 4 && !inThumbMode)
         successorInstruction = conditionTrueSuccessor; //ARM may have conditional instruction that are not jumps

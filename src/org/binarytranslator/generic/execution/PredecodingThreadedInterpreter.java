@@ -8,10 +8,33 @@ import java.util.List;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
+/**
+ * Execution controller that implements predecoding, threaded interpretation.
+ *
+ */
 public class PredecodingThreadedInterpreter extends ExecutionController {
+  /** The controller keeps a cache of commonly used code traces. Each trace is essentially a dynamic basic block. 
+   * This HashMap maps the address of a trace's first instruction to its dynamic basic block. */
   private final HashMap<Integer, List<Interpreter.Instruction>> traceCache = new HashMap<Integer, List<Interpreter.Instruction>>();
+  
+  /** The interpreter that is used to perform the actual execution of single instructions. */
   private final Interpreter interpreter;
   
+  /** Default constructor. */
+  public PredecodingThreadedInterpreter(ProcessSpace ps) {
+    super(ps);
+    interpreter = ps.createInterpreter();
+  }
+  
+  /**
+   * Returns the dynamic basic block of instructions, starting it at address <code>pc</code>.
+   * This function also manages the trace cache ({@link #traceCache}).
+   * 
+   * @param pc
+   *  The address at which the dynamic basic block starts.
+   * @return
+   *  A list of instructions that form the dynamic basic block.
+   */
   private List<Interpreter.Instruction> getTrace(int pc) {
     List<Interpreter.Instruction> cachedTrace = traceCache.get(pc);
     
@@ -42,6 +65,14 @@ public class PredecodingThreadedInterpreter extends ExecutionController {
     return newTrace;
   }
   
+  /**
+   * Executes a list of instructions. It is assumed that the first instruction starts at address <code>pc</code>.
+   * 
+   * @param trace
+   *  The list of instructions that is to be executed.
+   * @param pc
+   *  The address of the first instruction.
+   */
   protected void executeTrace(List<Interpreter.Instruction> trace, int pc) {
     
     Iterator<Interpreter.Instruction> instructions = trace.iterator();
@@ -56,11 +87,6 @@ public class PredecodingThreadedInterpreter extends ExecutionController {
       else
         break;
     }
-  }
-  
-  public PredecodingThreadedInterpreter(ProcessSpace ps) {
-    super(ps);
-    interpreter = ps.createInterpreter();
   }
 
   @Override

@@ -121,7 +121,7 @@ public class BranchProfile {
           throw new IOException("File is not a valid XML branch profile.");
         
         int targetAddress = Integer.parseInt(((Element)target).getAttribute("address"));
-        int branchCount = Integer.parseInt(((Element)target).getAttribute("address"));
+        int branchCount = Integer.parseInt(((Element)target).getAttribute("branchCount"));
         targetsAndFrequencies.put(targetAddress, branchCount);
       }
       
@@ -130,8 +130,6 @@ public class BranchProfile {
     
     public void toXML(Document doc, Element parentNode) {
       Element branchInfo = parentNode;
-      
-      Element targets = doc.createElement("targets");
       
       for (Entry<Integer, Integer> branchTarget : destinationsAndFrequencies.entrySet()) {
         int targetAddress = branchTarget.getKey();
@@ -142,8 +140,6 @@ public class BranchProfile {
         branchTargetElement.setAttribute("address", Integer.toString(targetAddress));
         branchTargetElement.setAttribute("branchCount", Integer.toString(branchCount));
       }
-      
-      branchInfo.appendChild(targets);
     }
   }
 
@@ -243,6 +239,33 @@ public class BranchProfile {
       branchSites.put(origin, branch);
     }
   }
+  
+  /**
+   * Returns the probability of a branch from <code>origin</code> to <code>target</code>.
+   * 
+   * @param origin
+   *  The address at which the branch is taking place.
+   * @param target
+   *  The address to which the branch is taking place.
+   * @return
+   *  The probability of the branch as a value between 0 and 1. The function returns -1, if the probability
+   *  cannot be estimated.
+   */
+  public float getBranchProbability(int origin, int target) {
+    BranchInformation branch = branchSites.get(origin);
+    
+    if (branch == null || branch.executionCount == 0) {
+      return -1f;
+    }
+    
+    Integer branchesToTarget = branch.getTargetsAndFrequencies().get(target);
+    
+    if (branchesToTarget == null) {
+      return 0f;
+    }
+    
+    return branchesToTarget / (float)branch.executionCount;
+  }
 
   /**
    * Given an address within a procedure, returns the (most likely) procedure
@@ -271,7 +294,15 @@ public class BranchProfile {
    *  The address to which it took place.
    */
   public void profileBranch(int origin, int target) {
-    throw new RuntimeException("Not yet implemented.");
+ 
+    BranchInformation branch = branchSites.get(origin);
+    
+    if (branch == null) {
+      branch = new BranchInformation();
+      branchSites.put(origin, branch);
+    }
+    
+    branch.profile(target);
   }
   
   /**
@@ -288,8 +319,21 @@ public class BranchProfile {
     return (branch == null) ? null : branch.getTargets();
   }
   
+  /**
+   * Loads a branch profile from a file.
+   * 
+   * @param filename
+   *  The name of the file that the branch profile is loaded from.
+   * @throws IOException
+   *  An exception that is thrown if an error occurs reading that file.
+   */
   public void loadFromXML(String filename) throws IOException {
 
+    //clear previous profile data
+    procedures.clear();
+    branchSites.clear();
+    
+    //create a XML document builder and an XML document
     DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
     Document doc;
     try {
@@ -303,34 +347,54 @@ public class BranchProfile {
     
     if (DBT.VerifyAssertions) DBT._assert(doc != null);
     
+    //Check the root-name of the document
     Element root = doc.getDocumentElement();
-
     if (!root.getNodeName().equals("branch-profile"))
       throw new IOException("File is not a valid XML branch profile.");
     
-    Node branches = null;
-    
+    //interate over the main document, parsing the different sections
     for (int i = 0; i < root.getChildNodes().getLength(); i++) {
-      Node node = root.getChildNodes().item(0);
+      Node node = root.getChildNodes().item(i);
+      String nodeName = node.getNodeName();
       
-      if (node.getNodeName().equals("branches")) {
-        branches = node;
-        break;
+      if (node.getNodeType() != Node.ELEMENT_NODE) {
+        continue;
       }
-    }
-    
-    if (branches == null)
-      throw new IOException("File is not a valid XML branch profile.");
-    
-    for (int i = 0; i < branches.getChildNodes().getLength(); i++) {
-      Node siteNode = branches.getChildNodes().item(i);
       
-      if (!siteNode.getNodeName().equals("origin") || siteNode.getNodeType() != Node.ELEMENT_NODE)
-        throw new IOException("File is not a valid XML branch profile.");
+      if (nodeName.equals("branches")) {
       
-      int address = Integer.parseInt(((Element)siteNode).getAttribute("address"));
-      BranchInformation branchInfo = BranchInformation.fromXML((Element)siteNode);
-      branchSites.put(address, branchInfo);
+        //this is the section which contains the branch information.
+        for (int n = 0; n < node.getChildNodes().getLength(); n++) {
+          Node branchNode = node.getChildNodes().item(n);
+          
+          if (branchNode.getNodeType() != Node.ELEMENT_NODE)
+            continue;
+          
+          if (!branchNode.getNodeName().equals("branch"))
+            throw new IOException("File is not a valid XML branch profile.");
+          
+          int address = Integer.parseInt(((Element)branchNode).getAttribute("address"));
+          BranchInformation branchInfo = BranchInformation.fromXML((Element)branchNode);
+          branchSites.put(address, branchInfo);
+        }
+      }
+      else
+      if (nodeName.equals("procedures")) {
+        
+        //this is the section with procedure information
+        for (int n = 0; n < node.getChildNodes().getLength(); n++) {
+          Node procedureInfo = node.getChildNodes().item(n);
+          
+          if (procedureInfo.getNodeType() != Node.ELEMENT_NODE)
+            continue;
+          
+          ProcedureInformation pi = ProcedureInformation.fromXML((Element)procedureInfo);
+          procedures.put(pi.getEntryAddress(), pi);
+        }
+      }
+      else {
+        throw new IOException("This is not a valid XML branch profile.");
+      }
     }
   }
   
@@ -387,6 +451,15 @@ public class BranchProfile {
       branchInfo.toXML(doc, branchSiteElement);
     }
     
+    Element proceduresElement = doc.createElement("procedures");
+    root.appendChild(proceduresElement);
+    
+    for (ProcedureInformation procedure : procedures.values()) {
+      Element procedureElement = doc.createElement("procedure");
+      proceduresElement.appendChild(procedureElement);
+      procedure.toXML(doc, procedureElement);
+    }
+    
     //Output the resulting XML document
     TransformerFactory tFactory = TransformerFactory.newInstance();
     Transformer transformer;
@@ -395,6 +468,7 @@ public class BranchProfile {
       DOMSource source = new DOMSource(doc);
       StreamResult result = new StreamResult(outputStream);
       transformer.transform(source, result);
+      outputStream.close();
       
     } catch (Exception e) {
       e.printStackTrace();

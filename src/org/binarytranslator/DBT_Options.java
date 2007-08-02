@@ -49,6 +49,12 @@ public class DBT_Options {
   
   /** Determines how the program will be run (i.e. interpreted, translated etc.) */
   public static ExecutionController.Type executionController = ExecutionController.Type.Translator;
+  
+  /** A filename to which the runtime profiling information shall be saved. */
+  public static String saveProfileToFile = null;
+
+  /** A filename from which the runtime profiling information shall be loaded. */
+  public static String loadProfileFromFile = null;
 
   /**
    * Favour backward branch optimization. Translate backward branch addresses
@@ -183,7 +189,12 @@ public class DBT_Options {
       gdbStubPort = Integer.parseInt(value);
     } else if (arg.equalsIgnoreCase("controller")) {
       executionController = ExecutionController.Type.valueOf(value);
-    } else {
+    } else if (arg.equalsIgnoreCase("loadProfile")) {
+      loadProfileFromFile = arg;
+    } else if (arg.equalsIgnoreCase("saveProfile")) {
+      saveProfileToFile = arg;
+    }
+    else {
       throw new Error("Unknown DBT option: " + arg);
     }
   }

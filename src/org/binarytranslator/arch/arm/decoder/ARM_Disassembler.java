@@ -20,7 +20,6 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.ARM_InstructionVis
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.UndefinedInstruction;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
-import org.binarytranslator.generic.decoder.DisassembledInstruction;
 import org.binarytranslator.generic.decoder.Disassembler;
 
 /**

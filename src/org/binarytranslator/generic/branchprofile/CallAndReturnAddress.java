@@ -12,14 +12,11 @@ package org.binarytranslator.generic.branchprofile;
  * Object for recording a call site and its corresponding return address
  */
 class CallAndReturnAddress {
-  /**
-   * Call site address
-   */
+  
+  /** The address at which the call is taking place.*/
   private int callSite;
 
-  /**
-   * Return address
-   */
+  /** The address to which the call shall return. */
   private int returnAddress;
 
   /**
@@ -35,24 +32,29 @@ class CallAndReturnAddress {
     this.returnAddress = returnAddress;
   }
 
-  /**
-   * Get call site address
-   */
+  /** Get call site address */
   int getCallSite() {
     return callSite;
   }
 
-  /**
-   * Get return address
-   */
+  /** Get return address */
   int getReturnAddress() {
     return returnAddress;
   }
+  
+  @Override
+  public int hashCode() {
+    return callSite;
+  }
 
-  /**
-   * Are two call sites the same?
-   */
+  @Override
   public boolean equals(Object obj) {
-    return ((CallAndReturnAddress) obj).callSite == callSite;
+    
+    if (!(obj instanceof CallAndReturnAddress)) {
+      return false;
+    }
+    
+    CallAndReturnAddress other = ((CallAndReturnAddress) obj);
+    return other.callSite == callSite && other.returnAddress == returnAddress;
   }
 }

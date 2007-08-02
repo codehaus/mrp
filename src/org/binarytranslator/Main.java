@@ -9,12 +9,14 @@
 package org.binarytranslator;
 
 import java.io.File;
-
 import org.binarytranslator.generic.execution.PredecodingThreadedInterpreter;
 import org.binarytranslator.generic.execution.DynamicTranslationController;
 import org.binarytranslator.generic.execution.ExecutionController;
 import org.binarytranslator.generic.execution.GdbController;
 import org.binarytranslator.generic.execution.InterpreterController;
+import org.binarytranslator.generic.execution.ProfilingInterpreterController;
+import org.binarytranslator.generic.execution.ProfilingPredecodingInterpreter;
+import org.binarytranslator.generic.execution.StagedEmulationController;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
@@ -93,10 +95,6 @@ public class Main {
       System.err.println("Error accesing file: " + args[0] + ". " + e.getMessage());
       return;
     }
-    /*catch (Error e) {
-      System.err.println(e.getMessage());
-      return;
-    }*/
 
     report("Sucessfully created process.");
     
@@ -108,7 +106,16 @@ public class Main {
     //on SUN's VM, only the interpreter has been tested 
     if (DBT_Options.buildForSunVM) {
       DBT_Options.executionController = ExecutionController.Type.PredecodingInterpreter;
-      
+    }
+    
+    //load a previously saved branch profile from file, if the user requested it
+    try {
+      if (DBT_Options.loadProfileFromFile != null)
+        ps.branchInfo.loadFromXML(DBT_Options.loadProfileFromFile);
+    } catch (Exception e) {
+      System.err.println("Error loading branch profile from: " + DBT_Options.loadProfileFromFile);
+      e.printStackTrace();
+      return;
     }
     
     //Create an execution controller and pass execution on to it
@@ -116,12 +123,18 @@ public class Main {
     
     switch (DBT_Options.executionController) {
     
+      case StagedEmulation:
+        controller = new StagedEmulationController(ps);
+        break;
+    
       case PredecodingInterpreter:
-        controller = new PredecodingThreadedInterpreter(ps); //new PredecodingThreadedInterpreter(ps);
-      break;
+        controller = DBT_Options.profileDuringInterpretation ? 
+            new ProfilingPredecodingInterpreter(ps) : new PredecodingThreadedInterpreter(ps);
+        break;
       
       case Interpreter:
-        controller = new InterpreterController(ps);
+        controller = DBT_Options.profileDuringInterpretation ? 
+            new ProfilingInterpreterController(ps) : new InterpreterController(ps);
         break;
         
       case Translator:
@@ -143,10 +156,11 @@ public class Main {
   public static void onExit(int exitcode) {
     System.out.println("\nProgram has finished. Exitcode: " + exitcode);
     
-    /*try {
-      //ps.branchInfo.saveAsXML("/tmp/profile.xml");
-    } catch (IOException e) {
+    try {
+      if (DBT_Options.saveProfileToFile != null)
+        ps.branchInfo.saveAsXML(DBT_Options.saveProfileToFile);
+    } catch (Exception e) {
       e.printStackTrace();
-    }*/
+    }
   }
 }
