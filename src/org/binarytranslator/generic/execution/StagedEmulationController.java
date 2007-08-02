@@ -13,24 +13,46 @@ import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.DynamicCodeRunner;
 import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
 
+/**
+ * This controller implements staged emulation, i.e. switching between interpretation
+ * and translation dynamically.
+ *
+ */
 public class StagedEmulationController extends ExecutionController {
 
-  private final class Trace {
-    public final List<Interpreter.Instruction> instructions;
+  /** Represents a dynamic basic block of instructions. */
+  private final class DynamicBasicBlock {
+    /** The instructions within this dynamic basic block. */
+    public List<Interpreter.Instruction> instructions;
+    
+    /** A value describing how "hot" the basic block is, i.e. how often it has been executed.*/
     public int value;
+    
+    /** A handle to the compiled version of this dynamic basic block or null, if there is none. */
     public DBT_Trace compiledTrace;
     
-    public Trace(List<Interpreter.Instruction> instructions) {
+    public DynamicBasicBlock(List<Interpreter.Instruction> instructions) {
       this.instructions = instructions;
       value = 0;
     }
   }
   
-  private final HashMap<Integer, Trace> traceCache = new HashMap<Integer, Trace>();
+  /** Maps a dynamic basic block to the address of the first instruction within that block. */
+  private final HashMap<Integer, DynamicBasicBlock> traceCache = new HashMap<Integer, DynamicBasicBlock>();
+  
+  /** The interpreter that is used to perform the actual execution of single instructions. */
   private final Interpreter interpreter;
   
-  private Trace getTrace(int pc) {
-    Trace cachedTrace = traceCache.get(pc);
+  /**
+   * Returns the dynamic basic block starting at address <code>pc</code>.
+   * 
+   * @param pc
+   *  The starting address of a dynamic basic block.
+   * @return
+   *  An object representation of the dynamic basic block.
+   */
+  private DynamicBasicBlock getBlock(int pc) {
+    DynamicBasicBlock cachedTrace = traceCache.get(pc);
     
     if (cachedTrace != null)
       return cachedTrace;
@@ -46,7 +68,7 @@ public class StagedEmulationController extends ExecutionController {
       //is the successor to this instruction known?
       if (pc == -1) {
         //No, so stop and create a trace from the decoded instructions
-        Trace newTrace = new Trace(instructions);
+        DynamicBasicBlock newTrace = new DynamicBasicBlock(instructions);
         
         if (instructions.size() > 3) {
           //add this trace to the trace cache, if it contains enough instructions
@@ -58,17 +80,34 @@ public class StagedEmulationController extends ExecutionController {
     }
   }
   
-  private void compileTrace(Trace trace, int pc) {
+  /**
+   * Compiles a dynamic basic block into a trace.
+   * 
+   * @param trace
+   *  The dynamic basic block to compile.
+   * @param pc
+   *  The address of the first instruction within the dynamic basic block.
+   */
+  private void compileBlock(DynamicBasicBlock trace, int pc) {
     if (DBT.VerifyAssertions) DBT._assert(trace.compiledTrace == null);
     
     trace.compiledTrace = new DBT_Trace(ps, pc);
     trace.compiledTrace.compile();
+    trace.instructions = null;
   }
   
-  private void executeTrace(Trace trace, int pc) {
+  /**
+   * Executes the instructions within a dynamic basic block.
+   * 
+   * @param trace
+   *  The dynamic basic block whose instructions shall be executed.
+   * @param pc
+   *  The address of the first instruction within that dynamic basic block.
+   */
+  private void executeBlock(DynamicBasicBlock trace, int pc) {
     
     //check if the trace is being executed very frequently... 
-    if (trace.value > 20) {
+    if (trace.value > DBT_Options.minTraceValue) {
       
       if (DBT_Options.debugTranslation)
         System.out.println("Switching to interpretation at address 0x" + Integer.toHexString(pc));
@@ -76,13 +115,18 @@ public class StagedEmulationController extends ExecutionController {
       //yes, so we should rather try to execute a translated version
       if (trace.compiledTrace == null) {
         //compile the trace, if necessary
-        compileTrace(trace, pc);
+        compileBlock(trace, pc);
         if (DBT.VerifyAssertions) DBT._assert(trace.compiledTrace != null);
       }
       
       //execute the trace
       VM_CodeArray code = trace.compiledTrace.getCurrentCompiledMethod().getEntryCodeArray();
       ps.setCurrentInstructionAddress(DynamicCodeRunner.invokeCode(code, ps));
+      
+      if (DBT_Options.debugTranslation)
+        System.out.println("Returning from interpretation at 0x" + Integer.toHexString(ps.getCurrentInstructionAddress()));
+      
+      return;
     }
     else {
       trace.value += trace.instructions.size();
@@ -102,6 +146,7 @@ public class StagedEmulationController extends ExecutionController {
     }
   }
   
+  /** Default constructor */
   public StagedEmulationController(ProcessSpace ps) {
     super(ps);
     interpreter = ps.createInterpreter();
@@ -113,8 +158,8 @@ public class StagedEmulationController extends ExecutionController {
 
     while (!ps.finished) {
       
-      Trace trace = getTrace(pc);
-      executeTrace(trace, pc);
+      DynamicBasicBlock trace = getBlock(pc);
+      executeBlock(trace, pc);
       pc = ps.getCurrentInstructionAddress();
     }
   }

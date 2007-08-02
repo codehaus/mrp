@@ -3,6 +3,12 @@ package org.binarytranslator.generic.execution;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
+/**
+ * Implements straight-forward interpretation using the {@link Interpreter} 
+ * and {@link Interpreter.Instruction} interfaces. 
+ * 
+ * Additionally, this controller performs profiling during the interpretation.
+ */
 public class ProfilingInterpreterController extends ExecutionController {
 
   public ProfilingInterpreterController(ProcessSpace ps) {

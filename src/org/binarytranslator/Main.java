@@ -105,7 +105,7 @@ public class Main {
 
     //on SUN's VM, only the interpreter has been tested 
     if (DBT_Options.buildForSunVM) {
-      DBT_Options.executionController = ExecutionController.Type.PredecodingInterpreter;
+      DBT_Options.executionController = ExecutionController.Type.StagedEmulation;
     }
     
     //load a previously saved branch profile from file, if the user requested it

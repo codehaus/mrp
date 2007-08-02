@@ -90,6 +90,9 @@ public class DBT_Options {
   /** GDB stub port */
   public static int gdbStubPort = 1234;
   
+  /** Just a temporary variable for testing. It describes, when the staged emulation controller switches from interpretation to translation. */
+  public static int minTraceValue = 20;
+  
   /** Print debug information during the translation of instructions. */
   public static boolean debugTranslation = true;
 
@@ -153,49 +156,52 @@ public class DBT_Options {
   }
   
   /** Parses a single argument into the options class. */
-  private static void parseSingleArgument(String arg, String value) {
+  private static void parseSingleArgument(String key, String value) {
     
-    if (!arg.startsWith("-X:dbt:")) {
+    if (!key.startsWith("-X:dbt:")) {
       throw new Error("Invalid argument. Argument prefix '-X:dbt:' expected.");
     }
     
-    arg = arg.substring(7);
+    key = key.substring(7);
 
-    if (arg.equalsIgnoreCase("debugInstr")) {
+    if (key.equalsIgnoreCase("debugInstr")) {
       debugInstr = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("debugRuntime")) {
+    } else if (key.equalsIgnoreCase("debugRuntime")) {
       debugRuntime = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("debugBranchResolution")) {
+    } else if (key.equalsIgnoreCase("debugBranchResolution")) {
       debugBranchResolution = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("debugMemory")) {
+    } else if (key.equalsIgnoreCase("debugMemory")) {
       debugMemory = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("debugSyscall")) {
+    } else if (key.equalsIgnoreCase("debugSyscall")) {
       debugSyscall = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("debugSyscallMore")) {
+    } else if (key.equalsIgnoreCase("debugSyscallMore")) {
       debugSyscallMore = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("instrOpt0")) {
+    } else if (key.equalsIgnoreCase("instrOpt0")) {
       instrOpt0 = Integer.parseInt(value);
-    } else if (arg.equalsIgnoreCase("instrOpt1")) {
+    } else if (key.equalsIgnoreCase("instrOpt1")) {
       instrOpt1 = Integer.parseInt(value);
-    } else if (arg.equalsIgnoreCase("instrOpt2")) {
+    } else if (key.equalsIgnoreCase("instrOpt2")) {
       instrOpt2 = Integer.parseInt(value);
-    } else if (arg.equalsIgnoreCase("singleInstrTranslation")) {
+    } else if (key.equalsIgnoreCase("singleInstrTranslation")) {
       singleInstrTranslation = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("resolveDirectBranchesFirst")) {
+    } else if (key.equalsIgnoreCase("resolveDirectBranchesFirst")) {
       resolveDirectBranchesFirst = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("gdbStub")) {
+    } else if (key.equalsIgnoreCase("gdbStub")) {
       gdbStub = Boolean.parseBoolean(value);
-    } else if (arg.equalsIgnoreCase("gdbStubPort")) {
+    } else if (key.equalsIgnoreCase("gdbStubPort")) {
       gdbStubPort = Integer.parseInt(value);
-    } else if (arg.equalsIgnoreCase("controller")) {
+    } else if (key.equalsIgnoreCase("controller")) {
       executionController = ExecutionController.Type.valueOf(value);
-    } else if (arg.equalsIgnoreCase("loadProfile")) {
-      loadProfileFromFile = arg;
-    } else if (arg.equalsIgnoreCase("saveProfile")) {
-      saveProfileToFile = arg;
+    } else if (key.equalsIgnoreCase("loadProfile")) {
+      loadProfileFromFile = value;
+    } else if (key.equalsIgnoreCase("saveProfile")) {
+      saveProfileToFile = value;
+    } else if (key.equalsIgnoreCase("minTraceValue")) {
+      minTraceValue = Integer.parseInt(value);
     }
+    
     else {
-      throw new Error("Unknown DBT option: " + arg);
+      throw new Error("Unknown DBT option: " + key);
     }
   }
   

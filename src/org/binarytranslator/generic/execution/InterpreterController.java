@@ -1,9 +1,12 @@
 package org.binarytranslator.generic.execution;
 
-import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
+/**
+ * Implements straight-forward interpretation using the {@link Interpreter} 
+ * and {@link Interpreter.Instruction} interfaces.
+ */
 public class InterpreterController extends ExecutionController {
 
   public InterpreterController(ProcessSpace ps) {
