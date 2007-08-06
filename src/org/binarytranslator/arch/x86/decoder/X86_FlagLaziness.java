@@ -31,9 +31,7 @@ public class X86_FlagLaziness {
   }
 
   X86_FlagLaziness(byte[] flagLaziness) {
-    for (int i = 0; i < this.flagLaziness.length; i++) {
-      this.flagLaziness[i] = flagLaziness[i];
-    }
+    System.arraycopy(flagLaziness, 0, this.flagLaziness, 0, flagLaziness.length);
   }
 
   public Object clone() {
@@ -91,9 +89,7 @@ public class X86_FlagLaziness {
       Key(int pc, byte[] flagLaziness) {
         this.pc = pc;
 
-        for (int i = 0; i < flagLaziness.length; i++) {
-          this.flagLaziness[i] = flagLaziness[i];
-        }
+        System.arraycopy(flagLaziness, 0, this.flagLaziness, 0, flagLaziness.length);
       }
 
       public String toString() {
