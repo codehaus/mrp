@@ -158,7 +158,7 @@ public abstract class CodeTranslator implements OPT_Constants,
   /** 
    * This variable is being set by a call to {@link #printTraceAfterCompletion()} and notifies
    * the system that the current trace shall be printed, after it has been completed. */
-  private boolean requestPrintTrace;
+  private boolean printTraceAfterCompletionRequested;
 
   /** Map to locate HIR basic blocks to re-use translation within a trace */
   protected final HashMap<Laziness.Key, OPT_BasicBlock> blockMap;
@@ -248,7 +248,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * debug purposes.
    */
   protected void printTraceAfterCompletion() {
-    requestPrintTrace = true;
+    printTraceAfterCompletionRequested = true;
   }
 
   /** This is the main loop, which generates the HIR. */
@@ -263,7 +263,10 @@ public abstract class CodeTranslator implements OPT_Constants,
     
     while (unresolvedDirectBranches.size() > 0 || unresolvedDynamicBranches.size() > 0) {
       // Resolve all open direct branches first
-      resolveAllDirectBranches();
+      do {
+        resolveAllDirectBranches();
+      }
+      while (unresolvedDirectBranches.size() > 0);
 
       // Resolve unresolved dynamic jumps
       resolveAllDynamicBranches();
@@ -276,13 +279,23 @@ public abstract class CodeTranslator implements OPT_Constants,
       eliminateRegisterFills(getUnusedRegisters());
     }
     
-    if (requestPrintTrace) {
-      requestPrintTrace = false;
+    if (printTraceAfterCompletionRequested) {
+      printTraceAfterCompletionRequested = false;
       printNextBlocks(preFillBlock, 50);
     }
-    
-    // TODO: maximizeBasicBlocks()
   }
+  /*
+  protected final void maximizeBasicBlocks(OPT_IR ir) {
+    for (OPT_BasicBlock currBB = ir.cfg.firstInCodeOrder(); currBB != null;) {
+      if (currBB.mergeFallThrough(ir)) {
+        // don't advance currBB; it may have a new trivial fallthrough to
+        // swallow
+      } else {
+        currBB = currBB.nextBasicBlockInCodeOrder();
+      }
+    }
+  }*/
+
 
   /**
    * Translate a sequence of instructions upto an instruction that doesn't know

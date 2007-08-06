@@ -756,23 +756,31 @@ public class ARM_Translator implements OPT_Operators {
       arm2ir.getCurrentBlock().insertOut(condBlock);
       
       //Query the branch profile to get the probability that this instruction is going to get executed
-      float skipProbability = ps.branchInfo.getBranchProbability(pc, pc + (inThumb() ? 2 : 4));
       OPT_BranchProfileOperand profileOperand;
       
-      if (skipProbability == -1 || skipProbability == 0.5f) {
-        profileOperand = new OPT_BranchProfileOperand();
-      }
-      else if (skipProbability > 0.8f) {
-        profileOperand = OPT_BranchProfileOperand.always();
-      }
-      else if (skipProbability > 0.5f) {
-        profileOperand = OPT_BranchProfileOperand.likely();
-      }
-      else if (skipProbability < 0.2f) {
-        profileOperand = OPT_BranchProfileOperand.never();
+      if (DBT_Options.optimizeTranslationByProfiling) {
+        float skipProbability = ps.branchInfo.getBranchProbability(pc, pc + (inThumb() ? 2 : 4));
+
+        if (skipProbability == -1 || skipProbability == 0.5f) {
+          profileOperand = new OPT_BranchProfileOperand();
+        }
+        else if (skipProbability > 0.8f) {
+          profileOperand = OPT_BranchProfileOperand.always();
+          condBlock.setInfrequent();
+        }
+        else if (skipProbability > 0.5f) {
+          profileOperand = OPT_BranchProfileOperand.likely();
+          condBlock.setInfrequent();
+        }
+        else if (skipProbability < 0.2f) {
+          profileOperand = OPT_BranchProfileOperand.never();
+        }
+        else {
+          profileOperand = OPT_BranchProfileOperand.unlikely();
+        }
       }
       else {
-        profileOperand = OPT_BranchProfileOperand.unlikely();
+        profileOperand = new OPT_BranchProfileOperand();
       }
       
       switch (condition) {
@@ -2208,8 +2216,22 @@ public class ARM_Translator implements OPT_Operators {
           
           //rotation = (address & 0x3) * 8
           arm2ir.appendInstruction(Binary.create(INT_AND, rotation, address.copy(), new OPT_IntConstantOperand(0x3)));
+          
+          OPT_BasicBlock remainderBlock = arm2ir.createBlockAfterCurrent();
+          OPT_BasicBlock rotationBlock = arm2ir.createBlockAfterCurrent();
+          
+          //do we actually have to perform the rotation?
+          arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), rotation.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), rotationBlock.makeJumpTarget(), OPT_BranchProfileOperand.never()));
+          arm2ir.appendInstruction(Goto.create(GOTO, remainderBlock.makeJumpTarget()));
+          
+          //in case we are performing the rotation...
+          arm2ir.setCurrentBlock(rotationBlock);
+          rotationBlock.setInfrequent();
           arm2ir.appendInstruction(Binary.create(INT_SHL, rotation.copyRO(), rotation.copy(), new OPT_IntConstantOperand(3)));
           arm2ir.appendRotateRight(value.copyRO(), value.copy(), rotation.copy());
+          
+          //continue with the remainder of the instruction
+          arm2ir.setCurrentBlock(remainderBlock);
 
           //allow further usage of the memory address
           address = adrCopy;
@@ -2284,6 +2306,7 @@ public class ARM_Translator implements OPT_Operators {
         arm2ir.appendBranch(arm2ir.getRegister(i.Rd), lazy, BranchType.INDIRECT_BRANCH);
       }
     }
+   
     
     public Condition getCondition() {
       return i.condition;

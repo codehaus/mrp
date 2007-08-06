@@ -93,6 +93,9 @@ public class DBT_Options {
   /** Just a temporary variable for testing. It describes, when the staged emulation controller switches from interpretation to translation. */
   public static int minTraceValue = 20;
   
+  /** Just a temporary variable for testing. It describes, if the translated program shall be optimized using profiling information.. */
+  public static boolean optimizeTranslationByProfiling = false;
+  
   /** Print debug information during the translation of instructions. */
   public static boolean debugTranslation = true;
 
@@ -198,8 +201,9 @@ public class DBT_Options {
       saveProfileToFile = value;
     } else if (key.equalsIgnoreCase("minTraceValue")) {
       minTraceValue = Integer.parseInt(value);
+    } else if (key.equalsIgnoreCase("optimizeTranslation")) {
+      optimizeTranslationByProfiling = Boolean.parseBoolean(value);
     }
-    
     else {
       throw new Error("Unknown DBT option: " + key);
     }
