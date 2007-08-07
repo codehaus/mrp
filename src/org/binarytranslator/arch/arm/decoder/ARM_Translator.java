@@ -377,8 +377,9 @@ public class ARM_Translator implements OPT_Operators {
           curBlock.deleteNormalOut();
           curBlock.insertOut(nextBlock);
           curBlock.insertOut(block1);
+          OPT_Operand carryFlag = translator.arm2ir.readCarryFlag(translator.lazy);
           translator.arm2ir.appendInstruction(Binary.create(INT_USHR, resultRegister, shiftedOperand.copy(), new OPT_IntConstantOperand(1)));
-          translator.arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, translator.arm2ir.getTempValidation(0), translator.arm2ir.getCarryFlag(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.NOT_EQUAL(), nextBlock.makeJumpTarget(), new OPT_BranchProfileOperand()));
+          translator.arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, translator.arm2ir.getTempValidation(0), carryFlag, new OPT_IntConstantOperand(1), OPT_ConditionOperand.NOT_EQUAL(), nextBlock.makeJumpTarget(), new OPT_BranchProfileOperand()));
           
           //Block 1
           translator.arm2ir.setCurrentBlock(block1);
@@ -414,7 +415,7 @@ public class ARM_Translator implements OPT_Operators {
           value = new OPT_IntConstantOperand(operand.getImmediate());
           
           if (operand.getShiftAmount() != 0) {            
-            OPT_RegisterOperand carryFlag = translator.arm2ir.getCarryFlag();
+            OPT_RegisterOperand carryFlag = translator.arm2ir.writeCarryFlag(translator.lazy);
             OPT_Operand shifterCarryOut = new OPT_IntConstantOperand(((operand.getImmediate() & 0x80000000) != 0) ? 1 : 0);
             
             //otherwise there is no shifter carry out
@@ -451,7 +452,7 @@ public class ARM_Translator implements OPT_Operators {
       
       /** Returns the register that receives the shifte carry out*/
       private OPT_RegisterOperand getShifterCarryOutTarget() {
-        return translator.arm2ir.getCarryFlag();
+        return translator.arm2ir.writeCarryFlag(translator.lazy);
       }
 
       /**
@@ -685,7 +686,7 @@ public class ARM_Translator implements OPT_Operators {
           curBlock.insertOut(block1);
           curBlock.insertOut(nextBlock);
           translator.arm2ir.appendInstruction(Binary.create(INT_USHR, resultRegister, shiftedOperand.copy(), new OPT_IntConstantOperand(1)));       
-          translator.arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, validation, translator.arm2ir.getCarryFlag(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.NOT_EQUAL(), nextBlock.makeJumpTarget(), new OPT_BranchProfileOperand()));
+          translator.arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, validation, translator.arm2ir.readCarryFlag(translator.lazy), new OPT_IntConstantOperand(1), OPT_ConditionOperand.NOT_EQUAL(), nextBlock.makeJumpTarget(), new OPT_BranchProfileOperand()));
           
           //Block 1
           translator.arm2ir.setCurrentBlock(block1);
@@ -720,7 +721,7 @@ public class ARM_Translator implements OPT_Operators {
     /** Return the instruction following this one or -1, if that is not yet known. */
     int getSuccessor(int pc);
   }
-
+  
   /** All ARM instructions that are supposed to be executed conditionally 
    * are decorated with this decorator. 
    * The decorator takes care of checking the individual condition and depending on it, executing the
@@ -729,7 +730,7 @@ public class ARM_Translator implements OPT_Operators {
 
     protected final ARM_Instruction conditionalInstruction;
     protected final Condition condition;
-
+    
     /** Decorates an ARM interpreter instruction, by making it execute conditionally. */
     protected ConditionalDecorator(ARM_Instruction i) {
       conditionalInstruction = i;
@@ -738,132 +739,213 @@ public class ARM_Translator implements OPT_Operators {
     
     public int getSuccessor(int pc) {
       
-      boolean thumbMode = (pc & 0x1) == 1;
-      return pc + (thumbMode ? 2 : 4);
+      if (assumeInstructionWillBeSkipped()) {
+        boolean thumbMode = (pc & 0x1) == 1;
+        return pc + (thumbMode ? 2 : 4);
+      }
+      else {
+        return conditionalInstruction.getSuccessor(pc);
+      }
     }
     
     public Condition getCondition() {
       return condition;
     }
     
+    /**
+     * Returns the probability that this conditional instruction will be skipped.
+     * 
+     * @return
+     *  The probability that this conditional instruction will be skipped. Returns -1, if this probability
+     *  cannot be estimated.
+     */
+    private float getSkipProbability() {
+      
+      if (DBT_Options.optimizeTranslationByProfiling)
+        return -1f;
+      
+      return ps.branchInfo.getBranchProbability(pc, pc + (inThumb() ? 2 : 4));
+    }
+    
+    /**
+     * During the processing of this conditional instruction, shall we assume that it will be skipped?
+     * This is helpful to optimize the trace.
+     * 
+     * @return
+     *  True if it is likely that this instruction will be skipped. False otherwise.
+     */
+    private boolean assumeInstructionWillBeSkipped() {
+      float skipProbability = getSkipProbability();
+      
+      return (skipProbability == -1f || skipProbability > 0.5f);
+    }
+    
+    /**   
+      conditionals are implemented easily: if the condition does not hold, then just
+      jump to the block following the conditional instruction. To do this, the following structure of
+      block is built:
+
+      --------------------------------------------------------
+       1. block that checks the condition  
+      --------------------------------------------------------
+       2. conditional instruction
+      --------------------------------------------------------
+       3. next instruction, when the instruction was not skipped
+      --------------------------------------------------------
+       4. next instruction, when it was skipped                      <- next block
+      --------------------------------------------------------
+      
+      Note that the two last blocks are only necessary when laziness is used. Otherwise, the first of 
+      them will remain empty.
+     */
     public void translate() {
-      //conditionals are implemented easily: if the condition does not hold, then just
-      //jump to the block following the conditional instruction
-      OPT_BasicBlock nextInstruction = arm2ir.getNextBlock();
-      OPT_BasicBlock condBlock = arm2ir.createBlockAfterCurrent(); 
-      arm2ir.getCurrentBlock().deleteNormalOut();
-      arm2ir.getCurrentBlock().insertOut(nextInstruction);
-      arm2ir.getCurrentBlock().insertOut(condBlock);
+
+      OPT_BasicBlock blockThatChecksCondition = arm2ir.getCurrentBlock();
+      OPT_BasicBlock nextInstruction_InstructionSkipped = arm2ir.getNextBlock();
+      OPT_BasicBlock nextInstruction_InstructionNotSkipped = arm2ir.createBlockAfterCurrent();
+      OPT_BasicBlock condInstructionBlock = arm2ir.createBlockAfterCurrent(); 
+
+      //prepare to translate the actual condition
+      arm2ir.setCurrentBlock(blockThatChecksCondition);
+      blockThatChecksCondition.deleteNormalOut();
+      blockThatChecksCondition.insertOut(nextInstruction_InstructionSkipped);
+      blockThatChecksCondition.insertOut(condInstructionBlock);
       
       //Query the branch profile to get the probability that this instruction is going to get executed
       OPT_BranchProfileOperand profileOperand;
       
-      if (DBT_Options.optimizeTranslationByProfiling) {
-        float skipProbability = ps.branchInfo.getBranchProbability(pc, pc + (inThumb() ? 2 : 4));
+      float skipProbability = getSkipProbability();
 
-        if (skipProbability == -1 || skipProbability == 0.5f) {
-          profileOperand = new OPT_BranchProfileOperand();
-        }
-        else if (skipProbability > 0.8f) {
-          profileOperand = OPT_BranchProfileOperand.always();
-          condBlock.setInfrequent();
-        }
-        else if (skipProbability > 0.5f) {
-          profileOperand = OPT_BranchProfileOperand.likely();
-          condBlock.setInfrequent();
-        }
-        else if (skipProbability < 0.2f) {
-          profileOperand = OPT_BranchProfileOperand.never();
-        }
-        else {
-          profileOperand = OPT_BranchProfileOperand.unlikely();
-        }
+      if (skipProbability == -1 || skipProbability == 0.5f) {
+        profileOperand = new OPT_BranchProfileOperand();
+      }
+      else if (skipProbability > 0.8f) {
+        profileOperand = OPT_BranchProfileOperand.always();
+        condInstructionBlock.setInfrequent();
+      }
+      else if (skipProbability > 0.5f) {
+        profileOperand = OPT_BranchProfileOperand.likely();
+        condInstructionBlock.setInfrequent();
+      }
+      else if (skipProbability < 0.2f) {
+        profileOperand = OPT_BranchProfileOperand.never();
       }
       else {
-        profileOperand = new OPT_BranchProfileOperand();
+        profileOperand = OPT_BranchProfileOperand.unlikely();
       }
       
       switch (condition) {
       case AL:
-        throw new RuntimeException("ARM32 instructions with a condition of AL (always) should not be decorated with a ConditionalDecorator.");
+        throw new RuntimeException("Unconditional instructions should not be decorated with a ConditionalDecorator.");
         
       case CC:
         //return !regs.isCarrySet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getCarryFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readCarryFlag(lazy), OPT_ConditionOperand.NOT_EQUAL());
         break;
         
       case CS:
         //return regs.isCarrySet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getCarryFlag(), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readCarryFlag(lazy), OPT_ConditionOperand.EQUAL());
         break;
         
       case EQ:
         //return regs.isZeroSet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getZeroFlag(), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readZeroFlag(lazy), OPT_ConditionOperand.EQUAL());
         break;
         
       case GE:
         //return regs.isNegativeSet() == regs.isOverflowSet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getNegativeFlag(), OPT_ConditionOperand.EQUAL(), arm2ir.getOverflowFlag());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readNegativeFlag(lazy), OPT_ConditionOperand.EQUAL(), arm2ir.readOverflowFlag(lazy));
         break;
         
       case GT:
-        translateCondition_GT(nextInstruction, profileOperand);
+        translateCondition_GT(nextInstruction_InstructionSkipped, profileOperand);
         break;
         
       case HI:
-        translateCondition_HI(nextInstruction, profileOperand);
+        translateCondition_HI(nextInstruction_InstructionSkipped, profileOperand);
         break;
         
       case LE:
-        translateCondition_LE(nextInstruction, profileOperand);
+        translateCondition_LE(nextInstruction_InstructionSkipped, profileOperand);
         break;
         
       case LS:
-        translateCondition_LS(nextInstruction, profileOperand, condBlock);
+        translateCondition_LS(nextInstruction_InstructionSkipped, profileOperand, condInstructionBlock);
         break;
         
       case LT:
         //return regs.isNegativeSet() != regs.isOverflowSet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getNegativeFlag(), OPT_ConditionOperand.NOT_EQUAL(), arm2ir.getOverflowFlag());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readNegativeFlag(lazy), OPT_ConditionOperand.NOT_EQUAL(), arm2ir.readOverflowFlag(lazy));
         break;
         
       case MI:
         //return regs.isNegativeSet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getNegativeFlag(), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readNegativeFlag(lazy), OPT_ConditionOperand.EQUAL());
         break;
         
       case NE:
         //return !regs.isZeroSet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getZeroFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readZeroFlag(lazy), OPT_ConditionOperand.NOT_EQUAL());
         break;
         
       case NV:
         //never execute this instruction
-        translateCondition(nextInstruction, profileOperand, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL());
         break;
         
       case PL:
         //return !regs.isNegativeSet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getNegativeFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readNegativeFlag(lazy), OPT_ConditionOperand.NOT_EQUAL());
         break;
         
       case VC:
         //return !regs.isOverflowSet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getOverflowFlag(), OPT_ConditionOperand.NOT_EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readOverflowFlag(lazy), OPT_ConditionOperand.NOT_EQUAL());
         break;
         
       case VS:
         //return regs.isOverflowSet();
-        translateCondition(nextInstruction, profileOperand, arm2ir.getOverflowFlag(), OPT_ConditionOperand.EQUAL());
+        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readOverflowFlag(lazy), OPT_ConditionOperand.EQUAL());
         break;
         
         default:
           throw new RuntimeException("Unexpected condition code: " + condition);
-      }     
+      }
+            
+      //Translate the conditional instruction first to see if the lazy state is changed by the
+      //conditional instruction
+      ARM_Laziness lazinessWhenInstructionSkipped = (ARM_Laziness)lazy.clone();
       
-      arm2ir.setCurrentBlock(condBlock);
+      arm2ir.setCurrentBlock(condInstructionBlock);
+      arm2ir.setNextBlock(nextInstruction_InstructionNotSkipped);
       conditionalInstruction.translate();
+      
+      int followingInstructionAddress = pc + (inThumb() ? 2 : 4);
+       
+      //yes it did, so we may need to translate the successor instruction twice        
+      if (assumeInstructionWillBeSkipped()) {
+        
+        //Did the laziness change during the translation?
+        if (!lazy.equivalent(lazinessWhenInstructionSkipped)) {
+          //Modify block 3 so that it resolves the different laziness correctly
+          arm2ir.setCurrentBlock(nextInstruction_InstructionNotSkipped);
+          nextInstruction_InstructionNotSkipped.deleteNormalOut();
+          arm2ir.appendBranch(followingInstructionAddress, lazy);
+          lazy.set(lazinessWhenInstructionSkipped);
+        }
+        
+        arm2ir.setNextBlock(nextInstruction_InstructionSkipped);
+        
+      }
+      else {
+        //Modify block 4 so that it resolves the different laziness correctly
+        arm2ir.setCurrentBlock(nextInstruction_InstructionSkipped);
+        nextInstruction_InstructionSkipped.deleteNormalOut();
+        arm2ir.appendBranch(followingInstructionAddress, lazinessWhenInstructionSkipped);
+        
+        arm2ir.setNextBlock(nextInstruction_InstructionNotSkipped);
+      }
     }
     
     private void translateCondition(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability, OPT_Operand operand, OPT_ConditionOperand condition) {
@@ -878,8 +960,8 @@ public class ARM_Translator implements OPT_Operators {
     
     private void translateCondition_HI(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability) {
       //return regs.isCarrySet() && !regs.isZeroSet();
-      OPT_Operand carry = arm2ir.getCarryFlag();
-      OPT_Operand zero = arm2ir.getZeroFlag();
+      OPT_Operand carry = arm2ir.readCarryFlag(lazy);
+      OPT_Operand zero = arm2ir.readZeroFlag(lazy);
       OPT_RegisterOperand result = arm2ir.getGenerationContext().temps.makeTempBoolean();
       
       arm2ir.appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_OR, result, carry,
@@ -890,33 +972,20 @@ public class ARM_Translator implements OPT_Operators {
     
     private void translateCondition_LS(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability, OPT_BasicBlock actualInstruction) {
       //return !regs.isCarrySet() || regs.isZeroSet();
-      OPT_Operand carry = arm2ir.getCarryFlag();
-      OPT_Operand zero = arm2ir.getZeroFlag();
+      OPT_Operand carry = arm2ir.readCarryFlag(lazy);
+      OPT_Operand zero = arm2ir.readZeroFlag(lazy);
       
       OPT_RegisterOperand result = arm2ir.getTempInt(0);
       
       arm2ir.appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, result, carry, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand(), zero, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
       arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), result.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), nextInstruction.makeJumpTarget(), skipProbability));
-      
-/*      cond1.deleteNormalOut();
-      cond1.insertOut(cond2);
-      cond1.insertOut(actualInstruction);
-      
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), carry, new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), actualInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
-
-      arm2ir.setCurrentBlock(cond2);
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), zero, new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), actualInstruction.makeJumpTarget(), new OPT_BranchProfileOperand()));
-      arm2ir.appendInstruction(Goto.create(GOTO, nextInstruction.makeJumpTarget()));
-      cond2.deleteNormalOut();
-      cond2.insertOut(nextInstruction);
-      cond2.insertOut(actualInstruction);*/
     }
     
     private void translateCondition_GT(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability) {
       //return (regs.isNegativeSet() == regs.isOverflowSet()) && !regs.isZeroSet();
-      OPT_Operand negative = arm2ir.getNegativeFlag();
-      OPT_Operand overflow = arm2ir.getOverflowFlag();
-      OPT_Operand zero = arm2ir.getZeroFlag();
+      OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
+      OPT_Operand overflow = arm2ir.readOverflowFlag(lazy);
+      OPT_Operand zero = arm2ir.readZeroFlag(lazy);
       OPT_RegisterOperand result = arm2ir.getGenerationContext().temps.makeTempBoolean();
       
       arm2ir.appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_OR, result, negative,
@@ -927,9 +996,9 @@ public class ARM_Translator implements OPT_Operators {
     
     private void translateCondition_LE(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability) {
       //return regs.isZeroSet() || (regs.isNegativeSet() != regs.isOverflowSet());
-      OPT_Operand negative = arm2ir.getNegativeFlag();
-      OPT_Operand overflow = arm2ir.getOverflowFlag();
-      OPT_Operand zero = arm2ir.getZeroFlag();
+      OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
+      OPT_Operand overflow = arm2ir.readOverflowFlag(lazy);
+      OPT_Operand zero = arm2ir.readZeroFlag(lazy);
       OPT_RegisterOperand result = arm2ir.getGenerationContext().temps.makeTempBoolean();
       
       arm2ir.appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, result, negative,
@@ -1021,21 +1090,8 @@ public class ARM_Translator implements OPT_Operators {
      *  The add's right-hand-side operator.
      */
     protected final void setAddFlags(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
-      //set the carry flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getCarryFlag(), result.copy(), lhs.copy(), OPT_ConditionOperand.LOWER(), new OPT_BranchProfileOperand()));
       
-      //set the overflow flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getOverflowFlag(), lhs.copy(), rhs.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
-      
-      //set the negative flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-      
-      //set the zero flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      arm2ir.appendAddFlags(lazy, result, lhs, rhs);
     }
     
     /** Sets the processor flags according to the result of subtracting <code>rhs</code> from <code>lhs</code>.*/
@@ -1077,22 +1133,8 @@ public class ARM_Translator implements OPT_Operators {
      *  The sub's right-hand-side operator.
      */
     protected final void setSubFlags(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
-      //set the carry flag to not(Borrow)
-      OPT_ConditionOperand notBorrowFromSub = OPT_ConditionOperand.BORROW_FROM_SUB().flipCode();
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getCarryFlag(), lhs.copy(), rhs.copy(), notBorrowFromSub, new OPT_BranchProfileOperand()));
       
-      //set the overflow flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getOverflowFlag(), lhs.copy(), rhs.copy(), OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
-      
-      //set the negative flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-      
-      //set the zero flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      arm2ir.appendSubFlags(lazy, result, lhs, rhs);
     }
     
     public Condition getCondition() {
@@ -1165,13 +1207,8 @@ public class ARM_Translator implements OPT_Operators {
     protected final void setLogicalFlags(OPT_Operand result) {
       //the shifter carry out has already been set during the resolve-phase
       
-      //set the negative flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-      
-      //set the zero flag
-      arm2ir.appendInstruction(BooleanCmp.create(
-          BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      //set the negative & zero flag
+      arm2ir.appendLogicalFlags(lazy, result);
     }
   }
 
@@ -1287,7 +1324,7 @@ public class ARM_Translator implements OPT_Operators {
 
       //Is the carry set at all? if not, just jump to addWithoutCarry
       arm2ir.appendInstruction(Binary.create(INT_ADD, result, operand1, operand2));
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), arm2ir.getCarryFlag(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), addWithoutCarry.makeJumpTarget(), new OPT_BranchProfileOperand()));
+      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), arm2ir.readCarryFlag(lazy), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), addWithoutCarry.makeJumpTarget(), new OPT_BranchProfileOperand()));
       arm2ir.getCurrentBlock().insertOut(addWithCarry);
      
       //Yes, the carry flag is set. Pre-increase the result by one to account for the carry.
@@ -1318,7 +1355,7 @@ public class ARM_Translator implements OPT_Operators {
 
       //Is the carry set? if yes, just jump to subWithoutCarry
       arm2ir.appendInstruction(Binary.create(INT_SUB, result, operand1, operand2));
-      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), arm2ir.getCarryFlag(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), subWithoutCarry.makeJumpTarget(), new OPT_BranchProfileOperand()));
+      arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), arm2ir.readCarryFlag(lazy), new OPT_IntConstantOperand(1), OPT_ConditionOperand.EQUAL(), subWithoutCarry.makeJumpTarget(), new OPT_BranchProfileOperand()));
       arm2ir.getCurrentBlock().insertOut(subWithCarry);
      
       //No, the carry flag is not set. That means, we have to use the carry within the subtraction (weird arm logic).
@@ -1674,41 +1711,7 @@ public class ARM_Translator implements OPT_Operators {
   
           //first translate the register write back
           translateWriteback(startAddress.copyRO(), nextAddress.copyRO());
-          
-          //shall we switch to thumb mode?
-          /*OPT_BasicBlock finishInstruction = arm2ir.createBlockAfterCurrentNotInCFG();
-          OPT_BasicBlock switchToARMBlock = arm2ir.createBlockAfterCurrentNotInCFG();
-          OPT_BasicBlock switchToThumbBlock = arm2ir.createBlockAfterCurrentNotInCFG();
-          
-          //Current block
-          OPT_BasicBlock currentBlock = arm2ir.getCurrentBlock();
-          currentBlock.deleteNormalOut();
-          currentBlock.insertOut(switchToARMBlock);
-          currentBlock.insertOut(switchToThumbBlock);
-          arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), regPC.copy(), new OPT_IntConstantOperand(1), OPT_ConditionOperand.BIT_TEST(), switchToThumbBlock.makeJumpTarget(), OPT_BranchProfileOperand.never()));
-          arm2ir.appendInstruction(Goto.create(GOTO, switchToARMBlock.makeJumpTarget()));
-          
-          //Yes, switch to thumb mode
-          arm2ir.setCurrentBlock(switchToThumbBlock);
-          switchToThumbBlock.insertOut(finishInstruction);
-          OPT_Instruction call_setThumbMode = createCallToRegisters("setThumbMode", "(Z)V", 1);
-          Call.setParam(call_setThumbMode, 1, new OPT_IntConstantOperand(1));
-          arm2ir.appendCustomCall(call_setThumbMode);
-          arm2ir.appendInstruction(Goto.create(GOTO, finishInstruction.makeJumpTarget()));
 
-          //No, don't switch to thumb mode
-          arm2ir.setCurrentBlock(switchToARMBlock);
-          switchToARMBlock.insertOut(finishInstruction);
-          arm2ir.appendInstruction(Binary.create(INT_AND, regPC.copyRO(), regPC.copy(), new OPT_IntConstantOperand(0xFFFFFFFE)));
-          OPT_Instruction call_setArmMode = createCallToRegisters("setThumbMode", "(Z)V", 1);
-          Call.setParam(call_setArmMode, 1, new OPT_IntConstantOperand(0));
-          arm2ir.appendCustomCall(call_setArmMode);
-          arm2ir.appendInstruction(Goto.create(GOTO, finishInstruction.makeJumpTarget()));
-          
-          //according to the APCS, these types of instructions are usually function returns
-          arm2ir.setCurrentBlock(finishInstruction);
-          arm2ir.appendBranch(regPC, lazy, BranchType.RETURN);*/
-          
           arm2ir.appendBranch(regPC, lazy, BranchType.RETURN);
           return;
         }
@@ -1940,13 +1943,8 @@ public class ARM_Translator implements OPT_Operators {
       }
 
       if (i.updateConditionCodes) {
-        //set the negative flag
-        arm2ir.appendInstruction(BooleanCmp.create(
-            BOOLEAN_CMP_INT, arm2ir.getNegativeFlag(), result.copyRO(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-        
-        //set the zero flag
-        arm2ir.appendInstruction(BooleanCmp.create(
-            BOOLEAN_CMP_INT, arm2ir.getZeroFlag(), result.copyRO(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+        //set the negative & zero flag
+        arm2ir.appendLogicalFlags(lazy, result);
       }
     }
     
@@ -2006,13 +2004,13 @@ public class ARM_Translator implements OPT_Operators {
       }
 
       if (i.updateConditionCodes) {
-        //set the negative flag
+        //set the negative flag 
         arm2ir.appendInstruction(BooleanCmp.create(
-            BOOLEAN_CMP_LONG, arm2ir.getNegativeFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
+            BOOLEAN_CMP_LONG, arm2ir.writeNegativeFlag(lazy), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
         
         //set the zero flag
         arm2ir.appendInstruction(BooleanCmp.create(
-            BOOLEAN_CMP_LONG, arm2ir.getZeroFlag(), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+            BOOLEAN_CMP_LONG, arm2ir.writeZeroFlag(lazy), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
       }
     }
     
@@ -2223,6 +2221,7 @@ public class ARM_Translator implements OPT_Operators {
           //do we actually have to perform the rotation?
           arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, arm2ir.getTempValidation(0), rotation.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), rotationBlock.makeJumpTarget(), OPT_BranchProfileOperand.never()));
           arm2ir.appendInstruction(Goto.create(GOTO, remainderBlock.makeJumpTarget()));
+          arm2ir.getCurrentBlock().insertOut(remainderBlock);
           
           //in case we are performing the rotation...
           arm2ir.setCurrentBlock(rotationBlock);

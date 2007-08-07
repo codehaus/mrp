@@ -97,6 +97,9 @@ public final class DBT_Trace extends VM_NormalMethod {
    */
   public final int pc;
   
+  /** The number of guest instructions that have been compiled into this trace. */
+  private int numberOfInstructions;
+  
   /** 
    * In order to allow arbitrary calls within a trace, we have to store at which bytecode index
    * a method is called in which way. This class stores the necessary information. */
@@ -320,5 +323,13 @@ public final class DBT_Trace extends VM_NormalMethod {
    */
   public int getBytecodeLength() {
     return 256;
+  }
+
+  public int getNumberOfInstructions() {
+    return numberOfInstructions;
+  }
+
+  public void setNumberOfInstructions(int numberOfInstructions) {
+    this.numberOfInstructions = numberOfInstructions;
   }
 }

@@ -93,8 +93,11 @@ public class DBT_Options {
   /** Just a temporary variable for testing. It describes, when the staged emulation controller switches from interpretation to translation. */
   public static int minTraceValue = 20;
   
-  /** Just a temporary variable for testing. It describes, if the translated program shall be optimized using profiling information.. */
+  /** Just a temporary variable for testing. It describes, if the translated program shall be optimized using profiling information. */
   public static boolean optimizeTranslationByProfiling = false;
+  
+  /** Just a temporary variable for testing. It describes, if the translated program shall be optimized using lazy evaluation.*/
+  public static boolean optimizeTranslationByLazyEvaluation = true;
   
   /** Print debug information during the translation of instructions. */
   public static boolean debugTranslation = true;
@@ -179,6 +182,8 @@ public class DBT_Options {
       debugSyscall = Boolean.parseBoolean(value);
     } else if (key.equalsIgnoreCase("debugSyscallMore")) {
       debugSyscallMore = Boolean.parseBoolean(value);
+    } else if (key.equalsIgnoreCase("debugTranslation")) {
+      debugTranslation = Boolean.parseBoolean(value);
     } else if (key.equalsIgnoreCase("instrOpt0")) {
       instrOpt0 = Integer.parseInt(value);
     } else if (key.equalsIgnoreCase("instrOpt1")) {
@@ -201,9 +206,12 @@ public class DBT_Options {
       saveProfileToFile = value;
     } else if (key.equalsIgnoreCase("minTraceValue")) {
       minTraceValue = Integer.parseInt(value);
-    } else if (key.equalsIgnoreCase("optimizeTranslation")) {
+    } else if (key.equalsIgnoreCase("optimizeByProfiling")) {
       optimizeTranslationByProfiling = Boolean.parseBoolean(value);
+    } else if (key.equalsIgnoreCase("optimizeByLazy")) {
+      optimizeTranslationByLazyEvaluation = Boolean.parseBoolean(value);
     }
+   
     else {
       throw new Error("Unknown DBT option: " + key);
     }

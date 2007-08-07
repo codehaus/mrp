@@ -46,13 +46,18 @@ public final class ARM_Disassembler {
 
     Instruction decodedInstruction;
     
-    if ((address & 0x1) == 1) {
-      short binaryInstruction = (short)ps.memory.loadInstruction16(address & 0xFFFFFFFE);
-      decodedInstruction = ARM_InstructionDecoder.Thumb.decode(binaryInstruction);
+    try {
+      if ((address & 0x1) == 1) {
+        short binaryInstruction = (short)ps.memory.loadInstruction16(address & 0xFFFFFFFE);
+        decodedInstruction = ARM_InstructionDecoder.Thumb.decode(binaryInstruction);
+      }
+      else {
+        int binaryInstruction = ps.memory.loadInstruction32(address);
+        decodedInstruction = ARM_InstructionDecoder.ARM32.decode(binaryInstruction);
+      }
     }
-    else {
-      int binaryInstruction = ps.memory.loadInstruction32(address);
-      decodedInstruction = ARM_InstructionDecoder.ARM32.decode(binaryInstruction);
+    catch (Exception e) {
+      return new ARM_DisassembledInstruction("Exception (" + e + ") while reading instruction at 0x" + Integer.toHexString(address));
     }
     
     DisassemblingVisitor disassembler = new DisassemblingVisitor();

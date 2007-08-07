@@ -3,6 +3,9 @@ package org.binarytranslator.arch.arm.decoder;
 import java.util.ArrayList;
 
 import org.binarytranslator.DBT;
+import org.binarytranslator.DBT_Options;
+import org.binarytranslator.arch.arm.decoder.ARM_Laziness.Flag;
+import org.binarytranslator.arch.arm.decoder.ARM_Laziness.Operation;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
@@ -77,6 +80,9 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
   /** The class performing the actual translation of the bytecode. */
   private final ARM_Translator translator;
   
+  /** Determines how flags are resolved and if laziness is used.*/
+  private final ARM_FlagBehavior flagBehavior;
+  
   static {
     psTref = VM_TypeReference.findOrCreate(ARM_ProcessSpace.class);
     
@@ -136,6 +142,272 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
   public ARM2IR(OPT_GenerationContext context, DBT_Trace trace) {
     super(context, trace);
     translator = new ARM_Translator((ARM_ProcessSpace)ps, this);
+    
+    if (DBT_Options.optimizeTranslationByLazyEvaluation)
+      flagBehavior = new ARM_LazyFlagBehavior();
+    else
+      flagBehavior = new ARM_ImmediateFlagBehavior();
+  }
+  
+  /** ARM has an interchangeable flag behavior. Flags can either be evaluated immediately or on demand using
+   * lazy evaluation. This interface encapsulates the differences. */
+  public abstract class ARM_FlagBehavior {
+    
+    /**
+     * Interface helper function. If a flag behaviour wants to set a value of a flag, it shall set
+     * the {@link OPT_RegisterOperand} returned by this function.
+     */
+    protected final OPT_RegisterOperand getFlag(Flag flag) {
+      switch (flag) {
+      case Zero:
+        return new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
+        
+      case Carry:
+        return new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
+        
+      case Negative:
+        return new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
+        
+      case Overflow:
+        return new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
+        
+      default:
+        throw new RuntimeException("Unexpected flag type: " + flag);
+      }
+    }
+    /** Called before a flag is written to directly. */
+    public abstract void onFlagWrite(Flag flag, ARM_Laziness lazy);
+    
+    /** Called before a flag is read. */
+    public abstract void onFlagRead(Flag flag, ARM_Laziness lazy);
+    
+    /** Called when the ARM flags shall be set by a logical operation. This sets the zero and negative flag. */
+    public abstract void appendLogicalFlags(ARM_Laziness lazy, OPT_Operand result);
+    
+    /** Called when the ARM flags shall be set by a ADD operation. This sets all ARM flags. */
+    public abstract void appendAddFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2);
+    
+    /** Called when the ARM flags shall be set by a SUB operation. This sets all ARM flags. */
+    public abstract void appendSubFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2);
+  }
+  
+  /** Implements a flag behavior that will immediately evaluate all flag values. */
+  public final class ARM_ImmediateFlagBehavior extends ARM_FlagBehavior {
+
+    @Override
+    public void appendAddFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
+      
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Zero), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Carry), result.copy(), op1.copy(), OPT_ConditionOperand.LOWER(), new OPT_BranchProfileOperand()));
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Negative), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Overflow), op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
+    }
+
+    @Override
+    public void appendLogicalFlags(ARM_Laziness lazy, OPT_Operand result) {
+      
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Zero), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Negative), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
+      
+    }
+
+    @Override
+    public void appendSubFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Zero), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Negative), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Carry), op1.copy(), op2.copy(), OPT_ConditionOperand.BORROW_FROM_SUB().flipCode(), new OPT_BranchProfileOperand()));
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Overflow), op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
+    }
+
+    @Override
+    public void onFlagRead(Flag flag, ARM_Laziness lazy) {
+      //nothing to do here, because the flags are already resolved
+    }
+
+    @Override
+    public void onFlagWrite(Flag flag, ARM_Laziness lazy) {
+      //nothing to do here, because the flags are already resolved
+    }
+  }
+  
+  /** Implements a flag behavior that will use lazy evaluation to only determine a flag value
+   * when it is necessary. */
+  public final class ARM_LazyFlagBehavior extends ARM_FlagBehavior {
+    
+    /** Operands for lazy evaluation of condition codes. */
+    private OPT_Register lazyOperand1;
+    private OPT_Register lazyOperand2;
+    private OPT_Register lazyLogicalOperand;
+    
+    public ARM_LazyFlagBehavior() {
+      //prepare the laziness registers
+      lazyOperand1 = makeTemp(VM_TypeReference.Int).register;
+      lazyOperand2 = makeTemp(VM_TypeReference.Int).register;
+      lazyLogicalOperand = makeTemp(VM_TypeReference.Int).register;
+    }
+
+    @Override
+    public void appendAddFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
+
+      appendInstruction(Move.create(INT_MOVE, new OPT_RegisterOperand(lazyOperand1, VM_TypeReference.Int), op1.copy()));
+      appendInstruction(Move.create(INT_MOVE, new OPT_RegisterOperand(lazyOperand2, VM_TypeReference.Int), op2.copy()));
+      
+      lazy.setValid(Flag.Zero, false);
+      lazy.setValid(Flag.Negative, false);
+      lazy.setValid(Flag.Carry, false);
+      lazy.setValid(Flag.Overflow, false);
+      lazy.setOperation(Operation.Add);
+      
+      if (DBT_Options.debugTranslation) {
+        System.out.println("New Lazy state: " + lazy);
+      }
+    }
+
+    @Override
+    public void appendLogicalFlags(ARM_Laziness lazy, OPT_Operand result) {
+      appendInstruction(Move.create(INT_MOVE, new OPT_RegisterOperand(lazyLogicalOperand, VM_TypeReference.Int), result.copy()));
+      
+      lazy.setValid(Flag.Zero, false);
+      lazy.setValid(Flag.Negative, false);
+      
+      switch (lazy.getOperation()) {
+      case Add:
+        lazy.setOperation(Operation.LogicalOpAfterAdd);
+        break;
+
+      case Sub:
+        lazy.setOperation(Operation.LogicalOpAfterSub);
+        break;
+        
+      case LogicalOpAfterAdd:
+      case LogicalOpAfterSub:
+        break;
+        
+      default:
+        throw new RuntimeException("Unhandled laziness operation: " + lazy.getOperation());
+      }
+      
+      if (DBT_Options.debugTranslation) {
+        System.out.println("New Lazy state: " + lazy);
+      }
+    }
+
+    @Override
+    public void appendSubFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
+      
+      appendInstruction(Move.create(INT_MOVE, new OPT_RegisterOperand(lazyOperand1, VM_TypeReference.Int), op1.copy()));
+      appendInstruction(Move.create(INT_MOVE, new OPT_RegisterOperand(lazyOperand2, VM_TypeReference.Int), op2.copy()));
+      
+      lazy.setValid(Flag.Zero, false);
+      lazy.setValid(Flag.Negative, false);
+      lazy.setValid(Flag.Carry, false);
+      lazy.setValid(Flag.Overflow, false);
+      lazy.setOperation(Operation.Sub);
+      
+      if (DBT_Options.debugTranslation) {
+        System.out.println("New Lazy state: " + lazy);
+      }
+    }
+    
+    private void resolveFlag(ARM_Laziness.Flag flag, ARM_Laziness lazy) {
+      
+      if (lazy.isValid(flag))
+        return;
+      
+      if (DBT_Options.debugTranslation) {
+        System.out.println("Resolving " + flag + " flag.");
+      }
+      
+      OPT_RegisterOperand flagRegister = getFlag(flag);
+      OPT_RegisterOperand op1 = new OPT_RegisterOperand(lazyOperand1, VM_TypeReference.Int);
+      OPT_RegisterOperand op2 = new OPT_RegisterOperand(lazyOperand2, VM_TypeReference.Int);
+      OPT_RegisterOperand result;
+      
+      switch (lazy.getOperation()) {
+      case Add:
+        result = gc.temps.makeTempInt(); 
+        appendInstruction(Binary.create(INT_ADD, result, op1, op2));
+        break;
+        
+      case Sub:
+        result = gc.temps.makeTempInt();
+        appendInstruction(Binary.create(INT_SUB, result, op1, op2));
+        break;
+        
+      case LogicalOpAfterAdd:
+      case LogicalOpAfterSub:
+        result = new OPT_RegisterOperand(lazyLogicalOperand, VM_TypeReference.Int);
+        break;
+        
+      default:
+        throw new RuntimeException("Unhandled laziness operation: " + lazy.getOperation());
+      }
+      
+      switch (flag) {
+      case Zero:
+        appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
+        break;
+        
+      case Carry:
+        switch (lazy.getOperation()) {
+        case LogicalOpAfterAdd:
+        case Add: 
+          appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, result.copy(), op1.copy(), OPT_ConditionOperand.LOWER(), new OPT_BranchProfileOperand()));
+          break;
+        
+        case LogicalOpAfterSub:
+        case Sub:
+          appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.BORROW_FROM_SUB().flipCode(), new OPT_BranchProfileOperand()));
+          break;
+          
+        default:
+          throw new RuntimeException("Unhandled laziness operation: " + lazy.getOperation());
+        }
+        break;
+        
+      case Negative:
+        appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
+        break;
+        
+      case Overflow:
+        switch (lazy.getOperation()) {
+        case Add: 
+        case LogicalOpAfterAdd:
+          appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
+          break;
+          
+        case Sub:
+        case LogicalOpAfterSub:
+          appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
+          break;
+          
+        default:
+          throw new RuntimeException("Unhandled laziness operation: " + lazy.getOperation());
+        }
+
+        break;
+        
+      default:
+        throw new RuntimeException("Unhandled flag type: " + flag);
+      }
+      
+      lazy.setValid(flag, true);
+      
+      if (DBT_Options.debugTranslation) {
+        System.out.println("New Lazy state: " + lazy);
+      }
+    }
+
+    @Override
+    public void onFlagRead(Flag flag, ARM_Laziness lazy) {
+      resolveFlag(flag, lazy);
+      
+    }
+
+    @Override
+    public void onFlagWrite(Flag flag, ARM_Laziness lazy) {
+      lazy.setValid(flag, true);
+    }
   }
 
   @Override
@@ -319,25 +591,66 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     return new OPT_RegisterOperand(regMap[r], VM_TypeReference.Int);
   }
   
-  public OPT_RegisterOperand getCarryFlag() {
+  public OPT_Operand readCarryFlag(ARM_Laziness lazy) {
     carryUsed = true;
+    flagBehavior.onFlagRead(Flag.Carry, lazy);
     return new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
   }
   
-  public OPT_RegisterOperand getZeroFlag() {
+  public OPT_Operand readZeroFlag(ARM_Laziness lazy) {
     zeroUsed = true;
+    flagBehavior.onFlagRead(Flag.Zero, lazy);
     return new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
   }
   
-  public OPT_RegisterOperand getNegativeFlag() {
+  public OPT_Operand readNegativeFlag(ARM_Laziness lazy) {
     negativeUsed = true;
+    flagBehavior.onFlagRead(Flag.Negative, lazy);
     return new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
   }
   
-  public OPT_RegisterOperand getOverflowFlag() {
+  public OPT_Operand readOverflowFlag(ARM_Laziness lazy) {
     overflowUsed = true;
+    flagBehavior.onFlagRead(Flag.Overflow, lazy);
     return new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
   }
+  
+  public OPT_RegisterOperand writeCarryFlag(ARM_Laziness lazy) {
+    carryUsed = true;
+    flagBehavior.onFlagWrite(Flag.Carry, lazy);
+    return new OPT_RegisterOperand(carryFlag, VM_TypeReference.Boolean);
+  }
+  
+  public OPT_RegisterOperand writeZeroFlag(ARM_Laziness lazy) {
+    zeroUsed = true;
+    flagBehavior.onFlagWrite(Flag.Zero, lazy);
+    return new OPT_RegisterOperand(zeroFlag, VM_TypeReference.Boolean);
+  }
+  
+  public OPT_RegisterOperand writeNegativeFlag(ARM_Laziness lazy) {
+    negativeUsed = true;
+    flagBehavior.onFlagWrite(Flag.Negative, lazy);
+    return new OPT_RegisterOperand(negativeFlag, VM_TypeReference.Boolean);
+  }
+  
+  public OPT_RegisterOperand writeOverflowFlag(ARM_Laziness lazy) {
+    overflowUsed = true;
+    flagBehavior.onFlagWrite(Flag.Overflow, lazy);
+    return new OPT_RegisterOperand(overflowFlag, VM_TypeReference.Boolean);
+  }
+  
+  public void appendLogicalFlags(ARM_Laziness lazy, OPT_Operand result) {
+    flagBehavior.appendLogicalFlags(lazy, result);
+  }
+  
+  public void appendSubFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
+    flagBehavior.appendSubFlags(lazy, result, op1, op2);
+  }
+  
+  public void appendAddFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
+    flagBehavior.appendAddFlags(lazy, result, op1, op2);
+  }
+ 
   
   @Override
   protected OPT_Register[] getUnusedRegisters() {
@@ -372,7 +685,19 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
 
   @Override
   public void resolveLaziness(Laziness laziness) {
-    //NO-OP, as we're not using laziness at the moment
+    ARM_Laziness lazy = (ARM_Laziness)laziness;
+    
+    if (carryUsed)
+      flagBehavior.onFlagRead(Flag.Carry, lazy);
+    
+    if (negativeUsed)
+      flagBehavior.onFlagRead(Flag.Negative, lazy);
+    
+    if (overflowUsed)
+      flagBehavior.onFlagRead(Flag.Overflow, lazy);
+    
+    if (zeroUsed)
+      flagBehavior.onFlagRead(Flag.Zero, lazy);
   }
   
   @Override

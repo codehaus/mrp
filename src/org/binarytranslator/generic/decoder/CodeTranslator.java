@@ -247,7 +247,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * dependencies (unknown branch targets etc.) have been resolved. This function is useful for
    * debug purposes.
    */
-  protected void printTraceAfterCompletion() {
+  public void printTraceAfterCompletion() {
     printTraceAfterCompletionRequested = true;
   }
 
@@ -283,18 +283,9 @@ public abstract class CodeTranslator implements OPT_Constants,
       printTraceAfterCompletionRequested = false;
       printNextBlocks(preFillBlock, 50);
     }
+    
+    ((DBT_Trace) gc.method).setNumberOfInstructions(numberOfInstructions);
   }
-  /*
-  protected final void maximizeBasicBlocks(OPT_IR ir) {
-    for (OPT_BasicBlock currBB = ir.cfg.firstInCodeOrder(); currBB != null;) {
-      if (currBB.mergeFallThrough(ir)) {
-        // don't advance currBB; it may have a new trivial fallthrough to
-        // swallow
-      } else {
-        currBB = currBB.nextBasicBlockInCodeOrder();
-      }
-    }
-  }*/
 
 
   /**
@@ -759,8 +750,11 @@ public abstract class CodeTranslator implements OPT_Constants,
      * within the code cache c) The trace is already too long d) the branch is
      * supposedly a CALL or RETURN
      */
+    
+    DBT_Trace compiledTrace = ps.codeCache.tryGet(targetPc);
+    
     return DBT_Options.singleInstrTranslation == false
-           && ps.codeCache.tryGet(targetPc) == null && !shallTraceStop()
+           && (compiledTrace == null || compiledTrace.getNumberOfInstructions() > 20) && !shallTraceStop()
            && jump.type != BranchType.CALL && jump.type != BranchType.RETURN;
   }
 
@@ -789,7 +783,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     if (targetBB != null)
       return targetBB;
 
-    if (inlineBranchInstruction(targetPc, jump)) {
+    if (!inlineBranchInstruction(targetPc, jump)) {
 
       // Just exit the trace and continue at the target address in a new trace
       if (currentBlock.getNumberOfRealInstructions() != 0) {
@@ -903,7 +897,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     // Copy the value into the register specified by gc.resultReg.
     appendInstruction(Move.create(INT_MOVE, new OPT_RegisterOperand(
         gc.resultReg, VM_TypeReference.Int), nextPc.copy()));
-    resolveLaziness(laziness);
+    resolveLaziness((Laziness)laziness.clone());
     appendInstruction(Goto.create(GOTO, finishBlock.makeJumpTarget()));
     currentBlock.deleteNormalOut();
     currentBlock.insertOut(finishBlock);
@@ -1305,9 +1299,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    */
   public void appendInterpretedInstruction(int pc, Laziness lazy) {
     
-    if (lazy != null)
-      resolveLaziness(lazy);
-    
+    resolveLaziness(lazy);
     spillAllRegisters();
 
     // Prepare a local variable of type Interpreter
