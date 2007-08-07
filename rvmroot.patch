@@ -142,9 +142,9 @@ Index: build/primordials/RVM_OPT.txt
 --- build/primordials/RVM_OPT.txt	(revision 12759)
 +++ build/primordials/RVM_OPT.txt	(working copy)
 @@ -16,3 +16,15 @@
- Ljava/io/FileReader;
  Ljava/io/PushbackReader;
  [Lorg/jikesrvm/compilers/opt/OPT_Simplifier$DefUseEffect;
+ [Lorg/jikesrvm/compilers/opt/ir/OPT_Operator;
 +[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$ELF_Identity$AddressSize;
 +[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$ELF_Identity$ByteOrder;
 +[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$Header$ObjectFileType;
