@@ -754,7 +754,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     DBT_Trace compiledTrace = ps.codeCache.tryGet(targetPc);
     
     return DBT_Options.singleInstrTranslation == false
-           && (compiledTrace == null || compiledTrace.getNumberOfInstructions() > 20) && !shallTraceStop()
+           && (compiledTrace == null || compiledTrace.getNumberOfInstructions() > 30) && !shallTraceStop()
            && jump.type != BranchType.CALL && jump.type != BranchType.RETURN;
   }
 

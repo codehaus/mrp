@@ -761,7 +761,7 @@ public class ARM_Translator implements OPT_Operators {
      */
     private float getSkipProbability() {
       
-      if (DBT_Options.optimizeTranslationByProfiling)
+      if (ARM_Options.optimizeTranslationByProfiling)
         return -1f;
       
       return ps.branchInfo.getBranchProbability(pc, pc + (inThumb() ? 2 : 4));
@@ -922,7 +922,7 @@ public class ARM_Translator implements OPT_Operators {
       conditionalInstruction.translate();
       
       int followingInstructionAddress = pc + (inThumb() ? 2 : 4);
-       
+    
       //yes it did, so we may need to translate the successor instruction twice        
       if (assumeInstructionWillBeSkipped()) {
         
@@ -935,16 +935,27 @@ public class ARM_Translator implements OPT_Operators {
           lazy.set(lazinessWhenInstructionSkipped);
         }
         
+        condInstructionBlock.setInfrequent();
+        nextInstruction_InstructionNotSkipped.setInfrequent();
         arm2ir.setNextBlock(nextInstruction_InstructionSkipped);
-        
       }
       else {
-        //Modify block 4 so that it resolves the different laziness correctly
-        arm2ir.setCurrentBlock(nextInstruction_InstructionSkipped);
-        nextInstruction_InstructionSkipped.deleteNormalOut();
-        arm2ir.appendBranch(followingInstructionAddress, lazinessWhenInstructionSkipped);
-        
-        arm2ir.setNextBlock(nextInstruction_InstructionNotSkipped);
+        if (lazy.equivalent(lazinessWhenInstructionSkipped) && conditionalInstruction.getSuccessor(pc) == followingInstructionAddress) {
+          //the conditional instruction does not change the lazy state, nor does it change the program flow
+          //therefore, we block 3 and block 4 always execute the same code. We might as well continue with block 4 then.
+          arm2ir.setNextBlock(nextInstruction_InstructionSkipped);
+        }
+        else {
+          //we can assume that the instruction will rarely be skipped
+          nextInstruction_InstructionSkipped.setInfrequent();
+          
+          //Modify block 4 so that it resolves the code the be executed if the instruction was skipped
+          arm2ir.setCurrentBlock(nextInstruction_InstructionSkipped);
+          nextInstruction_InstructionSkipped.deleteNormalOut();
+          arm2ir.appendBranch(followingInstructionAddress, lazinessWhenInstructionSkipped);
+          
+          arm2ir.setNextBlock(nextInstruction_InstructionNotSkipped);
+        }
       }
     }
     

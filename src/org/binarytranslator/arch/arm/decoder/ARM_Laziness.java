@@ -13,7 +13,7 @@ public final class ARM_Laziness extends Laziness {
   }
   
   /** The state of the different ARM flags, compressed as bit fields within an integer. */
-  private int flagValid;
+  private int validFlags;
   
   /** The operation that has to be performed to evaluate the remaining registers */
   private Operation lazinessOperation;
@@ -36,7 +36,7 @@ public final class ARM_Laziness extends Laziness {
 
     ARM_LazinessKey(int pc, ARM_Laziness lazy) {
       this.pc = pc;
-      int tmpFlagState = lazy.flagValid & 0xF;
+      int tmpFlagState = lazy.validFlags & 0xF;
       tmpFlagState |= (lazinessOperation.ordinal() + 1) << 4;
       
       this.flagState = (byte)tmpFlagState;
@@ -48,7 +48,7 @@ public final class ARM_Laziness extends Laziness {
   }
   
   public ARM_Laziness() {
-    flagValid = 0xF; //all flags are valid
+    validFlags = 0xF; //all flags are valid
     lazinessOperation = Operation.Add;
   }
   
@@ -57,21 +57,14 @@ public final class ARM_Laziness extends Laziness {
   }
   
   public void setValid(Flag flag, boolean valid) {
-    flagValid |= 1 << flag.ordinal();
+    if (valid)
+      validFlags |= 1 << flag.ordinal();
+    else
+      validFlags &= ~(1 << flag.ordinal()); 
   }
 
   public boolean isValid(Flag flag) {
-    return (flagValid & (1 << flag.ordinal())) != 0;
-  }
-  
-  public void setAddOperation() {
-    flagValid = 0; // all flags are invalid
-    lazinessOperation = Operation.Add;
-  }
-  
-  public void setSubOperation() {
-    flagValid = 0; // all flags are invalid
-    lazinessOperation = Operation.Sub;
+    return (validFlags & (1 << flag.ordinal())) != 0;
   }
 
   public Operation getOperation() {
@@ -83,7 +76,7 @@ public final class ARM_Laziness extends Laziness {
   }
   
   public void set(ARM_Laziness other) {
-    flagValid = other.flagValid;
+    validFlags = other.validFlags;
     lazinessOperation = other.lazinessOperation;
   }
  
@@ -98,7 +91,7 @@ public final class ARM_Laziness extends Laziness {
       return false;
     
     ARM_Laziness other = (ARM_Laziness)o;
-    return flagValid == other.flagValid && lazinessOperation == other.lazinessOperation;
+    return validFlags == other.validFlags && lazinessOperation == other.lazinessOperation;
   }
 
   @Override

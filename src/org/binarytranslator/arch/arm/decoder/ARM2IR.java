@@ -143,10 +143,18 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     super(context, trace);
     translator = new ARM_Translator((ARM_ProcessSpace)ps, this);
     
-    if (DBT_Options.optimizeTranslationByLazyEvaluation)
-      flagBehavior = new ARM_LazyFlagBehavior();
-    else
+    switch (ARM_Options.flagBehaviour) {
+    case ImmediateEvaluation:
       flagBehavior = new ARM_ImmediateFlagBehavior();
+      break;
+      
+    case LazyEvaluation:
+      flagBehavior = new ARM_LazyFlagBehavior();
+      break;
+      
+    default:
+      throw new RuntimeException("Unexpected flag behaviour: " + ARM_Options.flagBehaviour);
+    }
   }
   
   /** ARM has an interchangeable flag behavior. Flags can either be evaluated immediately or on demand using
