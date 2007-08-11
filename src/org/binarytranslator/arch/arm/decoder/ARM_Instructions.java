@@ -1026,7 +1026,7 @@ public class ARM_Instructions  {
     public LongMultiply(int instr) {
       super(instr);
       
-      unsigned = Utils.getBit(instr, 22);
+      unsigned = !Utils.getBit(instr, 22);
       updateConditionCodes = Utils.getBit(instr, 20);
       accumulate = Utils.getBit(instr, 21);
       RdHigh = (byte) Utils.getBits(instr, 16, 19);

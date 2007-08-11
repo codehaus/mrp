@@ -17,7 +17,7 @@ import org.vmmagic.pragma.Uninterruptible;
  */
 public final class DBT {
   /** Should the following assertion be checked? */
-  public static final boolean VerifyAssertions = true;
+  public static final boolean VerifyAssertions = VM.VerifyAssertions;
 
   /**
    * Assert the following condition is true, if false then fail with stack trace

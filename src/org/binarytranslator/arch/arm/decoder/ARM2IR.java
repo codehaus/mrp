@@ -9,6 +9,7 @@ import org.binarytranslator.arch.arm.decoder.ARM_Laziness.Operation;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
+import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Laziness;
 import org.binarytranslator.vmInterface.DBT_Trace;
@@ -143,17 +144,17 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     super(context, trace);
     translator = new ARM_Translator((ARM_ProcessSpace)ps, this);
     
-    switch (ARM_Options.flagBehaviour) {
-    case ImmediateEvaluation:
+    switch (ARM_Options.flagEvaluation) {
+    case Immediate:
       flagBehavior = new ARM_ImmediateFlagBehavior();
       break;
       
-    case LazyEvaluation:
+    case Lazy:
       flagBehavior = new ARM_LazyFlagBehavior();
       break;
       
     default:
-      throw new RuntimeException("Unexpected flag behaviour: " + ARM_Options.flagBehaviour);
+      throw new RuntimeException("Unexpected flag behaviour: " + ARM_Options.flagEvaluation);
     }
   }
   
@@ -409,7 +410,6 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     @Override
     public void onFlagRead(Flag flag, ARM_Laziness lazy) {
       resolveFlag(flag, lazy);
-      
     }
 
     @Override
@@ -461,6 +461,32 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
                 requestedMode_FieldReference), new OPT_TrueGuardOperand()));
     
     return result;
+  }
+  
+  @Override
+  protected boolean inlineBranchInstruction(int targetPc, UnresolvedJumpInstruction jump) {
+    
+    switch (ARM_Options.inlining)
+    {
+    case Default:
+      return super.inlineBranchInstruction(targetPc, jump);
+      
+    case DynamicJumps:
+      if (jump.type == BranchType.INDIRECT_BRANCH)
+        return true;
+      else
+        return super.inlineBranchInstruction(targetPc, jump);
+      
+    case Functions:
+      if (jump.type == BranchType.CALL || jump.type == BranchType.RETURN)
+        return true;
+      else
+        return super.inlineBranchInstruction(targetPc, jump);
+      
+    default:
+      throw new RuntimeException("Unexpected inlining type.");
+    }
+    
   }
   
   /**
@@ -648,18 +674,20 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
   }
   
   public void appendLogicalFlags(ARM_Laziness lazy, OPT_Operand result) {
+    zeroUsed = negativeUsed = true;
     flagBehavior.appendLogicalFlags(lazy, result);
   }
   
   public void appendSubFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
+    zeroUsed = negativeUsed = carryUsed = overflowUsed = true;
     flagBehavior.appendSubFlags(lazy, result, op1, op2);
   }
   
   public void appendAddFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
+    zeroUsed = negativeUsed = carryUsed = overflowUsed = true;
     flagBehavior.appendAddFlags(lazy, result, op1, op2);
   }
- 
-  
+   
   @Override
   protected OPT_Register[] getUnusedRegisters() {
     

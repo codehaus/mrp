@@ -165,7 +165,7 @@ public abstract class CodeTranslator implements OPT_Constants,
 
   /** This class stores information about a jump instruction within the current trace, whose
    * target has not yet been resolved. */
-  private final static class UnresolvedJumpInstruction {
+  protected final static class UnresolvedJumpInstruction {
     
     /** A reference to the jump instruction within the code. This is either a GOTO or SWITCH instruction. */
     public final OPT_Instruction instruction;
@@ -306,6 +306,10 @@ public abstract class CodeTranslator implements OPT_Constants,
       // Move currentBlock along
       currentBlock = nextBlock;
     } else {
+      
+      if (DBT_Options.debugTranslation)
+        System.out.println("Translating subtrace for 0x" + Integer.toHexString(pc));
+      
       do {
         if (DBT.VerifyAssertions)
           DBT._assert(currentBlock.getNumberOfRealInstructions() == 0);
@@ -351,6 +355,9 @@ public abstract class CodeTranslator implements OPT_Constants,
           break;
         }
       } while (pc != -1);
+      
+      if (DBT_Options.debugTranslation)
+        System.out.println("Done translating subtrace.");
     }
   }
 
@@ -608,7 +615,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     // serves more as a placeholder and might be mutated later on.
     appendInstruction(branch);
     UnresolvedJumpInstruction unresolvedJump = new UnresolvedJumpInstruction(
-        branch, (Laziness) targetLaziness.clone(), currentPC, targetPC, BranchType.CALL);
+        branch, (Laziness) targetLaziness.clone(), currentPC, targetPC, branchType);
     unresolvedDirectBranches.add(unresolvedJump);
     
     switch (branchType) {
@@ -753,9 +760,17 @@ public abstract class CodeTranslator implements OPT_Constants,
     
     DBT_Trace compiledTrace = ps.codeCache.tryGet(targetPc);
     
-    return DBT_Options.singleInstrTranslation == false
-           && (compiledTrace == null || compiledTrace.getNumberOfInstructions() > 30) && !shallTraceStop()
+    boolean decision = DBT_Options.singleInstrTranslation == false
+           && (compiledTrace == null || compiledTrace.getNumberOfInstructions() < 20) && !shallTraceStop()
            && jump.type != BranchType.CALL && jump.type != BranchType.RETURN;
+    
+    if (DBT_Options.debugBranchResolution) {
+      String text = (!decision ? "Not inlining " : "Inlining ");
+      text += jump.type + " to 0x" + Integer.toHexString(targetPc); 
+      System.out.println(text);
+    }
+    
+    return decision;
   }
 
   /**
@@ -782,21 +797,19 @@ public abstract class CodeTranslator implements OPT_Constants,
     // precompiled target
     if (targetBB != null)
       return targetBB;
-
+    
+    if (currentBlock.getNumberOfRealInstructions() != 0) {
+      currentBlock = createBlockAfterCurrentNotInCFG();
+    } 
+      
     if (!inlineBranchInstruction(targetPc, jump)) {
 
-      // Just exit the trace and continue at the target address in a new trace
-      if (currentBlock.getNumberOfRealInstructions() != 0) {
-        currentBlock = createBlockAfterCurrentNotInCFG();
-
-        if (DBT_Options.debugBranchResolution)
-          System.out.println("Resolving branch to next block.");
-      }
-
+      //Just exit the trace and continue at the target address in a new trace
       targetBB = currentBlock;
       appendTraceExit(jump.lazyStateAtJump, new OPT_IntConstantOperand(targetPc));
       registerMapping(targetPc, jump.lazyStateAtJump, targetBB);
-    } else {
+    } 
+    else {
       // Otherwise we will translate the jump into the trace
       translateSubTrace((Laziness) jump.lazyStateAtJump.clone(), targetPc);
       targetBB = findMapping(targetPc, jump.lazyStateAtJump);
@@ -1299,7 +1312,9 @@ public abstract class CodeTranslator implements OPT_Constants,
    */
   public void appendInterpretedInstruction(int pc, Laziness lazy) {
     
-    resolveLaziness(lazy);
+    appendThrowBadInstruction(lazy, pc);
+    
+/*    resolveLaziness(lazy);
     spillAllRegisters();
 
     // Prepare a local variable of type Interpreter
@@ -1313,7 +1328,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     VM_MethodReference getInterpreterMethodRef = (VM_MethodReference) VM_MemberReference
         .findOrCreate(psTref, VM_Atom
             .findOrCreateAsciiAtom("createInstructionInterpreter"), VM_Atom
-            .findOrCreateAsciiAtom("()A"));
+            .findOrCreateAsciiAtom("()Lorg.binarytranslator.generic.decoder.Interpreter;"));
     VM_Method getInterpreterMethod = getInterpreterMethodRef
         .resolveInterfaceMethod();
 
@@ -1345,7 +1360,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     VM_MethodReference decodeMethodRef = (VM_MethodReference) VM_MemberReference
         .findOrCreate(interpreterTypeRef, VM_Atom
             .findOrCreateAsciiAtom("decode"), VM_Atom
-            .findOrCreateAsciiAtom("(I)A"));
+            .findOrCreateAsciiAtom("(I)Lorg.binarytranslator.generic.decoder.Interpreter.Instruction;"));
     VM_Method decodeMethod = decodeMethodRef.resolveInterfaceMethod();
 
     methOp = OPT_MethodOperand.INTERFACE(decodeMethodRef, decodeMethod);
@@ -1385,7 +1400,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     appendCustomCall(s);
 
     // Fill all registers again following interpreted instruction
-    fillAllRegisters();
+    fillAllRegisters();*/
   }
 
   /** Get the method */

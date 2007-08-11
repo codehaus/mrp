@@ -25,7 +25,7 @@ public class DBT_Options {
   public final static boolean buildForSunVM = false;
   
   /** Enable the profiling of application during interpretation? */
-  public final static boolean profileDuringInterpretation = true;
+  public final static boolean profileDuringInterpretation = false;
   
   /** Debug binary loading */
   public final static boolean debugLoader = true;
@@ -182,8 +182,10 @@ public class DBT_Options {
   private static void parseArmOption(String key, String value) {
     if (key.equalsIgnoreCase("optimizeByProfiling")) {
       ARM_Options.optimizeTranslationByProfiling = Boolean.parseBoolean(value);
-    } else if (key.equalsIgnoreCase("flagBehaviour")) {
-      ARM_Options.flagBehaviour = ARM_Options.FlagBehaviour.valueOf(value);
+    } else if (key.equalsIgnoreCase("flagEvaluation")) {
+      ARM_Options.flagEvaluation = ARM_Options.FlagBehaviour.valueOf(value);
+    } else if (key.equalsIgnoreCase("inlining")) {
+      ARM_Options.inlining = ARM_Options.InliningBehaviour.valueOf(value);
     }
     else {
       throw new Error("Unknown ARM option: " + key);

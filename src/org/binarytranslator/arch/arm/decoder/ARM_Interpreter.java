@@ -1375,8 +1375,8 @@ public class ARM_Interpreter implements Interpreter {
       
       //get rid of the signs, if we're supposed to do unsigned multiplication
       if (i.unsigned) {
-        operand1 &= 0xFFFFFFFF;
-        operand2 &= 0xFFFFFFFF;
+        operand1 &= (long)0xFFFFFFFFL;
+        operand2 &= (long)0xFFFFFFFFL;
       }
 
       // calculate the result
@@ -1385,7 +1385,7 @@ public class ARM_Interpreter implements Interpreter {
       if (i.accumulate) {
         //treat the register as an unsigned value
         long operand = regs.get(i.getRdLow());
-        operand &= 0xFFFFFFFF;
+        operand &= 0xFFFFFFFFL;
         result += operand; 
 
         result += regs.get(i.getRdHigh()) << 32;

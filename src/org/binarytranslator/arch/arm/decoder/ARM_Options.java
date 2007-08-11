@@ -3,8 +3,14 @@ package org.binarytranslator.arch.arm.decoder;
 public class ARM_Options {
   
   public enum FlagBehaviour {
-    LazyEvaluation,
-    ImmediateEvaluation
+    Lazy,
+    Immediate
+  }
+  
+  public enum InliningBehaviour {
+    Default,
+    Functions,
+    DynamicJumps
   }
   
   /** Set to true to enable a fastpath for the decoding of data processing instructions.. */
@@ -14,5 +20,7 @@ public class ARM_Options {
   public static boolean optimizeTranslationByProfiling = false;
   
   /** This variable describes, if the translated program shall be optimized using lazy evaluation.*/
-  public static FlagBehaviour flagBehaviour = FlagBehaviour.LazyEvaluation;
+  public static FlagBehaviour flagEvaluation = FlagBehaviour.Lazy;
+  
+  public static InliningBehaviour inlining = InliningBehaviour.Default;
 }
