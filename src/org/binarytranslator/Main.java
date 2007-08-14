@@ -85,6 +85,10 @@ public class Main {
       System.err.println("The specified executable '" + DBT_Options.executableFile + "' could not be found.");
       return;
     }
+    
+    if (DBT.VerifyAssertions) {
+      System.err.println("WARNING: Assertions are enabled.");
+    }
 
     try {
       report("Loading " + DBT_Options.executableFile);

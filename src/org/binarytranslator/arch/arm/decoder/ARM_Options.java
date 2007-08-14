@@ -10,7 +10,10 @@ public class ARM_Options {
   public enum InliningBehaviour {
     Default,
     Functions,
-    DynamicJumps
+    FunctionCalls,
+    FunctionReturns,
+    DynamicJumps,
+    All, 
   }
   
   /** Set to true to enable a fastpath for the decoding of data processing instructions.. */
@@ -22,5 +25,6 @@ public class ARM_Options {
   /** This variable describes, if the translated program shall be optimized using lazy evaluation.*/
   public static FlagBehaviour flagEvaluation = FlagBehaviour.Lazy;
   
+  /** Describes the default behaviour for dealing with ARM function calls and indirect jumps. */
   public static InliningBehaviour inlining = InliningBehaviour.Default;
 }

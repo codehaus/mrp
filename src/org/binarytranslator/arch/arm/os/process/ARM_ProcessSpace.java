@@ -9,7 +9,7 @@ import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Interpreter;
-import org.binarytranslator.generic.memory.ByteAddressedMemory;
+import org.binarytranslator.generic.memory.IntAddressedMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
@@ -38,7 +38,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
 
   protected ARM_ProcessSpace() {
     registers = new ARM_Registers();
-    memory = new ByteAddressedMemory();
+    memory = new IntAddressedMemory();
   }
 
   /**
@@ -49,6 +49,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
+  @Override
   public CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) {
     return new ARM2IR(context, trace);
   }

@@ -12,7 +12,6 @@ import java.io.*;
 import java.util.Hashtable;
 
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
-
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.memory.ByteAddressedMemory;
@@ -149,6 +148,7 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
    * @param context the generation context for the HIR generation
    * @return a HIR generator
    */
+  @Override
   public CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) {
     return new X862IR(context, trace);
   }

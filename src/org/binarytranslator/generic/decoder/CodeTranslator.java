@@ -29,6 +29,7 @@ import org.jikesrvm.classloader.VM_Method;
 import org.jikesrvm.classloader.VM_MethodReference;
 import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.opt.OPT_Constants;
+import org.jikesrvm.compilers.opt.OPT_InlineDecision;
 import org.jikesrvm.compilers.opt.ir.Athrow;
 import org.jikesrvm.compilers.opt.ir.BBend;
 import org.jikesrvm.compilers.opt.ir.Call;
@@ -45,6 +46,7 @@ import org.jikesrvm.compilers.opt.ir.OPT_BranchProfileOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.compilers.opt.ir.OPT_Inliner;
 import org.jikesrvm.compilers.opt.ir.OPT_Instruction;
 import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_MethodOperand;
@@ -130,7 +132,7 @@ public abstract class CodeTranslator implements OPT_Constants,
   public final ProcessSpace ps;
 
   /** The VM method's generation context. */
-  protected OPT_GenerationContext gc;
+  protected final OPT_GenerationContext gc;
 
   /** The OPT_BasicBlock in which instructions are currently being inserted */
   protected OPT_BasicBlock currentBlock;
@@ -208,7 +210,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param context
    *          The JRVM generation context for this trace.
    */
-  protected CodeTranslator(OPT_GenerationContext context,
+  protected CodeTranslator(OPT_GenerationContext context, 
       DBT_Trace trace) {
 
     // Store the trace that we're invoked from
@@ -284,7 +286,12 @@ public abstract class CodeTranslator implements OPT_Constants,
       printNextBlocks(preFillBlock, 50);
     }
     
+    try {
     ((DBT_Trace) gc.method).setNumberOfInstructions(numberOfInstructions);
+    }
+    catch (ClassCastException e) {
+      System.err.println("Error casting " + gc.method + " to DBT_Trace.");
+    }
   }
 
 
@@ -531,7 +538,7 @@ public abstract class CodeTranslator implements OPT_Constants,
   /**
    * Get the generation context.
    */
-  public OPT_GenerationContext getGenerationContext() {
+  public final OPT_GenerationContext getGenerationContext() {
     return gc;
   }
 
@@ -545,7 +552,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param hirBlock
    *          The block that is to be registered.
    */
-  protected void registerMapping(int pc, Laziness lazy, OPT_BasicBlock hirBlock) {
+  protected final void registerMapping(int pc, Laziness lazy, OPT_BasicBlock hirBlock) {
     blockMap.put(lazy.makeKey(pc), hirBlock);
   }
 
@@ -559,7 +566,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    *          The lazy state assumed within the returned trace.
    * @return An appropriate basic block or null if no translation exists.
    */
-  protected OPT_BasicBlock findMapping(int pc, Laziness lazy) {
+  protected final OPT_BasicBlock findMapping(int pc, Laziness lazy) {
     return blockMap.get(lazy.makeKey(pc));
   }
 
@@ -757,12 +764,23 @@ public abstract class CodeTranslator implements OPT_Constants,
      * within the code cache c) The trace is already too long d) the branch is
      * supposedly a CALL or RETURN
      */
+
+    boolean decision = DBT_Options.singleInstrTranslation == false && jump.type == BranchType.DIRECT_BRANCH && !shallTraceStop();
     
+    if (!decision) {
+      
+      if (DBT_Options.debugBranchResolution) {
+        String text = (!decision ? "Not inlining " : "Inlining ");
+        text += jump.type + " to 0x" + Integer.toHexString(targetPc); 
+        System.out.println(text);
+      }
+      
+      return false;
+    }
+    
+    //only query the code cache if we have to
     DBT_Trace compiledTrace = ps.codeCache.tryGet(targetPc);
-    
-    boolean decision = DBT_Options.singleInstrTranslation == false
-           && (compiledTrace == null || compiledTrace.getNumberOfInstructions() < 20) && !shallTraceStop()
-           && jump.type != BranchType.CALL && jump.type != BranchType.RETURN;
+    decision = (compiledTrace == null || compiledTrace.getNumberOfInstructions() < 20) ;
     
     if (DBT_Options.debugBranchResolution) {
       String text = (!decision ? "Not inlining " : "Inlining ");
@@ -967,18 +985,6 @@ public abstract class CodeTranslator implements OPT_Constants,
   }
 
   /**
-   * Should a trace follow a branch and link instruction or should it terminate
-   * the trace?
-   * 
-   * @param pc
-   *          the address of the branch and link instruction
-   * @return whether the trace should continue
-   */
-  public boolean traceContinuesAfterBranchAndLink(int pc) {
-    return shallTraceStop() == false;
-  }
-
-  /**
    * Load all the registers from the ProcessSpace into the pre-fill block
    */
   private void preFillAllRegisters() {
@@ -1169,6 +1175,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     if (intTemps == null) {
       intTemps = new OPT_Register[10];
     }
+    
     OPT_Register result = intTemps[num];
     if (result == null) {
       OPT_RegisterOperand regOp = gc.temps.makeTempInt();
@@ -1459,6 +1466,59 @@ public abstract class CodeTranslator implements OPT_Constants,
     callInstruction.bcIndex = trace.registerDynamicLink(methodRef, callType);
     appendInstruction(callInstruction);
   }
+  
+  /**
+   * Execute an inlining decision inlDec for the CALL instruction
+   * callSite that is contained in ir.
+   *
+   * @param inlDec the inlining decision to execute
+   * @param ir the governing IR
+   * @param callSite the call site to inline
+   */
+  public void appendInlinedCall(OPT_Instruction callSite) {
+    
+    if (DBT.VerifyAssertions)
+      DBT._assert(Call.conforms(callSite));
+    
+    OPT_BasicBlock next = createBlockAfterCurrent();
+    
+    //Find out where the call site is and isolate it in its own basic block. 
+    currentBlock = createBlockAfterCurrent();
+    currentBlock.appendInstruction(callSite);
+    
+    OPT_BasicBlock in = currentBlock.prevBasicBlockInCodeOrder();
+    OPT_BasicBlock out = currentBlock.nextBasicBlockInCodeOrder();
+    
+    // Clear the sratch object of any register operands being
+    // passed as parameters.
+    // BC2IR uses this field for its own purposes, and will be confused
+    // if the scratch object has been used by someone else and not cleared.
+    for (int i = 0; i < Call.getNumberOfParams(callSite); i++) {
+      OPT_Operand arg = Call.getParam(callSite, i);
+      if (arg instanceof OPT_RegisterOperand) {
+        ((OPT_RegisterOperand) arg).scratchObject = null;
+      }
+    }
+
+    // Execute the inlining decision, updating ir.gc's state.
+    OPT_InlineDecision inlDec = OPT_InlineDecision.YES(Call.getMethod(callSite).getTarget(), "");
+    OPT_GenerationContext childgc = OPT_Inliner.execute(inlDec, gc, null, callSite);
+    
+    // Splice the callee into the caller's code order
+    gc.cfg.removeFromCFGAndCodeOrder(currentBlock);
+    gc.cfg.breakCodeOrder(in, out);
+    gc.cfg.linkInCodeOrder(in, childgc.cfg.firstInCodeOrder());
+    gc.cfg.linkInCodeOrder(childgc.cfg.lastInCodeOrder(), out);
+    
+    // Splice the callee into the caller's CFG
+    in.insertOut(childgc.prologue);
+    
+    if (childgc.epilogue != null) {
+      childgc.epilogue.insertOut(out);
+    }
+    
+    currentBlock = next;
+  }
 
   /** Report some debug output */
   protected abstract void report(String str);
@@ -1470,8 +1530,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * Plant instructions modifying a lazy state into one with no laziness
    * 
    * @param laziness
-   *          the laziness to modify
-   */
+   *          the laziness to modify */
   public abstract void resolveLaziness(Laziness laziness);
 
   /**
@@ -1481,20 +1540,17 @@ public abstract class CodeTranslator implements OPT_Constants,
    *          the status of the lazy evaluation
    * @param pc
    *          the program counter for the instruction
-   * @return the next instruction address or -1
-   */
+   * @return the next instruction address or -1 */
   protected abstract int translateInstruction(Laziness lazy, int pc);
 
   /**
    * Fill all the registers from the ProcessSpace, that is take the register
-   * values from the process space and place them in the traces registers.
-   */
+   * values from the process space and place them in the traces registers. */
   protected abstract void fillAllRegisters();
 
   /**
    * Spill all the registers, that is put them from the current running trace
-   * into the process space
-   */
+   * into the process space. */
   protected abstract void spillAllRegisters();
 
   /** Return an array of unused registers */

@@ -99,7 +99,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   /**
    * A translation helper for generating code
    */
-  protected CodeTranslator helper;
+  protected CodeTranslator translator;
 
   /**
    * The generation context we're translating within
@@ -162,7 +162,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * page table into a register
    */
   public void initTranslate(CodeTranslator helper) {
-    this.helper = helper;
+    this.translator = helper;
     this.gc = helper.getGenerationContext();
     OPT_RegisterOperand memoryOp = helper.makeTemp(memoryType);
     helper.appendInstruction(GetField.create(GETFIELD, memoryOp,
@@ -187,21 +187,27 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    */
   private void translateLoad(VM_Method loadMethod, int bcIndex,
       OPT_Operand addr, OPT_RegisterOperand dest) {
-    OPT_Instruction s = Call.create(CALL, dest, null, null, null, 2);
+    OPT_Instruction s = Call.create(CALL, dest.copyRO(), null, null, null, 2);
     VM_MethodReference loadMethRef = loadMethod.getMemberRef()
         .asMethodReference();
 
-    OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(loadMethRef,
-        loadMethod);
+    OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(loadMethRef, loadMethod);
     OPT_RegisterOperand memoryOp = new OPT_RegisterOperand(memory, memoryType);
     Call.setParam(s, 0, memoryOp); // Sets 'this' pointer
-    Call.setParam(s, 1, addr);
+    Call.setParam(s, 1, addr.copy());
     Call.setGuard(s, new OPT_TrueGuardOperand());
     Call.setMethod(s, methOp);
     Call.setAddress(s, new OPT_AddressConstantOperand(loadMethod.getOffset()));
-    s.position = gc.inlineSequence;
-    s.bcIndex = bcIndex;
-    helper.appendInstruction(s);
+    
+    if (DBT_Options.inlineCallbasedMemory) {
+      translator.appendInlinedCall(s);
+    }
+    else
+    {
+      s.position = gc.inlineSequence;
+      s.bcIndex = bcIndex;
+      translator.appendInstruction(s);
+    }
   }
 
   /**
@@ -335,14 +341,21 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
         storeMethod);
     OPT_RegisterOperand memoryOp = new OPT_RegisterOperand(memory, memoryType);
     Call.setParam(s, 0, memoryOp); // Sets 'this' pointer
-    Call.setParam(s, 1, addr);
-    Call.setParam(s, 2, src);
+    Call.setParam(s, 1, addr.copy());
+    Call.setParam(s, 2, src.copy());
     Call.setGuard(s, new OPT_TrueGuardOperand());
     Call.setMethod(s, methOp);
     Call.setAddress(s, new OPT_AddressConstantOperand(storeMethod.getOffset()));
-    s.position = gc.inlineSequence;
-    s.bcIndex = bcIndex;
-    helper.appendInstruction(s);
+    
+    if (DBT_Options.inlineCallbasedMemory) {
+      translator.appendInlinedCall(s);
+    }
+    else
+    {
+      s.position = gc.inlineSequence;
+      s.bcIndex = bcIndex;
+      translator.appendInstruction(s);
+    }
   }
 
   /**

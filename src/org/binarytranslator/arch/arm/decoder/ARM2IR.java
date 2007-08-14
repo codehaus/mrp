@@ -477,11 +477,26 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
       else
         return super.inlineBranchInstruction(targetPc, jump);
       
+    case FunctionCalls:
+      if (jump.type == BranchType.CALL)
+        return true;
+      else
+        return super.inlineBranchInstruction(targetPc, jump);
+      
+    case FunctionReturns:
+      if (jump.type == BranchType.CALL)
+        return true;
+      else
+        return super.inlineBranchInstruction(targetPc, jump);
+      
     case Functions:
       if (jump.type == BranchType.CALL || jump.type == BranchType.RETURN)
         return true;
       else
         return super.inlineBranchInstruction(targetPc, jump);
+      
+    case All:
+      return true;
       
     default:
       throw new RuntimeException("Unexpected inlining type.");
@@ -782,6 +797,9 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
    *  The operand which is to be rotated.
    * @param rotation
    *  The amount of rotation that is to be applied to the operand.
+   *  
+   * @param inline
+   *  Shall the invokation of this rotate right be inlined?
    */
   public void appendRotateRight(OPT_RegisterOperand result, OPT_Operand rotatedOperand, OPT_Operand rotation) {
     VM_TypeReference IntegerType = VM_TypeReference

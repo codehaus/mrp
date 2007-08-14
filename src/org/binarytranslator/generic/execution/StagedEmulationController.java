@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TreeMap;
 
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
@@ -38,7 +39,7 @@ public class StagedEmulationController extends ExecutionController {
   }
   
   /** Maps a dynamic basic block to the address of the first instruction within that block. */
-  private final HashMap<Integer, DynamicBasicBlock> traceCache = new HashMap<Integer, DynamicBasicBlock>();
+  private final TreeMap<Integer, DynamicBasicBlock> traceCache = new TreeMap<Integer, DynamicBasicBlock>();
   
   /** The interpreter that is used to perform the actual execution of single instructions. */
   private final Interpreter interpreter;
@@ -70,10 +71,13 @@ public class StagedEmulationController extends ExecutionController {
         //No, so stop and create a trace from the decoded instructions
         DynamicBasicBlock newTrace = new DynamicBasicBlock(instructions);
         
-        if (instructions.size() > 3) {
+//      add this trace to the trace cache
+        traceCache.put(traceStart, newTrace);
+        
+        /*if (instructions.size() > 3) {
           //add this trace to the trace cache, if it contains enough instructions
           traceCache.put(traceStart, newTrace);
-        }
+        }*/
         
         return newTrace;
       }
@@ -94,6 +98,8 @@ public class StagedEmulationController extends ExecutionController {
     trace.compiledTrace = new DBT_Trace(ps, pc);
     trace.compiledTrace.compile();
     trace.instructions = null;
+    
+    ps.codeCache.add(pc, trace.compiledTrace);
   }
   
   /**

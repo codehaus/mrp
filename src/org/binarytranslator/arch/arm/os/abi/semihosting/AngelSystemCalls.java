@@ -48,6 +48,18 @@ public class AngelSystemCalls {
   /** The directory in which temporary files are created. Note that the path is expected to end with a path delimiter.*/
   private final static String TEMP_FILE_DIR = "/tmp/";
   
+  /** The first address on the heap. */
+  private int heapBegin;
+  
+  /** The last address on the heap. */
+  private int heapEnd;
+  
+  /** The first address on the stack. */
+  private int stackBegin;
+  
+  /** The last address on the stack*/
+  private int stackEnd;
+  
   /** The file handle that is distributed with the next call to {@link #addFile(RandomAccessFile)}. 
    * Valid Angle handles are non-zero values (i.e. >= 1).*/
   private int nextFileHandle = 1;
@@ -55,7 +67,7 @@ public class AngelSystemCalls {
   /** */
   private AngelSystemCall[] sysCalls;
   
-  public AngelSystemCalls(ARM_ProcessSpace ps) {
+  public AngelSystemCalls(ARM_ProcessSpace ps, int heapBegin, int heapEnd, int stackBegin, int stackEnd) {
     this.ps = ps;
     sysCalls = new AngelSystemCall[0x32];
     
@@ -84,6 +96,12 @@ public class AngelSystemCalls {
     sysCalls[0x18] = new Sys_Exit();
     sysCalls[0x30] = new Sys_Elapsed();
     sysCalls[0x31] = new Sys_TickFreq();
+    
+    this.heapBegin = heapBegin;
+    this.heapEnd = heapEnd;
+    
+    this.stackBegin = stackBegin;
+    this.stackEnd = stackEnd;
   }
   
   public void doSysCall(int callNum) {
@@ -128,7 +146,7 @@ public class AngelSystemCalls {
     }
   }
   
-  private interface AngelFileStream {
+  private static interface AngelFileStream {
     
     boolean isTty();
     int getLength();
@@ -143,7 +161,7 @@ public class AngelSystemCalls {
     void seek(long pos) throws IOException;
   }
   
-  private class ConsoleStream implements AngelFileStream {
+  private static class ConsoleStream implements AngelFileStream {
     
     private String previousInputLine = null;
 
@@ -203,7 +221,7 @@ public class AngelSystemCalls {
     }
   }
   
-  private class FileStream implements AngelFileStream {
+  private static class FileStream implements AngelFileStream {
     
     private final RandomAccessFile file;
     
@@ -630,11 +648,11 @@ public class AngelSystemCalls {
       
       String cmdLine = DBT_Options.executableFile;
       
-      if (cmdLine.contains(" "))
+      if (cmdLine.contains(" ") && !cmdLine.contains("\""))
         cmdLine = '"' + cmdLine + '"';
       
       for(String s : DBT_Options.executableArguments) {
-        if (s.contains(" ")) {
+        if (s.contains(" ") && !s.contains("\"")) {
           s = '"' + s + '"';
         }
           
@@ -659,10 +677,10 @@ public class AngelSystemCalls {
       int ptrParamBlock = ps.registers.get(1);
       
       //return that we couldn't calculate any of the requested heap size values
-      ps.memory.store32(ptrParamBlock, 0);
-      ps.memory.store32(ptrParamBlock + 4, 0);
-      ps.memory.store32(ptrParamBlock + 8, 0);
-      ps.memory.store32(ptrParamBlock + 12, 0);
+      ps.memory.store32(ptrParamBlock, heapBegin);
+      ps.memory.store32(ptrParamBlock + 4, heapEnd);
+      ps.memory.store32(ptrParamBlock + 8, stackBegin);
+      ps.memory.store32(ptrParamBlock + 12, stackEnd);
     }
   }
   

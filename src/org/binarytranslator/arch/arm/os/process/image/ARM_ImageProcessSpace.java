@@ -1,24 +1,53 @@
 package org.binarytranslator.arch.arm.os.process.image;
 
 import org.binarytranslator.DBT;
+import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.decoder.ARM_InstructionDecoder;
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions;
 import org.binarytranslator.arch.arm.os.abi.semihosting.AngelSystemCalls;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
-import org.binarytranslator.generic.memory.AutoMappingMemory;
+import org.binarytranslator.generic.fault.InsufficientMemoryException;
 import org.binarytranslator.generic.os.loader.Loader;
 
 public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   
-  private AngelSystemCalls sysCalls = new AngelSystemCalls(this);
+  private AngelSystemCalls sysCalls;
+  private final int STACK_SIZE = 4096 * 10;
+  private final int HEAP_SIZE  = 4096 * 10;
   
   public ARM_ImageProcessSpace() {
     super();
     
     //make sure that pages of memory are automatically mapped in as they are requested.
-    memory = new AutoMappingMemory(memory);
+    //memory = new AutoMappingMemory(memory);
+  }
+  
+  private int allocateFreeMemoryArea(int stackSize) throws InsufficientMemoryException
+  {
+    int pagesize = memory.getPageSize();
+    int stackStart = -1;
+    int checkedAddress = stackStart;
+    
+    while (checkedAddress < 0 || checkedAddress > pagesize) {
+      if (memory.isMapped(checkedAddress)) {
+        //we cannot extend the stack into this page
+        stackStart = checkedAddress - pagesize;
+      }
+      else {
+        int stackspace = Math.abs(stackStart - checkedAddress) + pagesize;
+        
+        if (stackspace >= stackSize) {
+          memory.ensureMapped(stackStart - stackSize + 1, stackStart);
+          return stackStart - stackSize + 1;
+        }
+      }
+      
+      checkedAddress -= pagesize;
+    }
+    
+    throw new InsufficientMemoryException(this, "Allocate free memory area for ARM stack and heap.");
   }
   
   @Override
@@ -91,6 +120,15 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   @Override
   public void initialise(Loader loader) {
     registers.set(ARM_Registers.PC, loader.getEntryPoint());
+    int stackBegin = allocateFreeMemoryArea(STACK_SIZE);
+    int heapBegin = allocateFreeMemoryArea(HEAP_SIZE);
+    
+    if (DBT_Options.debugMemory || DBT_Options.debugLoader) {
+      System.out.println(String.format("Placing ARM Heap from 0x%x to 0x%x.", heapBegin, heapBegin + HEAP_SIZE - 1));
+      System.out.println(String.format("Placing ARM Stack from 0x%x to 0x%x.", stackBegin, stackBegin + STACK_SIZE - 1));
+    }
+    
+    sysCalls = new AngelSystemCalls(this, heapBegin, heapBegin + HEAP_SIZE, stackBegin, stackBegin + STACK_SIZE);
   }
 
 }

@@ -29,6 +29,7 @@ import org.jikesrvm.compilers.opt.ir.GetField;
 import org.jikesrvm.compilers.opt.ir.OPT_AddressConstantOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.compilers.opt.ir.OPT_IR;
 import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_LocationOperand;
 import org.jikesrvm.compilers.opt.ir.OPT_Operators;
@@ -271,6 +272,18 @@ public final class PPC2IR extends CodeTranslator implements OPT_HIRGenerator,
     if (DBT_Options.debugCFG) {
       report("CFG at end of constructor:\n" + gc.cfg);
     }
+  }
+  
+  /**
+   * Should a trace follow a branch and link instruction or should it terminate
+   * the trace?
+   * 
+   * @param pc
+   *          the address of the branch and link instruction
+   * @return whether the trace should continue
+   */
+  public boolean traceContinuesAfterBranchAndLink(int pc) {
+    return shallTraceStop() == false;
   }
 
   /**

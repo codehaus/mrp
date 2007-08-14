@@ -70,8 +70,7 @@ public abstract class ProcessSpace {
    * @param trace 
    * @return a HIR generator
    */
-  public abstract CodeTranslator createTranslator(
-      OPT_GenerationContext context, DBT_Trace trace) throws UnsupportedOperationException ;
+  public abstract CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) throws UnsupportedOperationException ;
   
   /** 
    * Returns an instance of {@link Interpreter} that can be used to interpret instructions

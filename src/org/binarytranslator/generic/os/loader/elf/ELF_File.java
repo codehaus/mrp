@@ -215,7 +215,7 @@ public class ELF_File {
   public static boolean conforms(String filename) {
 
     RandomAccessFile rFile = null;
-    report("Testing is file is ELF: " + filename);
+    report("Testing if file is ELF: " + filename);
 
     try {
       rFile = new RandomAccessFile(filename, "r");

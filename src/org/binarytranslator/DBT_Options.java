@@ -108,6 +108,9 @@ public class DBT_Options {
 
   /** Print out messages from the memory system */
   public static boolean debugMemory = false;
+  
+  /** Inline calls to descendents of callbased memory? */
+  public static boolean inlineCallbasedMemory = false;
 
   /** The user ID for the user running the command */
   public final static int UID = 1000;
@@ -184,7 +187,7 @@ public class DBT_Options {
       ARM_Options.optimizeTranslationByProfiling = Boolean.parseBoolean(value);
     } else if (key.equalsIgnoreCase("flagEvaluation")) {
       ARM_Options.flagEvaluation = ARM_Options.FlagBehaviour.valueOf(value);
-    } else if (key.equalsIgnoreCase("inlining")) {
+    } else if (key.equalsIgnoreCase("inline")) {
       ARM_Options.inlining = ARM_Options.InliningBehaviour.valueOf(value);
     }
     else {
@@ -229,6 +232,8 @@ public class DBT_Options {
       saveProfileToFile = value;
     } else if (key.equalsIgnoreCase("minTraceValue")) {
       minTraceValue = Integer.parseInt(value);
+    } else if (key.equalsIgnoreCase("inlineCallbasedMemory")) {
+      inlineCallbasedMemory = Boolean.parseBoolean(value);
     }
     else {
       throw new Error("Unknown DBT option: " + key);

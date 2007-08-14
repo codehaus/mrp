@@ -374,7 +374,7 @@ public class ARM_Interpreter implements Interpreter {
     /** The successor of this instruction, if the condition evaluates to false.*/
     private final int conditionFalseSuccessor;
     
-    /** The address of the successor of this instrction if it is constant, otherwise -1. */
+    /** The address of the successor of this instruction if it is constant, otherwise -1. */
     private final int successorInstruction;
     
     /** The address of this instruction. */
@@ -406,7 +406,10 @@ public class ARM_Interpreter implements Interpreter {
         }
         
         if (successorInstruction != -1) {
-          ps.branchInfo.profileBranch(instructionAddress, conditionTrueSuccessor);
+          if (conditionTrueSuccessor == conditionFalseSuccessor)
+            ps.branchInfo.profileBranch(instructionAddress, instructionAddress);
+          else
+            ps.branchInfo.profileBranch(instructionAddress, conditionTrueSuccessor);
         }
       }
       else {

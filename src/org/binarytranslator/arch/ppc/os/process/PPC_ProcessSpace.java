@@ -140,6 +140,7 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
+  @Override
   public CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) {
     return new PPC2IR(context, trace);
   }

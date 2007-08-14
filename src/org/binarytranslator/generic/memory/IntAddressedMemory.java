@@ -14,6 +14,7 @@ import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.fault.SegmentationFault;
 import org.jikesrvm.VM_Configuration;
+import org.vmmagic.pragma.Inline;
 
 /**
  * IntAddressedMemory:
@@ -85,6 +86,7 @@ public class IntAddressedMemory extends CallBasedMemory {
   /**
    * Return the offset part of the address
    */
+  @Inline
   protected int getOffset(int address) {
     return (address & (PAGE_SIZE - 1)) >>> 2;
   }
@@ -92,6 +94,7 @@ public class IntAddressedMemory extends CallBasedMemory {
   /**
    * Return the page table entry part of the address
    */
+  @Inline
   private static final int getPTE(int address) {
     return address >>> OFFSET_BITS;
   }
@@ -311,9 +314,10 @@ public class IntAddressedMemory extends CallBasedMemory {
       MemoryMapException.unalignedAddress(addr);
     }
     // Check file offset is page aligned
-    if ((offset % PAGE_SIZE) != 0) {
+    /*if ((offset % PAGE_SIZE) != 0) {
       MemoryMapException.unalignedFileOffset(offset);
-    }
+    }*/
+    
     if (DBT_Options.debugRuntime) {
       System.out.println("Mapping file " + file + " offset=" + offset
           + " addr=0x" + Integer.toHexString(addr) + " len=" + len

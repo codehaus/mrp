@@ -117,7 +117,7 @@ public final class DBT_Trace extends VM_NormalMethod {
    * This list stores at which bytecode index a specific method call is executed. 
    * The index of an element plus {@link #CUSTOM_CALL_BCINDEX_BASE} equals the bytecode index
    * for the call.*/
-  private List<CustomCallInformation> customCalls = new ArrayList<CustomCallInformation>();
+  private final List<CustomCallInformation> customCalls = new ArrayList<CustomCallInformation>();
 
   /**
    * Create an optimizing compiler HIR code generator for this trace
@@ -126,7 +126,9 @@ public final class DBT_Trace extends VM_NormalMethod {
    *          the generation context for the HIR generation
    * @return a HIR generator
    */
+  @Override
   public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
+    
     return ps.createTranslator(context, this);
   }
 
@@ -322,7 +324,7 @@ public final class DBT_Trace extends VM_NormalMethod {
    * Size of bytecodes for this method
    */
   public int getBytecodeLength() {
-    return 256;
+    return numberOfInstructions == 0 ? 256 : numberOfInstructions;
   }
 
   public int getNumberOfInstructions() {

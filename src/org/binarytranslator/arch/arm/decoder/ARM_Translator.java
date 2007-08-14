@@ -764,7 +764,7 @@ public class ARM_Translator implements OPT_Operators {
      */
     private float getSkipProbability() {
       
-      if (ARM_Options.optimizeTranslationByProfiling)
+      if (!ARM_Options.optimizeTranslationByProfiling)
         return -1f;
       
       return ps.branchInfo.getBranchProbability(pc, pc + (inThumb() ? 2 : 4));
@@ -1279,7 +1279,7 @@ public class ARM_Translator implements OPT_Operators {
     }
   }
 
-  /** Subtract. <code>Rd = op1 - op2 </code>.*/
+  /** Subtract. <code>Rd = op1 - op2</code>.*/
   private final class DataProcessing_Sub extends DataProcessing {
 
     public DataProcessing_Sub(ARM_Instructions.DataProcessing instr) {
