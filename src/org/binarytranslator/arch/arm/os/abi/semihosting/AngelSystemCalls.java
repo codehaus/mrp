@@ -665,7 +665,7 @@ public class AngelSystemCalls {
       }
       
       writeString(cmdLine, ptrBuffer);
-      ps.memory.store32(ptrParamBlock + 4, cmdLine.length() + 1);
+      ps.memory.store32(ptrParamBlock + 4, cmdLine.length());
       setReturn(0);
     }
   }

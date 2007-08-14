@@ -1955,11 +1955,15 @@ public class ARM_Translator implements OPT_Operators {
       OPT_RegisterOperand result = arm2ir.getRegister(i.Rd);
 
       //calculate the result
-      arm2ir.appendInstruction(Binary.create(INT_MUL, result, operand1, operand2));
-
       if (i.accumulate) {
+        OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
+        arm2ir.appendInstruction(Binary.create(INT_MUL, tmp, operand1, operand2));
+        
         OPT_Operand operand3 = arm2ir.getRegister(i.Rn);        
-        arm2ir.appendInstruction(Binary.create(INT_ADD, result.copyRO(), result.copy(), operand3));
+        arm2ir.appendInstruction(Binary.create(INT_ADD, result.copyRO(), tmp.copy(), operand3));
+      }
+      else {
+        arm2ir.appendInstruction(Binary.create(INT_MUL, result, operand1, operand2));  
       }
 
       if (i.updateConditionCodes) {
