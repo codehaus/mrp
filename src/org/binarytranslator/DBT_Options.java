@@ -25,11 +25,8 @@ public class DBT_Options {
   public final static boolean buildForSunVM = false;
   
   /** Enable the profiling of application during interpretation? */
-  public final static boolean profileDuringInterpretation = false;
+  public final static boolean profileDuringInterpretation = true;
   
-  /** Debug binary loading */
-  public final static boolean debugLoader = true;
-
   /** Are unimplemented system calls fatal? */
   public final static boolean unimplementedSystemCallsFatal = false;
 
@@ -77,13 +74,31 @@ public class DBT_Options {
   public final static boolean eliminateRegisterFills = true;
 
   /** Print dissassembly of translated instructions. */
-  public static boolean debugInstr = true;
+  public static boolean debugInstr = false;
 
   /** Print information about the lazy resolution of branch addresses...*/
-  public static boolean debugBranchResolution = true;
+  public static boolean debugBranchResolution = false;
 
   /** During code translation, print information about the creation of basic blocks. */
   public final static boolean debugCFG = false;
+  
+  /** Debug binary loading */
+  public static boolean debugLoader = false;
+  
+  /** Print debug information during the translation of instructions. */
+  public static boolean debugTranslation = false;
+
+  /** In ProcessSpace, print syscall numbers. */
+  public static boolean debugSyscalls = false;
+
+  /** In ProcessSpace, print syscall numbers. */
+  public static boolean debugSyscallsMore = false;
+
+  /** Print out various messages about the emulator starting. */
+  public static boolean debugRuntime = false;
+
+  /** Print out messages from the memory system */
+  public static boolean debugMemory = false;
 
   /** Debug using GDB? */
   public static boolean gdbStub = false;
@@ -93,21 +108,6 @@ public class DBT_Options {
   
   /** Just a temporary variable for testing. It describes, when the staged emulation controller switches from interpretation to translation. */
   public static int minTraceValue = 20;
-  
-  /** Print debug information during the translation of instructions. */
-  public static boolean debugTranslation = true;
-
-  /** In ProcessSpace, print syscall numbers. */
-  public static boolean debugSyscall = true;
-
-  /** In ProcessSpace, print syscall numbers. */
-  public static boolean debugSyscallMore = false;
-
-  /** Print out various messages about the emulator starting. */
-  public static boolean debugRuntime = true;
-
-  /** Print out messages from the memory system */
-  public static boolean debugMemory = false;
   
   /** Inline calls to descendents of callbased memory? */
   public static boolean inlineCallbasedMemory = false;
@@ -204,12 +204,14 @@ public class DBT_Options {
       debugBranchResolution = Boolean.parseBoolean(value);
     } else if (key.equalsIgnoreCase("debugMemory")) {
       debugMemory = Boolean.parseBoolean(value);
-    } else if (key.equalsIgnoreCase("debugSyscall")) {
-      debugSyscall = Boolean.parseBoolean(value);
-    } else if (key.equalsIgnoreCase("debugSyscallMore")) {
-      debugSyscallMore = Boolean.parseBoolean(value);
+    } else if (key.equalsIgnoreCase("debugSyscalls")) {
+      debugSyscalls = Boolean.parseBoolean(value);
+    } else if (key.equalsIgnoreCase("debugSyscallsMore")) {
+      debugSyscallsMore = Boolean.parseBoolean(value);
     } else if (key.equalsIgnoreCase("debugTranslation")) {
       debugTranslation = Boolean.parseBoolean(value);
+    } else if (key.equalsIgnoreCase("debugLoader")) {
+      debugLoader = Boolean.parseBoolean(value);
     } else if (key.equalsIgnoreCase("instrOpt0")) {
       instrOpt0 = Integer.parseInt(value);
     } else if (key.equalsIgnoreCase("instrOpt1")) {

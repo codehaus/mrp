@@ -187,7 +187,7 @@ abstract public class LinuxSystemCalls {
   public void doSysCall() {
     int sysCallNumber = src.getSysCallNumber();
     
-    if (DBT_Options.debugSyscall)
+    if (DBT_Options.debugSyscalls)
       System.err.println("Syscall " + sysCallToString(sysCallNumber));
     
     arguments = src.getSysCallArguments();
@@ -357,7 +357,7 @@ abstract public class LinuxSystemCalls {
       // accordingly. args[0] points to the file name.   
       String fileName = memoryReadString(pathname);
       
-      if (DBT_Options.debugSyscall)
+      if (DBT_Options.debugSyscalls)
         System.err.println("Program tries to open: " + fileName);
       
       FileMode mode;
@@ -527,7 +527,7 @@ abstract public class LinuxSystemCalls {
 
       String filename = memoryReadString(ptrFilename);
 
-      if (DBT_Options.debugSyscallMore)
+      if (DBT_Options.debugSyscallsMore)
         System.err.println("Stat64() denies existance of file: " + filename);
       src.setSysCallError(errno.ENOENT);
     }

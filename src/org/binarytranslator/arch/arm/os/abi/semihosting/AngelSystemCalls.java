@@ -107,7 +107,7 @@ public class AngelSystemCalls {
   public void doSysCall(int callNum) {
     try {
       
-      if (DBT_Options.debugSyscall)
+      if (DBT_Options.debugSyscalls)
         System.out.println("Executing Angel Syscall: " + callNum);
       
       sysCalls[callNum].execute();
@@ -310,7 +310,7 @@ public class AngelSystemCalls {
       
       String fileName = readString(ptrBuffer, length);
       
-      if (DBT_Options.debugSyscallMore)
+      if (DBT_Options.debugSyscallsMore)
         System.out.println("Opening file: " + fileName);
 
       try {
