@@ -175,23 +175,10 @@ public class DBT_Options {
     }
     else if (key.startsWith("arm:")) {
       key = key.substring(4);
-      parseArmOption(key, value);
+      ARM_Options.parseOption(key, value);
     }
     else {
       throw new Error("Unknown argument.");
-    }
-  }
-  
-  private static void parseArmOption(String key, String value) {
-    if (key.equalsIgnoreCase("optimizeByProfiling")) {
-      ARM_Options.optimizeTranslationByProfiling = Boolean.parseBoolean(value);
-    } else if (key.equalsIgnoreCase("flagEvaluation")) {
-      ARM_Options.flagEvaluation = ARM_Options.FlagBehaviour.valueOf(value);
-    } else if (key.equalsIgnoreCase("inline")) {
-      ARM_Options.inlining = ARM_Options.InliningBehaviour.valueOf(value);
-    }
-    else {
-      throw new Error("Unknown ARM option: " + key);
     }
   }
 

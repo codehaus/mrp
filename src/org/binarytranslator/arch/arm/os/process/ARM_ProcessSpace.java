@@ -5,10 +5,12 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.arch.arm.decoder.ARM2IR;
 import org.binarytranslator.arch.arm.decoder.ARM_Disassembler;
 import org.binarytranslator.arch.arm.decoder.ARM_Interpreter;
+import org.binarytranslator.arch.arm.decoder.ARM_Options;
 import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Interpreter;
+import org.binarytranslator.generic.memory.ByteAddressedMemory;
 import org.binarytranslator.generic.memory.IntAddressedMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
@@ -38,7 +40,20 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
 
   protected ARM_ProcessSpace() {
     registers = new ARM_Registers();
-    memory = new IntAddressedMemory();
+    
+    switch (ARM_Options.memoryModel) {
+    case ByteAddressed:
+      memory = new ByteAddressedMemory();
+      break;
+      
+    case IntAddressed:
+      memory = new IntAddressedMemory();
+      break;
+      
+    default:
+      throw new RuntimeException("Unexpected ARM memory model setting: " + ARM_Options.memoryModel);
+    }
+    
   }
 
   /**

@@ -468,6 +468,9 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     
     switch (ARM_Options.inlining)
     {
+    case NoInlining:
+      return false;
+      
     case Default:
       return super.inlineBranchInstruction(targetPc, jump);
       
