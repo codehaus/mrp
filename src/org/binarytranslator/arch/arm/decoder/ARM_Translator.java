@@ -843,22 +843,35 @@ public class ARM_Translator implements OPT_Operators {
         
       case CC:
         //return !regs.isCarrySet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readCarryFlag(lazy), OPT_ConditionOperand.NOT_EQUAL());
+        {
+          OPT_Operand carry = arm2ir.readCarryFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, carry, OPT_ConditionOperand.NOT_EQUAL());
+        }
         break;
         
       case CS:
         //return regs.isCarrySet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readCarryFlag(lazy), OPT_ConditionOperand.EQUAL());
+        {
+          OPT_Operand carry = arm2ir.readCarryFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, carry, OPT_ConditionOperand.EQUAL());
+        }
         break;
         
       case EQ:
         //return regs.isZeroSet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readZeroFlag(lazy), OPT_ConditionOperand.EQUAL());
+        {
+          OPT_Operand zero = arm2ir.readZeroFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, zero, OPT_ConditionOperand.EQUAL());
+        }
         break;
         
       case GE:
         //return regs.isNegativeSet() == regs.isOverflowSet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readNegativeFlag(lazy), OPT_ConditionOperand.EQUAL(), arm2ir.readOverflowFlag(lazy));
+        {
+          OPT_Operand overflow = arm2ir.readOverflowFlag(lazy);
+          OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, negative, OPT_ConditionOperand.EQUAL(), overflow);
+        }
         break;
         
       case GT:
@@ -879,17 +892,27 @@ public class ARM_Translator implements OPT_Operators {
         
       case LT:
         //return regs.isNegativeSet() != regs.isOverflowSet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readNegativeFlag(lazy), OPT_ConditionOperand.NOT_EQUAL(), arm2ir.readOverflowFlag(lazy));
+        {
+          OPT_Operand overflow = arm2ir.readOverflowFlag(lazy);
+          OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, negative, OPT_ConditionOperand.NOT_EQUAL(), overflow);
+        }
         break;
         
       case MI:
         //return regs.isNegativeSet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readNegativeFlag(lazy), OPT_ConditionOperand.EQUAL());
+        {
+          OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, negative, OPT_ConditionOperand.EQUAL());
+        }
         break;
         
       case NE:
         //return !regs.isZeroSet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readZeroFlag(lazy), OPT_ConditionOperand.NOT_EQUAL());
+        {
+          OPT_Operand zero = arm2ir.readZeroFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, zero, OPT_ConditionOperand.NOT_EQUAL());
+        }
         break;
         
       case NV:
@@ -899,17 +922,26 @@ public class ARM_Translator implements OPT_Operators {
         
       case PL:
         //return !regs.isNegativeSet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readNegativeFlag(lazy), OPT_ConditionOperand.NOT_EQUAL());
+        {
+          OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, negative, OPT_ConditionOperand.NOT_EQUAL());
+        }
         break;
         
       case VC:
         //return !regs.isOverflowSet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readOverflowFlag(lazy), OPT_ConditionOperand.NOT_EQUAL());
+        {
+          OPT_Operand overflow = arm2ir.readOverflowFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, overflow, OPT_ConditionOperand.NOT_EQUAL());
+        }
         break;
         
       case VS:
         //return regs.isOverflowSet();
-        translateCondition(nextInstruction_InstructionSkipped, profileOperand, arm2ir.readOverflowFlag(lazy), OPT_ConditionOperand.EQUAL());
+        {
+          OPT_Operand overflow = arm2ir.readOverflowFlag(lazy);
+          translateCondition(nextInstruction_InstructionSkipped, profileOperand, overflow, OPT_ConditionOperand.EQUAL());
+        }
         break;
         
         default:
@@ -997,8 +1029,8 @@ public class ARM_Translator implements OPT_Operators {
     
     private void translateCondition_GT(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability) {
       //return (regs.isNegativeSet() == regs.isOverflowSet()) && !regs.isZeroSet();
-      OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
       OPT_Operand overflow = arm2ir.readOverflowFlag(lazy);
+      OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
       OPT_Operand zero = arm2ir.readZeroFlag(lazy);
       OPT_RegisterOperand result = arm2ir.getGenerationContext().temps.makeTempBoolean();
       
@@ -1010,8 +1042,8 @@ public class ARM_Translator implements OPT_Operators {
     
     private void translateCondition_LE(OPT_BasicBlock nextInstruction, OPT_BranchProfileOperand skipProbability) {
       //return regs.isZeroSet() || (regs.isNegativeSet() != regs.isOverflowSet());
-      OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
       OPT_Operand overflow = arm2ir.readOverflowFlag(lazy);
+      OPT_Operand negative = arm2ir.readNegativeFlag(lazy);
       OPT_Operand zero = arm2ir.readZeroFlag(lazy);
       OPT_RegisterOperand result = arm2ir.getGenerationContext().temps.makeTempBoolean();
       
@@ -1109,11 +1141,14 @@ public class ARM_Translator implements OPT_Operators {
     }
     
     /** Sets the processor flags according to the result of subtracting <code>rhs</code> from <code>lhs</code>.*/
-    protected final void setSubResult(OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs) {
+    protected final void setSubResult(OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs, boolean wasReverseSub) {
 
       if (i.updateConditionCodes) {
         if (i.Rd != ARM_Registers.PC) {
-          setSubFlags(result, lhs, rhs);
+          if (wasReverseSub)
+            setReverseSubFlags(result, lhs, rhs);
+          else
+            setSubFlags(result, lhs, rhs);
         } 
         else {
           OPT_Instruction s = createCallToRegisters("restoreSPSR2CPSR", "()V", 0);
@@ -1136,6 +1171,11 @@ public class ARM_Translator implements OPT_Operators {
         arm2ir.appendInstruction(Move.create(INT_MOVE, arm2ir.getRegister(i.Rd), result.copy()) );
       }
     }
+    
+
+    private void setReverseSubFlags(OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs) {
+      arm2ir.appendReverseSubFlags(lazy, result, lhs, rhs);
+    }
 
     /**
      * Sets the processor flags according to the result of a sub operation.
@@ -1147,7 +1187,6 @@ public class ARM_Translator implements OPT_Operators {
      *  The sub's right-hand-side operator.
      */
     protected final void setSubFlags(OPT_Operand result, OPT_Operand lhs, OPT_Operand rhs) {
-      
       arm2ir.appendSubFlags(lazy, result, lhs, rhs);
     }
     
@@ -1294,7 +1333,7 @@ public class ARM_Translator implements OPT_Operators {
       
       arm2ir.appendInstruction(Binary.create(INT_SUB, result, operand1, operand2));
       
-      setSubResult(result, operand1, operand2);
+      setSubResult(result, operand1, operand2, false);
     }
   }
 
@@ -1313,7 +1352,7 @@ public class ARM_Translator implements OPT_Operators {
       
       arm2ir.appendInstruction(Binary.create(INT_SUB, result, operand2, operand1));
       
-      setSubResult(result, operand2, operand1);
+      setSubResult(result, operand1, operand2, true);
     }
   }
 
@@ -1385,7 +1424,7 @@ public class ARM_Translator implements OPT_Operators {
       //Finally, subtract the second operands from the result
       arm2ir.setCurrentBlock(subWithoutCarry);
       arm2ir.appendInstruction(Binary.create(INT_SUB, result, operand1, operand2.copy()));
-      setSubResult(result, operand1, operand2);
+      setSubResult(result, operand1, operand2, false);
     }
   }
 
@@ -2188,8 +2227,9 @@ public class ARM_Translator implements OPT_Operators {
         return base;
       
       //add the offset to the base register
+      OPT_Operand offset = resolveOffset();
       OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
-      arm2ir.appendInstruction(Binary.create(INT_ADD, tmp, base, resolveOffset()));
+      arm2ir.appendInstruction(Binary.create(INT_ADD, tmp, base, offset));
       
       if (i.isThumb && i.isLoad && i.Rn == ARM_Registers.PC) {
         //with thumb, bit 1 of the address is always ignored - address = address & 0xFFFFFFFC;

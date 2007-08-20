@@ -198,6 +198,7 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     
     /** Called when the ARM flags shall be set by a SUB operation. This sets all ARM flags. */
     public abstract void appendSubFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2);
+    public abstract void appendReverseSubFlags(ARM_Laziness lazy, OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs);
   }
   
   /** Implements a flag behavior that will immediately evaluate all flag values. */
@@ -209,7 +210,23 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
       appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Zero), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
       appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Carry), result.copy(), op1.copy(), OPT_ConditionOperand.LOWER(), new OPT_BranchProfileOperand()));
       appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Negative), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Overflow), op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
+      
+      if (ARM_Options.useOptimizedFlags) {
+        appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Overflow), op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
+      }
+      else {
+        //resolve overflow
+        OPT_RegisterOperand overflow = getFlag(Flag.Overflow);
+        OPT_RegisterOperand tmp1 = getTempInt(5);
+        OPT_RegisterOperand tmp2 = getTempInt(6);
+        OPT_RegisterOperand tmp_bool = gc.temps.makeTempBoolean();
+
+        appendInstruction(Binary.create(INT_SUB, tmp1.copyRO(), new OPT_IntConstantOperand(Integer.MAX_VALUE), op2.copy()));
+        appendInstruction(Binary.create(INT_SUB, tmp2.copyRO(), new OPT_IntConstantOperand(Integer.MIN_VALUE), op2.copy()));
+        appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, tmp_bool.copyRO(), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.GREATER_EQUAL(), new OPT_BranchProfileOperand(), op1.copy(), tmp1.copy(), OPT_ConditionOperand.GREATER(), OPT_BranchProfileOperand.unlikely()));
+        appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, overflow.copyRO(), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS() , new OPT_BranchProfileOperand(), op1.copy(), tmp2.copy(), OPT_ConditionOperand.LESS(), OPT_BranchProfileOperand.unlikely()));
+        appendInstruction(Binary.create(INT_OR, overflow.copyRO(), overflow.copy(), tmp_bool.copy()));
+      }
     }
 
     @Override
@@ -223,9 +240,29 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     @Override
     public void appendSubFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
       appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Zero), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.EQUAL(), new OPT_BranchProfileOperand()));
-      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Negative), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));
-      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Carry), op1.copy(), op2.copy(), OPT_ConditionOperand.BORROW_FROM_SUB().flipCode(), new OPT_BranchProfileOperand()));
-      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Overflow), op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
+      appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Negative), result.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS(), new OPT_BranchProfileOperand()));      
+      
+      if (ARM_Options.useOptimizedFlags) {
+        appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Carry), op1.copy(), op2.copy(), OPT_ConditionOperand.BORROW_FROM_SUB().flipCode(), new OPT_BranchProfileOperand()));
+        appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Overflow), op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
+      }
+      else {
+        //resolve carry
+        appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Carry), op1.copy(), op2.copy(), OPT_ConditionOperand.LOWER().flipCode(), new OPT_BranchProfileOperand()));
+
+        //resolve overflow
+        OPT_RegisterOperand overflow = getFlag(Flag.Overflow);
+        OPT_RegisterOperand tmp1 = getTempInt(5);
+        OPT_RegisterOperand tmp2 = getTempInt(6);
+        OPT_RegisterOperand tmp_bool = gc.temps.makeTempBoolean();
+
+        appendInstruction(Binary.create(INT_ADD, tmp1.copyRO(), new OPT_IntConstantOperand(Integer.MIN_VALUE), op2.copy()));
+        appendInstruction(Binary.create(INT_ADD, tmp2.copyRO(), new OPT_IntConstantOperand(Integer.MAX_VALUE), op2.copy()));
+        
+        appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, tmp_bool.copyRO(), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.GREATER_EQUAL(), new OPT_BranchProfileOperand(), op1.copy(), tmp1.copy(), OPT_ConditionOperand.LESS(), OPT_BranchProfileOperand.unlikely()));
+        appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, overflow.copyRO(), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS() , new OPT_BranchProfileOperand(), op1.copy(), tmp2.copy(), OPT_ConditionOperand.GREATER(), OPT_BranchProfileOperand.unlikely()));
+        appendInstruction(Binary.create(INT_OR, overflow.copyRO(), overflow.copy(), tmp_bool.copy()));
+      }
     }
 
     @Override
@@ -236,6 +273,11 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     @Override
     public void onFlagWrite(Flag flag, ARM_Laziness lazy) {
       //nothing to do here, because the flags are already resolved
+    }
+
+    @Override
+    public void appendReverseSubFlags(ARM_Laziness lazy, OPT_RegisterOperand result, OPT_Operand op1, OPT_Operand op2) {
+      appendSubFlags(lazy, result, op2, op1);
     }
   }
   
@@ -366,7 +408,13 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
         
         case LogicalOpAfterSub:
         case Sub:
-          appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.BORROW_FROM_SUB().flipCode(), new OPT_BranchProfileOperand()));
+
+          if (ARM_Options.useOptimizedFlags) {
+            appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.BORROW_FROM_SUB().flipCode(), new OPT_BranchProfileOperand()));
+          }
+          else {
+            appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Carry), op1.copy(), op2.copy(), OPT_ConditionOperand.LOWER().flipCode(), new OPT_BranchProfileOperand()));
+          }
           break;
           
         default:
@@ -382,12 +430,40 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
         switch (lazy.getOperation()) {
         case Add: 
         case LogicalOpAfterAdd:
-          appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
+          if (ARM_Options.useOptimizedFlags) {
+            appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Overflow), op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
+          }
+          else {
+            OPT_RegisterOperand tmp1 = getTempInt(5);
+            OPT_RegisterOperand tmp2 = getTempInt(6);
+            OPT_RegisterOperand tmp_bool = gc.temps.makeTempBoolean();
+
+            appendInstruction(Binary.create(INT_SUB, tmp1.copyRO(), new OPT_IntConstantOperand(Integer.MAX_VALUE), op2.copy()));
+            appendInstruction(Binary.create(INT_SUB, tmp2.copyRO(), new OPT_IntConstantOperand(Integer.MIN_VALUE), op2.copy()));
+            appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, tmp_bool.copyRO(), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.GREATER_EQUAL(), new OPT_BranchProfileOperand(), op1.copy(), tmp1.copy(), OPT_ConditionOperand.GREATER(), OPT_BranchProfileOperand.unlikely()));
+            appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, getFlag(Flag.Overflow), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS() , new OPT_BranchProfileOperand(), op1.copy(), tmp2.copy(), OPT_ConditionOperand.LESS(), OPT_BranchProfileOperand.unlikely()));
+            appendInstruction(Binary.create(INT_OR, getFlag(Flag.Overflow), getFlag(Flag.Overflow), tmp_bool.copy()));
+          }
           break;
           
         case Sub:
         case LogicalOpAfterSub:
-          appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
+          if (ARM_Options.useOptimizedFlags) {
+            appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_SUB(), OPT_BranchProfileOperand.unlikely()));
+          }
+          else {
+            //resolve overflow
+            OPT_RegisterOperand tmp1 = getTempInt(5);
+            OPT_RegisterOperand tmp2 = getTempInt(6);
+            OPT_RegisterOperand tmp_bool = gc.temps.makeTempBoolean();
+
+            appendInstruction(Binary.create(INT_ADD, tmp1.copyRO(), new OPT_IntConstantOperand(Integer.MIN_VALUE), op2.copy()));
+            appendInstruction(Binary.create(INT_ADD, tmp2.copyRO(), new OPT_IntConstantOperand(Integer.MAX_VALUE), op2.copy()));
+            
+            appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, tmp_bool.copyRO(), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.GREATER_EQUAL(), new OPT_BranchProfileOperand(), op1.copy(), tmp1.copy(), OPT_ConditionOperand.LESS(), OPT_BranchProfileOperand.unlikely()));
+            appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, flagRegister, op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS() , new OPT_BranchProfileOperand(), op1.copy(), tmp2.copy(), OPT_ConditionOperand.GREATER(), OPT_BranchProfileOperand.unlikely()));
+            appendInstruction(Binary.create(INT_OR, flagRegister.copyRO(), flagRegister.copy(), tmp_bool.copy()));
+          }
           break;
           
         default:
@@ -415,6 +491,11 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     @Override
     public void onFlagWrite(Flag flag, ARM_Laziness lazy) {
       lazy.setValid(flag, true);
+    }
+
+    @Override
+    public void appendReverseSubFlags(ARM_Laziness lazy, OPT_RegisterOperand result, OPT_Operand op1, OPT_Operand op2) {
+      appendSubFlags(lazy, result, op2, op1);
     }
   }
 
@@ -701,6 +782,12 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     flagBehavior.appendSubFlags(lazy, result, op1, op2);
   }
   
+
+  public void appendReverseSubFlags(ARM_Laziness lazy, OPT_RegisterOperand result, OPT_Operand lhs, OPT_Operand rhs) {
+    zeroUsed = negativeUsed = carryUsed = overflowUsed = true;
+    flagBehavior.appendReverseSubFlags(lazy, result, lhs, rhs);    
+  }
+  
   public void appendAddFlags(ARM_Laziness lazy, OPT_Operand result, OPT_Operand op1, OPT_Operand op2) {
     zeroUsed = negativeUsed = carryUsed = overflowUsed = true;
     flagBehavior.appendAddFlags(lazy, result, op1, op2);
@@ -845,5 +932,6 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
     appendInstruction(Binary.create(OPT_Operators.INT_AND, target, wordToTest, new OPT_IntConstantOperand(1 << bit)));
     appendInstruction(BooleanCmp.create(OPT_Operators.BOOLEAN_CMP_INT, target, target, new OPT_IntConstantOperand(0), OPT_ConditionOperand.NOT_EQUAL(), new OPT_BranchProfileOperand()));
   }
+
 
 }

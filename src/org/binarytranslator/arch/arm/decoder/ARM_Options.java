@@ -24,12 +24,15 @@ public class ARM_Options {
   
   /** Set to true to enable a fastpath for the decoding of data processing instructions.. */
   public final static boolean DATAPROCESSING_DECODER_FASTPATH = false;
+  
+  /** Shall ARM use the optimized BORROW_FROM_SUB() etc. operations? */
+  public static boolean useOptimizedFlags = false; 
 
   /** This variable describes, if the translated program shall be optimized using profiling information. */
   public static boolean optimizeTranslationByProfiling = false;
   
   /** This variable describes, if the translated program shall be optimized using lazy evaluation.*/
-  public static FlagBehaviour flagEvaluation = FlagBehaviour.Lazy;
+  public static FlagBehaviour flagEvaluation = FlagBehaviour.Immediate;
   
   /** Describes the default behaviour for dealing with ARM function calls and indirect jumps. */
   public static InliningBehaviour inlining = InliningBehaviour.Default;
@@ -47,7 +50,9 @@ public class ARM_Options {
       inlining = ARM_Options.InliningBehaviour.valueOf(value);
     } else if (key.equalsIgnoreCase("memory")) {
       memoryModel = ARM_Options.MemoryModel.valueOf(value);
-    }
+    } else if (key.equalsIgnoreCase("optimizedFlags")) {
+      useOptimizedFlags = Boolean.parseBoolean(value);
+    }    
     else {
       throw new Error("Unknown ARM option: " + key);
     }
