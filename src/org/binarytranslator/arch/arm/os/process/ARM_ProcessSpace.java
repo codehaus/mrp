@@ -10,8 +10,8 @@ import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Interpreter;
-import org.binarytranslator.generic.memory.ByteAddressedMemory;
-import org.binarytranslator.generic.memory.IntAddressedMemory;
+import org.binarytranslator.generic.memory.ByteAddressedLittleEndianMemory;
+import org.binarytranslator.generic.memory.IntAddressedLittleEndianMemory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
@@ -43,11 +43,11 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
     
     switch (ARM_Options.memoryModel) {
     case ByteAddressed:
-      memory = new ByteAddressedMemory();
+      memory = new ByteAddressedLittleEndianMemory();
       break;
       
     case IntAddressed:
-      memory = new IntAddressedMemory();
+      memory = new IntAddressedLittleEndianMemory();
       break;
       
     default:

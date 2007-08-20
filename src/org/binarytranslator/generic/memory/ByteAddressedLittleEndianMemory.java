@@ -23,17 +23,17 @@ import org.binarytranslator.generic.fault.SegmentationFault;
  * <pre>
  * Byte Address|    
  * -----------------
- * .........07 | be|
- * .........06 | ba|
- * .........05 | fe|
- * .........04 | ca|
+ * .........07 | ca|
+ * .........06 | fe|
+ * .........05 | ba|
+ * .........04 | be|
  * .........03 |'o'|
  * .........02 |'l'|
  * .........01 |'e'|
  * .........00 |'H'|
  * </pre>
  */
-public class ByteAddressedMemory extends CallBasedMemory {
+public class ByteAddressedLittleEndianMemory extends CallBasedMemory {
   
   /** The size of a single page in bytes. */
   private static final int PAGE_SIZE = 4096;
@@ -58,7 +58,7 @@ public class ByteAddressedMemory extends CallBasedMemory {
   /**
    * Constructor - used when this is the instatiated class
    */
-  public ByteAddressedMemory() {
+  public ByteAddressedLittleEndianMemory() {
     this(null);
   }
 
@@ -68,8 +68,8 @@ public class ByteAddressedMemory extends CallBasedMemory {
    * @param classType
    *          the name of the over-riding class
    */
-  protected ByteAddressedMemory(Class classType) {
-    super(classType != null ? classType : ByteAddressedMemory.class);
+  protected ByteAddressedLittleEndianMemory(Class classType) {
+    super(classType != null ? classType : ByteAddressedLittleEndianMemory.class);
     readableMemory = new byte[NUM_PAGES][];
     writableMemory = new byte[NUM_PAGES][];
     executableMemory = new byte[NUM_PAGES][];

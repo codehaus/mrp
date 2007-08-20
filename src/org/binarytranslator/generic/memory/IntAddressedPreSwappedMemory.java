@@ -18,7 +18,7 @@ import org.jikesrvm.compilers.opt.ir.*;
 import java.io.RandomAccessFile;
 
 import org.binarytranslator.generic.decoder.CodeTranslator;
-import org.binarytranslator.generic.memory.IntAddressedMemory;
+import org.binarytranslator.generic.memory.IntAddressedLittleEndianMemory;
 
 /**
  * IntAddressedPreSwappedMemory:
@@ -38,7 +38,7 @@ import org.binarytranslator.generic.memory.IntAddressedMemory;
  * .........00 |'l'|'l'|'e'|'H'|
  * </pre>
  */
-public class IntAddressedPreSwappedMemory extends IntAddressedMemory {
+public class IntAddressedPreSwappedMemory extends IntAddressedLittleEndianMemory {
   /**
    * Constructor
    */

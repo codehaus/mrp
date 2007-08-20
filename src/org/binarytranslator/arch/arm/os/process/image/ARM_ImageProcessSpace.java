@@ -14,8 +14,8 @@ import org.binarytranslator.generic.os.loader.Loader;
 public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   
   private AngelSystemCalls sysCalls;
-  private final int STACK_SIZE = 4096 * 10;
-  private final int HEAP_SIZE  = 4096 * 10;
+  private final int STACK_SIZE = 4096 * 100;
+  private final int HEAP_SIZE  = 4096 * 100;
   
   public ARM_ImageProcessSpace() {
     super();

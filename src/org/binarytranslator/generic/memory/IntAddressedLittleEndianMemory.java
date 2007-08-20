@@ -27,13 +27,13 @@ import org.vmmagic.pragma.Inline;
  *               Byte Address
  * Int Address | 0 | 1 | 2 | 3 |
  * -----------------------------
- * .........0c | ca| fe| ba| be|
+ * .........0c | be| ba| fe| ca|
  * .........08 |'l'|'d'| \n| \0|
  * .........04 |'o'|'W'|'o'|'r'|
  * .........00 |'H'|'e'|'l'|'l'|
  * </pre>
  */
-public class IntAddressedMemory extends CallBasedMemory {
+public class IntAddressedLittleEndianMemory extends CallBasedMemory {
   /**
    * The size of pages
    */
@@ -66,7 +66,7 @@ public class IntAddressedMemory extends CallBasedMemory {
   /**
    * Constructor - used when this is the instatiated class
    */
-  public IntAddressedMemory() {
+  public IntAddressedLittleEndianMemory() {
     this(null);
   }
 
@@ -76,8 +76,8 @@ public class IntAddressedMemory extends CallBasedMemory {
    * @param classType
    *          the type of the over-riding class
    */
-  protected IntAddressedMemory(Class classType) {
-    super(classType != null ? classType : IntAddressedMemory.class);
+  protected IntAddressedLittleEndianMemory(Class classType) {
+    super(classType != null ? classType : IntAddressedLittleEndianMemory.class);
     readableMemory = new int[NUM_PAGES][];
     writableMemory = new int[NUM_PAGES][];
     executableMemory = new int[NUM_PAGES][];
@@ -461,11 +461,11 @@ public class IntAddressedMemory extends CallBasedMemory {
   public int loadUnsigned16(int addr) {
     switch (addr & 3) {
     default:
-      return loadWordAligned32(addr) >>> 16;
+      return loadWordAligned32(addr) & 0xFFFF;
     case 1:
       return (loadWordAligned32(addr) >> 8) & 0xFFFF;
     case 2:
-      return loadWordAligned32(addr) & 0xFFFF;
+      return (loadWordAligned32(addr) >> 16) & 0xFFFF;
     case 3: // 2 loads to deal with spanning int problem
       return (loadWordAligned32(addr) >>> 24)
           | ((loadWordAligned32(addr + 1) << 8) & 0xFF00);

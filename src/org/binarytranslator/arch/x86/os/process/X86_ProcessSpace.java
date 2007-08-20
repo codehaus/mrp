@@ -14,7 +14,7 @@ import java.util.Hashtable;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
-import org.binarytranslator.generic.memory.ByteAddressedMemory;
+import org.binarytranslator.generic.memory.ByteAddressedLittleEndianMemory;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.BadInstructionException;
@@ -139,7 +139,7 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
    */
   protected X86_ProcessSpace() {
     registers = new X86_Registers();
-    memory = new ByteAddressedMemory();
+    memory = new ByteAddressedLittleEndianMemory();
   }
 
   /**

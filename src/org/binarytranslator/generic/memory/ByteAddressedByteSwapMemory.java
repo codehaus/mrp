@@ -29,7 +29,7 @@ package org.binarytranslator.generic.memory;
  * .........00 |'H'|
  * </pre>
  */
-final public class ByteAddressedByteSwapMemory extends ByteAddressedMemory {
+final public class ByteAddressedByteSwapMemory extends ByteAddressedLittleEndianMemory {
   /**
    * Constructor - used when this is the instatiated class
    */
