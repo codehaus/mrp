@@ -519,11 +519,11 @@ public class IntAddressedLittleEndianMemory extends CallBasedMemory {
   public int loadInstruction16(int addr) {
     switch (addr & 3) {
     default:
-      return loadWordAlignedInstruction32(addr) >>> 16;
+      return loadWordAlignedInstruction32(addr) & 0xFFFF;
     case 1:
       return (loadWordAlignedInstruction32(addr) >> 8) & 0xFFFF;
     case 2:
-      return loadWordAlignedInstruction32(addr) & 0xFFFF;
+      return (loadWordAlignedInstruction32(addr) >> 16) & 0xFFFF;
     case 3: // 2 loads to deal with spanning int problem
       return (loadWordAlignedInstruction32(addr) >>> 24)
           | ((loadWordAlignedInstruction32(addr + 1) << 8) & 0xFF00);
