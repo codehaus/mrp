@@ -20,7 +20,8 @@ public class InterpreterController extends ExecutionController {
 
     while (!ps.finished) {
       
-      Interpreter.Instruction instruction = interpreter.decode(pc);     
+      Interpreter.Instruction instruction = interpreter.decode(pc);
+      //System.out.println(String.format("[%x] %s", pc, instruction.toString()));      
       instruction.execute();
       int nextInstruction = instruction.getSuccessor(pc);
       

@@ -413,7 +413,7 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
             appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.BORROW_FROM_SUB().flipCode(), new OPT_BranchProfileOperand()));
           }
           else {
-            appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Carry), op1.copy(), op2.copy(), OPT_ConditionOperand.LOWER().flipCode(), new OPT_BranchProfileOperand()));
+            appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.LOWER().flipCode(), new OPT_BranchProfileOperand()));
           }
           break;
           
@@ -431,7 +431,7 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
         case Add: 
         case LogicalOpAfterAdd:
           if (ARM_Options.useOptimizedFlags) {
-            appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, getFlag(Flag.Overflow), op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
+            appendInstruction(BooleanCmp.create(BOOLEAN_CMP_INT, flagRegister, op1.copy(), op2.copy(), OPT_ConditionOperand.OVERFLOW_FROM_ADD(), OPT_BranchProfileOperand.unlikely()));
           }
           else {
             OPT_RegisterOperand tmp1 = getTempInt(5);
@@ -442,7 +442,7 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
             appendInstruction(Binary.create(INT_SUB, tmp2.copyRO(), new OPT_IntConstantOperand(Integer.MIN_VALUE), op2.copy()));
             appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, tmp_bool.copyRO(), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.GREATER_EQUAL(), new OPT_BranchProfileOperand(), op1.copy(), tmp1.copy(), OPT_ConditionOperand.GREATER(), OPT_BranchProfileOperand.unlikely()));
             appendInstruction(BooleanCmp2.create(BOOLEAN_CMP2_INT_AND, getFlag(Flag.Overflow), op2.copy(), new OPT_IntConstantOperand(0), OPT_ConditionOperand.LESS() , new OPT_BranchProfileOperand(), op1.copy(), tmp2.copy(), OPT_ConditionOperand.LESS(), OPT_BranchProfileOperand.unlikely()));
-            appendInstruction(Binary.create(INT_OR, getFlag(Flag.Overflow), getFlag(Flag.Overflow), tmp_bool.copy()));
+            appendInstruction(Binary.create(INT_OR, flagRegister, getFlag(Flag.Overflow), tmp_bool.copy()));
           }
           break;
           

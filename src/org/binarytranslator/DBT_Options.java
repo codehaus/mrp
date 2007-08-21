@@ -25,7 +25,7 @@ public class DBT_Options {
   public final static boolean buildForSunVM = false;
   
   /** Enable the profiling of application during interpretation? */
-  public final static boolean profileDuringInterpretation = true;
+  public final static boolean profileDuringInterpretation = false;
   
   /** Are unimplemented system calls fatal? */
   public final static boolean unimplementedSystemCallsFatal = false;

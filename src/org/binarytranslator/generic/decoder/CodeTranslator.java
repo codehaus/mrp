@@ -695,7 +695,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     unresolvedDynamicBranches.add(unresolvedInfo);
 
     setCurrentBlock(fallThrough);
-    appendRecordUncaughtBranch(currentPC, targetAddress.copyRO(), branchType, retAddr);
+    appendRecordUncaughtBranch(currentPC, targetAddress, branchType, retAddr);
     appendTraceExit((Laziness) lazyStateAtJump.clone(), targetAddress);
     
   }

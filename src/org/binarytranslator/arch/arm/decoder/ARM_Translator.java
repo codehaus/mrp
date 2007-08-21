@@ -186,10 +186,10 @@ public class ARM_Translator implements OPT_Operators {
         ARM_Translator translator, OperandWrapper operand) {
       
       ResolvedOperand result = new ResolvedOperand_WithShifterCarryOut(translator, operand);
-      return result.getValue();
+      return result.getValue().copy();
     }
 
-    public final OPT_Operand getValue() {
+    private final OPT_Operand getValue() {
       return value;
     }
 
@@ -235,7 +235,7 @@ public class ARM_Translator implements OPT_Operators {
           else {
             OPT_RegisterOperand tmp = translator.arm2ir.getTempInt(9);
             translator.arm2ir.appendInstruction(Binary.create(INT_ADD, tmp, translator.arm2ir.getRegister(operand.getRegister()), new OPT_IntConstantOperand(operand.getOffset())));
-            value = tmp.copy();
+            value = tmp;
           }
           return;
 
@@ -382,7 +382,7 @@ public class ARM_Translator implements OPT_Operators {
           curBlock.insertOut(block1);
           OPT_Operand carryFlag = translator.arm2ir.readCarryFlag(translator.lazy);
           translator.arm2ir.appendInstruction(Binary.create(INT_USHR, resultRegister, shiftedOperand.copy(), new OPT_IntConstantOperand(1)));
-          translator.arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, translator.arm2ir.getTempValidation(0), carryFlag, new OPT_IntConstantOperand(1), OPT_ConditionOperand.NOT_EQUAL(), nextBlock.makeJumpTarget(), new OPT_BranchProfileOperand()));
+          translator.arm2ir.appendInstruction(IfCmp.create(INT_IFCMP, validation, carryFlag, new OPT_IntConstantOperand(1), OPT_ConditionOperand.NOT_EQUAL(), nextBlock.makeJumpTarget(), new OPT_BranchProfileOperand()));
           
           //Block 1
           translator.arm2ir.setCurrentBlock(block1);
@@ -519,15 +519,15 @@ public class ARM_Translator implements OPT_Operators {
           //block 2 - shift < 32 && shift != 0
           translator.arm2ir.setCurrentBlock(block2);
           block2.insertOut(nextBlock);
-          translator.arm2ir.appendInstruction(Binary.create(INT_SHR, resultRegister, shiftedOperand, shiftAmount.copy()) );
+          translator.arm2ir.appendInstruction(Binary.create(INT_SHR, resultRegister, shiftedOperand.copy(), shiftAmount.copy()) );
           translator.arm2ir.appendInstruction(Binary.create(INT_ADD, tmp, shiftAmount.copy(), new OPT_IntConstantOperand(-1)) );
-          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, tmp.copy());
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand.copy(), tmp.copy());
           translator.arm2ir.appendInstruction(Goto.create(GOTO, nextBlock.makeJumpTarget()));
           
           //block 3 - shift >= 32
           translator.arm2ir.setCurrentBlock(block3);
           block3.insertOut(nextBlock);
-          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand, 31);
+          translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand.copy(), 31);
           translator.arm2ir.appendInstruction(Binary.create(INT_MUL, resultRegister.copyRO(), getShifterCarryOutTarget(), new OPT_IntConstantOperand(-1)) ); //creates either 0xFFFFFFFF if the bit is set, or 0 otherwise
           translator.arm2ir.appendInstruction(Goto.create(GOTO, nextBlock.makeJumpTarget()));
           
@@ -563,7 +563,7 @@ public class ARM_Translator implements OPT_Operators {
           //block 2 - Shift != 0 && Shift < 32
           translator.arm2ir.setCurrentBlock(block2);
           block2.insertOut(nextBlock);
-          translator.arm2ir.appendInstruction(Binary.create(INT_SUB, tmp, new OPT_IntConstantOperand(32), shiftAmount) );
+          translator.arm2ir.appendInstruction(Binary.create(INT_SUB, tmp, new OPT_IntConstantOperand(32), shiftAmount.copy() ) );
           translator.arm2ir.appendBitTest(getShifterCarryOutTarget(), shiftedOperand.copy(), tmp.copy());
           translator.arm2ir.appendInstruction(Binary.create(INT_SHL, resultRegister, shiftedOperand.copy(), shiftAmount.copy()));
           translator.arm2ir.appendInstruction(Goto.create(GOTO, nextBlock.makeJumpTarget()));
@@ -1600,7 +1600,7 @@ public class ARM_Translator implements OPT_Operators {
 
     @Override
     public void translate() {
-      //Call Integer.numberOfLeadingZeros() to obtain the result of this operation
+      //Call Integer.numberOfLeadingZeros() to obtain the result of this operation      
       OPT_RegisterOperand result = getResultRegister();
 
       VM_TypeReference IntegerType = VM_TypeReference
@@ -1647,7 +1647,7 @@ public class ARM_Translator implements OPT_Operators {
       //swap exchanges the value of a memory address with the value in a register
       if (!i.swapByte) {
         ps.memory.translateLoad32(memAddr, tmp);
-        ps.memory.translateStore32(memAddr, arm2ir.getRegister(i.Rm));
+        ps.memory.translateStore32(memAddr.copy(), arm2ir.getRegister(i.Rm));
         
         //according to the ARM architecture reference, the value loaded from a memory address is rotated
         //by the number of ones in the first two bits of the address
@@ -1659,8 +1659,8 @@ public class ARM_Translator implements OPT_Operators {
         arm2ir.appendRotateRight(result, tmp.copy(), rotation.copy());
       }
       else {
-        ps.memory.translateLoadUnsigned8(memAddr.copy(), tmp);
-        ps.memory.translateStore8(memAddr, arm2ir.getRegister(i.Rm));
+        ps.memory.translateLoadUnsigned8(memAddr, tmp);
+        ps.memory.translateStore8(memAddr.copy(), arm2ir.getRegister(i.Rm));
         arm2ir.appendInstruction(Move.create(INT_MOVE, result, tmp.copy()));
       }
     }
@@ -1959,7 +1959,7 @@ public class ARM_Translator implements OPT_Operators {
       
       //set the correct processor mode (thumb or not)
       OPT_Instruction s = createCallToRegisters("setThumbMode", "(Z)V", 1);
-      Call.setParam(s, 1, enableThumb);
+      Call.setParam(s, 1, enableThumb.copy());
       arm2ir.appendCustomCall(s);
       
       //jump to the target address. Because we might have switched to thumb mode, we are
@@ -1999,7 +1999,7 @@ public class ARM_Translator implements OPT_Operators {
         arm2ir.appendInstruction(Binary.create(INT_MUL, tmp, operand1, operand2));
         
         OPT_Operand operand3 = arm2ir.getRegister(i.Rn);        
-        arm2ir.appendInstruction(Binary.create(INT_ADD, result.copyRO(), tmp.copy(), operand3));
+        arm2ir.appendInstruction(Binary.create(INT_ADD, result, tmp.copy(), operand3));
       }
       else {
         arm2ir.appendInstruction(Binary.create(INT_MUL, result, operand1, operand2));  
@@ -2050,7 +2050,7 @@ public class ARM_Translator implements OPT_Operators {
       }
 
       //multiply the two operands
-      arm2ir.appendInstruction(Binary.create(LONG_MUL, result.copyRO(), operand1.copy(), operand2.copy()));
+      arm2ir.appendInstruction(Binary.create(LONG_MUL, result, operand1.copy(), operand2.copy()));
 
       if (i.accumulate) {          
         //treat the accum. value as an unsigned value
@@ -2247,7 +2247,7 @@ public class ARM_Translator implements OPT_Operators {
       //stores the current operating mode
       OPT_RegisterOperand currentOperatingMode = null;
       
-      if (i.forceUserMode) {
+      if (i.forceUserMode) {        
         OPT_Instruction call_getOperatingMode = createCallToRegisters("getOperatingMode", "()A", 0);
         currentOperatingMode = arm2ir.getTempOperatingMode();
         
@@ -2364,7 +2364,7 @@ public class ARM_Translator implements OPT_Operators {
         else {
           //add the offset to the base address and write the result back into Rn
           OPT_Operand resolvedOffset = resolveOffset();
-          arm2ir.appendInstruction(Binary.create(INT_ADD, writeBackTarget, address, resolvedOffset));
+          arm2ir.appendInstruction(Binary.create(INT_ADD, writeBackTarget, address.copy(), resolvedOffset));
         }
       }
       
