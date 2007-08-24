@@ -11,8 +11,7 @@ public class ARM_Options {
     NoInlining,
     Default,
     Functions,
-    FunctionCalls,
-    FunctionReturns,
+    DirectBranches,
     DynamicJumps,
     All, 
   }
@@ -39,7 +38,6 @@ public class ARM_Options {
   
   /** Sets the memory model that ARM shall use. */
   public static MemoryModel memoryModel = MemoryModel.IntAddressed;
-  
   
   public static void parseOption(String key, String value) {
     if (key.equalsIgnoreCase("optimizeByProfiling")) {

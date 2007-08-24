@@ -58,7 +58,6 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
     
     if (registers.getThumbMode()) {
       int instrAddr = getCurrentInstructionAddress() & 0xFFFFFFFE;
-      System.out.println("Thumb syscall at: " + instrAddr);
       short instruction = (short)memory.loadInstruction16(instrAddr);
       instr = ARM_InstructionDecoder.Thumb.decode(instruction);
     }

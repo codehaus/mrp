@@ -248,7 +248,8 @@ public final class ARM_Disassembler {
         
         if (instr.writeBack())
           address += '!';
-      } else {
+      } 
+      else {
         address += "], ";
         
         if (!instr.positiveOffset())

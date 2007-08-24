@@ -556,28 +556,13 @@ public class ARM2IR extends CodeTranslator implements OPT_HIRGenerator {
       return super.inlineBranchInstruction(targetPc, jump);
       
     case DynamicJumps:
-      if (jump.type == BranchType.INDIRECT_BRANCH)
-        return true;
-      else
-        return super.inlineBranchInstruction(targetPc, jump);
+      return jump.type == BranchType.INDIRECT_BRANCH;
       
-    case FunctionCalls:
-      if (jump.type == BranchType.CALL)
-        return true;
-      else
-        return super.inlineBranchInstruction(targetPc, jump);
-      
-    case FunctionReturns:
-      if (jump.type == BranchType.CALL)
-        return true;
-      else
-        return super.inlineBranchInstruction(targetPc, jump);
+    case DirectBranches:
+      return jump.type == BranchType.DIRECT_BRANCH;
       
     case Functions:
-      if (jump.type == BranchType.CALL || jump.type == BranchType.RETURN)
-        return true;
-      else
-        return super.inlineBranchInstruction(targetPc, jump);
+      return jump.type == BranchType.CALL || jump.type == BranchType.RETURN;
       
     case All:
       return true;

@@ -8,7 +8,6 @@ import org.binarytranslator.arch.arm.decoder.ARM_Instructions.DataProcessing.Opc
 import org.binarytranslator.arch.arm.decoder.ARM_Instructions.Instruction.Condition;
 import org.binarytranslator.arch.arm.os.process.ARM_ProcessSpace;
 import org.binarytranslator.arch.arm.os.process.ARM_Registers;
-import org.binarytranslator.arch.arm.os.process.ARM_Registers.OperatingMode;
 import org.binarytranslator.generic.branchprofile.BranchProfile.BranchType;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_MemberReference;
@@ -2205,7 +2204,7 @@ public class ARM_Translator implements OPT_Operators {
         return positiveOffset;
       }
       else {
-        OPT_RegisterOperand tmp = arm2ir.getTempInt(0);
+        OPT_RegisterOperand tmp = arm2ir.getTempInt(1);
         arm2ir.appendInstruction(Unary.create(INT_NEG, tmp, positiveOffset));
         return tmp.copy();
       }
@@ -2241,26 +2240,14 @@ public class ARM_Translator implements OPT_Operators {
     }
 
     public void translate() {
-      //should we simulate a user-mode memory access? If yes, store the current mode and fake a switch
-      //to user mode.
-      
-      //stores the current operating mode
-      OPT_RegisterOperand currentOperatingMode = null;
-      
+      //should we simulate a user-mode memory access? If yes, handle this using the interpreter
       if (i.forceUserMode) {        
-        OPT_Instruction call_getOperatingMode = createCallToRegisters("getOperatingMode", "()A", 0);
-        currentOperatingMode = arm2ir.getTempOperatingMode();
-        
-        Call.setResult(call_getOperatingMode, currentOperatingMode);
-        arm2ir.appendCustomCall(call_getOperatingMode);
-        
-        OPT_Instruction call_setOperatingModeWithoutRegisterLayout = createCallToRegisters("setOperatingModeWithoutRegisterLayout", "(A)", 1);
-        Call.setParam(call_setOperatingModeWithoutRegisterLayout, 1, arm2ir.getTempOperatingMode(OperatingMode.USR));
-        
-        arm2ir.appendCustomCall(call_setOperatingModeWithoutRegisterLayout);
+        arm2ir.appendInterpretedInstruction(pc, lazy);
+        arm2ir.appendTraceExit(lazy, arm2ir.getRegister(ARM_Registers.PC));
+        return;
       }
 
-      //get the address of the memory, that we're supposed access
+      //get the address of the memory, that we're supposed to access
       OPT_Operand address = resolveAddress();
 
       if (i.isLoad) {
@@ -2275,10 +2262,6 @@ public class ARM_Translator implements OPT_Operators {
           
           //according to the ARM reference, the last two bits cause the value to be right-rotated
           OPT_RegisterOperand rotation = arm2ir.getTempInt(1);
-
-          //make sure that we're not loosing the address due to the shifting
-          OPT_RegisterOperand adrCopy = arm2ir.getTempInt(0);
-          arm2ir.appendInstruction(Move.create(INT_MOVE, adrCopy, address.copy()));
           
           //rotation = (address & 0x3) * 8
           arm2ir.appendInstruction(Binary.create(INT_AND, rotation, address.copy(), new OPT_IntConstantOperand(0x3)));
@@ -2299,9 +2282,6 @@ public class ARM_Translator implements OPT_Operators {
           
           //continue with the remainder of the instruction
           arm2ir.setCurrentBlock(remainderBlock);
-
-          //allow further usage of the memory address
-          address = adrCopy;
           break;
 
         case HalfWord:
@@ -2345,13 +2325,6 @@ public class ARM_Translator implements OPT_Operators {
           throw new RuntimeException("Unexpected memory size: " + i.size);
         }
       }
-      
-      //if we were writing in user mode, then switch back to our previous operating mode
-      if (i.forceUserMode) {
-        OPT_Instruction call_setOperatingModeWithoutRegisterLayout = createCallToRegisters("setOperatingModeWithoutRegisterLayout", "(A)", 1);
-        Call.setParam(call_setOperatingModeWithoutRegisterLayout, 1, currentOperatingMode);
-        arm2ir.appendCustomCall(call_setOperatingModeWithoutRegisterLayout);        
-      }      
 
       //should the memory address, which we accessed, be written back into a register? 
       //This is used for continuous memory accesses

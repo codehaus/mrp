@@ -368,10 +368,12 @@ public class ARM_InstructionDecoder {
       <T> T decode(short instr, ARM_InstructionFactory<T> factory) {
         //bit9==bit10==bit11==1?
         if ((instr & 0x0E00) == 0x0E00) {
-          if (Utils.getBit(instr, 8))
+          if (Utils.getBit(instr, 8)) {
             return factory.createSoftwareInterrupt(instr);
-          else
+          }
+          else {
             return factory.createUndefinedInstruction(instr);
+          }
         }
         
         return factory.createBranch(instr);
