@@ -87,7 +87,7 @@ public class IntAddressedLittleEndianMemory extends CallBasedMemory {
    * Return the offset part of the address
    */
   @Inline
-  protected int getOffset(int address) {
+  private static final int getOffset(int address) {
     return (address & (PAGE_SIZE - 1)) >>> 2;
   }
 

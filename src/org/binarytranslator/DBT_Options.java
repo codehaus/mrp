@@ -310,7 +310,7 @@ public class DBT_Options {
           input = input.substring(pos + 1);
         }
         
-        if (input.length() > 1) {
+        if (input.length() >= 1) {
           state.onText(input);
         }
       }

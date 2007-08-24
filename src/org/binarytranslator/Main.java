@@ -86,6 +86,10 @@ public class Main {
       return;
     }
     
+    if (DBT_Options.buildForSunVM) {
+      System.err.println("WARNING: This build was done for the SUN JVM and does only support interpretation, but not binary translation. Set DBT_Options.buildForSunVM to false to build for the Jikes RVM.");
+    }
+    
     if (DBT.VerifyAssertions) {
       System.err.println("WARNING: Assertions are enabled.");
     }

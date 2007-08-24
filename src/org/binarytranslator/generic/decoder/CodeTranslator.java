@@ -765,7 +765,7 @@ public abstract class CodeTranslator implements OPT_Constants,
      * supposedly a CALL or RETURN
      */
 
-    boolean decision = DBT_Options.singleInstrTranslation == false && jump.type == BranchType.DIRECT_BRANCH && !shallTraceStop();
+    boolean decision = DBT_Options.singleInstrTranslation == false && !shallTraceStop();
     
     if (!decision) {
       
@@ -778,9 +778,13 @@ public abstract class CodeTranslator implements OPT_Constants,
       return false;
     }
     
-    //only query the code cache if we have to
-    DBT_Trace compiledTrace = ps.codeCache.tryGet(targetPc);
-    decision = (compiledTrace == null || compiledTrace.getNumberOfInstructions() < 20) ;
+    decision = jump.type == BranchType.DIRECT_BRANCH;
+    
+    if (!decision) {
+      //only query the code cache if we have to
+      DBT_Trace compiledTrace = ps.codeCache.tryGet(targetPc);
+      decision = (compiledTrace != null && compiledTrace.getNumberOfInstructions() < 30);
+    }
     
     if (DBT_Options.debugBranchResolution) {
       String text = (!decision ? "Not inlining " : "Inlining ");

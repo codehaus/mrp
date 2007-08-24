@@ -104,12 +104,12 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   /**
    * The generation context we're translating within
    */
-  private OPT_GenerationContext gc;
+  protected OPT_GenerationContext gc;
 
   /**
    * Register that references the memory object
    */
-  OPT_Register memory;
+  protected OPT_Register memory;
 
   /**
    * Constructor
@@ -158,7 +158,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   }
 
   /**
-   * Generate memory prologue,... for the beignning of a trace. e.g. Loading the
+   * Generate memory prologue,... for the beginning of a trace. e.g. Loading the
    * page table into a register
    */
   public void initTranslate(CodeTranslator helper) {
@@ -202,8 +202,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
     if (DBT_Options.inlineCallbasedMemory) {
       translator.appendInlinedCall(s);
     }
-    else
-    {
+    else {
       s.position = gc.inlineSequence;
       s.bcIndex = bcIndex;
       translator.appendInstruction(s);
@@ -391,45 +390,6 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    *          the address of the value to store
    */
   public void translateStore32(OPT_Operand addr, OPT_Operand src) {
-    translateStore(store32, DBT_Trace.MEMORY_STORE32, addr, src);
-  }
-
-  /**
-   * Generate the IR code for a byte store
-   * 
-   * @param src
-   *          the register that holds the value to store
-   * @param addr
-   *          the address of the value to store
-   */
-  public void translateCallBasedStore8(OPT_Operand addr,
-      OPT_RegisterOperand src) {
-    translateStore(store8, DBT_Trace.MEMORY_STORE8, addr, src);
-  }
-
-  /**
-   * Generate the IR code for a 16bit store
-   * 
-   * @param src
-   *          the register that holds the value to store
-   * @param addr
-   *          the address of the value to store
-   */
-  public void translateCallBasedStore16(OPT_Operand addr,
-      OPT_RegisterOperand src) {
-    translateStore(store16, DBT_Trace.MEMORY_STORE16, addr, src);
-  }
-
-  /**
-   * Generate the IR code for a 32bit store
-   * 
-   * @param src
-   *          the register that holds the value to store
-   * @param addr
-   *          the address of the value to store
-   */
-  public void translateCallBasedStore32(OPT_Operand addr,
-      OPT_RegisterOperand src) {
     translateStore(store32, DBT_Trace.MEMORY_STORE32, addr, src);
   }
 
