@@ -34,7 +34,6 @@
 
   <!-- init properties for downloading classpath from cvs or from web -->
   <target name="init-classpath-properties" depends="prepare-ant-tasks">
-    <check-host-and-target-match message="can not download and build Classpath."/>
     <condition property="classpath.from-web" value="true">
       <and>
         <not>
