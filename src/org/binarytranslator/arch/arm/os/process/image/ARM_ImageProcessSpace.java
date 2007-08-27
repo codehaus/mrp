@@ -10,6 +10,7 @@ import org.binarytranslator.arch.arm.os.process.ARM_Registers;
 import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.fault.InsufficientMemoryException;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.loader.elf.ELF_File.ByteOrder;
 
 public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   
@@ -17,11 +18,8 @@ public class ARM_ImageProcessSpace extends ARM_ProcessSpace {
   private final int STACK_SIZE = 4096 * 1000;
   private final int HEAP_SIZE  = 4096 * 1000;
   
-  public ARM_ImageProcessSpace() {
-    super();
-    
-    //make sure that pages of memory are automatically mapped in as they are requested.
-    //memory = new AutoMappingMemory(memory);
+  public ARM_ImageProcessSpace(ByteOrder byteOrder) {
+    super(byteOrder);
   }
   
   private int allocateFreeMemoryArea(int stackSize) throws InsufficientMemoryException

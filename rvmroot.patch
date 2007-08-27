@@ -146,7 +146,7 @@ Index: build/primordials/RVM_OPT.txt
  [Lorg/jikesrvm/compilers/opt/OPT_Simplifier$DefUseEffect;
  [Lorg/jikesrvm/compilers/opt/ir/OPT_Operator;
 +[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$ELF_Identity$AddressSize;
-+[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$ELF_Identity$ByteOrder;
++[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$ByteOrder;
 +[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$Header$ObjectFileType;
 +[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$SegmentRange;
 +[Lorg/binarytranslator/vmInterface/DummyDynamicCodeRunner;
@@ -157,4 +157,6 @@ Index: build/primordials/RVM_OPT.txt
 +[Lorg/binarytranslator/arch/arm/decoder/ARM_Instructions$Instruction$Condition;
 +[Lorg/binarytranslator/arch/arm/decoder/ARM_Instructions$DataProcessing$Opcode;
 +[Lorg/binarytranslator/arch/arm/decoder/ARM_Instructions$OperandWrapper$ShiftType;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_Laziness$Operation;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_Laziness$Flag;
  

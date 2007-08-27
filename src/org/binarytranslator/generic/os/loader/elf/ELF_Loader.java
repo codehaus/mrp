@@ -1,7 +1,6 @@
 package org.binarytranslator.generic.os.loader.elf;
 
 import java.io.IOException;
-
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;

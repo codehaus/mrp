@@ -13,7 +13,6 @@ import java.io.RandomAccessFile;
 import org.binarytranslator.DBT;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.fault.SegmentationFault;
-import org.jikesrvm.VM_Configuration;
 import org.vmmagic.pragma.Inline;
 
 /**
@@ -283,12 +282,8 @@ public class IntAddressedLittleEndianMemory extends CallBasedMemory {
    * @return native endian read int
    */
   protected int readInt(RandomAccessFile file) throws java.io.IOException {
-    if (VM_Configuration.BuildForPowerPC) {
-      return file.readInt(); // NB this will always read in big-endian format
-    } else {
-      return file.readUnsignedByte() | (file.readUnsignedByte() << 8)
-          | (file.readUnsignedByte() << 16) | (file.readByte() << 24);
-    }
+    return file.readUnsignedByte() | (file.readUnsignedByte() << 8)
+        | (file.readUnsignedByte() << 16) | (file.readByte() << 24);
   }
 
   /**

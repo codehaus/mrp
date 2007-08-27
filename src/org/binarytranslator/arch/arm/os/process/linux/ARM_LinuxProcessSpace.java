@@ -10,6 +10,7 @@ import org.binarytranslator.generic.os.abi.linux.LinuxSystemCallGenerator;
 import org.binarytranslator.generic.os.abi.linux.LinuxSystemCalls;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
+import org.binarytranslator.generic.os.loader.elf.ELF_File.ByteOrder;
 
 public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
 
@@ -31,7 +32,9 @@ public class ARM_LinuxProcessSpace extends ARM_ProcessSpace {
    */
   private int[] auxVector;
 
-  public ARM_LinuxProcessSpace() {
+  public ARM_LinuxProcessSpace(ByteOrder byteOrder) {
+    super(byteOrder);
+    
     sysCallGenerator = new Legacy(this);
     sysCalls = new ARM_LinuxSystemCalls(this, sysCallGenerator);
   }

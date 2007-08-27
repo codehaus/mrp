@@ -1,5 +1,7 @@
 package org.binarytranslator.arch.arm.decoder;
 
+import org.binarytranslator.generic.os.loader.elf.ELF_File.ByteOrder;
+
 public class ARM_Options {
   
   public enum FlagBehaviour {
@@ -39,6 +41,9 @@ public class ARM_Options {
   /** Sets the memory model that ARM shall use. */
   public static MemoryModel memoryModel = MemoryModel.IntAddressed;
   
+  /** Override the byte order read from the ELF file. */
+  public static ByteOrder enforcedByteOrder = null;
+  
   public static void parseOption(String key, String value) {
     if (key.equalsIgnoreCase("optimizeByProfiling")) {
       optimizeTranslationByProfiling = Boolean.parseBoolean(value);
@@ -50,7 +55,9 @@ public class ARM_Options {
       memoryModel = ARM_Options.MemoryModel.valueOf(value);
     } else if (key.equalsIgnoreCase("optimizedFlags")) {
       useOptimizedFlags = Boolean.parseBoolean(value);
-    }    
+    } else if (key.equalsIgnoreCase("byteOrder")) {
+      enforcedByteOrder = ByteOrder.valueOf(value);
+    }
     else {
       throw new Error("Unknown ARM option: " + key);
     }

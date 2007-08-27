@@ -10,9 +10,13 @@ import org.binarytranslator.arch.arm.os.process.image.ARM_ImageProcessSpace;
 import org.binarytranslator.arch.arm.os.process.linux.ARM_LinuxProcessSpace;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.decoder.Interpreter;
+import org.binarytranslator.generic.memory.ByteAddressedBigEndianMemory;
 import org.binarytranslator.generic.memory.ByteAddressedLittleEndianMemory;
+import org.binarytranslator.generic.memory.IntAddressedBigEndianMemory;
 import org.binarytranslator.generic.memory.IntAddressedLittleEndianMemory;
 import org.binarytranslator.generic.os.loader.Loader;
+import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
+import org.binarytranslator.generic.os.loader.elf.ELF_File.ByteOrder;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
@@ -20,10 +24,8 @@ import org.vmmagic.pragma.Uninterruptible;
 
 public abstract class ARM_ProcessSpace extends ProcessSpace {
 
-
   /** Registers used by this process */
   public ARM_Registers registers;
-
 
   /**
    * Debug information
@@ -38,16 +40,44 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
     }
   }
 
-  protected ARM_ProcessSpace() {
+  protected ARM_ProcessSpace(ByteOrder byteOrder) {
     registers = new ARM_Registers();
     
     switch (ARM_Options.memoryModel) {
     case ByteAddressed:
-      memory = new ByteAddressedLittleEndianMemory();
+      
+      switch (byteOrder)
+      {
+      case LittleEndian:
+        memory = new ByteAddressedLittleEndianMemory();
+        break;
+        
+      case BigEndian:
+        memory = new ByteAddressedBigEndianMemory();
+        break;
+        
+      default:
+        throw new RuntimeException("Unexpected byte order: " + byteOrder);
+      }
+      
       break;
       
     case IntAddressed:
-      memory = new IntAddressedLittleEndianMemory();
+
+      switch (byteOrder)
+      {
+      case LittleEndian:
+        memory = new IntAddressedLittleEndianMemory();
+        break;
+        
+      case BigEndian:
+        memory = new IntAddressedBigEndianMemory();
+        break;
+        
+      default:
+        throw new RuntimeException("Unexpected byte order: " + byteOrder);
+      }
+      
       break;
       
     default:
@@ -79,12 +109,30 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   public static ProcessSpace createProcessSpaceFromBinary(Loader loader)
       throws IOException {
     Loader.ABI abi = loader.getABI();
+    
+    //determine the byte order for the memory implementation
+    ByteOrder byteOrder = ARM_Options.enforcedByteOrder;
+    
+    if (byteOrder == null) {
+      if (loader instanceof ELF_Loader) {
+        //read the byte order from the elf file
+        byteOrder = ((ELF_Loader)loader).getFile().getByteOrder();
+      }
+      else {
+        byteOrder = ByteOrder.LittleEndian;
+        System.err.println("WARNING: Unable to deduce byte order from binary file. Defaulting to " + byteOrder);
+      }
+    }
+    else {
+      System.err.println("WARNING: Overriding byte order set by ELF file to " + byteOrder);
+    }
+
     if (abi == Loader.ABI.ARM) {
       report("Creating ARM Linux ABI Process space");
-      return new ARM_LinuxProcessSpace();
+      return new ARM_LinuxProcessSpace(byteOrder);
     } else {
       report("Creating ARM image process space.");
-      return new ARM_ImageProcessSpace();
+      return new ARM_ImageProcessSpace(byteOrder);
     }
   }
   

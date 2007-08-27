@@ -22,6 +22,22 @@ import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 
 public class ELF_File {
+  
+  /** Represents accepted ELF byte orders. */
+  public enum ByteOrder implements IdentifiedEnum {
+    LittleEndian(1),
+    BigEndian(2);
+    
+    private int identifier;
+    
+    private ByteOrder(int identifier) {
+      this.identifier = identifier;
+    }
+
+    public int getIdentifier() {
+      return identifier;
+    }
+  }
 
   /** Wrapper class used for reading the ELF file with the required endianness */
   private BinaryReader reader;
@@ -31,6 +47,10 @@ public class ELF_File {
 
   /** Program segment headers */
   private SegmentHeader segmentHeaders[];
+  
+  public ByteOrder getByteOrder() {
+    return header.byteOrder;
+  }
 
   /**
    * Debug information
@@ -60,9 +80,9 @@ public class ELF_File {
      * @return
      *  An ELF_BinaryReader, that hides the details of the byte order.
      */
-    public static BinaryReader create(ELF_Identity.ByteOrder byteOrder, RandomAccessFile file) {
+    public static BinaryReader create(ByteOrder byteOrder, RandomAccessFile file) {
       
-      if (byteOrder == ELF_Identity.ByteOrder.BigEndian)
+      if (byteOrder == ByteOrder.BigEndian)
         return new NonSwappingReader(file); 
       else
         return new ByteSwappingReader(file);
@@ -296,22 +316,6 @@ public class ELF_File {
       }
     }
     
-    /** Represents accepted ELF byte orders. */
-    private enum ByteOrder implements IdentifiedEnum {
-      LittleEndian(1),
-      BigEndian(2);
-      
-      private int identifier;
-      
-      private ByteOrder(int identifier) {
-        this.identifier = identifier;
-      }
-
-      public int getIdentifier() {
-        return identifier;
-      }
-    }
-    
     /* Symbolic names for the most widely used ABIs. This is not an enum, because the list isn't complete. */
     private static final byte ELFOSABI_SYSTEMV = 0;
     private static final byte ELFOSABI_HPUX = 1;
@@ -334,13 +338,13 @@ public class ELF_File {
     private static final byte ELF_MAGIC_VALUE[] = { 0x7f, 'E', 'L','F' };
 
     /** Specifies the size of an address within this elf.*/
-    private AddressSize addressSize;
+    AddressSize addressSize;
     
     /** The byte order used by this elf.*/
-    private ByteOrder byteOrder;
+    ByteOrder byteOrder;
     
     /** The ABI that is used by this ELF.*/
-    private byte abi;
+    byte abi;
     
     /**
      * Construct/read ELF identity
