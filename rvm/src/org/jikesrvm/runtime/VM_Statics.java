@@ -401,7 +401,7 @@ public class VM_Statics implements VM_Constants {
     if (!isReference(slot) || slot > getHighestInUseSlot()) {
       return false;
     } else {
-      return findObjectLiteral(getSlotContentsAsObject(slotAsOffset(slot))) == 0;
+      return findObjectLiteral(getSlotContentsAsObject(slotAsOffset(slot))) != 0;
     }
   }
 
