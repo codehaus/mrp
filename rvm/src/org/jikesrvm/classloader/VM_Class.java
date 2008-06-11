@@ -29,7 +29,7 @@ import org.jikesrvm.objectmodel.VM_IMT;
 import org.jikesrvm.objectmodel.VM_ObjectModel;
 import org.jikesrvm.objectmodel.VM_TIB;
 import org.jikesrvm.runtime.VM_Magic;
-import org.jikesrvm.runtime.VM_Runtime;
+import org.jikesrvm.runtime.RuntimeEntrypoints;
 import org.jikesrvm.runtime.VM_StackBrowser;
 import org.jikesrvm.runtime.VM_Statics;
 import org.jikesrvm.util.ImmutableEntryHashMapRVM;
@@ -366,7 +366,7 @@ public final class VM_Class extends VM_Type implements VM_Constants, VM_ClassLoa
    */
   public boolean isThrowable() {
     return (getTypeRef() == VM_TypeReference.JavaLangThrowable) ||
-    VM_Runtime.isAssignableWith(VM_TypeReference.JavaLangThrowable.resolve(), this);
+    RuntimeEntrypoints.isAssignableWith(VM_TypeReference.JavaLangThrowable.resolve(), this);
   }
   /**
    * Get the modifiers associated with this class {@link
