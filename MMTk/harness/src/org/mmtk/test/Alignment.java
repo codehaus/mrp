@@ -15,14 +15,14 @@ package org.mmtk.test;
 import org.mmtk.harness.Mutator;
 
 /**
- * This is a simple test that checks hashCode values persist across a collection.
+ * This is a simple test that allocates aligned and unaligned objects.
  */
-public class HashCode extends Test {
+public class Alignment extends Test {
   /** Size of linked list to create */
   private static final int LIST_SIZE = 200;
 
-  /** The frequency at which objects are hashed */
-  private static final int HASH_EVERY = 20;
+  /** The frequency at which objects are 8 byte aligned */
+  private static final int ALIGN_EVERY = 3;
 
   /**
    * Create a linked list, then verify it.
@@ -44,30 +44,23 @@ public class HashCode extends Test {
     int found = 0;
     m.muCopy("current", "head");
     while (!m.muIsNull("current")) {
-      // Check the hash codes
-      int dataValue = m.muLoadData("current", 0);
-
-      if (dataValue != 0) {
-        // Looks like an object that was hashed
-        found++;
-        int hashValue = m.muHashCode("current");
-
-        if (hashValue != dataValue) {
-          System.err.println("ERROR: hash and remembered hash mismatch " + dataValue  + " != " + hashValue);
-        }
+      boolean doubleAlign = (found++ % ALIGN_EVERY) == 0;
+      int mask = doubleAlign ? 0x7 : 0x3;
+      if ((m.muAddress("current").toInt() & mask) != 0) {
+        System.err.println("ERROR: Misaligned object " + m.muAddress("current") + (doubleAlign ? " [8B]" : " [4B]"));
       }
 
       // Follow the linked list
       m.muLoad("next", "current", 0);
       m.muCopy("current", "next");
     }
-    if (found != (LIST_SIZE / HASH_EVERY)) {
-      System.err.println("ERROR: expected " + (LIST_SIZE / HASH_EVERY) + " hashed objects but found only " + found);
+    if (found != LIST_SIZE) {
+      System.err.println("ERROR: expected " + LIST_SIZE + " objects but found only " + found);
     }
   }
 
   /**
-   * Build a linked list of hashed objects.
+   * Build a linked list
    */
   private void buildList(Mutator m) {
     System.err.println("Building list...");
@@ -75,15 +68,9 @@ public class HashCode extends Test {
     m.muAlloc("head", 1, 1);
     m.muStoreData("head", 0, m.muHashCode("head"));
     m.muCopy("last", "head");
-    for(int i=1; i < LIST_SIZE; i++) {
-      m.muAlloc("current", 1, 1);
-      if ((i % HASH_EVERY) == 0) {
-        int hashValue = m.muHashCode("current");
-        if (hashValue == 0) {
-          System.err.println("ERROR: hashCode of 0 returned");
-        }
-        m.muStoreData("current", 0, hashValue);
-      }
+    for(int j=1; j < LIST_SIZE; j++) {
+      boolean doubleAlign = (j % ALIGN_EVERY) == 0;
+      m.muAlloc("current", 1, 1, doubleAlign);
       m.muStore("last", 0, "current");
       m.muCopy("last", "current");
     }
