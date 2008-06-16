@@ -18,11 +18,11 @@ import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.ArchitectureSpecificOpt;
 import org.jikesrvm.VM;
 import org.jikesrvm.VM_PrintLN;
-import org.jikesrvm.classloader.VM_Array;
+import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.VM_MemberReference;
-import org.jikesrvm.classloader.VM_Method;
+import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.VM_NormalMethod;
-import org.jikesrvm.classloader.VM_Type;
+import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.common.VM_CompiledMethod;
 import org.jikesrvm.compilers.common.VM_ExceptionTable;
@@ -55,7 +55,7 @@ import org.vmmagic.unboxed.Offset;
 @Uninterruptible
 public final class OptCompiledMethod extends VM_CompiledMethod {
 
-  public OptCompiledMethod(int id, VM_Method m) {
+  public OptCompiledMethod(int id, RVMMethod m) {
     super(id, m);
   }
 
@@ -85,7 +85,7 @@ public final class OptCompiledMethod extends VM_CompiledMethod {
    * Find "catch" block for a machine instruction of this method.
    */
   @Interruptible
-  public int findCatchBlockForInstruction(Offset instructionOffset, VM_Type exceptionType) {
+  public int findCatchBlockForInstruction(Offset instructionOffset, RVMType exceptionType) {
     if (eTable == null) {
       return -1;
     } else {
@@ -240,8 +240,8 @@ public final class OptCompiledMethod extends VM_CompiledMethod {
   public int size() {
     int size = VM_TypeReference.VM_ExceptionTable.peekType().asClass().getInstanceSize();
     size += _mcMap.size();
-    if (eTable != null) size += VM_Array.IntArray.getInstanceSize(eTable.length);
-    if (patchMap != null) size += VM_Array.IntArray.getInstanceSize(patchMap.length);
+    if (eTable != null) size += RVMArray.IntArray.getInstanceSize(eTable.length);
+    if (patchMap != null) size += RVMArray.IntArray.getInstanceSize(patchMap.length);
     return size;
   }
 

@@ -14,8 +14,8 @@ package org.jikesrvm.jni.ppc;
 
 import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
-import org.jikesrvm.classloader.VM_Class;
-import org.jikesrvm.classloader.VM_Method;
+import org.jikesrvm.classloader.RVMClass;
+import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.VM_NativeMethod;
 import org.jikesrvm.classloader.VM_TypeReference;
 import org.jikesrvm.compilers.common.VM_CompiledMethod;
@@ -127,7 +127,7 @@ public abstract class VM_JNICompiler
     int compiledMethodId = cm.getId();
     VM_Assembler asm = new ArchitectureSpecific.VM_Assembler(0);
     int frameSize = getFrameSize(method);
-    VM_Class klass = method.getDeclaringClass();
+    RVMClass klass = method.getDeclaringClass();
 
     /* initialization */
     if (VM.VerifyAssertions) VM._assert(T3 <= LAST_VOLATILE_GPR);           // need 4 gp temps
@@ -410,7 +410,7 @@ public abstract class VM_JNICompiler
    * -the frame has been created, FP points to the new callee frame
    * Also update the JNIRefs array
    */
-  private static void storeParameters(VM_Assembler asm, int frameSize, VM_Method method, VM_Class klass) {
+  private static void storeParameters(VM_Assembler asm, int frameSize, RVMMethod method, RVMClass klass) {
 
     int nextOSArgReg, nextOSArgFloatReg, nextVMArgReg, nextVMArgFloatReg;
 
@@ -1164,7 +1164,7 @@ public abstract class VM_JNICompiler
     }
   }
 
-  static void generateReturnCodeForJNIMethod(VM_Assembler asm, VM_Method mth) {
+  static void generateReturnCodeForJNIMethod(VM_Assembler asm, RVMMethod mth) {
     if (VM.BuildForMachOABI) {
       VM_TypeReference t = mth.getReturnType();
       if (VM.BuildFor32Addr && t.isLongType()) {
@@ -1178,7 +1178,7 @@ public abstract class VM_JNICompiler
   /**
    * Emit code to do the C to Java transition:  JNI methods in VM_JNIFunctions.java
    */
-  public static void generateGlueCodeForJNIMethod(VM_Assembler asm, VM_Method mth) {
+  public static void generateGlueCodeForJNIMethod(VM_Assembler asm, RVMMethod mth) {
     int offset;
     int varargAmount = 0;
 
@@ -1456,7 +1456,7 @@ public abstract class VM_JNICompiler
   // SVR4 rounds gprs to odd for longs, but rvm convention uses all
   // we only process JNI functions that uses parameters directly
   // so only handle parameters in gprs now
-  static void convertParametersFromSVR4ToJava(VM_Assembler asm, VM_Method meth) {
+  static void convertParametersFromSVR4ToJava(VM_Assembler asm, RVMMethod meth) {
     if (VM.BuildForSVR4ABI || VM.BuildForMachOABI) {
       VM_TypeReference[] argTypes = meth.getParameterTypes();
       int argCount = argTypes.length;

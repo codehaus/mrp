@@ -16,9 +16,9 @@ import org.jikesrvm.ArchitectureSpecific.VM_Assembler;
 import org.jikesrvm.VM;
 import org.jikesrvm.VM_Configuration;
 import org.jikesrvm.VM_SizeConstants;
-import org.jikesrvm.classloader.VM_Array;
-import org.jikesrvm.classloader.VM_Class;
-import org.jikesrvm.classloader.VM_Type;
+import org.jikesrvm.classloader.RVMArray;
+import org.jikesrvm.classloader.RVMClass;
+import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.memorymanagers.mminterface.MM_Constants;
 import org.jikesrvm.runtime.VM_Magic;
 import org.jikesrvm.runtime.Memory;
@@ -113,14 +113,14 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * What is the offset of the first word after the class?
    * For use by VM_ObjectModel.layoutInstanceFields
    */
-  public static Offset objectEndOffset(VM_Class klass) {
+  public static Offset objectEndOffset(RVMClass klass) {
     return Offset.fromIntSignExtend(klass.getInstanceSizeInternal() - OBJECT_REF_OFFSET);
   }
 
   /**
    * What is the first word after the class?
    */
-  public static Address getObjectEndAddress(Object obj, VM_Class type) {
+  public static Address getObjectEndAddress(Object obj, RVMClass type) {
     int size = type.getInstanceSize();
     if (ADDRESS_BASED_HASHING && DYNAMIC_HASH_OFFSET) {
       Word hashState = VM_Magic.objectAsAddress(obj).loadWord(STATUS_OFFSET).and(HASH_STATE_MASK);
@@ -135,7 +135,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * What is the first word after the array?
    */
-  public static Address getObjectEndAddress(Object obj, VM_Array type, int numElements) {
+  public static Address getObjectEndAddress(Object obj, RVMArray type, int numElements) {
     int size = type.getInstanceSize(numElements);
     if (ADDRESS_BASED_HASHING && DYNAMIC_HASH_OFFSET) {
       Word hashState = VM_Magic.getWordAtOffset(obj, STATUS_OFFSET).and(HASH_STATE_MASK);
@@ -150,7 +150,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * What is the offset of the first word of the class?
    */
-  public static int objectStartOffset(VM_Class klass) {
+  public static int objectStartOffset(RVMClass klass) {
     return -OBJECT_REF_OFFSET;
   }
 
@@ -195,14 +195,14 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Set the TIB for an object.
    */
   @Interruptible
-  public static void setTIB(BootImageInterface bootImage, Address refOffset, Address tibAddr, VM_Type type) {
+  public static void setTIB(BootImageInterface bootImage, Address refOffset, Address tibAddr, RVMType type) {
     bootImage.setAddressWord(refOffset.plus(TIB_OFFSET), tibAddr.toWord(), false, false);
   }
 
   /**
    * how many bytes are needed when the scalar object is copied by GC?
    */
-  public static int bytesRequiredWhenCopied(Object fromObj, VM_Class type) {
+  public static int bytesRequiredWhenCopied(Object fromObj, RVMClass type) {
     int size = type.getInstanceSize();
     if (ADDRESS_BASED_HASHING) {
       Word hashState = VM_Magic.getWordAtOffset(fromObj, STATUS_OFFSET).and(HASH_STATE_MASK);
@@ -216,7 +216,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * how many bytes are used by the scalar object?
    */
-  public static int bytesUsed(Object obj, VM_Class type) {
+  public static int bytesUsed(Object obj, RVMClass type) {
     int size = type.getInstanceSize();
     if (MM_Constants.MOVES_OBJECTS) {
       if (ADDRESS_BASED_HASHING) {
@@ -232,7 +232,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * how many bytes are needed when the array object is copied by GC?
    */
-  public static int bytesRequiredWhenCopied(Object fromObj, VM_Array type, int numElements) {
+  public static int bytesRequiredWhenCopied(Object fromObj, RVMArray type, int numElements) {
     int size = type.getInstanceSize(numElements);
     if (ADDRESS_BASED_HASHING) {
       Word hashState = VM_Magic.getWordAtOffset(fromObj, STATUS_OFFSET).and(HASH_STATE_MASK);
@@ -246,7 +246,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * how many bytes are used by the array object?
    */
-  public static int bytesUsed(Object obj, VM_Array type, int numElements) {
+  public static int bytesUsed(Object obj, RVMArray type, int numElements) {
     int size = type.getInstanceSize(numElements);
     if (MM_Constants.MOVES_OBJECTS) {
       if (ADDRESS_BASED_HASHING) {
@@ -335,7 +335,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Get the next scalar in the heap under contiguous
    * allocation. Handles alignment issues
    */
-  public static ObjectReference getNextObject(ObjectReference obj, VM_Class type) {
+  public static ObjectReference getNextObject(ObjectReference obj, RVMClass type) {
     return getObjectFromStartAddress(getObjectEndAddress(obj.toObject(), type));
   }
 
@@ -343,7 +343,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Get the next array in the heap under contiguous
    * allocation. Handles alignment issues
    */
-  public static ObjectReference getNextObject(ObjectReference obj, VM_Array type, int numElements) {
+  public static ObjectReference getNextObject(ObjectReference obj, RVMArray type, int numElements) {
     return getObjectFromStartAddress(getObjectEndAddress(obj.toObject(), type, numElements));
   }
 
@@ -351,7 +351,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Get the reference of an array when copied to the specified region.
    */
   @Inline
-  public static Object getReferenceWhenCopiedTo(Object obj, Address to, VM_Array type) {
+  public static Object getReferenceWhenCopiedTo(Object obj, Address to, RVMArray type) {
     return getReferenceWhenCopiedTo(obj, to);
   }
 
@@ -359,7 +359,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Get the reference of a scalar when copied to the specified region.
    */
   @Inline
-  public static Object getReferenceWhenCopiedTo(Object obj, Address to, VM_Class type) {
+  public static Object getReferenceWhenCopiedTo(Object obj, Address to, RVMClass type) {
     return getReferenceWhenCopiedTo(obj, to);
   }
 
@@ -380,7 +380,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Copy a scalar to the given raw storage address
    */
   @Inline
-  public static Object moveObject(Address toAddress, Object fromObj, int numBytes, boolean noGCHeader, VM_Class type) {
+  public static Object moveObject(Address toAddress, Object fromObj, int numBytes, boolean noGCHeader, RVMClass type) {
 
     // We copy arrays and scalars the same way
     return moveObject(toAddress, fromObj, null, numBytes, noGCHeader);
@@ -390,7 +390,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Copy an array to the given location.
    */
   @Inline
-  public static Object moveObject(Object fromObj, Object toObj, int numBytes, boolean noGCHeader, VM_Class type) {
+  public static Object moveObject(Object fromObj, Object toObj, int numBytes, boolean noGCHeader, RVMClass type) {
 
     // We copy arrays and scalars the same way
     return moveObject(Address.zero(), fromObj, toObj, numBytes, noGCHeader);
@@ -400,7 +400,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Copy an array to the given raw storage address
    */
   @Inline
-  public static Object moveObject(Address toAddress, Object fromObj, int numBytes, boolean noGCHeader, VM_Array type) {
+  public static Object moveObject(Address toAddress, Object fromObj, int numBytes, boolean noGCHeader, RVMArray type) {
 
     // We copy arrays and scalars the same way
     return moveObject(toAddress, fromObj, null, numBytes, noGCHeader);
@@ -410,7 +410,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Copy an array to the given location.
    */
   @Inline
-  public static Object moveObject(Object fromObj, Object toObj, int numBytes, boolean noGCHeader, VM_Array type) {
+  public static Object moveObject(Object fromObj, Object toObj, int numBytes, boolean noGCHeader, RVMArray type) {
 
     // We copy arrays and scalars the same way
     return moveObject(Address.zero(), fromObj, toObj, numBytes, noGCHeader);
@@ -502,7 +502,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
           // HASHED AND MOVED
           if (DYNAMIC_HASH_OFFSET) {
             // Read the size of this object.
-            VM_Type t = VM_Magic.getObjectType(o);
+            RVMType t = VM_Magic.getObjectType(o);
             int offset =
                 t.isArrayType() ? t.asArray().getInstanceSize(VM_Magic.getArrayLength(o)) -
                                   OBJECT_REF_OFFSET : t.asClass().getInstanceSize() - OBJECT_REF_OFFSET;
@@ -569,7 +569,7 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
    * Allocate a thin lock word for instances of the type
    * (if they already have one, then has no effect).
    */
-  public static void allocateThinLock(VM_Type t) {
+  public static void allocateThinLock(RVMType t) {
     // nothing to do (all objects have thin locks in this object model);
   }
 
@@ -710,61 +710,61 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * Compute the header size of an instance of the given type.
    */
-  public static int computeScalarHeaderSize(VM_Class type) {
+  public static int computeScalarHeaderSize(RVMClass type) {
     return SCALAR_HEADER_SIZE;
   }
 
   /**
    * Compute the header size of an instance of the given type.
    */
-  public static int computeArrayHeaderSize(VM_Array type) {
+  public static int computeArrayHeaderSize(RVMArray type) {
     return ARRAY_HEADER_SIZE;
   }
 
   /**
    * Return the desired aligment of the alignment point returned by
-   * getOffsetForAlignment in instances of the argument VM_Class.
-   * @param t VM_Class instance being created
+   * getOffsetForAlignment in instances of the argument RVMClass.
+   * @param t RVMClass instance being created
    */
-  public static int getAlignment(VM_Class t) {
+  public static int getAlignment(RVMClass t) {
     return t.getAlignment();
   }
 
   /**
    * Return the desired aligment of the alignment point returned by
-   * getOffsetForAlignment in instances of the argument VM_Class.
-   * @param t VM_Class instance being copied
+   * getOffsetForAlignment in instances of the argument RVMClass.
+   * @param t RVMClass instance being copied
    * @param obj the object being copied
    */
-  public static int getAlignment(VM_Class t, Object obj) {
+  public static int getAlignment(RVMClass t, Object obj) {
     return t.getAlignment();
   }
 
   /**
    * Return the desired aligment of the alignment point returned by
-   * getOffsetForAlignment in instances of the argument VM_Array.
-   * @param t VM_Array instance being created
+   * getOffsetForAlignment in instances of the argument RVMArray.
+   * @param t RVMArray instance being created
    */
-  public static int getAlignment(VM_Array t) {
+  public static int getAlignment(RVMArray t) {
     return t.getAlignment();
   }
 
   /**
    * Return the desired aligment of the alignment point returned by
-   * getOffsetForAlignment in instances of the argument VM_Array.
-   * @param t VM_Array instance being copied
+   * getOffsetForAlignment in instances of the argument RVMArray.
+   * @param t RVMArray instance being copied
    * @param obj the object being copied
    */
-  public static int getAlignment(VM_Array t, Object obj) {
+  public static int getAlignment(RVMArray t, Object obj) {
     return t.getAlignment();
   }
 
   /**
    * Return the offset relative to physical beginning of object
    * that must be aligned.
-   * @param t VM_Class instance being created
+   * @param t RVMClass instance being created
    */
-  public static int getOffsetForAlignment(VM_Class t) {
+  public static int getOffsetForAlignment(RVMClass t) {
     /* Align the first field - note that this is one word off from
        the reference. */
     return SCALAR_HEADER_SIZE;
@@ -773,10 +773,10 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * Return the offset relative to physical beginning of object
    * that must be aligned.
-   * @param t VM_Class instance being copied
+   * @param t RVMClass instance being copied
    * @param obj the object being copied
    */
-  public static int getOffsetForAlignment(VM_Class t, ObjectReference obj) {
+  public static int getOffsetForAlignment(RVMClass t, ObjectReference obj) {
     if (ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET) {
       Word hashState = obj.toAddress().loadWord(STATUS_OFFSET).and(HASH_STATE_MASK);
       if (hashState.NE(HASH_STATE_UNHASHED)) {
@@ -789,9 +789,9 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * Return the offset relative to physical beginning of object that must
    * be aligned.
-   * @param t VM_Array instance being created
+   * @param t RVMArray instance being created
    */
-  public static int getOffsetForAlignment(VM_Array t) {
+  public static int getOffsetForAlignment(RVMArray t) {
     /* although array_header_size == object_ref_offset we say this
        because the whole point is to align the object ref */
     return OBJECT_REF_OFFSET;
@@ -800,10 +800,10 @@ public class VM_JavaHeader implements VM_JavaHeaderConstants {
   /**
    * Return the offset relative to physical beginning of object that must
    * be aligned.
-   * @param t VM_Array instance being copied
+   * @param t RVMArray instance being copied
    * @param obj the object being copied
    */
-  public static int getOffsetForAlignment(VM_Array t, ObjectReference obj) {
+  public static int getOffsetForAlignment(RVMArray t, ObjectReference obj) {
     /* although array_header_size == object_ref_offset we say this
        because the whole point is to align the object ref */
     if (ADDRESS_BASED_HASHING && !DYNAMIC_HASH_OFFSET) {

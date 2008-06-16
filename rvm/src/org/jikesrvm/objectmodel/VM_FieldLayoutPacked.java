@@ -14,7 +14,7 @@ package org.jikesrvm.objectmodel;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.VM_SizeConstants;
-import org.jikesrvm.classloader.VM_Class;
+import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.runtime.Memory;
 
 /**
@@ -142,10 +142,10 @@ public class VM_FieldLayoutPacked extends VM_FieldLayout implements VM_SizeConst
   }
 
   /**
-   * @see VM_FieldLayout#getLayoutContext(VM_Class)
+   * @see VM_FieldLayout#getLayoutContext(RVMClass)
    */
   @Override
-  protected VM_FieldLayoutContext getLayoutContext(VM_Class klass) {
+  protected VM_FieldLayoutContext getLayoutContext(RVMClass klass) {
     return new LayoutContext((byte) klass.getAlignment(), (LayoutContext) klass.getFieldLayoutContext());
   }
 }

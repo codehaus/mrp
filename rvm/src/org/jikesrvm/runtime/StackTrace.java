@@ -19,7 +19,7 @@ import org.jikesrvm.VM;
 import org.jikesrvm.VM_Options;
 import org.jikesrvm.classloader.VM_Atom;
 import org.jikesrvm.classloader.VM_MemberReference;
-import org.jikesrvm.classloader.VM_Method;
+import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.VM_NormalMethod;
 import org.jikesrvm.compilers.common.VM_CompiledMethod;
 import org.jikesrvm.compilers.common.VM_CompiledMethods;
@@ -232,7 +232,7 @@ public class StackTrace {
   /** Class to wrap up a stack frame element */
   public static class Element {
     /** Stack trace's method, null => invisible or trap */
-    private final VM_Method method;
+    private final RVMMethod method;
     /** Line number of element */
     private final int lineNumber;
     /** Is this an invisible method? */
@@ -258,7 +258,7 @@ public class StackTrace {
       }
     }
     /** Constructor for opt compiled methods */
-    Element(VM_Method method, int ln) {
+    Element(RVMMethod method, int ln) {
       this.method = method;
       lineNumber = ln;
       isTrap = false;
@@ -350,7 +350,7 @@ public class StackTrace {
             int bci = map.getBytecodeIndexForMCOffset(instructionOffset);
             for (; iei >= 0; iei = OptEncodedCallSiteTree.getParent(iei, inlineEncoding)) {
               int mid = OptEncodedCallSiteTree.getMethodID(iei, inlineEncoding);
-              VM_Method method = VM_MemberReference.getMemberRef(mid).asMethodReference().getResolvedMember();
+              RVMMethod method = VM_MemberReference.getMemberRef(mid).asMethodReference().getResolvedMember();
               int lineNumber = ((VM_NormalMethod)method).getLineNumberForBCIndex(bci);
               elements[element] = new Element(method, lineNumber);
               element++;
