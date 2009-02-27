@@ -253,25 +253,23 @@ public class BootRecord {
 
   // threads
   public Address sysNumProcessorsIP;
-  public Address sysNativeThreadBindSupportedIP;
-  public Address sysNativeThreadBindIP;
-  public Address sysNativeThreadCreateIP;
-  public Address sysSchedYieldIP;
-  public Address sysPthreadSelfIP;
-  public Address sysPthreadSetupSignalHandlingIP;
-  public Address sysPthreadExitIP;
-  public Address sysStashVmThreadInPthreadIP;
-  public Address sysTerminatePthreadIP;
-  // mutexes and conds
-  public Address sysPthreadMutexCreateIP;
-  public Address sysPthreadMutexDestroyIP;
-  public Address sysPthreadMutexLockIP;
-  public Address sysPthreadMutexUnlockIP;
-  public Address sysPthreadCondCreateIP;
-  public Address sysPthreadCondDestroyIP;
-  public Address sysPthreadCondTimedWaitIP;
-  public Address sysPthreadCondWaitIP;
-  public Address sysPthreadCondBroadcastIP;
+  public Address sysThreadBindSupportedIP;
+  public Address sysThreadBindIP;
+  public Address sysThreadCreateIP;
+  public Address sysThreadYieldIP;
+  public Address sysThreadSelfIP;
+  public Address sysSetupHardwareTrapHandlerIP;
+  public Address sysStashVMThreadIP;
+  public Address sysThreadTerminateIP;
+  
+  // monitors
+  public Address sysMonitorCreateIP;
+  public Address sysMonitorDestroyIP;
+  public Address sysMonitorEnterIP;
+  public Address sysMonitorExitIP;
+  public Address sysMonitorTimedWaitAbsoluteIP;
+  public Address sysMonitorWaitIP;
+  public Address sysMonitorNotifyAllIP;
 
   // arithmetic
   @Entrypoint
@@ -299,7 +297,7 @@ public class BootRecord {
   // time
   Address sysCurrentTimeMillisIP;
   Address sysNanoTimeIP;
-  Address sysNanosleepIP;
+  Address sysNanoSleepIP;
 
   // shared libraries
   Address sysDlopenIP;

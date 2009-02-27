@@ -1,13 +1,13 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -65,7 +65,7 @@ public class Runtime {
   /**
    * Execute progArray[0] in a separate platform process The new process
    * inherits the environment of the caller.
-   * 
+   *
    * @param progArray the array containing the program to execute as well as
    *        any arguments to the program.
    * @throws java.io.IOException if the program cannot be executed
@@ -80,7 +80,7 @@ public class Runtime {
   /**
    * Execute progArray[0] in a separate platform process The new process uses
    * the environment provided in envp
-   * 
+   *
    * @param progArray the array containing the program to execute a well as
    *        any arguments to the program.
    * @param envp the array containing the environment to start the new process
@@ -97,7 +97,7 @@ public class Runtime {
   /**
    * Execute progArray[0] in a separate platform process. The new process uses
    * the environment provided in envp
-   * 
+   *
    * @param progArray the array containing the program to execute a well as
    *        any arguments to the program.
    * @param envp the array containing the environment to start the new process
@@ -147,7 +147,7 @@ public class Runtime {
   /**
    * Execute prog in a separate platform process The new process uses the
    * environment provided in envp
-   * 
+   *
    * @param prog the name of the program to execute
    * @param envp the array containing the environment to start the new process
    *        in.
@@ -200,7 +200,7 @@ public class Runtime {
             for (Thread hook : hooksList) {
                 hook.start();
             }
-           
+
             for (Thread hook : hooksList) {
                 while (true){
                     try {
@@ -215,7 +215,7 @@ public class Runtime {
             VMState = 2;
             // TODO
             //FinalizerThread.shutdown(finalizeOnExit);
-            
+
             // Close connections.
             if (VM.closeJars) {
                 JarURLConnection.closeCachedFiles();
@@ -235,7 +235,7 @@ public class Runtime {
    * Causes the virtual machine to stop running, and the program to exit. If
    * runFinalizersOnExit(true) has been invoked, then all finalizers will be
    * run first.
-   * 
+   *
    * @param status the return code.
    * @throws SecurityException if the running thread is not allowed to cause
    *         the vm to exit.
@@ -259,7 +259,7 @@ public class Runtime {
   /**
    * Answers the amount of free memory resources which are available to the
    * running program.
-   * 
+   *
    */
   public long freeMemory() {
     return MemoryManager.freeMemory().toLong();
@@ -268,7 +268,7 @@ public class Runtime {
   /**
    * Indicates to the virtual machine that it would be a good time to collect
    * available memory. Note that, this is a hint only.
-   * 
+   *
    */
   public void gc() {
     VMCommonLibrarySupport.gc();
@@ -276,7 +276,7 @@ public class Runtime {
 
   /**
    * Return the single Runtime instance
-   * 
+   *
    */
   public static Runtime getRuntime() {
     return singleton;
@@ -284,7 +284,7 @@ public class Runtime {
 
   /**
    * Loads and links the library specified by the argument.
-   * 
+   *
    * @param pathName the absolute (ie: platform dependent) path to the library
    *        to load
    * @throws UnsatisfiedLinkError if the library could not be loaded
@@ -315,7 +315,7 @@ public class Runtime {
 
   /**
    * Loads and links the library specified by the argument.
-   * 
+   *
    * @param libName the name of the library to load
    * @throws UnsatisfiedLinkError if the library could not be loaded
    * @throws SecurityException if the library was not allowed to be loaded
@@ -406,7 +406,7 @@ public class Runtime {
   /**
    * Provides a hint to the virtual machine that it would be useful to attempt
    * to perform any outstanding object finalizations.
-   * 
+   *
    */
   public void runFinalization() {
     return;
@@ -416,7 +416,7 @@ public class Runtime {
    * Ensure that, when the virtual machine is about to exit, all objects are
    * finalized. Note that all finalization which occurs when the system is
    * exiting is performed after all running threads have been terminated.
-   * 
+   *
    * @param run true means finalize all on exit.
    * @deprecated This method is unsafe.
    */
@@ -434,7 +434,7 @@ public class Runtime {
   /**
    * Answers the total amount of memory resources which is available to (or in
    * use by) the running program.
-   * 
+   *
    */
   public long totalMemory() {
     return MemoryManager.totalMemory().toLong();
@@ -442,7 +442,7 @@ public class Runtime {
 
   /**
    * Turns the output of debug information for instructions on or off.
-   * 
+   *
    * @param enable if true, turn trace on. false turns trace off.
    */
   public void traceInstructions(boolean enable) {
@@ -451,7 +451,7 @@ public class Runtime {
 
   /**
    * Turns the output of debug information for methods on or off.
-   * 
+   *
    * @param enable if true, turn trace on. false turns trace off.
    */
   public void traceMethodCalls(boolean enable) {
@@ -476,7 +476,7 @@ public class Runtime {
 
   /**
    * Registers a new virtual-machine shutdown hook.
-   * 
+   *
    * @param hook the hook (a Thread) to register
    */
   public void addShutdownHook(Thread hook) {
@@ -487,7 +487,7 @@ public class Runtime {
     // Check hook for null
     if (hook == null)
         throw new NullPointerException("null is not allowed here");
-            
+
     if (hook.getState() != Thread.State.NEW) {
         throw new IllegalArgumentException();
     }
@@ -504,7 +504,7 @@ public class Runtime {
 
   /**
    * De-registers a previously-registered virtual-machine shutdown hook.
-   * 
+   *
    * @param hook the hook (a Thread) to de-register
    * @return true if the hook could be de-registered
    */
@@ -516,7 +516,7 @@ public class Runtime {
     // Check hook for null
     if (hook == null)
         throw new NullPointerException("null is not allowed here");
-            
+
     if (VMState > 0) {
         throw new IllegalStateException();
     }
@@ -528,7 +528,7 @@ public class Runtime {
   /**
    * Causes the virtual machine to stop running, and the program to exit.
    * Finalizers will not be run first. Shutdown hooks will not be run.
-   * 
+   *
    * @param code
    *            the return code.
    * @throws SecurityException

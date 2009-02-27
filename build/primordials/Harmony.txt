@@ -482,6 +482,7 @@ Lorg/apache/harmony/luni/internal/net/www/protocol/file/Handler;
 Lorg/apache/harmony/luni/internal/net/www/protocol/file/FileURLConnection;
 Lorg/apache/harmony/luni/internal/net/www/protocol/jar/Handler;
 Lorg/apache/harmony/luni/internal/net/www/protocol/jar/JarURLConnection;
+Lorg/apache/harmony/luni/internal/process/SystemProcess;
 Lorg/apache/harmony/luni/internal/nls/Messages;
 Lorg/apache/harmony/luni/internal/nls/Messages$1;
 Lorg/apache/harmony/luni/platform/AbstractMemorySpy;

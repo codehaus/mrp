@@ -1636,10 +1636,6 @@ Check to make sure all required properties are specified. This includes properti
       <equals arg1="${config.include.perfctr}" arg2="true"/>
     </condition>
 
-    <condition property="syswrap.lib" value="-lsyswrap" else="">
-      <equals arg1="${include.syswrap}" arg2="true"/>
-    </condition>
-
     <if>
       <conditions>
         <equals arg1="${classlib.provider}" arg2="GNU Classpath"/>
@@ -1651,7 +1647,7 @@ Check to make sure all required properties are specified. This includes properti
           <arg path="${build.base}/JikesRVM"/>
           <arg value="-L${build.base}"/>
           <arg value="-ldl"/>
-          <arg line="-lrvm ${syswrap.lib}"/>
+          <arg line="-lrvm"/>
 	</exec>
       </sequential>
     </if>
@@ -1667,7 +1663,7 @@ Check to make sure all required properties are specified. This includes properti
           <arg value="-L${build.base}"/>
 	  <arg value="-L${harmony.lib.dir}"/>
           <arg value="-ldl"/>
-          <arg line="-lrvm ${syswrap.lib}"/>
+          <arg value="-lrvm"/>
           <arg value="-lvmi"/>
           <arg value="-lhyarchive"/>
           <arg value="-lhyprt"/>
@@ -1765,10 +1761,6 @@ target.jni-suffix=${target.jni-suffix}
       </fileset>
     </copy>
     <copy file="${basedir}/tools/bootImageRunner/rvm.harmony" tofile="${dist.base}/rvm">
-      <filterset>
-        <filter token="PRELOAD"
-                value="${target.dll-prefix}syswrap${target.dll-ext}"/>
-      </filterset>
     </copy>
     <chmod file="${dist.base}/rvm" perm="ugo+rx"/>
     <copy file="${build.rt.jar}" todir="${dist.base}"/>
