@@ -31,8 +31,7 @@ import org.apache.harmony.kernel.vm.VM;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.runtime.DynamicLibrary;
-import org.jikesrvm.scheduler.Scheduler;
-import org.jikesrvm.scheduler.greenthreads.VMProcess;
+import org.jikesrvm.scheduler.RVMThread;
 
 /**
  * This class, with the exception of the exec() APIs, must be implemented by the
@@ -112,39 +111,7 @@ public class Runtime {
    */
   public Process exec(String[] progArray, String[] envp, File directory)
   throws java.io.IOException {
-    SecurityManager currentSecurity = System.getSecurityManager();
-
-    if (currentSecurity != null) {
-      currentSecurity.checkExec(progArray[0]);
-    }
-
-    if (progArray == null) {
-      throw new NullPointerException("Command argument shouldn't be empty.");
-    }
-    if (progArray.length == 0) {
-      throw new IndexOutOfBoundsException();
-    }
-    for (int i = 0; i < progArray.length; i++) {
-      if (progArray[i] == null) {
-        throw new NullPointerException("An element of progArray shouldn't be empty.");
-      }
-    }
-    if (envp != null) {
-      if (envp.length != 0) {
-        for (int i = 0; i < envp.length; i++) {
-          if (envp[i] == null) {
-            throw new NullPointerException("An element of envp shouldn't be empty.");
-          }
-        }
-      } else {
-        envp = null;
-      }
-    }
-
-    String dirPathName = (directory != null ? directory.getPath() : null);
-
-    String dirPath = (directory != null) ? directory.getPath() : null;
-    return new VMProcess(progArray[0], progArray, envp, dirPathName);
+    throw new Error("TODO");
   }
 
   /**
@@ -582,7 +549,7 @@ public class Runtime {
    * Return the number of processors, always at least one.
    */
   public int availableProcessors() {
-    return Scheduler.availableProcessors();
+    return RVMThread.numProcessors;
   }
 
   /**

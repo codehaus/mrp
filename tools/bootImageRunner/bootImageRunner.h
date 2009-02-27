@@ -16,6 +16,7 @@
  */
 #include <stdio.h>
 #include <inttypes.h>
+#include <setjmp.h>
 
 #ifdef __MACH__
 #include <assert.h>
@@ -23,8 +24,6 @@
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #endif
-
-#include <setjmp.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,14 +37,6 @@ extern "C" {
 #else
 #define Offset int64_t
 #endif
-// Sink for messages relating to serious errors detected by C runtime.
-extern FILE *SysErrorFile;    // sink for serious error messages
-extern FILE *SysErrorFile;	// libvm.C
-// extern int SysErrorFd;	// in IA32 libvm.C, not in powerpc.
-
-// Sink for trace messages produced by VM.sysWrite().
-extern FILE *SysTraceFile;	// libvm.C
-extern int   SysTraceFd;	// libvm.C
 
 // Command line arguments to be passed to boot image.
 //
@@ -68,9 +59,6 @@ extern char *Me;		// Defined in libvm.C
 extern uint64_t initialHeapSize;
 extern uint64_t maximumHeapSize;
 
-/* defined in libvm.c, used in sys.C */
-extern jmp_buf primordial_jb;
-
 /* Defined in RunBootImage.C */
 #ifdef __cplusplus
 unsigned int parse_memory_size(
@@ -81,6 +69,9 @@ unsigned int parse_memory_size(
 
 extern int verboseBoot;
 
+/** jump buffer for primordial thread */
+extern jmp_buf primordial_jb;
+
 /* Defined in libvm.C; used in RunBootImage.C */
 extern int createVM(int);
 /* Used in libvm.C; Defined in sys.C */
@@ -88,9 +79,6 @@ extern int getArrayLength(void* ptr);
 
 /* Used in libvm.C; Defined in sys.C */
 extern int getTimeSlice_msec(void);
-
-/* sys.C and RunBootImage.C */
-extern void findMappable(void);
 
 #ifdef RVM_FOR_POWERPC
 /* Used in libvm.C, sys.C.  Defined in assembly code: */

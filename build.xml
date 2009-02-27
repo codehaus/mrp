@@ -353,6 +353,9 @@ Check to make sure all required properties are specified. This includes properti
     <condition property="os.filter" value="-DRVM_FOR_SOLARIS=1">
       <equals arg1="${target.os}" arg2="Solaris"/>
     </condition>
+    <condition property="os.filter" value="-DRVM_FOR_WINDOWS=1">
+      <equals arg1="${target.os}" arg2="Windows"/>
+    </condition>
 
     <condition property="gctrace.filter" value="-DRVM_WITH_GCTRACE=1" else="">
       <equals arg1="${config.mmtk.plan}" arg2="org.mmtk.plan.semispace.gctrace.GCTrace"/>
@@ -369,7 +372,11 @@ Check to make sure all required properties are specified. This includes properti
       <equals arg1="${config.include.perfctr}" arg2="true"/>
     </condition>
 
-    <property name="filter" value="${arch.filter} ${os.filter} ${addr.filter} ${gctrace.filter} ${gcspy.filter} ${alignment-checking.filter} ${perfctr.filter}"/>
+    <condition property="classlib.filter" value="-DRVM_FOR_HARMONY=1" else="-DRVM_FOR_CLASSPATH=1">
+      <equals arg1="${classlib.provider}" arg2="Harmony"/>
+    </condition>
+
+    <property name="filter" value="${arch.filter} ${os.filter} ${addr.filter} ${gctrace.filter} ${gcspy.filter} ${alignment-checking.filter} ${perfctr.filter} ${classlib.filter}"/>
   </target>
 
   <!-- **************************************************************************** -->
@@ -626,14 +633,14 @@ Check to make sure all required properties are specified. This includes properti
           <filter token="_IA32_QUOTE_" value="${@{arch}-ia32_quote}"/>
         </filterset>
       </copy>
-        <copy file="${basedir}/rvm/src-generated/vm-configuration/ArchitectureSpecificOpt.template"
-              tofile="${generated.dir}/@{arch}-@{addressSize}/main/java/org/jikesrvm/ArchitectureSpecificOpt.java">
-          <filterset>
-            <filter token="_ARCH_" value="@{arch}"/>
-            <filter token="_PPC_QUOTE_" value="${@{arch}-ppc_quote}"/>
-            <filter token="_IA32_QUOTE_" value="${@{arch}-ia32_quote}"/>
-          </filterset>
-        </copy>
+      <copy file="${basedir}/rvm/src-generated/vm-configuration/ArchitectureSpecificOpt.template"
+            tofile="${generated.dir}/@{arch}-@{addressSize}/main/java/org/jikesrvm/ArchitectureSpecificOpt.java">
+        <filterset>
+          <filter token="_ARCH_" value="@{arch}"/>
+          <filter token="_PPC_QUOTE_" value="${@{arch}-ppc_quote}"/>
+          <filter token="_IA32_QUOTE_" value="${@{arch}-ia32_quote}"/>
+        </filterset>
+      </copy>
     </sequential>
   </macrodef>
 
@@ -646,14 +653,12 @@ Check to make sure all required properties are specified. This includes properti
       <arg value="${basedir}/rvm/src-generated/opt-burs/jburg/gram.y"/>
     </exec>
     <exec executable="${c.exe}" failonerror="true">
-      <arg
-          line="-W -Wall -Wbad-function-cast -Wcast-align -Wpointer-arith -Wcast-qual -Wshadow -Wmissing-prototypes -Wmissing-declarations -fkeep-static-consts -fkeep-inline-functions -Wwrite-strings -Wno-aggregate-return -Wmissing-noreturn -Wnested-externs -Wtrigraphs -Wconversion -Wsign-compare -Wno-unused -Wno-strict-prototypes -Wno-undef"/>
       <arg value="-I"/>
       <arg value="${basedir}/rvm/src-generated/opt-burs/jburg"/>
       <arg value="-o"/>
-      <arg value="${build.jburg.dir}/jburg"/>
-      <arg value="${basedir}/rvm/src-generated/opt-burs/jburg/jburg.c"/>
-      <arg value="${build.jburg.dir}/gram.c"/>
+      <arg path="${build.jburg.dir}/jburg"/>
+      <arg path="${basedir}/rvm/src-generated/opt-burs/jburg/jburg.c"/>
+      <arg path="${build.jburg.dir}/gram.c"/>
     </exec>
   </target>
 
@@ -1147,10 +1152,10 @@ Check to make sure all required properties are specified. This includes properti
       <arg value="-factory"/>
       <arg value="org.jikesrvm.tools.apt.SysCallProcessorFactory"/>
       <arg value="-classpath"/>
-      <arg value="${tasks.classes}:${build.vmmagic-stub.classes}:${build.classes}"/>
+      <arg path="${tasks.classes}:${build.vmmagic-stub.classes}:${build.classes}"/>
       <arg value="-s"/>
-      <arg value="${build.base}/syscall/java"/>
-      <arg value="${main.java}/org/jikesrvm/runtime/SysCall.java"/>
+      <arg path="${build.base}/syscall/java"/>
+      <arg path="${main.java}/org/jikesrvm/runtime/SysCall.java"/>
     </exec>
 
     <echo message="second compile (from ${generated.java})"/>
@@ -1542,7 +1547,13 @@ Check to make sure all required properties are specified. This includes properti
       <equals arg1="${config.include.perfctr}" arg2="true"/>
     </condition>
 
-    <property name="rvm.src" value="${bl.dir}/RunBootImage.C ${bl.dir}/sys.C ${rvm.arch.src} ${perfctr.src}"/>
+    <property name="rvm.syscall.src" value="${bl.dir}/sysAlignmentCheck.C ${bl.dir}/sysConsole.C ${bl.dir}/sysIO.C ${bl.dir}/sysLibrary.C ${bl.dir}/sysMath.C ${bl.dir}/sysMemory.C ${bl.dir}/sysMisc.C ${bl.dir}/sysPerfCtr.C ${bl.dir}/sysThread.C ${bl.dir}/sysTime.C"/>
+
+    <condition property="rvm.src"
+               value="${bl.dir}/RunBootImage.C ${bl.dir}/sysGCSpy.C ${rvm.syscall.src} ${rvm.arch.src} ${perfctr.src}"
+               else="${bl.dir}/RunBootImage.C  ${rvm.syscall.src} ${rvm.arch.src} ${perfctr.src}">
+      <equals arg1="include.gcspy" arg2="true"/>
+    </condition>
   </target>
 
   <target name="build-ppc-bootThread" depends="check-bootloader-properties" if="gen-ppc-bootThread">
@@ -1550,7 +1561,7 @@ Check to make sure all required properties are specified. This includes properti
     <exec executable="${cpp.exe}" failonerror="true" output="${build.native}/bootThread.s">
       <arg line="${rvm.common.args} ${cpp.args}"/>
       <arg value="-P"/>
-      <arg value="${basedir}/tools/bootImageRunner/ppc/bootThread.c"/>
+      <arg path="${basedir}/tools/bootImageRunner/ppc/bootThread.c"/>
     </exec>
   </target>
 
@@ -1558,8 +1569,8 @@ Check to make sure all required properties are specified. This includes properti
     <exec executable="${c.exe}" failonerror="true">
       <arg line="${shld.args}"/>
       <arg value="-o"/>
-      <arg value="${build.base}/${target.dll-prefix}gcspy${target.dll-ext}"/>
-      <arg value="${jikesrvm.dir}/tools/gcspy-stub/src/gcspy_main_server.c"/>
+      <arg path="${build.base}/${target.dll-prefix}gcspy${target.dll-ext}"/>
+      <arg path="${jikesrvm.dir}/tools/gcspy-stub/src/gcspy_main_server.c"/>
     </exec>
   </target>
 
@@ -1575,7 +1586,10 @@ Check to make sure all required properties are specified. This includes properti
 
     <!-- is the real-time library necessary? -->
     <condition property="c++.librt" value="" else="-lrt">
-      <equals arg1="${target.os}" arg2="OSX"/>
+      <or>
+        <equals arg1="${target.os}" arg2="OSX"/>
+        <equals arg1="${target.os}" arg2="Windows"/>
+      </or>
     </condition>
 
     <!-- create jvm shared library -->
@@ -1583,8 +1597,8 @@ Check to make sure all required properties are specified. This includes properti
     <exec executable="${c++.exe}" failonerror="true">
       <arg line="${rvm.c++.args} -lpthread ${c++.librt}"/>
       <arg value="-o"/>
-      <arg value="${build.base}/${rvm.dll}"/>
-      <arg value="${bl.dir}/jvm.C"/>
+      <arg path="${build.base}/${rvm.dll}"/>
+      <arg path="${bl.dir}/jvm.C"/>
     </exec>
 
     <!-- create vmi shared library -->
@@ -1634,7 +1648,7 @@ Check to make sure all required properties are specified. This includes properti
         <exec executable="${c++.exe}" failonerror="true">
           <arg line="${c++.args} ${rvm.common.args} ${gcspy.lib.dir} -lpthread ${perfctr.lib} ${c++.librt} ${rvm.src} ${c++.rdynamic} -g"/>
           <arg value="-o"/>
-          <arg value="${build.base}/JikesRVM"/>
+          <arg path="${build.base}/JikesRVM"/>
           <arg value="-L${build.base}"/>
           <arg value="-ldl"/>
           <arg line="-lrvm ${syswrap.lib}"/>
@@ -1647,7 +1661,7 @@ Check to make sure all required properties are specified. This includes properti
       </conditions>
       <sequential>
         <exec executable="${c++.exe}" failonerror="true">
-          <arg line="${c++.args} ${rvm.common.args} ${gcspy.lib.dir} -lpthread ${perfctr.lib} ${c++.librt} ${rvm.src} ${c++.rdynamic} -g"/>
+          <arg line="${c++.args} ${rvm.common.args} ${gcspy.lib.dir} -lpthread ${perfctr.lib} ${c++.librt} ${c++.rdynamic} -g"/>
           <arg value="-o"/>
           <arg value="${build.base}/JikesRVM"/>
           <arg value="-L${build.base}"/>
@@ -1659,6 +1673,7 @@ Check to make sure all required properties are specified. This includes properti
           <arg value="-lhyprt"/>
           <arg value="-lhythr"/>
           <arg value="-lhyzlib"/>
+          <arg line="${rvm.src}"/>
 	</exec>
       </sequential>
     </if>
@@ -1668,9 +1683,9 @@ Check to make sure all required properties are specified. This includes properti
 
   <target name="build-debug-symbols" if="rvm.debug-symbols">
     <exec executable="${perl.exe}" failonerror="true">
-      <arg value="${basedir}/tools/bootImageRunner/parse_map.perl"/>
-      <arg value="${build.base}/RVM.map"/>
-      <arg value="${build.base}/JikesRVM-symbols.s"/>
+      <arg path="${basedir}/tools/bootImageRunner/parse_map.perl"/>
+      <arg path="${build.base}/RVM.map"/>
+      <arg path="${build.base}/JikesRVM-symbols.s"/>
     </exec>
 
     <exec executable="${c++.exe}" failonerror="true">

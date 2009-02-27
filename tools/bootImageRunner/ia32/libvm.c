@@ -78,6 +78,9 @@ extern "C" void setLinkage(BootRecord*);
 
 #include "../bootImageRunner.h" // In tools/bootImageRunner
 
+/** jump buffer for primordial thread */
+jmp_buf primordial_jb;
+
 // These are definitions of items declared in bootImageRunner.h
 /* Sink for messages relating to serious errors detected by C runtime. */
 FILE *SysErrorFile = stderr;
@@ -247,19 +250,6 @@ isVmSignal(Address ip, Address vpAddress)
 {
     return inRVMAddressSpace(ip) && inRVMAddressSpace(vpAddress);
 }
-
-#if 0                           // this isn't needed right now, but may be in
-                                // the future.
-static void
-writeTrace(const char fmt[], ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    vwriteFmt(SysTraceFd, fmt, ap);
-    va_end(ap);
-}
-#endif
-
 
 static void
 writeErr(const char fmt[], ...)

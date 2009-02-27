@@ -186,15 +186,8 @@ public abstract class SysCall {
   @SysCallTemplate
   public abstract void sysPthreadSetupSignalHandling();
 
-  // wait... isn't pthread actually an address?
-  @SysCallTemplate
-  public abstract int sysPthreadSignal(Word pthread);
-
   @SysCallTemplate
   public abstract void sysPthreadExit();
-
-  @SysCallTemplate
-  public abstract int sysPthreadJoin(Word pthread);
 
   // This implies that the RVMThread is somehow pinned, or else the
   // pthread key value gets moved.  (hence RVMThread is @NonMoving)

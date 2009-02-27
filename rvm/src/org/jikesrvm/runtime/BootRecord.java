@@ -259,9 +259,7 @@ public class BootRecord {
   public Address sysSchedYieldIP;
   public Address sysPthreadSelfIP;
   public Address sysPthreadSetupSignalHandlingIP;
-  public Address sysPthreadSignalIP;
   public Address sysPthreadExitIP;
-  public Address sysPthreadJoinIP;
   public Address sysStashVmThreadInPthreadIP;
   public Address sysTerminatePthreadIP;
   // mutexes and conds
