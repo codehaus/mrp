@@ -504,7 +504,7 @@ EXTERNAL Address sysThreadSelf()
 #ifdef RVM_FOR_HARMONY
   thread = hythread_self();
 #else
-  thread = pthread_self();
+  thread = (void*)pthread_self();
 #endif
   TRACE_PRINTF(SysTraceFile, "%s: sysThreadSelf: thread %p\n", Me, thread);
   return (Address)thread;
@@ -577,7 +577,7 @@ EXTERNAL Address sysMonitorCreate()
   hythread_monitor_t monitor;
   hythread_monitor_init_with_name(&monitor, 0, NULL);
 #else
-  vmmonitor_t *monitor = malloc(sizeof vmmonitor_t);
+  vmmonitor_t *monitor = (vmmonitor_t*)malloc(sizeof(vmmonitor_t));
   pthread_mutex_init(&monitor->mutex, NULL);
   pthread_cond_init(&monitor->cond, NULL);
 #endif
