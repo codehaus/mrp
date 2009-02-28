@@ -22,7 +22,7 @@ mach_timebase_info_data_t timebaseInfo;
 EXTERNAL long long sysCurrentTimeMillis()
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysCurrentTimeMillis\n", Me);
+  TRACE_PRINTF("%s: sysCurrentTimeMillis\n", Me);
 #ifdef RVM_FOR_HARMONY
   return hytime_current_time_millis();
 #else
@@ -47,7 +47,7 @@ EXTERNAL long long sysNanoTime()
 {
   long long retVal;
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysNanoTime\n", Me);
+  TRACE_PRINTF("%s: sysNanoTime\n", Me);
 #if RVM_FOR_HARMONY
   // TODO: there's probably a more accurate way to do this
   retVal = hytime_current_time_millis() * 1000;

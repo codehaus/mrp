@@ -25,9 +25,9 @@
 // debugging
 #define GCSPY_TRACE 0
 #ifdef RVM_FOR_HARMONY
-#define GCSPY_TRACE_PRINTF(...) if(GCSPY_TRACE) hyfile_printf(PORTLIB, SysTraceFile, __VA_ARGS__)
+#define GCSPY_TRACE_PRINTF(...) if(GCSPY_TRACE) hytty_err_printf(PORTLIB, __VA_ARGS__)
 #else
-#define GCSPY_TRACE_PRINTF(...) if(GCSPY_TRACE) fprintf(PORTLIB, SysTraceFile, __VA_ARGS__)
+#define GCSPY_TRACE_PRINTF(...) if(GCSPY_TRACE) fprintf(SysTraceFile, __VA_ARGS__)
 #endif
 
 typedef void * (*pthread_start_routine_t)(void *);

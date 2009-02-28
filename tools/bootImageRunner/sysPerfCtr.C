@@ -22,7 +22,7 @@
 EXTERNAL int sysPerfCtrInit(int metric)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysPerfCtrInit\n", Me);
+  TRACE_PRINTF("%s: sysPerfCtrInit\n", Me);
 #ifdef RVM_WITH_PERFCTR
   return perfCtrInit(metric);
 #else
@@ -33,7 +33,7 @@ EXTERNAL int sysPerfCtrInit(int metric)
 EXTERNAL long long sysPerfCtrReadCycles()
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysPerfCtrReadCycles\n", Me);
+  TRACE_PRINTF("%s: sysPerfCtrReadCycles\n", Me);
 #ifdef RVM_WITH_PERFCTR
   return perfCtrReadCycles();
 #else
@@ -44,7 +44,7 @@ EXTERNAL long long sysPerfCtrReadCycles()
 EXTERNAL long long sysPerfCtrReadMetric()
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysPerfCtrReadMetric\n", Me);
+  TRACE_PRINTF("%s: sysPerfCtrReadMetric\n", Me);
 #ifdef RVM_WITH_PERFCTR
   return perfCtrReadMetric();
 #else
@@ -58,7 +58,7 @@ EXTERNAL long long sysPerfCtrReadMetric()
 EXTERNAL int sysPerfCtrRead(char *str)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysPerfCtrRead\n", Me);
+  TRACE_PRINTF("%s: sysPerfCtrRead\n", Me);
 #ifdef RVM_WITH_PERFCTR
   return perfCtrRead(str);
 #else

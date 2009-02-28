@@ -25,11 +25,11 @@
 EXTERNAL void* sysDlopen(char *libname)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysDlopen %s\n", Me, libname);
+  TRACE_PRINTF("%s: sysDlopen %s\n", Me, libname);
 #ifdef RVM_FOR_HARMONY
   UDATA descriptor;
   if (hysl_open_shared_library(libname, &descriptor, TRUE) != 0) {
-    hyfile_printf(PORTLIB, SysErrorFile, "%s: error loading library %s\n", Me, libname);
+    ERROR_PRINTF("%s: error loading library %s\n", Me, libname);
     return NULL;
   } else {
     return (void*)descriptor;
@@ -41,9 +41,8 @@ EXTERNAL void* sysDlopen(char *libname)
   }
   while( (libHandler == 0 /*null*/) && (errno == EINTR) );
   if (libHandler == 0) {
-    fprintf(SysErrorFile,
-            "%s: error loading library %s: %s\n", Me,
-            libname, dlerror());
+    ERROR_PRINTF("%s: error loading library %s: %s\n", Me,
+                 libname, dlerror());
   }
   return libHandler;
 #endif // RVM_FOR_HARMONY
@@ -55,7 +54,7 @@ EXTERNAL void* sysDlopen(char *libname)
 EXTERNAL void* sysDlsym(Address libHandler, char *symbolName)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysDlsym %s\n", Me, symbolName);
+  TRACE_PRINTF("%s: sysDlsym %s\n", Me, symbolName);
 #ifdef RVM_FOR_HARMONY
   UDATA func;
   char *argSignature=NULL;

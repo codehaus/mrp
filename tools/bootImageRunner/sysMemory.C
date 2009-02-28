@@ -26,7 +26,7 @@
 EXTERNAL void* sysMalloc(int length)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMalloc %d\n", Me, length);
+  TRACE_PRINTF("%s: sysMalloc %d\n", Me, length);
 #ifdef RVM_FOR_HARMONY
   return hymem_allocate_memory(length);
 #else
@@ -37,7 +37,7 @@ EXTERNAL void* sysMalloc(int length)
 EXTERNAL void* sysCalloc(int length)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysCalloc %d\n", Me, length);
+  TRACE_PRINTF("%s: sysCalloc %d\n", Me, length);
 #ifdef RVM_FOR_HARMONY
   void *result = hymem_allocate_memory(length);
   memset(result, 0x00, length);
@@ -51,7 +51,7 @@ EXTERNAL void* sysCalloc(int length)
 EXTERNAL void sysFree(void *location)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysFree %p\n", Me, location);
+  TRACE_PRINTF("%s: sysFree %p\n", Me, location);
 #ifdef RVM_FOR_HARMONY
   hymem_free_memory(location);
 #else
@@ -63,7 +63,7 @@ EXTERNAL void sysFree(void *location)
 EXTERNAL void sysCopy(void *dst, const void *src, Extent cnt)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysCopy %p %p %d\n", Me, dst, src, cnt);
+  TRACE_PRINTF("%s: sysCopy %p %p %d\n", Me, dst, src, cnt);
   memcpy(dst, src, cnt);
 }
 
@@ -71,7 +71,7 @@ EXTERNAL void sysCopy(void *dst, const void *src, Extent cnt)
 EXTERNAL void sysZero(void *dst, Extent cnt)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysZero %p %d\n", Me, dst, cnt);
+  TRACE_PRINTF("%s: sysZero %p %d\n", Me, dst, cnt);
   memset(dst, 0x00, cnt);
 }
 
@@ -87,7 +87,7 @@ EXTERNAL void sysZeroPages(void *dst, int cnt)
   int rc;
   void *addr;
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysZeroPages %p %d\n", Me, dst, cnt);
+  TRACE_PRINTF("%s: sysZeroPages %p %d\n", Me, dst, cnt);
 
   if (STRATEGY == 1) {
     // Zero memory by touching all the bytes.
@@ -104,13 +104,13 @@ EXTERNAL void sysZeroPages(void *dst, int cnt)
     rc = munmap(dst, cnt);
     if (rc != 0)
     {
-      CONSOLE_PRINTF(SysErrorFile, "%s: munmap failed (errno=%d): ", Me, errno);
+      ERROR_PRINTF("%s: munmap failed (errno=%d): ", Me, errno);
       sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
     }
     addr = mmap(dst, cnt, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     if (addr == (void *)-1)
     {
-      CONSOLE_PRINTF(SysErrorFile, "%s: mmap failed (errno=%d): ", Me, errno);
+      ERROR_PRINTF("%s: mmap failed (errno=%d): ", Me, errno);
       sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
     }
   }
@@ -128,7 +128,7 @@ EXTERNAL void sysSyncCache(void *address, size_t size)
 {
   uintptr_t start, end, addr;
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sync %p %d\n", Me, address, size);
+  TRACE_PRINTF("%s: sync %p %d\n", Me, address, size);
 #ifdef RVM_FOR_HARMONY
   hycpu_flush_icache(address, size);
 #else
@@ -137,7 +137,7 @@ EXTERNAL void sysSyncCache(void *address, size_t size)
   _sync_cache_range((caddr_t) address, size);
 #else
   if (size < 0) {
-    CONSOLE_PRINTF(SysErrorFile, "%s: tried to sync a region of negative size!\n", Me);
+    ERROR_PRINTF("%s: tried to sync a region of negative size!\n", Me);
     sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
   }
 
@@ -180,7 +180,7 @@ EXTERNAL void * sysMMap(char *start , size_t length ,
                         int fd , Offset offset)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMMap %p %d %d %d %d %d\n",
+  TRACE_PRINTF("%s: sysMMap %p %d %d %d %d %d\n",
                Me, start, length, protection, flags, fd, offset);
 #ifdef RVM_FOR_HARMONY
 #warning TODO: should use Harmony mmap
@@ -198,7 +198,7 @@ EXTERNAL void * sysMMap(char *start , size_t length ,
 EXTERNAL int sysMProtect(char *start, size_t length, int prot)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMProtect %p %d %d\n",
+  TRACE_PRINTF("%s: sysMProtect %p %d %d\n",
                Me, start, length, prot);
 #ifndef RVM_FOR_HARMONY
   return mprotect(start, length, prot);
@@ -216,18 +216,18 @@ EXTERNAL void* sysMMapErrno(char *start , size_t length ,
                             int fd , Offset offset)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMMapErrno %p %d %d %d %d %d\n",
+  TRACE_PRINTF("%s: sysMMapErrno %p %d %d %d %d %d\n",
                Me, start, length, protection, flags, fd, offset);
 #ifdef RVM_FOR_HARMONY
 #warning TODO: should use Harmony mmap
 #endif
   void* res = mmap(start, (size_t)(length), protection, flags, fd, (off_t)offset);
   if (res == (void *) -1){
-    CONSOLE_PRINTF(SysTraceFile, "%s: sysMMapErrno %p %d %d %d %d %d failed with %d.\n",
+    CONSOLE_PRINTF("%s: sysMMapErrno %p %d %d %d %d %d failed with %d.\n",
                    Me, start, length, protection, flags, fd, offset, errno);
     return (void *) errno;
   } else {
-    TRACE_PRINTF(SysTraceFile, "mmap succeeded- region = [0x%x ... 0x%x]    size = %d\n", res, ((size_t)res) + length, length);
+    TRACE_PRINTF("mmap succeeded- region = [0x%x ... 0x%x]    size = %d\n", res, ((size_t)res) + length, length);
     return res;
   }
 }
@@ -246,7 +246,7 @@ EXTERNAL int sysGetPageSize()
 #else
   result = hyvmem_supported_page_sizes()[0];
 #endif // RVM_FOR_HARMONY
-  TRACE_PRINTF(SysTraceFile, "%s: sysGetPageSize %d\n", Me, result);
+  TRACE_PRINTF("%s: sysGetPageSize %d\n", Me, result);
   return result;
 }
 

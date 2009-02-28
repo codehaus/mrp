@@ -27,9 +27,9 @@
 EXTERNAL int sysAccess(char *name, int kind)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: access %s\n", Me, name);
+  TRACE_PRINTF("%s: access %s\n", Me, name);
 #ifdef RVM_FOR_HARMONY
-  CONSOLE_PRINTF(SysTraceFile, "Unsupported call to sysAccess\n");
+  CONSOLE_PRINTF("Unsupported call to sysAccess\n");
   return -1; // TODO: Harmony
 #else
   return access(name, kind);
@@ -44,19 +44,19 @@ EXTERNAL int sysAccess(char *name, int kind)
 EXTERNAL int sysBytesAvailable(int fd)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: bytesAvailable %d\n", Me, fd);
+  TRACE_PRINTF("%s: bytesAvailable %d\n", Me, fd);
 #ifdef RVM_FOR_HARMONY
-  CONSOLE_PRINTF(SysTraceFile, "Unsupported call to sysSetFdCloseOnExec\n");
+  CONSOLE_PRINTF("Unsupported call to sysSetFdCloseOnExec\n");
   return -1; // TODO: Harmony
 #else
   int count = 0;
   if (ioctl(fd, FIONREAD, &count) == -1)
     {
       bool badFD = (errno == EBADF);
-      CONSOLE_PRINTF(SysErrorFile, "%s: FIONREAD ioctl on %d failed: %s (errno=%d)\n", Me, fd, strerror( errno ), errno);
+      ERROR_PRINTF("%s: FIONREAD ioctl on %d failed: %s (errno=%d)\n", Me, fd, strerror( errno ), errno);
       return -1;
     }
-  TRACE_PRINTF(SysTraceFile, "%s: available fd=%d count=%d\n", Me, fd, count);
+  TRACE_PRINTF("%s: available fd=%d count=%d\n", Me, fd, count);
   return count;
 #endif // RVM_FOR_HARMONY
 }
@@ -69,7 +69,7 @@ EXTERNAL int sysBytesAvailable(int fd)
 EXTERNAL int sysSyncFile(int fd)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sync %d\n", Me, fd);
+  TRACE_PRINTF("%s: sync %d\n", Me, fd);
 #ifdef RVM_FOR_HARMONY
   return hyfile_sync(fd);
 #else
@@ -91,7 +91,7 @@ EXTERNAL int sysReadByte(int fd)
 {
   unsigned char ch;
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: readByte %d\n", Me, fd);
+  TRACE_PRINTF("%s: readByte %d\n", Me, fd);
 #ifdef RVM_FOR_HARMONY
   return hyfile_read(fd, &ch, 1);
 #else
@@ -102,13 +102,13 @@ EXTERNAL int sysReadByte(int fd)
   switch (rc)
     {
     case  1:
-      /*fprintf(SysTraceFile, "%s: read (byte) ch is %d\n", Me, (int) ch);*/
+      /*fprintf("%s: read (byte) ch is %d\n", Me, (int) ch);*/
       return (int) ch;
     case  0:
-      /*fprintf(SysTraceFile, "%s: read (byte) rc is 0\n", Me);*/
+      /*fprintf("%s: read (byte) rc is 0\n", Me);*/
       return -1;
     default:
-      /*fprintf(SysTraceFile, "%s: read (byte) rc is %d\n", Me, rc);*/
+      /*fprintf("%s: read (byte) rc is %d\n", Me, rc);*/
       if (errno == EAGAIN)
 	return -2;  // Read would have blocked
       else if (errno == EINTR)
@@ -130,7 +130,7 @@ sysWriteByte(int fd, int data)
 {
   SYS_START();
   char ch = data;
-  TRACE_PRINTF(SysTraceFile, "%s: writeByte %d %c\n", Me, fd, ch);
+  TRACE_PRINTF("%s: writeByte %d %c\n", Me, fd, ch);
 #ifdef RVM_FOR_HARMONY
   return hyfile_write(fd, &ch, 1);
 #else
@@ -143,7 +143,7 @@ sysWriteByte(int fd, int data)
   else if (errno == EINTR)
     goto again; // interrupted by signal; try again
   else {
-    CONSOLE_PRINTF(SysErrorFile, "%s: writeByte, fd=%d, write returned error %d (%s)\n", Me,
+    ERROR_PRINTF("%s: writeByte, fd=%d, write returned error %d (%s)\n", Me,
                    fd, errno, strerror(errno));
     return -1; // some kind of error
   }
@@ -160,7 +160,7 @@ sysWriteByte(int fd, int data)
 EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: read %d 0x%08x %d\n", Me, fd, buf, cnt);
+  TRACE_PRINTF("%s: read %d 0x%08x %d\n", Me, fd, buf, cnt);
 #ifdef RVM_FOR_HARMONY
   return hyfile_read(fd, buf, cnt);
 #else
@@ -171,13 +171,13 @@ EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
   int err = errno;
   if (err == EAGAIN)
     {
-      TRACE_PRINTF(SysTraceFile, "%s: read on %d would have blocked: needs retry\n", Me, fd);
+      TRACE_PRINTF("%s: read on %d would have blocked: needs retry\n", Me, fd);
       return -1;
     }
   else if (err == EINTR)
     goto again; // interrupted by signal; try again
-  fprintf(SysTraceFile, "%s: read error %d (%s) on %d\n", Me,
-	  err, strerror(err), fd);
+  ERROR_PRINTF("%s: read error %d (%s) on %d\n", Me,
+               err, strerror(err), fd);
   return -2;
 #endif // RVM_FOR_HARMONY
 }
@@ -192,7 +192,7 @@ EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
 EXTERNAL int sysWriteBytes(int fd, char *buf, int cnt)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: write %d 0x%08x %d\n", Me, fd, buf, cnt);
+  TRACE_PRINTF("%s: write %d 0x%08x %d\n", Me, fd, buf, cnt);
 #ifdef RVM_FOR_HARMONY
   return hyfile_write(fd, buf, cnt);
 #else
@@ -203,18 +203,18 @@ EXTERNAL int sysWriteBytes(int fd, char *buf, int cnt)
   int err = errno;
   if (err == EAGAIN)
     {
-      TRACE_PRINTF(SysTraceFile, "%s: write on %d would have blocked: needs retry\n", Me, fd);
+      TRACE_PRINTF("%s: write on %d would have blocked: needs retry\n", Me, fd);
       return -1;
     }
   if (err == EINTR)
     goto again; // interrupted by signal; try again
   if (err == EPIPE)
     {
-      TRACE_PRINTF(SysTraceFile, "%s: write on %d with nobody to read it\n", Me, fd);
+      TRACE_PRINTF("%s: write on %d with nobody to read it\n", Me, fd);
       return -3;
     }
-  fprintf(SysTraceFile, "%s: write error %d (%s) on %d\n", Me,
-	  err, strerror( err ), fd);
+  ERROR_PRINTF("%s: write error %d (%s) on %d\n", Me,
+               err, strerror( err ), fd);
   return -2;
 #endif // RVM_FOR_HARMONY
 }
@@ -227,7 +227,7 @@ EXTERNAL int sysWriteBytes(int fd, char *buf, int cnt)
 static int sysClose(int fd)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: close %d\n", Me, fd);
+  TRACE_PRINTF("%s: close %d\n", Me, fd);
 #ifdef RVM_FOR_HARMONY
   return hyfile_close(fd);
 #else
@@ -248,9 +248,9 @@ static int sysClose(int fd)
 EXTERNAL int sysSetFdCloseOnExec(int fd)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: setFdCloseOnExec %d\n", Me, fd);
+  TRACE_PRINTF("%s: setFdCloseOnExec %d\n", Me, fd);
 #ifdef RVM_FOR_HARMONY
-  CONSOLE_PRINTF(SysTraceFile, "Unsupported call to sysSetFdCloseOnExec\n");
+  CONSOLE_PRINTF("Unsupported call to sysSetFdCloseOnExec\n");
   return -1; // TODO: Harmony
 #else
   return fcntl(fd, F_SETFD, FD_CLOEXEC);
@@ -266,9 +266,9 @@ EXTERNAL int sysSetFdCloseOnExec(int fd)
 EXTERNAL int sysStat(char *name, int kind)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysStat %s %d\n", Me, name, kind);
+  TRACE_PRINTF("%s: sysStat %s %d\n", Me, name, kind);
 #ifdef RVM_FOR_HARMONY
-  CONSOLE_PRINTF(SysTraceFile, "Unsupported call to sysStat\n");
+  CONSOLE_PRINTF("Unsupported call to sysStat\n");
   return -1; // TODO: Harmony
 #else
   struct stat info;

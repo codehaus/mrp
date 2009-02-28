@@ -14,9 +14,7 @@
 #include "sys.h"
 #include <stdlib.h>
 
-#ifdef RVM_FOR_HARMONY
-#include <apr_thread_proc.h>
-#else
+#ifndef RVM_FOR_HARMONY
 #include <errno.h>
 #include <pthread.h>
 #include <setjmp.h>
@@ -68,7 +66,7 @@ EXTERNAL void sysInitialize()
 EXTERNAL void sysExit(int value)
 {
   SYS_START();
-  TRACE_PRINTF(SysErrorFile, "%s: sysExit %d\n", Me, value);
+  TRACE_PRINTF("%s: sysExit %d\n", Me, value);
   // alignment checking: report info before exiting, then turn off checking
 #ifdef RVM_WITH_ALIGNMENT_CHECKING
   if (numEnableAlignCheckingCalls > 0) {
@@ -106,7 +104,7 @@ static TLS_KEY_TYPE createThreadLocal()
   rc = pthread_key_create(&key, 0);
 #endif
   if (rc != 0) {
-    CONSOLE_PRINTF(SysErrorFile, "%s: alloc tls key failed (err=%d)\n", Me, rc);
+    ERROR_PRINTF("%s: alloc tls key failed (err=%d)\n", Me, rc);
     sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
   }
   return key;
@@ -130,7 +128,7 @@ static void setThreadLocal(TLS_KEY_TYPE key, void *value) {
   int rc = pthread_setspecific(key, value);
 #endif
   if (rc != 0) {
-    CONSOLE_PRINTF(SysErrorFile, "%s: set tls failed (err=%d)\n", Me, rc);
+    ERROR_PRINTF("%s: set tls failed (err=%d)\n", Me, rc);
     sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
   }
 }
@@ -143,7 +141,7 @@ static void setThreadLocal(TLS_KEY_TYPE key, void *value) {
 EXTERNAL void sysStashVMThread(Address vmThread)
 {
   SYS_START();
-  TRACE_PRINTF(SysErrorFile, "%s: sysStashVmProcessorInPthread %p\n", Me, vmThread);
+  TRACE_PRINTF("%s: sysStashVmProcessorInPthread %p\n", Me, vmThread);
   setThreadLocal(VmThreadKey, (void*)vmThread);
 }
 
@@ -151,7 +149,7 @@ EXTERNAL void sysStashVMThread(Address vmThread)
 EXTERNAL void * getVMThread()
 {
   SYS_START();
-  TRACE_PRINTF(SysErrorFile, "%s: getVMThread\n", Me);
+  TRACE_PRINTF("%s: getVMThread\n", Me);
   return getThreadLocal(VmThreadKey);
 }
 
@@ -160,13 +158,13 @@ EXTERNAL void sysCreateThreadSpecificDataKeys(void)
 {
   int rc;
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysThreadSpecificDataKeys\n");
+  TRACE_PRINTF("%s: sysThreadSpecificDataKeys\n");
 
   // Create a key for thread-specific data so we can associate
   // the id of the Processor object with the pthread it is running on.
   VmThreadKey = createThreadLocal();
   TerminateJmpBufKey = createThreadLocal();
-  TRACE_PRINTF(SysErrorFile, "%s: vm processor key=%u\n", Me, VmThreadKey);
+  TRACE_PRINTF("%s: vm processor key=%u\n", Me, VmThreadKey);
 }
 
 /**
@@ -182,7 +180,7 @@ EXTERNAL int sysNumProcessors()
 {
   int numCpus = -1;  /* -1 means failure. */
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysNumProcessors\n", Me);  
+  TRACE_PRINTF("%s: sysNumProcessors\n", Me);  
 #ifdef RVM_FOR_HARMONY
   numCpus = hysysinfo_get_number_CPUs();
 #else
@@ -195,7 +193,7 @@ EXTERNAL int sysNumProcessors()
   numCpus = get_nprocs();
   // It is not clear if get_nprocs can ever return failure; assume it might.
   if (numCpus < 1) {
-    CONSOLE_PRINTF(SysTraceFile, "%s: WARNING: get_nprocs() returned %d (errno=%d)\n",
+    CONSOLE_PRINTF("%s: WARNING: get_nprocs() returned %d (errno=%d)\n",
                    Me, numCpus, errno);
     /* Continue on.  Try to get a better answer by some other method, not
        that it's likely, but this should not be a fatal error. */
@@ -211,7 +209,7 @@ EXTERNAL int sysNumProcessors()
     len = sizeof(numCpus);
     errno = 0;
     if (sysctl(mib, 2, &numCpus, &len, NULL, 0) < 0) {
-      CONSOLE_PRINTF(SysTraceFile, "%s: WARNING: sysctl(CTL_HW,HW_NCPU) failed;"
+      CONSOLE_PRINTF("%s: WARNING: sysctl(CTL_HW,HW_NCPU) failed;"
                                    " errno = %d\n", Me, errno);
       numCpus = -1;       // failed so far...
     };
@@ -227,7 +225,7 @@ EXTERNAL int sysNumProcessors()
      */
     numCpus = sysconf(_SC_NPROCESSORS_ONLN); // does not set errno
     if (numCpus < 0) {
-      CONSOLE_PRINTF(SysTraceFile, "%s: WARNING: sysconf(_SC_NPROCESSORS_ONLN)"
+      CONSOLE_PRINTF("%s: WARNING: sysconf(_SC_NPROCESSORS_ONLN)"
                                     " failed\n", Me);
     }
   }
@@ -237,7 +235,7 @@ EXTERNAL int sysNumProcessors()
   if (numCpus < 0) {
     numCpus = _system_configuration.ncpus;
     if (numCpus < 0) {
-      fprintf(SysTraceFile, "%s: WARNING: _system_configuration.ncpus"
+      fprintf("%s: WARNING: _system_configuration.ncpus"
               " has the insane value %d\n" , Me, numCpus);
     }
   }
@@ -245,12 +243,12 @@ EXTERNAL int sysNumProcessors()
 #endif // RVM_FOR_HARMONY
 
   if (numCpus < 0) {
-    TRACE_PRINTF(SysTraceFile, "%s: WARNING: Can not figure out how many CPUs"
+    TRACE_PRINTF("%s: WARNING: Can not figure out how many CPUs"
                                " are online; assuming 1\n");
     numCpus = 1;            // Default
   }
 
-  TRACE_PRINTF(SysTraceFile, "%s: sysNumProcessors: returning %d\n", Me, numCpus);
+  TRACE_PRINTF("%s: sysNumProcessors: returning %d\n", Me, numCpus);
   return numCpus;
 }
 
@@ -270,7 +268,7 @@ EXTERNAL Address sysThreadCreate(Address tr, Address ip, Address fp)
 #endif
   int            rc;
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysThreadCreate %p %p %p\n", Me, tr, ip, fp);
+  TRACE_PRINTF("%s: sysThreadCreate %p %p %p\n", Me, tr, ip, fp);
 
   // create arguments - memory reclaimed in sysThreadStartup
   sysThreadArguments = (Address *)malloc(sizeof(Address[3]));
@@ -281,7 +279,7 @@ EXTERNAL Address sysThreadCreate(Address tr, Address ip, Address fp)
 #ifndef RVM_FOR_HARMONY
   // create attributes
   if ((rc = pthread_attr_init(&sysThreadAttributes))) {
-    CONSOLE_PRINTF(SysErrorFile, "%s: pthread_attr_init failed (rc=%d)\n", Me, rc);
+    ERROR_PRINTF("%s: pthread_attr_init failed (rc=%d)\n", Me, rc);
     sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
   }
   // force 1:1 pthread to kernel thread mapping (on AIX 4.3)
@@ -300,7 +298,7 @@ EXTERNAL Address sysThreadCreate(Address tr, Address ip, Address fp)
 #endif
   if (rc)
   {
-    CONSOLE_PRINTF(SysErrorFile, "%s: thread_create failed (rc=%d)\n", Me, rc);
+    ERROR_PRINTF("%s: thread_create failed (rc=%d)\n", Me, rc);
     sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
   }
 
@@ -308,11 +306,11 @@ EXTERNAL Address sysThreadCreate(Address tr, Address ip, Address fp)
   rc = pthread_detach(sysThreadHandle);
   if (rc)
   {
-    CONSOLE_PRINTF(SysErrorFile, "%s: pthread_detach failed (rc=%d)\n", Me, rc);
+    ERROR_PRINTF("%s: pthread_detach failed (rc=%d)\n", Me, rc);
     sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
   }
 #endif
-  TRACE_PRINTF(SysTraceFile, "%s: pthread_create 0x%08x\n", Me, (Address) sysThreadHandle);
+  TRACE_PRINTF("%s: pthread_create 0x%08x\n", Me, (Address) sysThreadHandle);
 
   return (Address)sysThreadHandle;
 }
@@ -336,7 +334,7 @@ static void* sysThreadStartup(void *args)
   stack.ss_flags = 0;
   stack.ss_size = SIGSTKSZ;
   if (sigaltstack (&stack, 0)) {
-    CONSOLE_PRINTF(SysErrorFile, "sigaltstack failed (errno=%d)\n",errno);
+    ERROR_PRINTF("sigaltstack failed (errno=%d)\n",errno);
     exit(1);
   }
 
@@ -358,7 +356,7 @@ static void* sysThreadStartup(void *args)
     free(stackBuf);
   } else {
     setThreadLocal(TerminateJmpBufKey, (void*)jb);
-    TRACE_PRINTF(SysTraceFile, "%s: sysThreadStartup: pr=%p ip=%p fp=%p\n", Me, tr, ip, fp);
+    TRACE_PRINTF("%s: sysThreadStartup: pr=%p ip=%p fp=%p\n", Me, tr, ip, fp);
     // branch to vm code
 #ifndef RVM_FOR_POWERPC
     {
@@ -370,7 +368,7 @@ static void* sysThreadStartup(void *args)
     bootThread((int)(Word)getJTOC(), tr, ip, fp);
 #endif
     // not reached
-    CONSOLE_PRINTF(SysTraceFile, "%s: sysThreadStartup: failed\n", Me);
+    CONSOLE_PRINTF("%s: sysThreadStartup: failed\n", Me);
     return 0;
   }
 }
@@ -380,7 +378,7 @@ static void* sysThreadStartup(void *args)
 EXTERNAL void sysThreadTerminate()
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysThreadTerminate\n", Me);
+  TRACE_PRINTF("%s: sysThreadTerminate\n", Me);
 #ifdef RVM_FOR_POWERPC
   asm("sync");
 #endif
@@ -401,7 +399,7 @@ EXTERNAL void sysSetupHardwareTrapHandler()
 {
   int rc;                     // retval from subfunction.
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysSetupHardwareTrapHandler\n", Me);
+  TRACE_PRINTF("%s: sysSetupHardwareTrapHandler\n", Me);
 #ifndef RVM_FOR_HARMONY
 #ifndef RVM_FOR_AIX
   /*
@@ -418,7 +416,7 @@ EXTERNAL void sysSetupHardwareTrapHandler()
   stack.ss_size = SIGSTKSZ;
   if (sigaltstack (&stack, 0)) {
     /* Only fails with EINVAL, ENOMEM, EPERM */
-    CONSOLE_PRINTF (SysErrorFile, "sigaltstack failed (errno=%d): ", errno);
+    ERROR_PRINTF ("sigaltstack failed (errno=%d): ", errno);
     perror(NULL);
     sysExit(EXIT_STATUS_IMPOSSIBLE_LIBRARY_FUNCTION_ERROR);
   }
@@ -443,7 +441,7 @@ EXTERNAL void sysSetupHardwareTrapHandler()
    * EINVAL EFAULT.  */
 #endif
   if (rc) {
-    CONSOLE_PRINTF (SysErrorFile, "pthread_sigmask or sigthreadmask failed (errno=%d):", errno);
+    ERROR_PRINTF ("pthread_sigmask or sigthreadmask failed (errno=%d):", errno);
     perror(NULL);
     sysExit(EXIT_STATUS_IMPOSSIBLE_LIBRARY_FUNCTION_ERROR);
   }
@@ -454,7 +452,7 @@ EXTERNAL int sysThreadBindSupported()
 {
   int result=0;
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysThreadBindSupported");
+  TRACE_PRINTF("%s: sysThreadBindSupported");
 #ifdef RVM_FOR_AIX
   result=1;
 #endif
@@ -472,15 +470,15 @@ EXTERNAL int sysThreadBindSupported()
 EXTERNAL void sysThreadBind(int UNUSED cpuId)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysThreadBind");
+  TRACE_PRINTF("%s: sysThreadBind");
 #ifndef RVM_FOR_HARMONY
   // bindprocessor() seems to be only on AIX
 #ifdef RVM_FOR_AIX
   int rc = bindprocessor(BINDTHREAD, thread_self(), cpuId);
-  fprintf(SysTraceFile, "%s: bindprocessor pthread %d (kernel thread %d) %s to cpu %d\n", Me, pthread_self(), thread_self(), (rc ? "NOT bound" : "bound"), cpuId);
+  fprintf("%s: bindprocessor pthread %d (kernel thread %d) %s to cpu %d\n", Me, pthread_self(), thread_self(), (rc ? "NOT bound" : "bound"), cpuId);
 
   if (rc) {
-    CONSOLE_PRINTF(SysErrorFile, "%s: bindprocessor failed (errno=%d): ", Me, errno);
+    ERROR_PRINTF("%s: bindprocessor failed (errno=%d): ", Me, errno);
     perror(NULL);
     sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
   }
@@ -506,7 +504,7 @@ EXTERNAL Address sysThreadSelf()
 #else
   thread = (void*)pthread_self();
 #endif
-  TRACE_PRINTF(SysTraceFile, "%s: sysThreadSelf: thread %p\n", Me, thread);
+  TRACE_PRINTF("%s: sysThreadSelf: thread %p\n", Me, thread);
   return (Address)thread;
 }
 
@@ -516,7 +514,7 @@ EXTERNAL Address sysThreadSelf()
 EXTERNAL void sysThreadYield()
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysThreadYield\n", Me);
+  TRACE_PRINTF("%s: sysThreadYield\n", Me);
 #ifdef RVM_FOR_HARMONY
   hythread_yield();
 #else
@@ -547,7 +545,7 @@ EXTERNAL void sysThreadYield()
 EXTERNAL void sysNanoSleep(long long howLongNanos)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysNanosleep %lld\n", Me, howLongNanos);
+  TRACE_PRINTF("%s: sysNanosleep %lld\n", Me, howLongNanos);
 #ifdef RVM_FOR_HARMONY
   hythread_sleep(howLongNanos/1000);
 #else
@@ -560,7 +558,7 @@ EXTERNAL void sysNanoSleep(long long howLongNanos)
     if (errno == EINTR)
        /* EINTR is expected, since we do use signals internally. */
       return;
-    CONSOLE_PRINTF(SysErrorFile, "%s: nanosleep(<tv_sec=%ld,tv_nsec=%ld>) failed:"
+    ERROR_PRINTF("%s: nanosleep(<tv_sec=%ld,tv_nsec=%ld>) failed:"
                    " %s (errno=%d)\n"
                    "  That should never happen; please report it as a bug.\n",
                    Me, req.tv_sec, req.tv_nsec,
@@ -572,7 +570,7 @@ EXTERNAL void sysNanoSleep(long long howLongNanos)
 EXTERNAL Address sysMonitorCreate()
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMonitorCreate\n", Me);
+  TRACE_PRINTF("%s: sysMonitorCreate\n", Me);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_t monitor;
   hythread_monitor_init_with_name(&monitor, 0, NULL);
@@ -587,7 +585,7 @@ EXTERNAL Address sysMonitorCreate()
 EXTERNAL void sysMonitorDestroy(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMonitorDestroy\n", Me);
+  TRACE_PRINTF("%s: sysMonitorDestroy\n", Me);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_destroy((hythread_monitor_t)_monitor);
 #else
@@ -601,7 +599,7 @@ EXTERNAL void sysMonitorDestroy(Address _monitor)
 EXTERNAL void sysMonitorEnter(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMonitorEnter\n", Me);
+  TRACE_PRINTF("%s: sysMonitorEnter\n", Me);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_enter((hythread_monitor_t)_monitor);
 #else
@@ -613,7 +611,7 @@ EXTERNAL void sysMonitorEnter(Address _monitor)
 EXTERNAL void sysMonitorExit(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMonitorExit\n", Me);
+  TRACE_PRINTF("%s: sysMonitorExit\n", Me);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_exit((hythread_monitor_t)_monitor);
 #else
@@ -625,7 +623,7 @@ EXTERNAL void sysMonitorExit(Address _monitor)
 EXTERNAL void sysMonitorTimedWaitAbsolute(Address _monitor, long long whenWakeupNanos)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMonitorTimedWaitAbsolute\n", Me);
+  TRACE_PRINTF("%s: sysMonitorTimedWaitAbsolute\n", Me);
 #ifdef RVM_FOR_HARMONY
   // syscall wait is absolute, but harmony monitor wait is relative.
   whenWakeupNanos -= sysNanoTime();
@@ -635,11 +633,11 @@ EXTERNAL void sysMonitorTimedWaitAbsolute(Address _monitor, long long whenWakeup
   timespec ts;
   ts.tv_sec = (time_t)(whenWakeupNanos/1000000000LL);
   ts.tv_nsec = (long)(whenWakeupNanos%1000000000LL);
-  TRACE_PRINTF(SysTraceFile, "starting wait at %lld until %lld (%ld, %ld)\n",
+  TRACE_PRINTF("starting wait at %lld until %lld (%ld, %ld)\n",
                sysNanoTime(),whenWakeupNanos,ts.tv_sec,ts.tv_nsec);
   vmmonitor_t *monitor = (vmmonitor_t*)_monitor;
   int rc = pthread_cond_timedwait(&monitor->cond, &monitor->mutex, &ts);
-  TRACE_PRINTF(SysTraceFile, "returned from wait at %lld instead of %lld with res = %d\n",
+  TRACE_PRINTF("returned from wait at %lld instead of %lld with res = %d\n",
                sysNanoTime(),whenWakeupNanos,rc);
 #endif
 }
@@ -647,7 +645,7 @@ EXTERNAL void sysMonitorTimedWaitAbsolute(Address _monitor, long long whenWakeup
 EXTERNAL void sysMonitorWait(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMonitorWait\n", Me);
+  TRACE_PRINTF("%s: sysMonitorWait\n", Me);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_wait((hythread_monitor_t)_monitor);
 #else
@@ -659,7 +657,7 @@ EXTERNAL void sysMonitorWait(Address _monitor)
 EXTERNAL void sysMonitorNotifyAll(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: sysMonitorBroadcast\n", Me);
+  TRACE_PRINTF("%s: sysMonitorBroadcast\n", Me);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_notify_all((hythread_monitor_t)_monitor);
 #else

@@ -64,14 +64,14 @@ extern void initializeVMLocalStorage(JavaVM * vm);
 vmiError JNICALL CheckVersion (VMInterface * vmi, vmiVersion * version)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call CheckVersion (unimplemented)\n", Me);
+  TRACE_PRINTF("%s: VMI call CheckVersion (unimplemented)\n", Me);
   return VMI_ERROR_UNIMPLEMENTED;
 }
 
 JavaVM * JNICALL GetJavaVM (VMInterface * vmi)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call GetJavaVM\n", Me);
+  TRACE_PRINTF("%s: VMI call GetJavaVM\n", Me);
   return &sysJavaVM;
 }
 
@@ -84,7 +84,7 @@ HyPortLibrary * JNICALL GetPortLibrary (VMInterface * vmi)
 HyVMLSFunctionTable * JNICALL GetVMLSFunctions (VMInterface * vmi)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call GetVMLSFunctions\n", Me);
+  TRACE_PRINTF("%s: VMI call GetVMLSFunctions\n", Me);
   return &vmls_impl;
 }
 
@@ -93,15 +93,15 @@ extern HyZipCachePool *hyZipCachePool;
 HyZipCachePool * JNICALL GetZipCachePool (VMInterface * vmi)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call GetZipCachePool\n", Me);
+  TRACE_PRINTF("%s: VMI call GetZipCachePool\n", Me);
   return hyZipCachePool;
 }
 #else /* HY_ZIP_API */
 struct VMIZipFunctionTable * JNICALL GetZipFunctions (VMInterface * vmi)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call GetZipFunctions\n", Me);
-  CONSOLE_PRINTF(SysErrorFile, "UNIMPLEMENTED VMI call GetZipFunctions\n");
+  TRACE_PRINTF("%s: VMI call GetZipFunctions\n", Me);
+  ERROR_PRINTF("UNIMPLEMENTED VMI call GetZipFunctions\n");
   return NULL;
 }
 #endif /* HY_ZIP_API */
@@ -109,35 +109,35 @@ struct VMIZipFunctionTable * JNICALL GetZipFunctions (VMInterface * vmi)
 JavaVMInitArgs * JNICALL GetInitArgs (VMInterface * vmi)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call GetInitArgs\n", Me);
+  TRACE_PRINTF("%s: VMI call GetInitArgs\n", Me);
   return JavaArgs;
 }
 
 vmiError JNICALL GetSystemProperty (VMInterface * vmi, char *key, char **valuePtr)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call GetSystemProperty (unimplemented)\n", Me);
+  TRACE_PRINTF("%s: VMI call GetSystemProperty (unimplemented)\n", Me);
   return VMI_ERROR_UNIMPLEMENTED;
 }
 
 vmiError JNICALL SetSystemProperty (VMInterface * vmi, char *key, char *value)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call SetSystemProperty (unimplemented)\n", Me);
+  TRACE_PRINTF("%s: VMI call SetSystemProperty (unimplemented)\n", Me);
   return VMI_ERROR_UNIMPLEMENTED;
 }
 
 vmiError JNICALL CountSystemProperties (VMInterface * vmi, int *countPtr)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call CountSystemProperties (unimplemented)\n", Me);
+  TRACE_PRINTF("%s: VMI call CountSystemProperties (unimplemented)\n", Me);
   return VMI_ERROR_UNIMPLEMENTED;
 }
 
 vmiError JNICALL IterateSystemProperties (VMInterface * vmi, vmiSystemPropertyIterator iterator, void *userData)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI call IterateSystemProperties (unimplemented)\n", Me);
+  TRACE_PRINTF("%s: VMI call IterateSystemProperties (unimplemented)\n", Me);
   return VMI_ERROR_UNIMPLEMENTED;
 }
 
@@ -165,24 +165,23 @@ VMInterface* JNICALL
 VMI_GetVMIFromJNIEnv(JNIEnv* env)
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: GetVMIFromJNIEnv\n", Me);
+  TRACE_PRINTF("%s: GetVMIFromJNIEnv\n", Me);
   return &vmi;
 }
 
 EXTERNAL void VMI_Initialize()
 {
   SYS_START();
-  TRACE_PRINTF(SysTraceFile, "%s: VMI_Initialize\n", Me);
   HYPORT_SET_VERSION (&hyPortLibraryVersion, HYPORT_CAPABILITY_MASK);
   if (0 != hyport_init_library (&hyPortLibrary, &hyPortLibraryVersion, sizeof (HyPortLibrary))) {
-    CONSOLE_PRINTF(SysErrorFile, "Harmony port library init failed\n");
+    ERROR_PRINTF("Harmony port library init failed\n");
     abort();
   }
 #ifndef HY_ZIP_API
   hyZipCachePool = zipCachePool_new(&hyPortLibrary);
   if (hyZipCachePool == NULL)
   {
-    CONSOLE_PRINTF(SysErrorFile, "Error accessing zip functions");
+    ERROR_PRINTF("Error accessing zip functions");
     abort();
   }
 #endif

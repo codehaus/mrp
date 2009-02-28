@@ -31,8 +31,6 @@
 #ifdef RVM_FOR_LINUX
 #  define LINUX 1
 #endif
-#include <apr.h>
-#include <apr_pools.h>
 #include <hycomp.h>
 #include <hyport.h>
 #include <vmi.h>
@@ -48,24 +46,27 @@ EXTERNAL void VMI_Initialize();
 #endif
 
 /** Sink for messages relating to serious errors detected by C runtime. */
-#ifdef RVM_FOR_HARMONY
-extern IDATA SysErrorFile;
-#else
+#ifndef RVM_FOR_HARMONY
 extern FILE *SysErrorFile;
 #endif
 
 /** Sink for trace messages produced by VM.sysWrite(). */
-#ifdef RVM_FOR_HARMONY
-extern IDATA SysTraceFile;
-#else
+#ifndef RVM_FOR_HARMONY
 extern FILE *SysTraceFile;
 #endif
 
 /** Portable default printf */
 #ifdef RVM_FOR_HARMONY
-#define CONSOLE_PRINTF(...) hyfile_printf(PORTLIB, __VA_ARGS__)
+#define CONSOLE_PRINTF(...) hytty_err_printf(PORTLIB, __VA_ARGS__)
 #else
-#define CONSOLE_PRINTF(...) fprintf(__VA_ARGS__)
+#define CONSOLE_PRINTF(...) fprintf(SysTraceFile, __VA_ARGS__)
+#endif
+
+/** Portable error printf */
+#ifdef RVM_FOR_HARMONY
+#define ERROR_PRINTF(...) hytty_err_printf(PORTLIB, __VA_ARGS__)
+#else
+#define ERROR_PRINTF(...) fprintf(SysErrorFile, __VA_ARGS__)
 #endif
 
 /** String used for name of RVM */
@@ -75,9 +76,9 @@ extern char *Me;
 #define TRACE 0
 
 #ifdef RVM_FOR_HARMONY
-#define TRACE_PRINTF(...) if(TRACE)hyfile_printf(PORTLIB, __VA_ARGS__)
+#define TRACE_PRINTF(...) if(TRACE)hytty_err_printf(PORTLIB, __VA_ARGS__)
 #else
-#define TRACE_PRINTF if(TRACE)fprintf
+#define TRACE_PRINTF(...) if(TRACE) fprintf(SysTraceFile, __VA_ARGS__)
 #endif
 
 EXTERNAL long long sysNanoTime();

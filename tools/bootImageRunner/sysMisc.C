@@ -27,7 +27,7 @@
 EXTERNAL int sysArg(int argno, char *buf, int buflen)
 {
   SYS_START();
-  TRACE_PRINTF(SysErrorFile, "%s: sysArg %d\n", Me, argno);
+  TRACE_PRINTF("%s: sysArg %d\n", Me, argno);
   if (argno == -1) { // return arg count
     return JavaArgc;
   } else { // return i-th arg
@@ -100,7 +100,7 @@ static int loadResultBuf(char * dest, int limit, const char *src)
 EXTERNAL int sysGetenv(const char *varName, char *buf, int limit)
 {
   SYS_START();
-  TRACE_PRINTF(SysErrorFile, "%s: sysGetenv %d\n", Me, varName);
+  TRACE_PRINTF("%s: sysGetenv %d\n", Me, varName);
   return loadResultBuf(buf, limit, getenv(varName));
 }
 
@@ -119,7 +119,7 @@ EXTERNAL jlong sysParseMemorySize(const char *sizeName, const char *sizeFlag,
                                   const char *token, const char *subtoken)
 {
   SYS_START();
-  TRACE_PRINTF(SysErrorFile, "%s: sysParseMemorySize %s\n", Me, token);
+  TRACE_PRINTF("%s: sysParseMemorySize %s\n", Me, token);
   bool fastExit = false;
   unsigned ret_uns=  parse_memory_size(sizeName, sizeFlag, defaultFactor,
                                        (unsigned) roundTo, token, subtoken,
