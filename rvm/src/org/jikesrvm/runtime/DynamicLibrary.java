@@ -60,36 +60,13 @@ public final class DynamicLibrary {
   private final Address jniOnUnload;
 
   /**
-   * Load a dynamic library and maintain it in this object.
-   * @param libraryName library name
+   * Maintain a loaded library, call it's JNI_OnLoad function if present
+   * @param libName library name
+   * @param libHandler handle of loaded library
    */
-  private DynamicLibrary(String libraryName) {
-    // Convert file name from unicode to filesystem character set.
-    // (Assume file name is ASCII, for now).
-    //
-    byte[] asciiName = StringUtilities.stringToBytesNullTerminated(libraryName);
-
-    // make sure we have enough stack to load the library.
-    // This operation has been known to require more than 20K of stack.
-    RVMThread myThread = RVMThread.getCurrentThread();
-    Offset remaining = Magic.getFramePointer().diff(myThread.stackLimit);
-    int stackNeededInBytes = StackframeLayoutConstants.STACK_SIZE_DLOPEN - remaining.toInt();
-    if (stackNeededInBytes > 0) {
-      if (myThread.hasNativeStackFrame()) {
-        throw new java.lang.StackOverflowError("dlopen");
-      } else {
-        RVMThread.resizeCurrentStack(myThread.getStackLength() + stackNeededInBytes, null);
-      }
-    }
-
-    libHandler = SysCall.sysCall.sysDlopen(asciiName);
-
-    if (libHandler.isZero()) {
-      VM.sysWriteln("error loading library: " + libraryName);
-      throw new UnsatisfiedLinkError();
-    }
-
-    libName = libraryName;
+  private DynamicLibrary(String libName, Address libHandler) {
+    this.libName = libName;
+    this.libHandler = libHandler;
     jniOnLoad = getJNI_OnLoad();
     jniOnUnload = getJNI_OnUnload();
     try {
@@ -217,13 +194,34 @@ public final class DynamicLibrary {
    */
   public static synchronized int load(String libname) {
     DynamicLibrary dl = dynamicLibraries.get(libname);
-    if (dl != null) return 1; // success: already loaded
-
-    if (FileSystem.stat(libname, FileSystem.STAT_EXISTS) == 1) {
-      dynamicLibraries.put(libname, new DynamicLibrary(libname));
-      return 1;
+    if (dl != null) {
+      return 1; // success: already loaded
     } else {
-      return 0; // fail; file does not exist
+      // Convert file name from unicode to filesystem character set.
+      // (Assume file name is ASCII, for now).
+      byte[] asciiName = StringUtilities.stringToBytesNullTerminated(libname);
+
+      // make sure we have enough stack to load the library.
+      // This operation has been known to require more than 20K of stack.
+      RVMThread myThread = RVMThread.getCurrentThread();
+      Offset remaining = Magic.getFramePointer().diff(myThread.stackLimit);
+      int stackNeededInBytes = StackframeLayoutConstants.STACK_SIZE_DLOPEN - remaining.toInt();
+      if (stackNeededInBytes > 0) {
+        if (myThread.hasNativeStackFrame()) {
+          throw new java.lang.StackOverflowError("Not enough space to open shared library");
+        } else {
+          RVMThread.resizeCurrentStack(myThread.getStackLength() + stackNeededInBytes, null);
+        }
+      }
+
+      Address libHandler = SysCall.sysCall.sysDlopen(asciiName);
+
+      if (!libHandler.isZero()) {
+        dynamicLibraries.put(libname, new DynamicLibrary(libname, libHandler));
+        return 1;
+      } else {
+        return 0; // fail; file does not exist
+      }
     }
   }
 
