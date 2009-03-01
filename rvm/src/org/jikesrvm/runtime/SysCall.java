@@ -17,7 +17,6 @@ import org.jikesrvm.apt.annotations.SysCallTemplate;
 import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Address;
-import org.vmmagic.unboxed.Word;
 import org.vmmagic.unboxed.Extent;
 import org.vmmagic.unboxed.Offset;
 
@@ -114,9 +113,6 @@ public abstract class SysCall {
 
   // files
   @SysCallTemplate
-  public abstract int sysStat(byte[] name, int kind);
-
-  @SysCallTemplate
   public abstract int sysReadByte(int fd);
 
   @SysCallTemplate
@@ -127,18 +123,6 @@ public abstract class SysCall {
 
   @SysCallTemplate
   public abstract int sysWriteBytes(int fd, Address buf, int cnt);
-
-  @SysCallTemplate
-  public abstract int sysBytesAvailable(int fd);
-
-  @SysCallTemplate
-  public abstract int sysSyncFile(int fd);
-
-  @SysCallTemplate
-  public abstract int sysSetFdCloseOnExec(int fd);
-
-  @SysCallTemplate
-  public abstract int sysAccess(byte[] name, int kind);
 
   // mmap - memory mapping
   @SysCallTemplate

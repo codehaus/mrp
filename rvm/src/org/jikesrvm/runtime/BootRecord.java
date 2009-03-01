@@ -234,16 +234,10 @@ public class BootRecord {
   public Address sysSyncCacheIP;
 
   // files
-  public Address sysStatIP;
   public Address sysReadByteIP;
   public Address sysWriteByteIP;
   public Address sysReadBytesIP;
   public Address sysWriteBytesIP;
-  public Address sysBytesAvailableIP;
-  public Address sysSyncFileIP;
-  public Address sysSetFdCloseOnExecIP;
-
-  public Address sysAccessIP;
 
   // mmap - memory mapping
   public Address sysMMapIP;
