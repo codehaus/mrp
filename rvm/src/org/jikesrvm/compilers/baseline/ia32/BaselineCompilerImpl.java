@@ -41,6 +41,7 @@ import org.jikesrvm.ia32.ThreadLocalState;
 import org.jikesrvm.jni.ia32.JNICompiler;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.mm.mminterface.MemoryManagerConstants;
+import org.jikesrvm.objectmodel.JavaHeader;
 import org.jikesrvm.objectmodel.JavaHeaderConstants;
 import org.jikesrvm.objectmodel.ObjectModel;
 import org.jikesrvm.runtime.ArchEntrypoints;
@@ -3930,7 +3931,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     boolean cheapTest = true;
     if (cheapTest) {
       // perform load to cause trap
-      asm.emitTEST_RegInd_Reg(objRefReg, objRefReg);
+      asm.emitTEST_RegDisp_Reg(objRefReg, JavaHeader.getTibOffset(), objRefReg);
     } else {
       // compare to zero
       asm.emitTEST_Reg_Reg(objRefReg, objRefReg);

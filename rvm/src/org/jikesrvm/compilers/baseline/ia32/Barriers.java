@@ -13,7 +13,6 @@
 package org.jikesrvm.compilers.baseline.ia32;
 
 import org.jikesrvm.Configuration;
-import org.jikesrvm.VM;
 import org.jikesrvm.ArchitectureSpecific.Assembler;
 import org.jikesrvm.ia32.BaselineConstants;
 import org.jikesrvm.runtime.Entrypoints;
@@ -104,19 +103,19 @@ class Barriers implements BaselineConstants {
   static void compileGetfieldBarrier(Assembler asm, GPR reg, int locationMetadata) {
     //  on entry java stack contains ...|target_ref|
     //  SP -> target_ref
-    genNullCheck(asm, 0);
     asm.emitPUSH_Reg(reg);
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 3);
+    BaselineCompilerImpl.genNullCheck(asm, T0);
     asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.getfieldReadBarrierMethod.getOffset()));
     asm.emitPUSH_Reg(T0);
   }
 
   static void compileGetfieldBarrierImm(Assembler asm, Offset fieldOffset, int locationMetadata) {
-    genNullCheck(asm, 0);
     asm.emitPUSH_Imm(fieldOffset.toInt());
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 3);
+    BaselineCompilerImpl.genNullCheck(asm, T0);
     asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.getfieldReadBarrierMethod.getOffset()));
     asm.emitPUSH_Reg(T0);
   }
@@ -135,27 +134,6 @@ class Barriers implements BaselineConstants {
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 2);
     asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.getstaticReadBarrierMethod.getOffset()));
     asm.emitPUSH_Reg(T0);
-  }
-
-  /**
-   * Generate a cheap nullcheck by attempting to load the TIB of the object
-   * at the given offset to SP.
-   */
-  private static void genNullCheck(Assembler asm, int offset) {
-    if (VM.BuildFor32Addr) {
-      if (offset == 0) {
-        asm.emitMOV_Reg_RegInd(T1, SP);
-      } else {
-        asm.emitMOV_Reg_RegDisp(T1, SP, Offset.fromIntZeroExtend(offset));
-      }
-    } else {
-      if (offset == 0) {
-        asm.emitMOV_Reg_RegInd_Quad(T1, SP);
-      } else {
-        asm.emitMOV_Reg_RegDisp_Quad(T1, SP, Offset.fromIntZeroExtend(offset));
-      }
-    }
-    BaselineCompilerImpl.baselineEmitLoadTIB(asm, T1, T1);
   }
 
   static void compileModifyCheck(Assembler asm, int offset) {
