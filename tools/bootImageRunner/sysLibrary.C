@@ -28,7 +28,7 @@ EXTERNAL void* sysDlopen(char *libname)
   TRACE_PRINTF("%s: sysDlopen %s\n", Me, libname);
 #ifdef RVM_FOR_HARMONY
   UDATA descriptor;
-  if (hysl_open_shared_library(libname, &descriptor, TRUE) != 0) {
+  if (hysl_open_shared_library(libname, &descriptor, FALSE) != 0) {
     ERROR_PRINTF("%s: error loading library %s\n", Me, libname);
     return NULL;
   } else {
