@@ -14,7 +14,12 @@
 #include "sys.h"
 #include <stdlib.h>
 
-#ifndef RVM_FOR_HARMONY
+#ifdef RVM_FOR_HARMONY
+// TODO: remove these dependencies for Harmony
+#include <signal.h>
+#include <errno.h>
+#include <string.h>
+#else
 #include <errno.h>
 #include <pthread.h>
 #include <setjmp.h>
