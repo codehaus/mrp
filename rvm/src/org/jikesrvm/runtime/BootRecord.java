@@ -239,10 +239,10 @@ public class BootRecord {
   public Address sysReadBytesIP;
   public Address sysWriteBytesIP;
 
-  // mmap - memory mapping
-  public Address sysMMapIP;
-  public Address sysMMapErrnoIP;
-  public Address sysMProtectIP;
+  // memory mapping
+  public Address sysMemoryReserveIP;
+  public Address sysMemoryCommitIP;
+  public Address sysMemoryDecommitIP;
   public Address sysGetPageSizeIP;
 
   // threads

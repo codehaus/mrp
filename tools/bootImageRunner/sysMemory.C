@@ -22,6 +22,10 @@
 #include <sys/cache.h>
 #endif
 
+#ifdef RVM_FOR_HARMONY
+UDATA DefaultPageSize;
+#endif
+
 /** Allocate memory. */
 EXTERNAL void* sysMalloc(int length)
 {
@@ -83,12 +87,15 @@ EXTERNAL void sysZero(void *dst, Extent cnt)
  */
 EXTERNAL void sysZeroPages(void *dst, int cnt)
 {
-  const int STRATEGY=1;
-  int rc;
-  void *addr;
   SYS_START();
   TRACE_PRINTF("%s: sysZeroPages %p %d\n", Me, dst, cnt);
 
+#ifdef RVM_FOR_HARMONY
+  sysZero(dst, cnt);
+#else
+  const int STRATEGY=1;
+  int rc;
+  void *addr;
   if (STRATEGY == 1) {
     // Zero memory by touching all the bytes.
     // Advantage:    fewer page faults during mutation
@@ -114,6 +121,7 @@ EXTERNAL void sysZeroPages(void *dst, int cnt)
       sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
     }
   }
+#endif // RVM_FOR_HARMONY
 }
 
 /**
@@ -166,76 +174,155 @@ EXTERNAL void sysSyncCache(void *address, size_t size)
 }
 
 /**
- * mmap - general case
- * Taken: start address (Java ADDRESS)
- *       length of region (Java EXTENT)
- *        desired protection (Java int)
- *        flags (Java int)
- *        file descriptor (Java int)
- *        offset (Java long)  [to cover 64 bit file systems]
- * Returned: address of region (or -1 on failure) (Java ADDRESS)
+ * Reserve memory at specified address, size
+ * @param start address (Java ADDRESS)
+ * @param length of region (Java EXTENT)
+ * @param read (Java boolean)
+ * @param write (Java boolean)
+ * @param exec (Java boolean)
+ * @param commit (Java boolean)
+ * @return address of region (errno or NULL on failure) (Java ADDRESS)
  */
-EXTERNAL void * sysMMap(char *start , size_t length ,
-                        int protection , int flags ,
-                        int fd , Offset offset)
+EXTERNAL void * sysMemoryReserve(char *start, size_t length,
+                                 jboolean read, jboolean write,
+                                 jboolean exec, jboolean commit)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMMap %p %d %d %d %d %d\n",
-               Me, start, length, protection, flags, fd, offset);
+  TRACE_PRINTF("%s: sysMemoryReserve %p %d - %d %d %d %d\n",
+               Me, start, length, read, write, exec, commit);
 #ifdef RVM_FOR_HARMONY
-#warning TODO: should use Harmony mmap
-#endif
-  return mmap(start, (size_t)(length), protection, flags, fd, (off_t)offset);
-}
-
-/**
- * mprotect
- * Taken: start address (Java ADDRESS)
- *        length of region (Java EXTENT)
- *        new protection (Java int)
- * Returned: 0 (success) or -1 (failure) (Java int)
- */
-EXTERNAL int sysMProtect(char *start, size_t length, int prot)
-{
-  SYS_START();
-  TRACE_PRINTF("%s: sysMProtect %p %d %d\n",
-               Me, start, length, prot);
-#ifndef RVM_FOR_HARMONY
-  return mprotect(start, length, prot);
+  HyPortVmemIdentifier ident;
+  ident.pageSize = DefaultPageSize;
+  ident.mode = 0;
+  if (read) {
+    ident.mode |= HYPORT_VMEM_MEMORY_MODE_READ;
+  }
+  if (write) {
+    ident.mode |= HYPORT_VMEM_MEMORY_MODE_WRITE;
+  }
+  if (exec) {
+    ident.mode |= HYPORT_VMEM_MEMORY_MODE_EXECUTE;
+  }
+  if (commit) {
+    ident.mode |= HYPORT_VMEM_MEMORY_MODE_COMMIT;
+  }
+  return hyvmem_reserve_memory(start, length, &ident, ident.mode, ident.pageSize);
 #else
-  return -1;
-#endif // RVM_FOR_HARMONY -- TODO
-}
-
-/**
- * Same as mmap, but with more debugging support.
- * Returned: address of region if successful; errno (1 to 127) otherwise
- */
-EXTERNAL void* sysMMapErrno(char *start , size_t length ,
-                            int protection , int flags ,
-                            int fd , Offset offset)
-{
-  SYS_START();
-  TRACE_PRINTF("%s: sysMMapErrno %p %d %d %d %d %d\n",
-               Me, start, length, protection, flags, fd, offset);
-#ifdef RVM_FOR_HARMONY
-#warning TODO: should use Harmony mmap
-#endif
+  int protection = 0;
+  int flags = MAP_PRIVATE;
+  int fd = -1;
+  off_t offset = 0;
+#if defined(MAP_ANONYMOUS)
+  flags |= MAP_ANONYMOUS;
+#elif defined(MAP_ANON)
+  flags |= MAP_ANON;
+#else
+  fd = open("/dev/zero", O_RDWR, 0);
+#endif  
+  if (commit) {
+    if (read) {
+      protection |= PROT_READ;
+    }
+    if (write) {
+      protection |= PROT_WRITE;
+    }
+    if (exec) {
+      protection |= PROT_EXEC;
+    }
+  } else {
+    protection = PROT_NONE;
+    flags |= MAP_NORESERVE;
+  }
   void* res = mmap(start, (size_t)(length), protection, flags, fd, (off_t)offset);
   if (res == (void *) -1){
-    CONSOLE_PRINTF("%s: sysMMapErrno %p %d %d %d %d %d failed with %d.\n",
+    CONSOLE_PRINTF("%s: sysMemoryReserve %p %d %d %d %d %d failed with %d.\n",
                    Me, start, length, protection, flags, fd, offset, errno);
     return (void *) errno;
   } else {
-    TRACE_PRINTF("mmap succeeded- region = [0x%x ... 0x%x]    size = %d\n", res, ((size_t)res) + length, length);
+    TRACE_PRINTF("MemoryReserve succeeded- region = [0x%x ... 0x%x]    size = %d\n", res, ((size_t)res) + length, length);
     return res;
   }
+#endif // RVM_FOR_HARMONY
 }
 
 /**
- * getpagesize
- * Taken: (no arguments)
- * Returned: default page size in bytes (Java int)
+ * Commit memory
+ * @param start address (Java ADDRESS)
+ * @param length of region (Java EXTENT)
+ * @param read (Java boolean)
+ * @param write (Java boolean)
+ * @param exec (Java boolean)
+ * @return true iff success (Java boolean)
+ */
+EXTERNAL jboolean sysMemoryCommit(char *start, size_t length,
+                                 jboolean read, jboolean write,
+                                 jboolean exec)
+{
+  SYS_START();
+  TRACE_PRINTF("%s: sysMemoryCommit %p %d - %d %d %d\n",
+               Me, start, length, read, write, exec);
+#ifdef RVM_FOR_HARMONY
+  HyPortVmemIdentifier ident;
+  ident.pageSize = DefaultPageSize;
+  ident.mode = 0;
+  if (read) {
+    ident.mode |= HYPORT_VMEM_MEMORY_MODE_READ;
+  }
+  if (write) {
+    ident.mode |= HYPORT_VMEM_MEMORY_MODE_WRITE;
+  }
+  if (exec) {
+    ident.mode |= HYPORT_VMEM_MEMORY_MODE_EXECUTE;
+  }
+  if(hyvmem_commit_memory(start, length, &ident) == start) {
+    return JNI_TRUE;
+  } else {
+    return JNI_FALSE;
+  }
+#else
+  int protection = 0;
+  if (read) {
+    protection |= PROT_READ;
+  }
+  if (write) {
+    protection |= PROT_WRITE;
+  }
+  if (exec) {
+    protection |= PROT_EXEC;
+  }
+  if (mprotect(start, length, protection) == 0) {
+    return JNI_TRUE; // success
+  } else {
+    return JNI_FALSE; // failure
+  }
+#endif // RVM_FOR_HARMONY
+}
+
+/**
+ * Decommit memory
+ * @param start address (Java ADDRESS)
+ * @param length of region (Java EXTENT)
+ * @return true iff success (Java boolean)
+ */
+EXTERNAL jboolean sysMemoryDecommit(char *start, size_t length)
+{
+  SYS_START();
+  TRACE_PRINTF("%s: sysMemoryDecommit %p %d\n", Me, start, length);
+#ifdef RVM_FOR_HARMONY
+  HyPortVmemIdentifier ident;
+  ident.pageSize = DefaultPageSize;
+  if(hyvmem_decommit_memory(start, length, &ident) == 0) {
+    return JNI_TRUE;
+  } else {
+    return JNI_FALSE;
+  }
+#else
+  return JNI_TRUE; // success - unsupported operation for UNIX environments
+#endif // RVM_FOR_HARMONY
+}
+
+/**
+ * @return default page size in bytes (Java int)
  */
 EXTERNAL int sysGetPageSize()
 {
@@ -244,9 +331,8 @@ EXTERNAL int sysGetPageSize()
 #ifndef RVM_FOR_HARMONY
   result = (int)(getpagesize());
 #else
-  result = hyvmem_supported_page_sizes()[0];
+  result = DefaultPageSize;
 #endif // RVM_FOR_HARMONY
   TRACE_PRINTF("%s: sysGetPageSize %d\n", Me, result);
   return result;
 }
-

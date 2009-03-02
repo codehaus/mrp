@@ -18,7 +18,6 @@ import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Extent;
-import org.vmmagic.unboxed.Offset;
 
 /**
  * Support for lowlevel (ie non-JNI) invocation of C functions with
@@ -124,16 +123,16 @@ public abstract class SysCall {
   @SysCallTemplate
   public abstract int sysWriteBytes(int fd, Address buf, int cnt);
 
-  // mmap - memory mapping
+  // memory mapping
   @SysCallTemplate
-  public abstract Address sysMMap(Address start, Extent length, int protection, int flags, int fd, Offset offset);
+  public abstract Address sysMemoryReserve(Address start, Extent length, boolean read, boolean write, boolean exec, boolean commit);
 
   @SysCallTemplate
-  public abstract Address sysMMapErrno(Address start, Extent length, int protection, int flags, int fd, Offset offset);
+  public abstract boolean sysMemoryCommit(Address start, Extent length, boolean read, boolean write, boolean exec);
 
   @SysCallTemplate
-  public abstract int sysMProtect(Address start, Extent length, int prot);
-
+  public abstract boolean sysMemoryDecommit(Address start, Extent length);
+  
   @SysCallTemplate
   public abstract int sysGetPageSize();
 

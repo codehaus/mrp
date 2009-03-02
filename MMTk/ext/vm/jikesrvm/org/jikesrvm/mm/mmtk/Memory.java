@@ -105,14 +105,14 @@ import org.vmmagic.pragma.*;
    * @return 0 if successful, otherwise the system errno
    */
   public final int dzmmap(Address start, int size) {
-    Address result = org.jikesrvm.runtime.Memory.dzmmap(start, Extent.fromIntZeroExtend(size));
-    if (result.EQ(start)) return 0;
-    if (result.GT(Address.fromIntZeroExtend(127))) {
-      VM.sysWrite("demand zero mmap with MAP_FIXED on ", start);
-      VM.sysWriteln(" returned some other address", result);
-      VM.sysFail("mmap with MAP_FIXED has unexpected behavior");
+    Address result = org.jikesrvm.runtime.Memory.reserve(start, Extent.fromIntZeroExtend(size), true, true, true, true);
+    if (result.EQ(start)) {
+      return 0;
+    } else if (!result.isZero()) {
+      return result.toInt();
+    } else {
+      return 1;
     }
-    return result.toInt();
   }
 
   /**
@@ -124,8 +124,7 @@ import org.vmmagic.pragma.*;
    * <code>false</code>
    */
   public final boolean mprotect(Address start, int size) {
-    return org.jikesrvm.runtime.Memory.mprotect(start, Extent.fromIntZeroExtend(size),
-                                                   org.jikesrvm.runtime.Memory.PROT_NONE);
+    return org.jikesrvm.runtime.Memory.commit(start, Extent.fromIntZeroExtend(size), false, false, false);
   }
 
   /**
@@ -137,10 +136,7 @@ import org.vmmagic.pragma.*;
    * <code>false</code>
    */
   public final boolean munprotect(Address start, int size) {
-    return org.jikesrvm.runtime.Memory.mprotect(start, Extent.fromIntZeroExtend(size),
-                                                   org.jikesrvm.runtime.Memory.PROT_READ |
-                                                   org.jikesrvm.runtime.Memory.PROT_WRITE |
-                                                   org.jikesrvm.runtime.Memory.PROT_EXEC);
+    return org.jikesrvm.runtime.Memory.commit(start, Extent.fromIntZeroExtend(size), true, true, true);
   }
 
   /**

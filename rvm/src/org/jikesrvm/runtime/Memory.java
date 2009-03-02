@@ -447,16 +447,6 @@ public class Memory {
   // (3) MMap
   ////////////////////////
 
-  // constants for protection and mapping calls
-  public static final int PROT_NONE = 0;
-  public static final int PROT_READ = 1;
-  public static final int PROT_WRITE = 2;
-  public static final int PROT_EXEC = 4;
-
-  public static final int MAP_PRIVATE = 2;
-  public static final int MAP_FIXED     = (VM.BuildForLinux) ? 16 : (VM.BuildForOsx) ?     16 : (VM.BuildForSolaris) ? 0x10 :256;
-  public static final int MAP_ANONYMOUS = (VM.BuildForLinux) ? 32 : (VM.BuildForOsx) ? 0x1000 : (VM.BuildForSolaris) ? 0x100 : 16;
-
   public static boolean isPageMultiple(int val) {
     int pagesizeMask = getPagesize() - 1;
     return ((val & pagesizeMask) == 0);
@@ -478,47 +468,49 @@ public class Memory {
   }
 
   /**
-   * Do generic mmap non-file memory mapping call
+   * Reserve virtual memory at address with the specified protection
    * @param address  Start of address range (Address)
    * @param size    Size of address range
-   * @param prot    Protection (int)
-   * @param flags (int)
-   * @return Address (of region) if successful; errno (1 to 127) otherwise
+   * @param read    can the memory be read
+   * @param write   can the memory be written
+   * @param exec    can the memory be executed
+   * @param commit  should the reserved memory also be committed
+   * @return Address (of region) if successful; zero otherwise
    */
-  public static Address mmap(Address address, Extent size, int prot, int flags) {
+  public static Address reserve(Address address, Extent size, boolean read, boolean write, boolean exec, boolean commit) {
     if (VM.VerifyAssertions) {
       VM._assert(isPageAligned(address) && isPageMultiple(size));
     }
-    return SysCall.sysCall.sysMMapErrno(address, size, prot, flags, -1, Offset.zero());
+    return SysCall.sysCall.sysMemoryReserve(address, size, read, write, exec, commit);
   }
 
   /**
-   * Do mmap demand zero fixed address memory mapping call
-   * @param address  Start of address range
-   * @param size     Size of address range
-   * @return Address (of region) if successful; errno (1 to 127) otherwise
-   */
-  public static Address dzmmap(Address address, Extent size) {
-    if (VM.VerifyAssertions) {
-      VM._assert(isPageAligned(address) && isPageMultiple(size));
-    }
-    int prot = PROT_READ | PROT_WRITE | PROT_EXEC;
-    int flags = MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED;
-    return mmap(address, size, prot, flags);
-  }
-
-  /**
-   * Do mprotect system call
+   * Commit memory at address of specified size
    * @param address Start of address range (Address)
    * @param size Size of address range
-   * @param prot Protection (int)
+   * @param read can the memory be read
+   * @param write can the memory be written
+   * @param exec can the memory be executed
    * @return true iff success
    */
-  public static boolean mprotect(Address address, Extent size, int prot) {
+  public static boolean commit(Address address, Extent size, boolean read, boolean write, boolean exec) {
     if (VM.VerifyAssertions) {
       VM._assert(isPageAligned(address) && isPageMultiple(size));
     }
-    return SysCall.sysCall.sysMProtect(address, size, prot) == 0;
+    return SysCall.sysCall.sysMemoryCommit(address, size, read, write, exec);
+  }
+
+  /**
+   * Decommit memory at address of specified size
+   * @param address Start of address range (Address)
+   * @param size Size of address range
+   * @return true iff success
+   */
+  public static boolean decommit(Address address, Extent size) {
+    if (VM.VerifyAssertions) {
+      VM._assert(isPageAligned(address) && isPageMultiple(size));
+    }
+    return SysCall.sysCall.sysMemoryDecommit(address, size);
   }
 
   private static int pagesize = -1;

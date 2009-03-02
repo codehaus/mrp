@@ -63,6 +63,8 @@ EXTERNAL void sysInitialize()
 {
 #ifdef RVM_FOR_HARMONY
   VMI_Initialize();
+  SYS_START(); /* start after VMI is initialized */
+  DefaultPageSize = hyvmem_supported_page_sizes()[0];
 #endif
   DeathLock = sysMonitorCreate();
 }

@@ -36,6 +36,7 @@
 #include <vmi.h>
 EXTERNAL VMInterface vmi;
 EXTERNAL void VMI_Initialize();
+EXTERNAL UDATA DefaultPageSize;
 #endif
 
 /** Macro that starts all sys related functions */
