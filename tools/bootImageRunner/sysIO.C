@@ -11,12 +11,13 @@
  *  regarding copyright ownership.
  */
 
+#include "sys.h"
+
+#ifndef RVM_FOR_HARMONY
 #include <errno.h>
-#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
-#include "sys.h"
+#endif
 
 /**
  * Read one byte from file.
