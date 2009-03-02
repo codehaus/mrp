@@ -236,6 +236,9 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
     flags |= MAP_NORESERVE;
   }
   void* res = mmap(start, (size_t)(length), protection, flags, fd, (off_t)offset);
+#if !defined(MAP_ANONYMOUS) && !defined(MAP_ANON)
+  close(fd);
+#endif
   if (res == (void *) -1){
     CONSOLE_PRINTF("%s: sysMemoryReserve %p %d %d %d %d %d failed with %d.\n",
                    Me, start, length, protection, flags, fd, offset, errno);
