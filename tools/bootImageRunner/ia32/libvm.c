@@ -1169,7 +1169,7 @@ createVM(int UNUSED vmInSeparateThread)
      * processor object.
      */
     *(Address *) (tr + Thread_framePointer_offset)
-	= (Address)sp - 8;
+	= (Address)sp - (2*__SIZEOF_POINTER__);
 
     sysInitialize();
 
