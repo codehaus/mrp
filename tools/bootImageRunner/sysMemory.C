@@ -12,15 +12,17 @@
  */
 
 #include "sys.h"
+#include <string.h>
+
+#ifndef RVM_FOR_HARMONY
 #include <errno.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
 #ifdef RVM_FOR_AIX
 #include <sys/cache.h>
-#endif
+#endif // RVM_FOR_AIX
+#endif // RVM_FOR_HARMONY
 
 #ifdef RVM_FOR_HARMONY
 UDATA DefaultPageSize;
