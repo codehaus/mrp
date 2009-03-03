@@ -1593,27 +1593,34 @@ Check to make sure all required properties are specified. This includes properti
     </condition>
 
     <!-- create jvm shared library -->
-    <property name="rvm.dll" value="${target.dll-prefix}rvm${target.dll-ext}"/>
+    <echo message="Creating rvm.dll"/>
+    <path id="rvm.dll">
+      <pathelement path="${build.base}/${target.dll-prefix}rvm${target.dll-ext}"/>
+    </path>
+    <path id="rvm.obj">
+      <pathelement path="${build.base}/${target.dll-prefix}rvm.obj"/>
+    </path>
     <exec executable="${c++.exe}" failonerror="true">
       <arg line="${rvm.c++.args} -lpthread ${c++.librt}"/>
       <arg value="-o"/>
-      <arg path="${build.base}/${rvm.dll}"/>
+      <arg path="${toString:rvm.dll}"/>
       <arg path="${bl.dir}/jvm.C"/>
     </exec>
 
     <!-- create vmi shared library -->
-    <condition property="vmi.dll" value="${target.dll-prefix}vmi${target.dll-ext}" else="">
-        <equals arg1="${classlib.provider}" arg2="Harmony"/>
-    </condition>
     <if>
       <conditions>
         <equals arg1="${classlib.provider}" arg2="Harmony"/>
       </conditions>
       <sequential>
+        <echo message="Creating vmi.dll"/>
+        <path id="vmi.dll">
+          <pathelement path="${build.base}/${target.dll-prefix}vmi${target.dll-ext}"/>
+        </path>
         <exec executable="${c.exe}" failonerror="true">
           <arg line="-DLINUX=1 ${rvm.c++.args} -lpthread ${c++.librt} -L${harmony.lib.dir} -lhyprt -lhyarchive -lhyzlib"/>
           <arg value="-o"/>
-          <arg value="${build.base}/${vmi.dll}"/>
+          <arg value="${vmi.dll}"/>
           <arg value="${bl.dir}/harmony.c"/>
           <arg value="libraryInterface/Harmony/ASF/native/vmls.c"/>
           <arg value="-Wl,--version-script=${bl.dir}/harmony.exp"/>
@@ -1622,6 +1629,7 @@ Check to make sure all required properties are specified. This includes properti
     </if>
 
     <!-- create rvmdynlib shared library -->
+    <echo message="Creating rvmdynlib.dll"/>
     <property name="rvmdynlib.dll" value="${target.dll-prefix}rvmdynlib${target.jni-suffix}"/>
     <exec executable="${c++.exe}" failonerror="true">
       <arg line="${rvm.c++.args}"/>
@@ -1659,7 +1667,7 @@ Check to make sure all required properties are specified. This includes properti
         <exec executable="${c++.exe}" failonerror="true">
           <arg line="${c++.args} ${rvm.common.args} ${gcspy.lib.dir} -lpthread ${perfctr.lib} ${c++.librt} ${c++.rdynamic} -g"/>
           <arg value="-o"/>
-          <arg value="${build.base}/JikesRVM"/>
+          <arg path="${build.base}/JikesRVM"/>
           <arg value="-L${build.base}"/>
 	  <arg value="-L${harmony.lib.dir}"/>
           <arg value="-ldl"/>
