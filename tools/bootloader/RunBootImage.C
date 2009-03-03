@@ -29,32 +29,6 @@
  *      Cleaned up memory management.  Made the handling of numeric args
  *      robust.
  */
-#include <stdio.h>
-#include <assert.h>             // assert()
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/signal.h>
-#include <ctype.h>              // isspace()
-#include <limits.h>             // UINT_MAX, ULONG_MAX, etc
-#include <strings.h> /* bzero */
-#include <libgen.h>  /* basename */
-#include <sys/utsname.h>        // for uname(2)
-#include <sys/mman.h>
-#if (defined __linux__) || (defined __MACH__) || (defined (__SVR4) && defined (__sun))
-#include <ucontext.h>
-#include <signal.h>
-#else
-#include <sys/cache.h>
-#include <sys/context.h>
-// extern "C" char *sys_siglist[];
-#endif
-#include "RunBootImage.h"       // Automatically generated for us by
-                                // jbuild.linkBooter
-#include "bootImageRunner.h"    // In tools/bootImageRunner
-#include "cmdLine.h"            // Command line args.
 
 // Interface to VM data structures.
 //
@@ -63,7 +37,16 @@
 #define NEED_GNU_CLASSPATH_VERSION
 #define NEED_EXIT_STATUS_CODES  // Get EXIT_STATUS_BOGUS_COMMAND_LINE_ARG
 
+#include "RunBootImage.h" /* definitions created during the build */
 #include "sys.h"
+#include <ctype.h> /* isspace */
+#include <stdlib.h>
+#include <string.h> /* strcmp, ... */
+#include <limits.h> /* INT_MAX, ... */
+
+#ifndef RVM_FOR_HARMONY
+#include <errno.h>
+#endif
 
 uint64_t initialHeapSize;       /* Declared in bootImageRunner.h */
 uint64_t maximumHeapSize;       /* Declared in bootImageRunner.h */
@@ -73,10 +56,89 @@ int verboseBoot;                /* Declared in bootImageRunner.h */
 static int DEBUG = 0;                   // have to set this from a debugger
 static const unsigned BYTES_IN_PAGE = MMTk_Constants_BYTES_IN_PAGE;
 
+/* These definitions must remain in sync with nonStandardArgs, the array
+ * immediately below. */
+static const int HELP_INDEX                    = 0;
+static const int VERBOSE_INDEX                 = HELP_INDEX+1;
+static const int VERBOSE_BOOT_INDEX            = VERBOSE_INDEX+1;
+static const int MS_INDEX                      = VERBOSE_BOOT_INDEX+1;
+static const int MX_INDEX                      = MS_INDEX+1;
+static const int SYSLOGFILE_INDEX              = MX_INDEX+1;
+static const int BOOTIMAGE_CODE_FILE_INDEX     = SYSLOGFILE_INDEX+1;
+static const int BOOTIMAGE_DATA_FILE_INDEX     = BOOTIMAGE_CODE_FILE_INDEX+1;
+static const int BOOTIMAGE_RMAP_FILE_INDEX     = BOOTIMAGE_DATA_FILE_INDEX+1;
+static const int INDEX                      = BOOTIMAGE_RMAP_FILE_INDEX+1;
+static const int GC_INDEX                      = INDEX+1;
+static const int AOS_INDEX                     = GC_INDEX+1;
+static const int IRC_INDEX                     = AOS_INDEX+1;
+static const int RECOMP_INDEX                  = IRC_INDEX+1;
+static const int BASE_INDEX                    = RECOMP_INDEX+1;
+static const int OPT_INDEX                     = BASE_INDEX+1;
+static const int VMCLASSES_INDEX               = OPT_INDEX+1;
+static const int CPUAFFINITY_INDEX             = VMCLASSES_INDEX+1;
+static const int PROCESSORS_INDEX              = CPUAFFINITY_INDEX+1;
+
+static const int numNonstandardArgs      = PROCESSORS_INDEX+1;
+
+static const char* nonStandardArgs[numNonstandardArgs] = {
+   "-X",
+   "-X:verbose",
+   "-X:verboseBoot=",
+   "-Xms",
+   "-Xmx",
+   "-X:sysLogfile=",
+   "-X:ic=",
+   "-X:id=",
+   "-X:ir=",
+   "-X:vm",
+   "-X:gc",
+   "-X:aos",
+   "-X:irc",
+   "-X:recomp",
+   "-X:base",
+   "-X:opt",
+   "-X:vmClasses=",
+   "-X:cpuAffinity=",
+   "-X:processors=",
+};
+
+// a NULL-terminated list.
+static const char* nonStandardUsage[] = {
+   "    -X                       Print usage on nonstandard options",
+   "    -X:verbose               Print out additional lowlevel information",
+   "    -X:verboseBoot=<number>  Print out messages while booting VM",
+   "    -Xms<number><unit>       Initial size of heap",
+   "    -Xmx<number><unit>       Maximum size of heap",
+   "    -X:sysLogfile=<filename> Write standard error message to <filename>",
+   "    -X:ic=<filename>         Read boot image code from <filename>",
+   "    -X:id=<filename>         Read boot image data from <filename>",
+   "    -X:ir=<filename>         Read boot image ref map from <filename>",
+   "    -X:vm:<option>           Pass <option> to virtual machine",
+   "          :help              Print usage choices for -X:vm",
+   "    -X:gc:<option>           Pass <option> on to GC subsystem",
+   "          :help              Print usage choices for -X:gc",
+   "    -X:aos:<option>          Pass <option> on to adaptive optimization system",
+   "          :help              Print usage choices for -X:aos",
+   "    -X:irc:<option>          Pass <option> on to the initial runtime compiler",
+   "          :help              Print usage choices for -X:irc",
+   "    -X:recomp:<option>       Pass <option> on to the recompilation compiler(s)",
+   "          :help              Print usage choices for -X:recomp",
+   "    -X:base:<option>         Pass <option> on to the baseline compiler",
+   "          :help              print usage choices for -X:base",
+   "    -X:opt:<option>          Pass <option> on to the optimizing compiler",
+   "          :help              Print usage choices for -X:opt",
+   "    -X:vmClasses=<path>      Load the org.jikesrvm.* and java.* classes",
+   "                             from <path>, a list like one would give to the",
+   "                             -classpath argument.",
+   "    -Xbootclasspath/p:<cp>   (p)repend bootclasspath with specified classpath",
+   "    -Xbootclasspath/a:<cp>   (a)ppend specified classpath to bootclasspath",
+   "    -X:cpuAffinity=<number>  physical cpu to which 1st VP is bound",
+   "    -X:processors=<number|\"all\">  no. of virtual processors",
+   NULL                         /* End of messages */
+};
+
 static bool strequal(const char *s1, const char *s2);
 static bool strnequal(const char *s1, const char *s2, size_t n);
-
-void findMappable();
 
 /*
  * What standard command line arguments are supported?
@@ -629,9 +691,9 @@ parse_memory_size(const char *sizeName, /*  "initial heap" or "maximum heap" or
         return 0U;              // Distinguished value meaning trouble.
     }
     long double tot_d = userNum * factor;
-    assert(tot_d <= (UINT_MAX - roundTo));
-    assert(tot_d >= 1);
-
+    if ((tot_d > (UINT_MAX - roundTo)) || (tot_d < 1)) {
+      ERROR_PRINTF("Unexpected memory size %f", tot_d);
+    }
     unsigned tot = (unsigned) tot_d;
     if (tot % roundTo) {
         unsigned newTot = tot + roundTo - (tot % roundTo);
@@ -643,30 +705,4 @@ parse_memory_size(const char *sizeName, /*  "initial heap" or "maximum heap" or
         tot = newTot;
     }
     return tot;
-}
-
-/**
- * Sweep through memory to find which areas of memory are mappable.
- * This is invoked from a command-line argument.
- */
-void findMappable()
-{
-#ifndef RVM_FOR_HARMONY
-  int granularity = 1 << 22; // every 4 megabytes
-  int max = (1 << 30) / (granularity >> 2);
-  int pageSize = getpagesize();
-  for (int i=0; i<max; i++) {
-    char *start = (char *) (i * granularity);
-    int prot = PROT_READ | PROT_WRITE | PROT_EXEC;
-    int flag = MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED;
-    void *result = mmap (start, (size_t) pageSize, prot, flag, -1, 0);
-    int fail = (result == (void *) -1);
-    if (fail) {
-      CONSOLE_PRINTF("%p FAILED with errno %d: %s\n", start, errno, strerror(errno));
-    } else {
-      CONSOLE_PRINTF("%p SUCCESS\n", start);
-      munmap(start, (size_t) pageSize);
-    }
-  }
-#endif // RVM_FOR_HARMONY -- TODO
 }

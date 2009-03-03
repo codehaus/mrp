@@ -82,6 +82,9 @@ extern char *Me;
 #define TRACE_PRINTF(...) if(TRACE) fprintf(SysTraceFile, __VA_ARGS__)
 #endif
 
+/* Routines used elsewhere within boot image runner */
+
+EXTERNAL void findMappable();
 EXTERNAL long long sysNanoTime();
 EXTERNAL void sysExit(int) NORETURN;
 

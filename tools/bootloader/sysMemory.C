@@ -251,6 +251,31 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
 }
 
 /**
+ * Release memory at specified address, size
+ * @param start address (Java ADDRESS)
+ * @param length of region (Java EXTENT)
+ * @return true iff success (Java boolean)
+ */
+EXTERNAL jboolean sysMemoryFree(char *start, size_t length)
+{
+  SYS_START();
+  TRACE_PRINTF("%s: sysMemoryFree %p %d\n", Me, start, length);
+#ifdef RVM_FOR_HARMONY
+  if (hyvmem_free_memory(start, length) == 0) {
+    return JNI_TRUE;
+  } else {
+    return JNI_FALSE;
+  }
+#else
+  if (munmap(start, length) == 0) {
+    return JNI_TRUE;
+  } else {
+    return JNI_FALSE;
+  }
+#endif // RVM_FOR_HARMONY
+}
+
+/**
  * Commit memory
  * @param start address (Java ADDRESS)
  * @param length of region (Java EXTENT)
@@ -340,4 +365,25 @@ EXTERNAL int sysGetPageSize()
 #endif // RVM_FOR_HARMONY
   TRACE_PRINTF("%s: sysGetPageSize %d\n", Me, result);
   return result;
+}
+
+/**
+ * Sweep through memory to find which areas of memory are mappable.
+ * This is invoked from a command-line argument.
+ */
+EXTERNAL void findMappable()
+{
+  int granularity = 1 << 22; // every 4 megabytes
+  int max = (1 << 30) / (granularity >> 2);
+  int pageSize = sysGetPageSize();
+  for (int i=0; i<max; i++) {
+    char *start = (char *) (i * granularity);
+    void *result = sysMemoryReserve(start, pageSize, JNI_TRUE, JNI_TRUE, JNI_TRUE, JNI_TRUE);
+    if (result == NULL) {
+      CONSOLE_PRINTF("%p FAILED with errno %d: %s\n", start, errno, strerror(errno));
+    } else {
+      CONSOLE_PRINTF("%p SUCCESS\n", start);
+      sysMemoryFree(start, pageSize);
+    }
+  }
 }
