@@ -337,7 +337,7 @@ Check to make sure all required properties are specified. This includes properti
   <!-- **************************************************************************** -->
 
   <target name="setup-filter-properties" depends="check-properties">
-    <condition property="arch.filter" value="-DRVM_FOR_POWERPC=1" else="">
+    <condition property="arch.filter" value="-DRVM_FOR_POWERPC=1" else="-DRVM_FOR_IA32=1">
       <equals arg1="${target.arch}" arg2="ppc"/>
     </condition>
 
@@ -1492,7 +1492,7 @@ Check to make sure all required properties are specified. This includes properti
   <!-- Setup any properties required during native compile of bootloader -->
   <target name="check-bootloader-properties" depends="setup-filter-properties">
     <check-host-and-target-match message="can not build the bootloader."/>
-    <property name="bl.dir" location="${basedir}/tools/bootImageRunner"/>
+    <property name="bl.dir" location="${basedir}/tools/bootloader"/>
 
     <condition property="gen-ppc-bootThread" value="true">
       <equals arg1="${target.arch}" arg2="ppc"/>
@@ -1561,7 +1561,7 @@ Check to make sure all required properties are specified. This includes properti
     <exec executable="${cpp.exe}" failonerror="true" output="${build.native}/bootThread.s">
       <arg line="${rvm.common.args} ${cpp.args}"/>
       <arg value="-P"/>
-      <arg path="${basedir}/tools/bootImageRunner/ppc/bootThread.c"/>
+      <arg path="${basedir}/tools/bootloader/ppc/bootThread.c"/>
     </exec>
   </target>
 
@@ -1629,7 +1629,7 @@ Check to make sure all required properties are specified. This includes properti
       <arg value="${build.base}/${rvmdynlib.dll}"/>
       <arg value="-L${build.base}"/>
       <arg value="-lrvm"/>
-      <arg value="${bl.dir}/org_jikesrvm_runtime_DynamicLibrary.c"/>
+      <arg value="${bl.dir}/jni/org_jikesrvm_runtime_DynamicLibrary.c"/>
     </exec>
 
     <condition property="perfctr.lib" value="-lperfctr" else="">
@@ -1679,7 +1679,7 @@ Check to make sure all required properties are specified. This includes properti
 
   <target name="build-debug-symbols" if="rvm.debug-symbols">
     <exec executable="${perl.exe}" failonerror="true">
-      <arg path="${basedir}/tools/bootImageRunner/parse_map.perl"/>
+      <arg path="${basedir}/tools/bootloader/parse_map.perl"/>
       <arg path="${build.base}/RVM.map"/>
       <arg path="${build.base}/JikesRVM-symbols.s"/>
     </exec>
@@ -1710,7 +1710,7 @@ Check to make sure all required properties are specified. This includes properti
         <include name="BootImageWriterOutput.txt"/>
       </fileset>
     </copy>
-    <copy file="${basedir}/tools/bootImageRunner/rvm.classpath" tofile="${dist.base}/rvm">
+    <copy file="${basedir}/tools/bootloader/rvm.classpath" tofile="${dist.base}/rvm">
     </copy>
     <chmod file="${dist.base}/rvm" perm="ugo+rx"/>
     <copy file="${build.rt.jar}" todir="${dist.base}"/>
@@ -1760,7 +1760,7 @@ target.jni-suffix=${target.jni-suffix}
         <include name="BootImageWriterOutput.txt"/>
       </fileset>
     </copy>
-    <copy file="${basedir}/tools/bootImageRunner/rvm.harmony" tofile="${dist.base}/rvm">
+    <copy file="${basedir}/tools/bootloader/rvm.harmony" tofile="${dist.base}/rvm">
     </copy>
     <chmod file="${dist.base}/rvm" perm="ugo+rx"/>
     <copy file="${build.rt.jar}" todir="${dist.base}"/>
