@@ -261,7 +261,7 @@ EXTERNAL jboolean sysMemoryFree(char *start, size_t length)
   SYS_START();
   TRACE_PRINTF("%s: sysMemoryFree %p %d\n", Me, start, length);
 #ifdef RVM_FOR_HARMONY
-  if (hyvmem_free_memory(start, length) == 0) {
+  if (hyvmem_free_memory(start, length, NULL) == 0) {
     return JNI_TRUE;
   } else {
     return JNI_FALSE;
@@ -376,11 +376,12 @@ EXTERNAL void findMappable()
   int granularity = 1 << 22; // every 4 megabytes
   int max = (1 << 30) / (granularity >> 2);
   int pageSize = sysGetPageSize();
+  SYS_START();
   for (int i=0; i<max; i++) {
     char *start = (char *) (i * granularity);
     void *result = sysMemoryReserve(start, pageSize, JNI_TRUE, JNI_TRUE, JNI_TRUE, JNI_TRUE);
     if (result == NULL) {
-      CONSOLE_PRINTF("%p FAILED with errno %d: %s\n", start, errno, strerror(errno));
+      CONSOLE_PRINTF("%p FAILED\n", start);
     } else {
       CONSOLE_PRINTF("%p SUCCESS\n", start);
       sysMemoryFree(start, pageSize);

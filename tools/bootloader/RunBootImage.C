@@ -40,13 +40,10 @@
 #include "RunBootImage.h" /* definitions created during the build */
 #include "sys.h"
 #include <ctype.h> /* isspace */
+#include <errno.h> /* for strtol errors */
 #include <stdlib.h>
 #include <string.h> /* strcmp, ... */
 #include <limits.h> /* INT_MAX, ... */
-
-#ifndef RVM_FOR_HARMONY
-#include <errno.h>
-#endif
 
 uint64_t initialHeapSize;       /* Declared in bootImageRunner.h */
 uint64_t maximumHeapSize;       /* Declared in bootImageRunner.h */

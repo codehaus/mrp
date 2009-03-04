@@ -1620,7 +1620,7 @@ Check to make sure all required properties are specified. This includes properti
         <exec executable="${c.exe}" failonerror="true">
           <arg line="-DLINUX=1 ${rvm.c++.args} -lpthread ${c++.librt} -L${harmony.lib.dir} -lhyprt -lhyarchive -lhyzlib"/>
           <arg value="-o"/>
-          <arg value="${vmi.dll}"/>
+          <arg value="${toString:vmi.dll}"/>
           <arg value="${bl.dir}/harmony.c"/>
           <arg value="libraryInterface/Harmony/ASF/native/vmls.c"/>
           <arg value="-Wl,--version-script=${bl.dir}/harmony.exp"/>
@@ -1649,6 +1649,7 @@ Check to make sure all required properties are specified. This includes properti
         <equals arg1="${classlib.provider}" arg2="GNU Classpath"/>
       </conditions>
       <sequential>
+        <echo message="Creating JikesRVM"/>
         <exec executable="${c++.exe}" failonerror="true">
           <arg line="${c++.args} ${rvm.common.args} ${gcspy.lib.dir} -lpthread ${perfctr.lib} ${c++.librt} ${rvm.src} ${c++.rdynamic} -g"/>
           <arg value="-o"/>
@@ -1664,6 +1665,7 @@ Check to make sure all required properties are specified. This includes properti
         <equals arg1="${classlib.provider}" arg2="Harmony"/>
       </conditions>
       <sequential>
+        <echo message="Creating JikesRVM"/>
         <exec executable="${c++.exe}" failonerror="true">
           <arg line="${c++.args} ${rvm.common.args} ${gcspy.lib.dir} -lpthread ${perfctr.lib} ${c++.librt} ${c++.rdynamic} -g"/>
           <arg value="-o"/>

@@ -278,7 +278,7 @@ EXTERNAL Address sysThreadCreate(Address tr, Address ip, Address fp)
   TRACE_PRINTF("%s: sysThreadCreate %p %p %p\n", Me, tr, ip, fp);
 
   // create arguments - memory reclaimed in sysThreadStartup
-  sysThreadArguments = (Address *)malloc(sizeof(Address[3]));
+  sysThreadArguments = (Address *)sysMalloc(sizeof(Address[3]));
   sysThreadArguments[0] = tr;
   sysThreadArguments[1] = ip;
   sysThreadArguments[2] = fp;
@@ -336,7 +336,7 @@ static void* sysThreadStartup(void *args)
 
   SYS_START();
   memset (&stack, 0, sizeof stack);
-  stackBuf = (char*)malloc(sizeof(char[SIGSTKSZ]));
+  stackBuf = (char*)sysMalloc(sizeof(char[SIGSTKSZ]));
   stack.ss_sp = stackBuf;
   stack.ss_flags = 0;
   stack.ss_size = SIGSTKSZ;
@@ -348,19 +348,19 @@ static void* sysThreadStartup(void *args)
   tr = ((Address *)args)[0];
   ip = ((Address *)args)[1];
   fp = ((Address *)args)[2];
-  free(args);
+  sysFree(args);
   
-  jb = (jmp_buf*)malloc(sizeof(jmp_buf));
+  jb = (jmp_buf*)sysMalloc(sizeof(jmp_buf));
   if (setjmp(*jb)) {
     // this is where we come to terminate the thread
 #ifdef RVM_FOR_HARMONY
     hythread_detach(NULL);
 #endif
-    free(jb);
+    sysFree(jb);
     *(int*)(tr + RVMThread_execStatus_offset) = RVMThread_TERMINATED;
     stack.ss_flags = SS_DISABLE;
     sigaltstack(&stack, 0);
-    free(stackBuf);
+    sysFree(stackBuf);
   } else {
     setThreadLocal(TerminateJmpBufKey, (void*)jb);
     TRACE_PRINTF("%s: sysThreadStartup: pr=%p ip=%p fp=%p\n", Me, tr, ip, fp);
@@ -418,7 +418,7 @@ EXTERNAL void sysSetupHardwareTrapHandler()
   stack_t stack;
 
   memset (&stack, 0, sizeof stack);
-  stack.ss_sp = (char*)malloc(sizeof(char[SIGSTKSZ]));
+  stack.ss_sp = (char*)sysMalloc(sizeof(char[SIGSTKSZ]));
 
   stack.ss_size = SIGSTKSZ;
   if (sigaltstack (&stack, 0)) {
@@ -582,7 +582,7 @@ EXTERNAL Address sysMonitorCreate()
   hythread_monitor_t monitor;
   hythread_monitor_init_with_name(&monitor, 0, NULL);
 #else
-  vmmonitor_t *monitor = (vmmonitor_t*)malloc(sizeof(vmmonitor_t));
+  vmmonitor_t *monitor = (vmmonitor_t*)sysMalloc(sizeof(vmmonitor_t));
   pthread_mutex_init(&monitor->mutex, NULL);
   pthread_cond_init(&monitor->cond, NULL);
 #endif
@@ -599,7 +599,7 @@ EXTERNAL void sysMonitorDestroy(Address _monitor)
   vmmonitor_t *monitor = (vmmonitor_t*)_monitor;
   pthread_mutex_destroy(&monitor->mutex);
   pthread_cond_destroy(&monitor->cond);
-  free(monitor);
+  sysFree(monitor);
 #endif
 }
 

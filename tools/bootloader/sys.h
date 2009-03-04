@@ -87,5 +87,7 @@ extern char *Me;
 EXTERNAL void findMappable();
 EXTERNAL long long sysNanoTime();
 EXTERNAL void sysExit(int) NORETURN;
+EXTERNAL void* sysMalloc(int length);
+EXTERNAL void sysFree(void *location);
 
 #endif // RVM_SYSCALL_DEFINITIONS
