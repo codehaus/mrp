@@ -14,10 +14,9 @@
 #include "sys.h"
 
 volatile int numNativeAlignTraps;
-volatile int numEightByteAlignTraps;
 volatile int numBadAlignTraps;
 
-static volatile int numEnableAlignCheckingCalls = 0;
+volatile int numEnableAlignCheckingCalls = 0;
 static volatile int numDisableAlignCheckingCalls = 0;
 
 EXTERNAL void sysEnableAlignmentChecking() {
@@ -54,12 +53,10 @@ EXTERNAL void sysReportAlignmentChecking() {
 
   CONSOLE_PRINTF("\nAlignment checking report:\n\n");
   CONSOLE_PRINTF("# native traps (ignored by default):             %d\n", numNativeAlignTraps);
-  CONSOLE_PRINTF("# 8-byte access traps (ignored by default):      %d\n", numEightByteAlignTraps);
   CONSOLE_PRINTF("# bad access traps (throw exception by default): %d (should be zero)\n\n", numBadAlignTraps);
   CONSOLE_PRINTF("# calls to sysEnableAlignmentChecking():         %d\n", numEnableAlignCheckingCalls);
   CONSOLE_PRINTF("# calls to sysDisableAlignmentChecking():        %d\n\n", numDisableAlignCheckingCalls);
   CONSOLE_PRINTF("# native traps again (to see if changed):        %d\n", numNativeAlignTraps);
-  CONSOLE_PRINTF("# 8-byte access again (to see if changed):       %d\n\n", numEightByteAlignTraps);
 
   // cause a native trap to see if traps are enabled
   prevNumNativeTraps = numNativeAlignTraps;
@@ -67,7 +64,6 @@ EXTERNAL void sysReportAlignmentChecking() {
   enabled = (numNativeAlignTraps != prevNumNativeTraps);
 
   CONSOLE_PRINTF("# native traps again (to see if changed):        %d\n", numNativeAlignTraps);
-  CONSOLE_PRINTF("# 8-byte access again (to see if changed):       %d\n\n", numEightByteAlignTraps);
   CONSOLE_PRINTF("Current status of alignment checking:            %s (should be on)\n\n", (enabled ? "on" : "off"));
 #endif
 }

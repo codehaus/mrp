@@ -71,18 +71,18 @@ sysWriteByte(int fd, int data)
 #ifdef RVM_FOR_HARMONY
   return hyfile_write(fd, &ch, 1);
 #else
- again:
-  int rc = write(fd, &ch, 1);
-  if (rc == 1)
-    return 0; // success
-  else if (errno == EAGAIN)
-    return -2; // operation would block
-  else if (errno == EINTR)
-    goto again; // interrupted by signal; try again
-  else {
-    ERROR_PRINTF("%s: writeByte, fd=%d, write returned error %d (%s)\n", Me,
-                   fd, errno, strerror(errno));
-    return -1; // some kind of error
+  while(1) {
+    int rc = write(fd, &ch, 1);
+    if (rc == 1) {
+      return 0; // success
+    } else if (errno == EAGAIN) {
+      return -2; // operation would block
+    } else if (errno == EINTR) {
+    } else {
+      ERROR_PRINTF("%s: writeByte, fd=%d, write returned error %d (%s)\n", Me,
+                     fd, errno, strerror(errno));
+      return -1; // some kind of error
+    }
   }
 #endif // RVM_FOR_HARMONY
 }
@@ -101,21 +101,22 @@ EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
 #ifdef RVM_FOR_HARMONY
   return hyfile_read(fd, buf, cnt);
 #else
- again:
-  int rc = read(fd, buf, cnt);
-  if (rc >= 0)
-    return rc;
-  int err = errno;
-  if (err == EAGAIN)
-    {
+  while (1) {
+    int rc = read(fd, buf, cnt);
+    if (rc >= 0)
+      return rc;
+    int err = errno;
+    if (err == EAGAIN) {
       TRACE_PRINTF("%s: read on %d would have blocked: needs retry\n", Me, fd);
       return -1;
+    }else if (err != EINTR) {
+      ERROR_PRINTF("%s: read error %d (%s) on %d\n", Me,
+		   err, strerror(err), fd);
+      return -2;
+    } else {
+      // interrupted by signal; try again
     }
-  else if (err == EINTR)
-    goto again; // interrupted by signal; try again
-  ERROR_PRINTF("%s: read error %d (%s) on %d\n", Me,
-               err, strerror(err), fd);
-  return -2;
+  }
 #endif // RVM_FOR_HARMONY
 }
 
@@ -133,25 +134,24 @@ EXTERNAL int sysWriteBytes(int fd, char *buf, int cnt)
 #ifdef RVM_FOR_HARMONY
   return hyfile_write(fd, buf, cnt);
 #else
- again:
-  int rc = write(fd, buf, cnt);
-  if (rc >= 0)
-    return rc;
-  int err = errno;
-  if (err == EAGAIN)
-    {
+  while(1) {
+    int rc = write(fd, buf, cnt);
+    if (rc >= 0)
+      return rc;
+    int err = errno;
+    if (err == EAGAIN) {
       TRACE_PRINTF("%s: write on %d would have blocked: needs retry\n", Me, fd);
       return -1;
-    }
-  if (err == EINTR)
-    goto again; // interrupted by signal; try again
-  if (err == EPIPE)
-    {
+    } else  if (err == EINTR) {
+      // interrupted by signal; try again
+    } else if (err == EPIPE) {
       TRACE_PRINTF("%s: write on %d with nobody to read it\n", Me, fd);
       return -3;
+    } else {
+      ERROR_PRINTF("%s: write error %d (%s) on %d\n", Me,
+		   err, strerror( err ), fd);
+      return -2;
     }
-  ERROR_PRINTF("%s: write error %d (%s) on %d\n", Me,
-               err, strerror( err ), fd);
-  return -2;
+  }
 #endif // RVM_FOR_HARMONY
 }

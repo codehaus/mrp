@@ -19,4 +19,4 @@
 
 #define NEED_BOOT_RECORD_DECLARATIONS
 #define NEED_BOOT_RECORD_INITIALIZATION
-#include <InterfaceDeclarations.h>
+#include "InterfaceDeclarations.h"

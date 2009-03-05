@@ -46,13 +46,13 @@ EXTERNAL UDATA DefaultPageSize;
 #define SYS_START()
 #endif
 
-/** Sink for messages relating to serious errors detected by C runtime. */
 #ifndef RVM_FOR_HARMONY
+/** Sink for messages relating to serious errors detected by C runtime. */
 extern FILE *SysErrorFile;
 #endif
 
-/** Sink for trace messages produced by VM.sysWrite(). */
 #ifndef RVM_FOR_HARMONY
+/** Sink for trace messages produced by VM.sysWrite(). */
 extern FILE *SysTraceFile;
 #endif
 
@@ -72,6 +72,10 @@ extern FILE *SysTraceFile;
 
 /** String used for name of RVM */
 extern char *Me;
+
+#ifdef RVM_WITH_ALIGNMENT_CHECKING
+extern volatile int numEnableAlignCheckingCalls;
+#endif // RVM_WITH_ALIGNMENT_CHECKING
 
 /** Trace execution of syscalls */
 #define TRACE 0

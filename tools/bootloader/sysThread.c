@@ -47,7 +47,7 @@ static TLS_KEY_TYPE TerminateJmpBufKey;
 static TLS_KEY_TYPE VmThreadKey;
 static TLS_KEY_TYPE IsVmThreadKey;
 static Address DeathLock;
-static bool systemExiting = false;
+static int systemExiting = 0;
 
 /* Function prototypes */
 #ifdef RVM_FOR_HARMONY
@@ -87,7 +87,7 @@ EXTERNAL void sysExit(int value)
   fflush(SysTraceFile);
   fflush(stdout);
 #endif
-  systemExiting = true;
+  systemExiting = 1;
   if (DeathLock != NULL) {
     sysMonitorEnter(DeathLock);
   }
@@ -491,7 +491,8 @@ EXTERNAL void sysThreadBind(int UNUSED cpuId)
   }
 #endif
 
-#ifdef RVM_FOR_LINUX
+#if defined RVM_FOR_LINUX && defined __USE_GNU
+  /* GNU features for thread binding */
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(cpuId, &cpuset);
@@ -637,7 +638,7 @@ EXTERNAL void sysMonitorTimedWaitAbsolute(Address _monitor, long long whenWakeup
   if (whenWakeupNanos <= 0) return;
   hythread_monitor_wait_timed((hythread_monitor_t)_monitor, (I_64)(whenWakeupNanos / 1000000LL), (IDATA)(whenWakeupNanos % 1000000LL));
 #else
-  timespec ts;
+  struct timespec ts;
   ts.tv_sec = (time_t)(whenWakeupNanos/1000000000LL);
   ts.tv_nsec = (long)(whenWakeupNanos%1000000000LL);
   TRACE_PRINTF("starting wait at %lld until %lld (%ld, %ld)\n",

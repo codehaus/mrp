@@ -30,28 +30,26 @@ final class GenArch_ia32 extends GenArch {
     Offset offset;
 
     offset = ArchEntrypoints.registersFPField.getOffset();
-    pln("Registers_fp_offset = ", offset);
+    pln("Registers_fp_offset", offset);
 
-    p("static const int Constants_EAX                    = " + RegisterConstants.EAX.value() + ";\n");
-    p("static const int Constants_ECX                    = " + RegisterConstants.ECX.value() + ";\n");
-    p("static const int Constants_EDX                    = " + RegisterConstants.EDX.value() + ";\n");
-    p("static const int Constants_EBX                    = " + RegisterConstants.EBX.value() + ";\n");
-    p("static const int Constants_ESP                    = " + RegisterConstants.ESP.value() + ";\n");
-    p("static const int Constants_EBP                    = " + RegisterConstants.EBP.value() + ";\n");
-    p("static const int Constants_ESI                    = " + RegisterConstants.ESI.value() + ";\n");
-    p("static const int Constants_EDI                    = " + RegisterConstants.EDI.value() + ";\n");
-    p("static const int Constants_STACKFRAME_BODY_OFFSET             = " +
-      StackframeLayoutConstants.STACKFRAME_BODY_OFFSET + ";\n");
-    p("static const int Constants_STACKFRAME_RETURN_ADDRESS_OFFSET   = " +
-      StackframeLayoutConstants.STACKFRAME_RETURN_ADDRESS_OFFSET + ";\n");
-    p("static const int Constants_RVM_TRAP_BASE  = " + TrapConstants.RVM_TRAP_BASE + ";\n");
+    pln("Constants_EAX", RegisterConstants.EAX.value());
+    pln("Constants_ECX", RegisterConstants.ECX.value());
+    pln("Constants_EDX", RegisterConstants.EDX.value());
+    pln("Constants_EBX", RegisterConstants.EBX.value());
+    pln("Constants_ESP", RegisterConstants.ESP.value());
+    pln("Constants_EBP", RegisterConstants.EBP.value());
+    pln("Constants_ESI", RegisterConstants.ESI.value());
+    pln("Constants_EDI", RegisterConstants.EDI.value());
+    pln("Constants_STACKFRAME_BODY_OFFSET", StackframeLayoutConstants.STACKFRAME_BODY_OFFSET);
+    pln("Constants_STACKFRAME_RETURN_ADDRESS_OFFSET",  StackframeLayoutConstants.STACKFRAME_RETURN_ADDRESS_OFFSET);
+    pln("Constants_RVM_TRAP_BASE", TrapConstants.RVM_TRAP_BASE);
 
     offset = ArchEntrypoints.framePointerField.getOffset();
-    pln("Thread_framePointer_offset = ", offset);
+    pln("Thread_framePointer_offset", offset);
     offset = ArchEntrypoints.arrayIndexTrapParamField.getOffset();
-    pln("Thread_arrayIndexTrapParam_offset = ", offset);
+    pln("Thread_arrayIndexTrapParam_offset", offset);
 
-    p("static const int ArchConstants_SSE2 = " + (ArchConstants.SSE2_BASE ? "1;\n" : "0;\n"));
+    pln("ArchConstants_SSE2", ArchConstants.SSE2_BASE ? 1 : 0);
   }
 
   public void emitArchAssemblerDeclarations() {

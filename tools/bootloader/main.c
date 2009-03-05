@@ -50,6 +50,16 @@ uint64_t maximumHeapSize;       /* Declared in bootImageRunner.h */
 
 int verboseBoot;                /* Declared in bootImageRunner.h */
 
+/* Sink for messages relating to serious errors detected by C runtime. */
+#ifndef RVM_FOR_HARMONY
+FILE *SysErrorFile;
+#endif
+
+/* Sink for trace messages produced by VM.sysWrite(). */
+#ifndef RVM_FOR_HARMONY
+FILE *SysTraceFile;
+#endif
+
 static int DEBUG = 0;           /* have to set this from a debugger */
 #define BYTES_IN_PAGE MMTk_Constants_BYTES_IN_PAGE
 
@@ -476,6 +486,12 @@ main(int argc, const char **argv)
 {
     int j;
     SYS_START();
+#ifndef RVM_FOR_HARMONY
+    SysErrorFile = stderr;
+    SysTraceFile = stdout;
+    setbuf (SysErrorFile, 0);
+    setbuf (SysTraceFile, 0);
+#endif
     Me            = strrchr(*argv, '/') + 1;
     ++argv, --argc;
     initialHeapSize = heap_default_initial_size;

@@ -29,7 +29,7 @@ EXTERNAL void* sysDlopen(char *libname)
 #ifdef RVM_FOR_HARMONY
   UDATA descriptor;
   if (hysl_open_shared_library(libname, &descriptor, FALSE) != 0) {
-    ERROR_PRINTF("%s: error loading library %s\n", Me, libname);
+    TRACE_PRINTF("%s: error loading library %s\n", Me, libname);
     return NULL;
   } else {
     return (void*)descriptor;
@@ -41,7 +41,7 @@ EXTERNAL void* sysDlopen(char *libname)
   }
   while( (libHandler == 0 /*null*/) && (errno == EINTR) );
   if (libHandler == 0) {
-    ERROR_PRINTF("%s: error loading library %s: %s\n", Me,
+    TRACE_PRINTF("%s: error loading library %s: %s\n", Me,
                  libname, dlerror());
   }
   return libHandler;
