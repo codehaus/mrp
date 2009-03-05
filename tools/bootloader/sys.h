@@ -89,5 +89,15 @@ EXTERNAL long long sysNanoTime();
 EXTERNAL void sysExit(int) NORETURN;
 EXTERNAL void* sysMalloc(int length);
 EXTERNAL void sysFree(void *location);
+EXTERNAL unsigned int parse_memory_size(const char *sizeName, /*  "initial heap" or "maximum heap" or
+								  "initial stack" or "maximum stack"
+							      */
+					const char *sizeFlag, // "-Xms" or "-Xmx" or
+					// "-Xss" or "-Xsg" or "-Xsx"
+					const char *defaultFactor, // We now always default to bytes ("")
+					unsigned roundTo,  // Round to PAGE_SIZE_BYTES or to 4.
+					const char *token /* e.g., "-Xms200M" or "-Xms200" */,
+					const char *subtoken /* e.g., "200M" or "200" */,
+					int *fastExit);
 
 #endif // RVM_SYSCALL_DEFINITIONS

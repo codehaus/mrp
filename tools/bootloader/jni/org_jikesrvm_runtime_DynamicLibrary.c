@@ -15,23 +15,23 @@
  * JNI functions to support OnLoad
  */
 
-// Java includes
+/* Java includes */
 #include <jni.h>
 
-// generated class header
+/* generated class header */
 #include "org_jikesrvm_runtime_DynamicLibrary.h"
 
-extern struct Java sysJavaVM;
+extern struct JavaVM_ sysJavaVM;
 
-typedef jint (*JNI_OnLoad)(Java *vm, void *reserved);
+typedef jint (*JNI_OnLoad)(struct JavaVM_ *vm, void *reserved);
 
 /*
  * Class:     comibm.jikesrvm.DynamicLibrary
  * Method:    runJNI_OnLoad
  * Signature: (Lorg/vmmagic/unboxed/Address;)I
  */
-extern "C" JNIEXPORT jint JNICALL Java_org_jikesrvm_runtime_DynamicLibrary_runJNI_1OnLoad (JNIEnv *env,
-                                                                                           jclass clazz,
-                                                                                           jobject JNI_OnLoadAddress) {
+JNIEXPORT jint JNICALL Java_org_jikesrvm_runtime_DynamicLibrary_runJNI_1OnLoad (JNIEnv *env,
+										jclass clazz,
+										jobject JNI_OnLoadAddress) {
   return ((JNI_OnLoad)JNI_OnLoadAddress)(&sysJavaVM, NULL);
 }

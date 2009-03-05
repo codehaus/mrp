@@ -373,11 +373,12 @@ EXTERNAL int sysGetPageSize()
  */
 EXTERNAL void findMappable()
 {
+  int i;
   int granularity = 1 << 22; // every 4 megabytes
   int max = (1 << 30) / (granularity >> 2);
   int pageSize = sysGetPageSize();
   SYS_START();
-  for (int i=0; i<max; i++) {
+  for (i=0; i<max; i++) {
     char *start = (char *) (i * granularity);
     void *result = sysMemoryReserve(start, pageSize, JNI_TRUE, JNI_TRUE, JNI_TRUE, JNI_TRUE);
     if (result == NULL) {

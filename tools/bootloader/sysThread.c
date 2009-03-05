@@ -47,7 +47,7 @@ static TLS_KEY_TYPE TerminateJmpBufKey;
 static TLS_KEY_TYPE VmThreadKey;
 static TLS_KEY_TYPE IsVmThreadKey;
 static Address DeathLock;
-static int systemExiting = 0;
+static bool systemExiting = false;
 
 /* Function prototypes */
 #ifdef RVM_FOR_HARMONY
@@ -87,7 +87,7 @@ EXTERNAL void sysExit(int value)
   fflush(SysTraceFile);
   fflush(stdout);
 #endif
-  systemExiting = 1;
+  systemExiting = true;
   if (DeathLock != NULL) {
     sysMonitorEnter(DeathLock);
   }
