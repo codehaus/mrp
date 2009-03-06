@@ -255,7 +255,7 @@ public class BootRecord {
   public Address sysSetupHardwareTrapHandlerIP;
   public Address sysStashVMThreadIP;
   public Address sysThreadTerminateIP;
-  
+
   // monitors
   public Address sysMonitorCreateIP;
   public Address sysMonitorDestroyIP;

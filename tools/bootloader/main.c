@@ -621,13 +621,13 @@ EXTERNAL unsigned int parse_memory_size(const char *sizeName, /*  "initial heap"
 {
     SYS_START();
     errno = 0;
-    long double userNum;
+    double userNum;
     char *endp;                 /* Should be const char *, but if we do that,
                                    then the C++ compiler complains about the
                                    prototype for strtold() or strtod().   This
                                    is probably a bug in the specification
                                    of the prototype. */
-    userNum = strtold(subtoken, &endp);
+    userNum = strtod(subtoken, &endp);
     if (endp == subtoken) {
         CONSOLE_PRINTF( "%s: \"%s\": -X%s must be followed by a number.\n", Me, token, sizeFlag);
         *fastExit = 1;
@@ -670,12 +670,12 @@ EXTERNAL unsigned int parse_memory_size(const char *sizeName, /*  "initial heap"
     if (!*fastExit) {
         if (userNum <= 0.0) {
             CONSOLE_PRINTF(
-                    "%s: You may not specify a %s %s;\n",
-                    Me, userNum < 0.0 ? "negative" : "zero", sizeName);
+                    "%s: You may not specify a %s %s (%f - %s);\n",
+                    Me, userNum < 0.0 ? "negative" : "zero", sizeName, userNum, subtoken);
             CONSOLE_PRINTF( "\tit just doesn't make any sense.\n");
             *fastExit = 1;
         }
-    }
+    }      
 
     if (!*fastExit) {
         if ( errno == ERANGE || userNum > (((long double) (UINT_MAX - roundTo))/factor) )

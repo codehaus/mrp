@@ -62,7 +62,6 @@ import org.vmmagic.pragma.UnpreemptibleNoWarn;
 import org.vmmagic.pragma.Untraced;
 import org.vmmagic.pragma.NoCheckStore;
 import org.vmmagic.unboxed.Address;
-import org.vmmagic.unboxed.Word;
 import org.vmmagic.unboxed.Offset;
 import static org.jikesrvm.runtime.SysCall.sysCall;
 import org.jikesrvm.classloader.RVMMethod;
