@@ -200,6 +200,56 @@ isVmSignal(Address ip, Address vpAddress)
   return inRVMAddressSpace(ip) && inRVMAddressSpace(vpAddress);
 }
 
+/**
+ * So stack maps can treat faults as call-return we must be able to
+ * determine the address of the next instruction. This isn't easy on
+ * Intel with variable length instructions.
+ */
+static Address getInstructionFollowing(Address faultingInstructionAddress) {
+  SYS_START();
+  unsigned char opcode = *((char*)faultingInstructionAddress);
+  unsigned char opcode2;
+  switch (opcode) {
+  case 0xCD: // int imm8
+    return faultingInstructionAddress+2;
+  case 0x39: // cmp r/m,r
+  case 0x8B: // mov r,r/m
+  case 0xF7: // idiv r/m
+  case 0xFF: // push r/m
+    opcode2 = *((char*)faultingInstructionAddress+1);
+    switch ((opcode2 >> 6) & 3) {
+    case 3: // reg, reg
+      return faultingInstructionAddress+2;
+    case 2:
+      switch (opcode2 & 7) {
+      case 4: // SIB byte
+        return faultingInstructionAddress+2+1+4;
+      default:
+        return faultingInstructionAddress+2+4;
+      }
+    case 1:
+      switch (opcode2 & 7) {
+      case 4: // SIB byte
+        return faultingInstructionAddress+2+1+1;
+      default:
+        return faultingInstructionAddress+2+1;
+      }
+    case 0:
+      switch (opcode2 & 7) {
+      case 4: // SIB byte
+        return faultingInstructionAddress+2+1;
+      case 5: // disp32
+        return faultingInstructionAddress+2+4;
+      default:
+        return faultingInstructionAddress+2;
+      }
+    }
+  default:
+    ERROR_PRINTF("Unknown opcode %x\n", opcode);
+    return faultingInstructionAddress;
+  }
+}
+
 #ifdef RVM_WITH_ALIGNMENT_CHECKING
 /**
  * Called by the hardware trap handler if we're dealing with an
@@ -297,7 +347,7 @@ static void hardwareTrapHandler(int signo, siginfo_t *si, void *context)
   }
 #endif // RVM_WITH_ALIGNMENT_CHECKING
     
-  unsigned int localInstructionAddress;
+  Address localInstructionAddress;
 
   Address localNativeThreadAddress;
   Address localFrameAddress;
@@ -563,7 +613,7 @@ static void hardwareTrapHandler(int signo, siginfo_t *si, void *context)
   vmr_gprs[Constants_EDI] = IA32_EDI(context);
 
   /* set the next instruction for the failing frame */
-  instructionFollowing = IA32_EIP(context); /*getInstructionFollowing(localInstructionAddress); */
+  instructionFollowing = getInstructionFollowing(localInstructionAddress);
 
 
   /*
