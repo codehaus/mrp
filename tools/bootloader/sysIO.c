@@ -28,7 +28,7 @@ EXTERNAL int sysReadByte(int fd)
 {
   unsigned char ch;
   SYS_START();
-  TRACE_PRINTF("%s: readByte %d\n", Me, fd);
+  TRACE_PRINTF("%s: sysReadByte %d\n", Me, fd);
 #ifdef RVM_FOR_HARMONY
   return hyfile_read(fd, &ch, 1);
 #else
@@ -67,7 +67,7 @@ sysWriteByte(int fd, int data)
 {
   SYS_START();
   char ch = data;
-  TRACE_PRINTF("%s: writeByte %d %c\n", Me, fd, ch);
+  TRACE_PRINTF("%s: sysWriteByte %d %c\n", Me, fd, ch);
 #ifdef RVM_FOR_HARMONY
   return hyfile_write(fd, &ch, 1);
 #else
@@ -97,7 +97,7 @@ sysWriteByte(int fd, int data)
 EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
 {
   SYS_START();
-  TRACE_PRINTF("%s: read %d 0x%08x %d\n", Me, fd, buf, cnt);
+  TRACE_PRINTF("%s: sysReadBytes %d 0x%08x %d\n", Me, fd, buf, cnt);
 #ifdef RVM_FOR_HARMONY
   return hyfile_read(fd, buf, cnt);
 #else
@@ -130,7 +130,7 @@ EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
 EXTERNAL int sysWriteBytes(int fd, char *buf, int cnt)
 {
   SYS_START();
-  TRACE_PRINTF("%s: write %d 0x%08x %d\n", Me, fd, buf, cnt);
+  TRACE_PRINTF("%s: sysWriteBytes %d 0x%08x %d\n", Me, fd, buf, cnt);
 #ifdef RVM_FOR_HARMONY
   return hyfile_write(fd, buf, cnt);
 #else

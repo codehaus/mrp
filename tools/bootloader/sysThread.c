@@ -578,7 +578,6 @@ EXTERNAL void sysNanoSleep(long long howLongNanos)
 EXTERNAL Address sysMonitorCreate()
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMonitorCreate\n", Me);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_t monitor;
   hythread_monitor_init_with_name(&monitor, 0, NULL);
@@ -587,6 +586,7 @@ EXTERNAL Address sysMonitorCreate()
   pthread_mutex_init(&monitor->mutex, NULL);
   pthread_cond_init(&monitor->cond, NULL);
 #endif
+  TRACE_PRINTF("%s: sysMonitorCreate %p\n", Me, monitor);
   return (Address)monitor;
 }
 
@@ -607,7 +607,7 @@ EXTERNAL void sysMonitorDestroy(Address _monitor)
 EXTERNAL void sysMonitorEnter(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMonitorEnter\n", Me);
+  TRACE_PRINTF("%s: sysMonitorEnter %p\n", Me, _monitor);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_enter((hythread_monitor_t)_monitor);
 #else
@@ -619,7 +619,7 @@ EXTERNAL void sysMonitorEnter(Address _monitor)
 EXTERNAL void sysMonitorExit(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMonitorExit\n", Me);
+  TRACE_PRINTF("%s: sysMonitorExit %p\n", Me, _monitor);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_exit((hythread_monitor_t)_monitor);
 #else
