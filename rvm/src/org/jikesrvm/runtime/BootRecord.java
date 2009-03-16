@@ -254,7 +254,7 @@ public class BootRecord {
   public Address sysThreadSelfIP;
   public Address sysStashVMThreadIP;
   public Address sysThreadTerminateIP;
-  
+
   // monitors
   public Address sysMonitorCreateIP;
   public Address sysMonitorDestroyIP;

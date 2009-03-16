@@ -132,7 +132,7 @@ public abstract class SysCall {
 
   @SysCallTemplate
   public abstract boolean sysMemoryDecommit(Address start, Extent length);
-  
+
   @SysCallTemplate
   public abstract int sysGetPageSize();
 
