@@ -2378,7 +2378,7 @@ public class RVMThread extends ThreadContext {
     if (traceAcct)
       VM.sysWriteln("Thread #", threadSlot, " starting!");
     sysCall.sysThreadCreate(contextRegisters.ip, contextRegisters.getInnermostFramePointer(),
-			    Magic.objectAsAddress(this), Magic.getJTOC());
+                            Magic.objectAsAddress(this), Magic.getJTOC());
   }
 
   /**
