@@ -248,8 +248,7 @@ EXTERNAL double sysVMMathSinh(double a) {
   return sinh(a);
 }
 
-EXTERNAL double
-sysVMMathTanh(double a) {
+EXTERNAL double sysVMMathTanh(double a) {
   SYS_START();
   TRACE_PRINTF("%s: sysVMMathTanh %f\n", Me, a);
   return tanh(a);

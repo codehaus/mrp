@@ -21,6 +21,7 @@
 
 /**
  * Read one byte from file.
+ *
  * @param fd file descriptor
  * @return data read (-3: error, -2: operation would block, -1: eof, >= 0: valid)
  */
@@ -28,7 +29,7 @@ EXTERNAL int sysReadByte(int fd)
 {
   unsigned char ch;
   SYS_START();
-  TRACE_PRINTF("%s: readByte %d\n", Me, fd);
+  TRACE_PRINTF("%s: sysReadByte %d\n", Me, fd);
 #ifdef RVM_FOR_HARMONY
   return hyfile_read(fd, &ch, 1);
 #else
@@ -58,16 +59,16 @@ EXTERNAL int sysReadByte(int fd)
 
 /**
  * Write one byte to file.
+ *
  * @param fd file descriptor
  * @param data data to write
  * @return -2 operation would block, -1: error, 0: success
  */
-EXTERNAL int
-sysWriteByte(int fd, int data)
+EXTERNAL int sysWriteByte(int fd, int data)
 {
   SYS_START();
   char ch = data;
-  TRACE_PRINTF("%s: writeByte %d %c\n", Me, fd, ch);
+  TRACE_PRINTF("%s: sysWriteByte %d %c\n", Me, fd, ch);
 #ifdef RVM_FOR_HARMONY
   return hyfile_write(fd, &ch, 1);
 #else
@@ -89,6 +90,7 @@ sysWriteByte(int fd, int data)
 
 /**
  * Read multiple bytes from file or socket.
+ *
  * @param fd  file or socket descriptor
  * @param buf buffer to be filled
  * @param cnt number of bytes requested
@@ -97,7 +99,7 @@ sysWriteByte(int fd, int data)
 EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
 {
   SYS_START();
-  TRACE_PRINTF("%s: read %d 0x%08x %d\n", Me, fd, buf, cnt);
+  TRACE_PRINTF("%s: sysReadBytes %d 0x%08x %d\n", Me, fd, buf, cnt);
 #ifdef RVM_FOR_HARMONY
   return hyfile_read(fd, buf, cnt);
 #else
@@ -122,6 +124,7 @@ EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
 
 /**
  * Write multiple bytes to file or socket.
+ *
  * @param file or socket descriptor
  * @param buffer to be written
  * @param number of bytes to write
@@ -130,7 +133,7 @@ EXTERNAL int sysReadBytes(int fd, char *buf, int cnt)
 EXTERNAL int sysWriteBytes(int fd, char *buf, int cnt)
 {
   SYS_START();
-  TRACE_PRINTF("%s: write %d 0x%08x %d\n", Me, fd, buf, cnt);
+  TRACE_PRINTF("%s: sysWriteBytes %d 0x%08x %d\n", Me, fd, buf, cnt);
 #ifdef RVM_FOR_HARMONY
   return hyfile_write(fd, buf, cnt);
 #else

@@ -20,6 +20,7 @@
 
 /**
  * Load dynamic library.
+ *
  * @return a handler for this library, null if none loaded
  */
 EXTERNAL void* sysDlopen(char *libname)

@@ -1534,12 +1534,12 @@ Check to make sure all required properties are specified. This includes properti
     <property name="rvm.c.args" value="${shld.args} ${rvm.common.args}"/>
 
     <condition property="rvm.arch.src"
-               value="${bl.dir}/ia32/initBootRecord.c ${bl.dir}/ia32/libvm.c">
+               value="${bl.dir}/sysThread_Intel.c ${bl.dir}/sysSignal_Intel.c">
       <equals arg1="${target.arch}" arg2="ia32"/>
     </condition>
 
     <condition property="rvm.arch.src"
-               value="${bl.dir}/ppc/initBootRecord.c ${build.native}/bootThread.s ${bl.dir}/ppc/libvm.c">
+               value="${bl.dir}/sysThread_PowerPC.c ${bl.dir}/sysSignal_PowerPC.c">
       <equals arg1="${target.arch}" arg2="ppc"/>
     </condition>
 
@@ -1547,7 +1547,7 @@ Check to make sure all required properties are specified. This includes properti
       <equals arg1="${config.include.perfctr}" arg2="true"/>
     </condition>
 
-    <property name="rvm.syscall.src" value="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c"/>
+    <property name="rvm.syscall.src" value="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c"/>
 
     <condition property="rvm.src"
                value="${bl.dir}/main.c ${bl.dir}/sysGCSpy.c ${rvm.syscall.src} ${rvm.arch.src} ${perfctr.src}"

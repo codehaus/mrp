@@ -142,13 +142,14 @@ public abstract class SysCall {
 
   /**
    * Create a native thread (aka "unix kernel thread", "pthread").
-   * @param tr value for the thread register
    * @param ip starting instruction address
    * @param fp frame pointer
+   * @param tr value for the thread register
+   * @param jtoc value for the thread jtoc
    * @return native thread's o/s handle
    */
   @SysCallTemplate
-  public abstract Address sysThreadCreate(Address tr, Address ip, Address fp);
+  public abstract Address sysThreadCreate(Address ip, Address fp, Address tr, Address jtoc);
 
   @SysCallTemplate
   public abstract void sysThreadTerminate();
@@ -171,9 +172,6 @@ public abstract class SysCall {
 
   @SysCallTemplate
   public abstract Address sysThreadSelf();
-
-  @SysCallTemplate
-  public abstract void sysSetupHardwareTrapHandler();
 
 
   // This implies that the RVMThread is somehow pinned, or else the
@@ -292,10 +290,6 @@ public abstract class SysCall {
 
   @SysCallTemplate
   public abstract Address sysDlsym(Address libHandler, byte[] symbolName);
-
-  // system startup pthread sync. primitives
-  @SysCallTemplate
-  public abstract void sysCreateThreadSpecificDataKeys();
 
   // system calls for alignment checking
   @SysCallTemplate

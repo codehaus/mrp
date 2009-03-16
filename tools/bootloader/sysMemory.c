@@ -31,26 +31,39 @@ UDATA DefaultPageSize;
 /** Allocate memory. */
 EXTERNAL void* sysMalloc(int length)
 {
+  void *result;
   SYS_START();
   TRACE_PRINTF("%s: sysMalloc %d\n", Me, length);
 #ifdef RVM_FOR_HARMONY
-  return hymem_allocate_memory(length);
+  result = hymem_allocate_memory(length);
 #else
-  return malloc(length);
+  result = malloc(length);
 #endif
+  if (result == NULL) {
+    ERROR_PRINTF("%s: error to allocate memory in sysMalloc\n", Me);
+    sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
+  }
+  return result;
 }
 
 EXTERNAL void* sysCalloc(int length)
 {
+  void *result;
   SYS_START();
   TRACE_PRINTF("%s: sysCalloc %d\n", Me, length);
 #ifdef RVM_FOR_HARMONY
-  void *result = hymem_allocate_memory(length);
-  memset(result, 0x00, length);
-  return result;
+  result = hymem_allocate_memory(length);
 #else
-  return calloc(1, length);
+  result = calloc(1, length);
 #endif
+  if (result == NULL) {
+    ERROR_PRINTF("%s: error to allocate memory in sysCalloc\n", Me);
+    sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
+  }
+#ifdef RVM_FOR_HARMONY
+  memset(result, 0x00, length);
+#endif
+  return result;
 }
 
 /** Release memory. */
@@ -130,9 +143,8 @@ EXTERNAL void sysZeroPages(void *dst, int cnt)
  * Synchronize caches: force data in dcache to be written out to main memory
  * so that it will be seen by icache when instructions are fetched back.
  *
- * Taken:    start of address range
- *           size of address range (bytes)
- * Returned: nothing
+ * @param address [in] start of address range
+ * @param size    [in] size of address range (bytes)
  */
 EXTERNAL void sysSyncCache(void *address, size_t size)
 {
@@ -177,12 +189,13 @@ EXTERNAL void sysSyncCache(void *address, size_t size)
 
 /**
  * Reserve memory at specified address, size
- * @param start address (Java ADDRESS)
- * @param length of region (Java EXTENT)
- * @param read (Java boolean)
- * @param write (Java boolean)
- * @param exec (Java boolean)
- * @param commit (Java boolean)
+ *
+ * @param start  [in] address in virtual memory to reserve (Java ADDRESS)
+ * @param length [in] size of region (Java EXTENT)
+ * @param read   [in] is memory readable (Java boolean)
+ * @param write  [in] is memory writable (Java boolean)
+ * @param exec   [in] is memory executable (Java boolean)
+ * @param commit [in] shall we commit and not just reserve the memory(Java boolean)
  * @return address of region (errno or NULL on failure) (Java ADDRESS)
  */
 EXTERNAL void * sysMemoryReserve(char *start, size_t length,

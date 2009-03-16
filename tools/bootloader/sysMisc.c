@@ -12,17 +12,18 @@
  */
 
 #include "sys.h"
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 
 /**
  * Access host o/s command line arguments.
- * Taken:    -1
- *           null
- * Returned: number of arguments
- *           /or/
- * Taken:    arg number sought
- *           buffer to fill
- * Returned: number of bytes written to buffer (-1: arg didn't fit, buffer too small)
+ *
+ * @param argno  [in] -1 return number of arguments, argument to fill in
+ * @param buf    [in,out] buffer to fill in
+ * @param buflen [in] size of buffer
+ * @return number of arguments or number of bytes used in buffer
+ * (-1 => buffer overflow)
  */
 EXTERNAL int sysArg(int argno, char *buf, int buflen)
 {
@@ -34,13 +35,13 @@ EXTERNAL int sysArg(int argno, char *buf, int buflen)
   } else { // return i-th arg
     const char *src = JavaArgs[argno];
     for (i = 0;; ++i)
-    {
-      if (*src == 0)
-        return i;
-      if (i == buflen)
-        return -1;
-      *buf++ = *src++;
-    }
+      {
+	if (*src == 0)
+	  return i;
+	if (i == buflen)
+	  return -1;
+	*buf++ = *src++;
+      }
   }
   /* NOTREACHED */
 }
@@ -90,14 +91,14 @@ static int loadResultBuf(char * dest, int limit, const char *src)
  * Get the value of an enviroment variable.  (This refers to the C
  * per-process environment.)   Used, indirectly, by VMSystem.getenv()
  *
- * Taken:    VARNAME, name of the envar we want.
- *           BUF, a buffer in which to place the value of that envar
- *           LIMIT, the size of BUF
- * Returned: See the convention documented in loadResultBuf().
- *           0: A return value of 0 indicates that the envar was set with a
- *           zero-length value.   (Distinguised from unset, see below)
- *           -2: Indicates that the envar was unset.  This is distinguished
- *           from a zero-length value (see above).
+ * @param varName [in] name of the envar we want.
+ * @param buf     [in,out] a buffer in which to place the value of that envar
+ * @param limit   [in] the size of BUF
+ * @return  See the convention documented in loadResultBuf().
+ *          0: A return value of 0 indicates that the envar was set with a
+ *          zero-length value.   (Distinguised from unset, see below)
+ *          -2: Indicates that the envar was unset.  This is distinguished
+ *          from a zero-length value (see above).
  */
 EXTERNAL int sysGetenv(const char *varName, char *buf, int limit)
 {
@@ -107,7 +108,129 @@ EXTERNAL int sysGetenv(const char *varName, char *buf, int limit)
 }
 
 /**
+ * Return a # of bytes, rounded up to the next page size.
+ * NOTE: Given the context, we treat "MB" as having its
+ * historic meaning of "MiB" (2^20), rather than its 1994 ISO
+ * meaning, which would be a factor of 10^7.
+ *
+ * @param sizeName [in] "initial heap" or "maximum heap" or "initial
+ * stack" or "maximum stack"
+ * @param sizeFlag [in] "-Xms" or "-Xmx" or "-Xss" or "-Xsg" or "-Xsx"
+ * @param defaultFactor [in] size factor, default is bytes ""
+ * @param roundTo [in] Round to PAGE_SIZE_BYTES or to 4.
+ * @param token [in]  Value to parse, e.g. "-Xms200M" or "-Xms200"
+ * @param subtoken [in] Part of value to parse, e.g. e.g., "200M" or "200"
+ * @param fastExit [out] Set if execution should end due to an error
+ * @return size in bytes
+ */
+EXTERNAL unsigned int parse_memory_size(const char *sizeName, const char *sizeFlag, 
+					const char *defaultFactor, unsigned roundTo,
+					const char *token, const char *subtoken,
+					int *fastExit)
+{
+  SYS_START();
+  errno = 0;
+  double userNum;
+  char *endp;                 /* Should be const char *, but if we do that,
+				 then the C++ compiler complains about the
+				 prototype for strtold() or strtod().   This
+				 is probably a bug in the specification
+				 of the prototype. */
+  userNum = strtod(subtoken, &endp);
+  if (endp == subtoken) {
+    CONSOLE_PRINTF( "%s: \"%s\": -X%s must be followed by a number.\n", Me, token, sizeFlag);
+    *fastExit = 1;
+  }
+
+  // First, set the factor appropriately, and make sure there aren't extra
+  // characters at the end of the line.
+  const char *factorStr = defaultFactor;
+  long double factor = 0.0;   // 0.0 is a sentinel meaning Unset
+
+  if (*endp == '\0') {
+    /* no suffix.  Along with the Sun JVM, we now assume Bytes by
+       default. (This is a change from  previous Jikes RVM behaviour.)  */
+    factor = 1.0;
+  } else if (STREQUAL(endp, "pages") ) {
+    factor = sysGetPageSize();
+    /* Handle constructs like "M" and "K" */
+  } else if ( endp[1] == '\0' ) {
+    factorStr = endp;
+  } else {
+    CONSOLE_PRINTF( "%s: \"%s\": I don't recognize \"%s\" as a"
+		    " unit of memory size\n", Me, token, endp);
+    *fastExit = 1;
+  }
+
+  if (! *fastExit && factor == 0.0) {
+    char e = *factorStr;
+    if (e == 'g' || e == 'G') factor = 1024.0 * 1024.0 * 1024.0;
+    else if (e == 'm' || e == 'M') factor = 1024.0 * 1024.0;
+    else if (e == 'k' || e == 'K') factor = 1024.0;
+    else if (e == '\0') factor = 1.0;
+    else {
+      CONSOLE_PRINTF( "%s: \"%s\": I don't recognize \"%s\" as a"
+		      " unit of memory size\n", Me, token, factorStr);
+      *fastExit = 1;
+    }
+  }
+
+  // Note: on underflow, strtod() returns 0.
+  if (!*fastExit) {
+    if (userNum <= 0.0) {
+      CONSOLE_PRINTF(
+		     "%s: You may not specify a %s %s (%f - %s);\n",
+		     Me, userNum < 0.0 ? "negative" : "zero", sizeName, userNum, subtoken);
+      CONSOLE_PRINTF( "\tit just doesn't make any sense.\n");
+      *fastExit = 1;
+    }
+  }      
+
+  if (!*fastExit) {
+    if (errno == ERANGE || userNum > (((long double) (UINT_MAX - roundTo))/factor) ){
+      CONSOLE_PRINTF( "%s: \"%s\": out of range to represent internally\n", Me, subtoken);
+      *fastExit = 1;
+    }
+  }
+
+  if (*fastExit) {
+    CONSOLE_PRINTF("\tPlease specify %s as follows:\n", sizeName);
+    CONSOLE_PRINTF("\t    in bytes, using \"-X%s<positive number>\",\n", sizeFlag);
+    CONSOLE_PRINTF("\tor, in kilobytes, using \"-X%s<positive number>K\",\n", sizeFlag);
+    CONSOLE_PRINTF("\tor, in virtual memory pages of %u bytes, using\n"
+		   "\t\t\"-X%s<positive number>pages\",\n", sysGetPageSize(),
+		   sizeFlag);
+    CONSOLE_PRINTF("\tor, in megabytes, using \"-X%s<positive number>M\",\n", sizeFlag);
+    CONSOLE_PRINTF("\tor, in gigabytes, using \"-X%s<positive number>G\"\n", sizeFlag);
+    CONSOLE_PRINTF("  <positive number> can be a floating point value or a hex value like 0x10cafe0.\n");
+    if (roundTo != 1) {
+      CONSOLE_PRINTF("  The # of bytes will be rounded up to a multiple of");
+      if (roundTo == sysGetPageSize())
+	CONSOLE_PRINTF( "\n  the virtual memory page size: ");
+      CONSOLE_PRINTF("%u\n", roundTo);
+    }
+    return 0U;              // Distinguished value meaning trouble.
+  }
+  long double tot_d = userNum * factor;
+  if ((tot_d > (UINT_MAX - roundTo)) || (tot_d < 1)) {
+    ERROR_PRINTF("Unexpected memory size %f", tot_d);
+  }
+  unsigned tot = (unsigned) tot_d;
+  if (tot % roundTo) {
+    unsigned newTot = tot + roundTo - (tot % roundTo);
+    CONSOLE_PRINTF("%s: Rounding up %s size from %u bytes to %u,\n"
+		   "\tthe next multiple of %u bytes%s\n",
+		   Me, sizeName, tot, newTot, roundTo,
+		   roundTo == sysGetPageSize() ?
+		   ", the virtual memory page size" : "");
+    tot = newTot;
+  }
+  return tot;
+}
+
+/**
  * Parse memory sizes.
+ *
  * @param sizeName "initial heap" or "maximum heap" or "initial stack" or "maximum stack"
  * @param sizeFlag "ms" or "mx" or "ss" or "sg" or "sx"
  * @param defaultFactor "M" or "K" are used

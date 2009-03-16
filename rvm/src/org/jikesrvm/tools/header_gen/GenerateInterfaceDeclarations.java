@@ -189,24 +189,6 @@ public class GenerateInterfaceDeclarations {
     p("org.jikesrvm.tools.header_gen.GenerateInterfaceDeclarations.java: DO NOT EDIT");
     p("------*/\n\n");
 
-    pln("#if defined NEED_BOOT_RECORD_DECLARATIONS || defined NEED_VIRTUAL_MACHINE_DECLARATIONS");
-    pln("#include <stdint.h>");
-    if (VM.BuildFor32Addr) {
-      pln("#define Address uint32_t");
-      pln("#define Offset int32_t");
-      pln("#define Extent uint32_t");
-      pln("#define Word uint32_t");
-      pln("#define JavaObject_t uint32_t");
-    } else {
-      pln("#define Address uint64_t");
-      pln("#define Offset int64_t");
-      pln("#define Extent uint64_t");
-      pln("#define Word uint64_t");
-      pln("#define JavaObject_t uint64_t");
-    }
-    pln("#endif /* NEED_BOOT_RECORD_DECLARATIONS || NEED_VIRTUAL_MACHINE_DECLARATIONS */");
-    pln();
-
     if (VM.PortableNativeSync) {
       pln("#define PORTABLE_NATIVE_SYNC 1");
       pln();
@@ -336,29 +318,9 @@ public class GenerateInterfaceDeclarations {
     RVMClass bootRecord = TypeReference.findOrCreate(org.jikesrvm.runtime.BootRecord.class).resolve().asClass();
     RVMField[] fields = bootRecord.getDeclaredFields();
 
-    // emit function declarations
-    //
-    for (int i = fields.length; --i >= 0;) {
-      RVMField field = fields[i];
-      if (field.isStatic()) {
-        continue;
-      }
-      String fieldName = field.getName().toString();
-      int suffixIndex = fieldName.indexOf("IP");
-      if (suffixIndex > 0) {
-        // java field "xxxIP" corresponds to C function "xxx"
-        String functionName = fieldName.substring(0, suffixIndex);
-        // e. g.,
-        // extern "C" void sysFOOf();
-        p("extern int " + functionName + "();\n");
-      } else if (fieldName.equals("sysJavaVM")) {
-        p("extern struct Java " + fieldName + ";\n");
-      }
-    }
-
     // emit field initializers
     //
-    p("extern void setLinkage(struct BootRecord* br){\n");
+    p("static void setLinkage(struct BootRecord* br){\n");
     for (int i = fields.length; --i >= 0;) {
       RVMField field = fields[i];
       if (field.isStatic()) {
@@ -375,9 +337,9 @@ public class GenerateInterfaceDeclarations {
         String functionName = fieldName.substring(0, suffixIndex);
         // e. g.,
         //sysFOOIP = (int) sysFOO;
-        p("  br->" + fieldName + " = (intptr_t)" + functionName + ";\n");
+        p("  br->" + fieldName + " = (Address)" + functionName + ";\n");
       } else if (fieldName.equals("sysJavaVM")) {
-        p("  br->" + fieldName + " = (intptr_t)&" + fieldName + ";\n");
+        p("  br->" + fieldName + " = (Address)&" + fieldName + ";\n");
       }
     }
 
