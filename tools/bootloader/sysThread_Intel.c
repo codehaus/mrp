@@ -23,7 +23,7 @@
 void bootThread (void *ip, void *tr, void *sp, void UNUSED *jtoc)
 {
   void *saved_ebp;
-  asm (
+  asm volatile (
 #ifndef __x86_64__
        "mov   %%ebp, %0     \n"
        "mov   %%esp, %%ebp  \n"
