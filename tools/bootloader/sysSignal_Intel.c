@@ -130,7 +130,6 @@
  */
 static int decodeModRMLength(unsigned char modrm)
 {
-  SYS_START();
   switch ((modrm >> 6) & 3) {
   case 0: // reg, [reg]
     switch (modrm & 7) {
@@ -156,7 +155,6 @@ static int decodeModRMLength(unsigned char modrm)
       return 5;
     }
   case 3: // reg, reg
-    ERROR_PRINTF("%s: Unexpected reg,reg opcode %x\n", Me, modrm);
     return 1;
   }
 }
