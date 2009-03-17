@@ -255,7 +255,7 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
     asm.emitPUSH_RegDisp(TR, fpOffset); // link this frame with next
     ThreadLocalState.emitMoveRegToField(asm, fpOffset, SP); // establish base of new frame
     asm.emitPUSH_Imm(INVISIBLE_METHOD_ID);
-    asm.emitADD_Reg_Imm(SP, STACKFRAME_BODY_OFFSET);
+    asm.emitADD_Reg_Imm(SP, STACKFRAME_BODY_OFFSET.toInt());
 
     /* write parameters on stack
     * move data from memory addressed by Paramaters array, the fourth
@@ -428,9 +428,9 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
     // NOTE: RVM callee has popped the params, so we can simply
     //       add back in the initial SP to FP delta to get SP to be a framepointer again!
     if (VM.BuildFor32Addr) {
-      asm.emitADD_Reg_Imm(SP, -STACKFRAME_BODY_OFFSET + WORDSIZE);
+      asm.emitADD_Reg_Imm(SP, -STACKFRAME_BODY_OFFSET.toInt() + WORDSIZE);
     } else {
-      asm.emitADD_Reg_Imm_Quad(SP, -STACKFRAME_BODY_OFFSET + WORDSIZE);
+      asm.emitADD_Reg_Imm_Quad(SP, -STACKFRAME_BODY_OFFSET.toInt() + WORDSIZE);
     }
     asm.emitPOP_RegDisp(TR, fpOffset);
 

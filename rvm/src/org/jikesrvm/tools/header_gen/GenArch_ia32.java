@@ -40,6 +40,14 @@ final class GenArch_ia32 extends GenArch {
     pln("Constants_EBP", RegisterConstants.EBP.value());
     pln("Constants_ESI", RegisterConstants.ESI.value());
     pln("Constants_EDI", RegisterConstants.EDI.value());
+    pln("Constants_R8", RegisterConstants.R8.value());
+    pln("Constants_R9", RegisterConstants.R9.value());
+    pln("Constants_R10", RegisterConstants.R10.value());
+    pln("Constants_R11", RegisterConstants.R11.value());
+    pln("Constants_R12", RegisterConstants.R12.value());
+    pln("Constants_R13", RegisterConstants.R13.value());
+    pln("Constants_R14", RegisterConstants.R14.value());
+    pln("Constants_R15", RegisterConstants.R15.value());
     pln("Constants_STACKFRAME_BODY_OFFSET", StackframeLayoutConstants.STACKFRAME_BODY_OFFSET);
     pln("Constants_STACKFRAME_RETURN_ADDRESS_OFFSET",  StackframeLayoutConstants.STACKFRAME_RETURN_ADDRESS_OFFSET);
     pln("Constants_RVM_TRAP_BASE", TrapConstants.RVM_TRAP_BASE);

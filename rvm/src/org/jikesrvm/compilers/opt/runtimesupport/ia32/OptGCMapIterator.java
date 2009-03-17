@@ -134,7 +134,7 @@ public abstract class OptGCMapIterator extends OptGenericGCMapIterator implement
    *  @return the first spill location
    */
   public Address getFirstSpillLoc() {
-    return framePtr.minus(-StackframeLayoutConstants.STACKFRAME_BODY_OFFSET);
+    return framePtr.plus(StackframeLayoutConstants.STACKFRAME_BODY_OFFSET);
   }
 
   /**

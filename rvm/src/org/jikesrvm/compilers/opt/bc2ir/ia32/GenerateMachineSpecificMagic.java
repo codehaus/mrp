@@ -105,7 +105,7 @@ public abstract class GenerateMachineSpecificMagic implements Operators, Stackfr
       bc2ir.appendInstruction(Load.create(REF_LOAD,
                                           val,
                                           fp,
-                                          new IntConstantOperand(STACKFRAME_FRAME_POINTER_OFFSET),
+                                          new IntConstantOperand(STACKFRAME_FRAME_POINTER_OFFSET.toInt()),
                                           null));
       bc2ir.push(val.copyD2U());
     } else if (methodName == MagicNames.setCallerFramePointer) {
@@ -114,7 +114,7 @@ public abstract class GenerateMachineSpecificMagic implements Operators, Stackfr
       bc2ir.appendInstruction(Store.create(REF_STORE,
                                            val,
                                            fp,
-                                           new IntConstantOperand(STACKFRAME_FRAME_POINTER_OFFSET),
+                                           new IntConstantOperand(STACKFRAME_FRAME_POINTER_OFFSET.toInt()),
                                            null));
     } else if (methodName == MagicNames.getCompiledMethodID) {
       Operand fp = bc2ir.popAddress();
@@ -122,7 +122,7 @@ public abstract class GenerateMachineSpecificMagic implements Operators, Stackfr
       bc2ir.appendInstruction(Load.create(INT_LOAD,
                                           val,
                                           fp,
-                                          new IntConstantOperand(STACKFRAME_METHOD_ID_OFFSET),
+                                          new IntConstantOperand(STACKFRAME_METHOD_ID_OFFSET.toInt()),
                                           null));
       bc2ir.push(val.copyD2U());
     } else if (methodName == MagicNames.setCompiledMethodID) {
@@ -131,7 +131,7 @@ public abstract class GenerateMachineSpecificMagic implements Operators, Stackfr
       bc2ir.appendInstruction(Store.create(INT_STORE,
                                            val,
                                            fp,
-                                           new IntConstantOperand(STACKFRAME_METHOD_ID_OFFSET),
+                                           new IntConstantOperand(STACKFRAME_METHOD_ID_OFFSET.toInt()),
                                            null));
     } else if (methodName == MagicNames.getReturnAddressLocation) {
       Operand fp = bc2ir.popAddress();
@@ -139,7 +139,7 @@ public abstract class GenerateMachineSpecificMagic implements Operators, Stackfr
       bc2ir.appendInstruction(Binary.create(REF_ADD,
                                             val,
                                             fp,
-                                            new IntConstantOperand(STACKFRAME_RETURN_ADDRESS_OFFSET)));
+                                            new IntConstantOperand(STACKFRAME_RETURN_ADDRESS_OFFSET.toInt())));
       bc2ir.push(val.copyD2U());
     } else {
       // Distinguish between magics that we know we don't implement

@@ -27,7 +27,7 @@ import org.jikesrvm.compilers.baseline.BaselineBootImageCompiler;
  */
 public abstract class BootImageCompiler {
 
-  private static BootImageCompiler compiler =
+  private static final BootImageCompiler compiler =
       VM.BuildWithBaseBootImageCompiler ? new BaselineBootImageCompiler() : new org.jikesrvm.compilers.opt.driver.OptimizingBootImageCompiler();
 
   /**
@@ -59,7 +59,11 @@ public abstract class BootImageCompiler {
   }
 
   public static CompiledMethod compile(NormalMethod method, TypeReference[] params) {
-    return compiler.compileMethod(method, params);
+    try {
+      return compiler.compileMethod(method, params);
+    } catch (Exception e) {
+      throw new Error("Exception during compilation of "+method, e);
+    }
   }
 
   public static CompiledMethod compile(NormalMethod method) {
