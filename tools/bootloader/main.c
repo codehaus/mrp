@@ -504,6 +504,11 @@ static void* mapImageFile(const char *fileName, const void *targetAddress,
   void *bootRegion = 0;
   SYS_START();
   TRACE_PRINTF("%s: mapImageFile \"%s\" to %p\n", Me, fileName, targetAddress);
+  /* TODO: respect access protection when mapping. Problems, need to
+   * write over memory for Harmony when reading from file.
+   */
+  writable = JNI_TRUE;
+  executable = JNI_TRUE;
 #ifdef RVM_FOR_HARMONY
   IDATA fin = hyfile_open(fileName, HyOpenRead, 0);
   if (fin < 0) {
@@ -534,9 +539,9 @@ static void* mapImageFile(const char *fileName, const void *targetAddress,
   *roundedImageSize = pageRoundUp(actualImageSize);
   fseek (fin, 0L, SEEK_SET);
   int prot = PROT_READ;
-  if (1 || writable)
+  if (writable)
     prot |= PROT_WRITE;
-  if (1 || executable)
+  if (executable)
     prot |= PROT_EXEC;
   bootRegion = mmap((void*)targetAddress, *roundedImageSize,
 		    prot,
@@ -764,8 +769,8 @@ int main(int argc, const char **argv)
 
   TRACE_PRINTF("\nRunBootImage.main(): VM variable settings\n");
   TRACE_PRINTF("initialHeapSize %lu\nmaxHeapSize %lu\n"
-               "bootCodeFileName |%s|\nbootDataFileName |%s|\n"
-               "bootRmapFileName |%s|\n"
+               "bootCodeFileName \"%s\"\nbootDataFileName \"%s\"\n"
+               "bootRmapFileName \"%s\"\n"
                "verbose %d\n",
                (unsigned long) initialHeapSize,
                (unsigned long) maximumHeapSize,

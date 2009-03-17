@@ -171,6 +171,7 @@ static void softwareSignalHandler(int signo, siginfo_t UNUSED *si, void *context
  */
 EXTERNAL void* sysStartMainThreadSignals()
 {
+  SYS_START();
   /* install a stack for hardwareTrapHandler() to run on */
   stack_t stack;
   char *stackBuf;

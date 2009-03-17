@@ -12,13 +12,13 @@
  */
 
 #include "sys.h"
+#include <setjmp.h>
 #include <stdlib.h>
 #include <string.h>
 
 #ifndef RVM_FOR_HARMONY
 #include <errno.h>
 #include <pthread.h>
-#include <setjmp.h>
 #include <sys/sysinfo.h>
 #include <sys/ucontext.h>
 #endif
