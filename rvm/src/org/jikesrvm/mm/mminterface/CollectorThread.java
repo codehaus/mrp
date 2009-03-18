@@ -113,7 +113,7 @@ public final class CollectorThread extends RVMThread {
    * detecting a need for a collection, and passed to the collect
    * method when requesting a collection.
    */
-  public static final Handshake handshake;
+  private static final Handshake handshake;
 
   /** Use by collector threads to rendezvous during collection */
   public static SynchronizationBarrier gcBarrier;
@@ -241,11 +241,9 @@ public final class CollectorThread extends RVMThread {
    * its allocator runs out of space.  The caller should pass the
    * Handshake that was referenced by the static variable "collect"
    * at the time space was unavailable.
-   *
-   * @param handshake Handshake for the requested collection
    */
   @Unpreemptible("Becoming another thread interrupts the current thread, avoid preemption in the process")
-  public static void collect(Handshake handshake, int why) {
+  public static void collect(int why) {
     RVMThread.getCurrentFeedlet().addEvent(MMTk_Events.events.gcStart, why);
     handshake.requestAndAwaitCompletion(why);
     RVMThread.getCurrentFeedlet().addEvent(MMTk_Events.events.gcStop);
@@ -255,11 +253,9 @@ public final class CollectorThread extends RVMThread {
    * mutator thread at any time.  The caller should pass the
    * Handshake that was referenced by the static variable
    * "collect".
-   *
-   * @param handshake Handshake for the requested collection
    */
   @Unpreemptible("Becoming another thread interrupts the current thread, avoid preemption in the process")
-  public static void asyncCollect(Handshake handshake, int why) {
+  public static void asyncCollect(int why) {
     handshake.requestAndContinue(why);
   }
 
@@ -537,6 +533,17 @@ public final class CollectorThread extends RVMThread {
 
   }  // run
 
+  /**
+   * Call this if you know that a GC request has already been made and you'd like
+   * to wait on that GC to finish - presumably because you're trying to allocate
+   * and cannot reasonably do so before GC is done.  Note, there CANNOT be a
+   * GC safe point between when you realize that there is already a GC request and
+   * when you call this method!
+   */
+  @Unpreemptible("Becoming another thread interrupts the current thread, avoid preemption in the process")
+  public static void waitForGCToFinish() {
+    handshake.waitForGCToFinish();
+  }
   /**
    * Return true if no threads are still in GC.
    *

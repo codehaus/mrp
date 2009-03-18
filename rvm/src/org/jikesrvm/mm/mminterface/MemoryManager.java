@@ -16,6 +16,7 @@ import java.lang.ref.PhantomReference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import org.jikesrvm.ArchitectureSpecific.CodeArray;
+import org.jikesrvm.Callbacks;
 import org.jikesrvm.VM;
 import org.jikesrvm.HeapLayoutConstants;
 import org.jikesrvm.classloader.RVMArray;
@@ -126,7 +127,16 @@ public final class MemoryManager implements HeapLayoutConstants, Constants {
     DebugUtil.boot(theBootRecord);
     Selected.Plan.get().boot();
     SynchronizedCounter.boot();
-    Monitor.boot();
+    Callbacks.addExitMonitor(new Callbacks.ExitMonitor(){
+      /**
+       * The VM is about to exit.  Notify the plan.
+       *
+       * @param value The exit value
+       */
+      public void notifyExit(int value) {
+        Selected.Plan.get().notifyExit(value);
+      }
+    });
     booted = true;
   }
 

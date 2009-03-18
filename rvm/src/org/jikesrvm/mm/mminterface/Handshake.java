@@ -32,7 +32,7 @@ import org.mmtk.plan.Plan;
  *
  * @see CollectorThread
  */
-public class Handshake {
+class Handshake {
 
   /***********************************************************************
    *

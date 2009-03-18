@@ -90,7 +90,7 @@ public class Collection extends org.mmtk.vm.Collection implements org.mmtk.utili
     }
 
     while (Plan.isCollectionTriggered()) {
-      CollectorThread.handshake.waitForGCToFinish();
+      CollectorThread.waitForGCToFinish();
     }
     checkForOutOfMemoryError(true);
   }
@@ -122,7 +122,7 @@ public class Collection extends org.mmtk.vm.Collection implements org.mmtk.utili
       RVMThread.getCurrentThread().reportCollectionAttempt();
     }
 
-    CollectorThread.collect(CollectorThread.handshake, why);
+    CollectorThread.collect(why);
     checkForOutOfMemoryError(true);
 
     if (Options.verbose.getValue() >= 4) {
@@ -201,7 +201,7 @@ public class Collection extends org.mmtk.vm.Collection implements org.mmtk.utili
         VM.sysWrite("[Async GC]");
       }
     }
-    CollectorThread.asyncCollect(CollectorThread.handshake, why);
+    CollectorThread.asyncCollect(why);
   }
 
   /**
