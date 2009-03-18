@@ -181,7 +181,7 @@ static void createThreadSpecificDataKeys()
 {
   int rc;
   SYS_START();
-  TRACE_PRINTF("%s: sysThreadSpecificDataKeys\n");
+  TRACE_PRINTF("%s: sysThreadSpecificDataKeys\n", Me);
 
   // Create a key for thread-specific data so we can associate
   // the id of the Processor object with the pthread it is running on.
