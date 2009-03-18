@@ -19,13 +19,11 @@
 #ifndef RVM_FOR_HARMONY
 #include <errno.h>
 #include <pthread.h>
-#include <sys/sysinfo.h>
-#include <sys/ucontext.h>
-#endif
-
-#ifdef _AIX
-#include <sys/systemcfg.h>
-#endif
+#ifdef RVM_FOR_LINUX
+#  include <sys/sysinfo.h>
+#  include <sys/ucontext.h>
+#endif // def RVM_FOR_LINUX
+#endif // ndef RVM_FOR_HARMONY
 
 #ifdef RVM_FOR_HARMONY
 #define TLS_KEY_TYPE hythread_tls_key_t
@@ -102,7 +100,7 @@ EXTERNAL void sysExit(int value)
   fflush(stdout);
 #endif
   systemExiting = 1;
-  if (DeathLock != NULL) {
+  if (DeathLock != (Address)NULL) {
     sysMonitorEnter(DeathLock);
   }
 #ifndef RVM_FOR_HARMONY
@@ -493,7 +491,7 @@ static void* sysThreadStartup(void *args)
     TRACE_PRINTF("%s: sysThreadStartup: booting\n", Me);
     setThreadLocal(TerminateJmpBufKey, (void*)jb);
     // branch to vm code
-    bootThread(ip, tr, fp, jtoc);
+    bootThread((void*)ip, (void*)tr, (void*)fp, (void*)jtoc);
     // not reached
     ERROR_PRINTF("%s: sysThreadStartup: failed\n", Me);
   }

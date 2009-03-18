@@ -53,7 +53,6 @@ EXTERNAL long long sysNanoTime()
   retVal = hytime_current_time_millis() * 1000;
 #else
 #ifdef __MACH__
-  Nanoseconds nanoTime;
   unsigned long long high;
   unsigned long long low;
 

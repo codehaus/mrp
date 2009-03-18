@@ -34,20 +34,8 @@ uint64_t initialHeapSize;       /* Declared in bootImageRunner.h */
 uint64_t maximumHeapSize;       /* Declared in bootImageRunner.h */
 
 
-/** String used for name of RVM */
-char *Me;
-
 /** Verbose boot up set */
 int verboseBoot=0;
-
-/** Verbose command line option */
-int verbose=0;
-
-/** Number of Java args */
-int JavaArgc;
-
-/** Java args */
-char **JavaArgs;
 
 /** File name for part of boot image containing code */
 static char *bootCodeFilename;
@@ -57,19 +45,6 @@ static char *bootDataFilename;
 
 /** File name for part of boot image containing the root map */
 static char *bootRMapFilename;
-
-/** C access to shared C/Java boot record data structure */
-struct BootRecord *bootRecord;
-
-#ifndef RVM_FOR_HARMONY
-/** Sink for messages relating to serious errors detected by C runtime. */
-FILE *SysErrorFile;
-#endif
-
-#ifndef RVM_FOR_HARMONY
-/** Sink for trace messages produced by VM.sysWrite(). */
-FILE *SysTraceFile;
-#endif
 
 #define BYTES_IN_PAGE MMTk_Constants_BYTES_IN_PAGE
 

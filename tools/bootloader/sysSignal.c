@@ -14,6 +14,7 @@
 #include "sys.h"
 #include <errno.h>
 #include <signal.h>
+#include <string.h>
 
 /**
  * Is the given address within the RVM address space?

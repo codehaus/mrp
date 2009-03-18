@@ -15,18 +15,24 @@
  * Architecture specific thread code
  */
 
+#define NEED_ASSEMBLER_DECLARATIONS
+#include "sys.h"
+
 /**
  * Transfer execution from C to Java for thread startup
  */
-void bootThread (void *pc, void *tr, void *sp, void UNUSED *jtoc)
+void bootThread (void *pc, void *tr, void *sp, void *jtoc)
 {
-  asm ("mtlr    %3\n"
-       "blr     \n"
-       : /* outs */
-       : /* ins */
-	 "JTOC"(jtoc),
-	 "THREAD_REGISTER"(tr),
-	 "FP"(sp),
-	 "r"(pc)
-       );
+  asm volatile ("mr r2, %0\n"
+                "mr r13, %1\n"
+                "mr r1, %2\n"
+                "mtlr %3\n"
+                "blr    \n"
+                : /* outs */
+                : /* ins */
+                  "r"(jtoc),
+                  "r"(tr),
+                  "r"(sp),
+                  "r"(pc)
+    );
 }

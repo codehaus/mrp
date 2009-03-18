@@ -1555,22 +1555,13 @@ Check to make sure all required properties are specified. This includes properti
       <equals arg1="${config.include.perfctr}" arg2="true"/>
     </condition>
 
-    <property name="rvm.syscall.src" value="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c"/>
-
-    <condition property="rvm.src"
-               value="${bl.dir}/main.c ${bl.dir}/sysGCSpy.c ${rvm.syscall.src} ${rvm.arch.src} ${perfctr.src}"
-               else="${bl.dir}/main.c  ${rvm.syscall.src} ${rvm.arch.src} ${perfctr.src}">
+    <condition property="rvm.syscall.src"
+               value="${bl.dir}/sysGCSpy.c ${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${rvm.arch.src}"
+               else="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${rvm.arch.src}">
       <equals arg1="include.gcspy" arg2="true"/>
     </condition>
-  </target>
 
-  <target name="build-ppc-bootThread" depends="check-bootloader-properties" if="gen-ppc-bootThread">
-    <test-file name="cpp.exe" location="${host.file}"/>
-    <exec executable="${cpp.exe}" failonerror="true" output="${build.native}/bootThread.s">
-      <arg line="${rvm.common.args} ${cpp.args}"/>
-      <arg value="-P"/>
-      <arg path="${basedir}/tools/bootloader/ppc/bootThread.c"/>
-    </exec>
+    <property name="rvm.src"  value="${bl.dir}/main.c ${perfctr.src}"/>
   </target>
 
   <target name="build-gcspy-stub" depends="check-bootloader-properties" if="include.gcspy-stub">
@@ -1582,7 +1573,7 @@ Check to make sure all required properties are specified. This includes properti
     </exec>
   </target>
 
-  <target name="build-bootloader" depends="build-gcspy-stub,build-ppc-bootThread">
+  <target name="build-bootloader" depends="build-gcspy-stub">
 
     <!-- rdynamic flag used to control the exporting of symbols into an ELF -->
     <condition property="c.rdynamic" value="" else="-rdynamic">
@@ -1612,7 +1603,7 @@ Check to make sure all required properties are specified. This includes properti
       <arg line="${rvm.c.args} -lpthread ${c.librt}"/>
       <arg value="-o"/>
       <arg path="${toString:rvm.dll}"/>
-      <arg path="${bl.dir}/jvm.c"/>
+      <arg line="${bl.dir}/jvm.c ${rvm.syscall.src}"/>
     </exec>
 
     <!-- create vmi shared library -->

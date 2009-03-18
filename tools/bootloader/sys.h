@@ -18,6 +18,9 @@
 #include <jni.h>
 #include <stdint.h>
 #include "cAttributePortability.h"
+#ifdef __MACH__
+#include <mach/mach_time.h>
+#endif
 
 #ifdef __cplusplus
 #define EXTERNAL extern "C"

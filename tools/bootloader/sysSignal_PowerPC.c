@@ -15,14 +15,21 @@
  * Architecture specific signal handling routines
  */
 #include "sys.h"
+#include <signal.h>
+#include <sys/ucontext.h>
 
 /* Macros to modify signal context */
 #ifdef RVM_FOR_OSX
-#define GET_GPR(info, rnum)        (info->r##rnum)
-#define SET_GPR(info, rnum, value) (info->r##rnum=value)
+#define MAKE_INFO(info, context)                                        \
+  struct mcontext* info = ((struct ucontext *)context)->uc_mcontext
+#define MAKE_SAVE(save, info)                                           \
+   ppc_thread_state_t *save = &info->ss;
+#define GET_GPR(save, r)        ((unsigned int *)&save->r0)[(r)]
+#define SET_GPR(save, r, value) ((unsigned int *)&save->r0)[(r)] = (value)
+#define PPC_IAR(save)           save->srr0
 #else
-#define GET_GPR(info, r)             ((info)->gpr[(r)])
-#define SET_GPR(info, r, value)     (((info)->gpr[(r)]) = (value))
+#define GET_GPR(save, r)             ((save)->gpr[(r)])
+#define SET_GPR(save, r, value)     (((save)->gpr[(r)]) = (value))
 #endif
 
 
@@ -40,10 +47,11 @@ EXTERNAL void readContextInformation(void *context, Address *instructionPtr,
                                      Address *threadPtr, Address *jtocPtr)
 {
   MAKE_INFO(info, context);
-  Address ip = PPC_IAR(context);
+  MAKE_SAVE(save, info);
+  Address ip = PPC_IAR(save);
   *instructionPtr  = ip;
   *instructionFollowingPtr = ip+4;
-  *threadPtr = GET_GPR(info, Constants_FRAME_POINTER);
+  *threadPtr = GET_GPR(save, Constants_FRAME_POINTER);
   *jtocPtr = bootRecord->tocRegister; /* could use register holding JTOC on PPC */
 }
 
@@ -58,7 +66,23 @@ EXTERNAL void readContextInformation(void *context, Address *instructionPtr,
 EXTERNAL Address readContextFramePointer(void *context, Address UNUSED threadPtr)
 {
   MAKE_INFO(info, context);  
-  return GET_GPR(info, Constants_FRAME_POINTER);
+  MAKE_SAVE(save, info);
+  return GET_GPR(save, Constants_FRAME_POINTER);
+}
+
+/**
+ * Read trap code from context of signal
+ *
+ * @param context   [in] context to read from
+ * @param threadPtr [in] address of thread information
+ * @param signo     [in] signal number
+ * @param instructionPtr [in] address of instruction
+ * @param trapInfo  [out] extra information about trap
+ * @return trap code
+ */
+EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int signo, Address instructionPtr, int *trapInfo)
+{
+  return 0;
 }
 
 /**
@@ -68,9 +92,11 @@ EXTERNAL Address readContextFramePointer(void *context, Address UNUSED threadPtr
  */
 EXTERNAL void setupDumpStackAndDie(void *context)
 {    
+  MAKE_INFO(info, context);  
+  MAKE_SAVE(save, info);
   Offset DumpStackAndDieOffset = bootRecord->dumpStackAndDieOffset;  
   Address localJTOC = bootRecord->tocRegister;
-  Address dumpStack = *(Address *)((char *)VmToc + DumpStackAndDieOffset);
+  Address dumpStack = *(Address *)((char *)localJTOC + DumpStackAndDieOffset);
 #ifdef RVM_FOR_LINUX
   save->link = save->nip + 4; // +4 so it looks like a return address
   save->nip = dumpStack;
@@ -83,4 +109,28 @@ EXTERNAL void setupDumpStackAndDie(void *context)
 #endif
   SET_GPR(save, Constants_FIRST_VOLATILE_GPR,
           GET_GPR(save, Constants_FRAME_POINTER));
+}
+
+/**
+ * Print the contents of context to the screen
+ *
+ * @param context [in] registers at point of signal/trap
+ */
+EXTERNAL void dumpContext(void *context)
+{
+}
+
+/**
+ * Set up the context to invoke RuntimeEntrypoints.deliverHardwareException.
+ *
+ * @param context  [in,out] registers at point of signal/trap
+ * @param vmRegisters [out]
+ */
+EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
+					    int trapCode, int trapInfo,
+					    Address instructionPtr,
+					    Address instructionFollowingPtr,
+					    Address threadPtr, Address jtocPtr,
+					    Address framePtr, int signo)
+{
 }

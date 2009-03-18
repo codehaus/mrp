@@ -129,7 +129,11 @@ EXTERNAL void sysZeroPages(void *dst, int cnt)
       ERROR_PRINTF("%s: munmap failed (errno=%d): ", Me, errno);
       sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
     }
+#ifdef MAP_ANONYMOUS
     addr = mmap(dst, cnt, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+#else
+    addr = mmap(dst, cnt, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_FIXED, -1, 0);
+#endif
     if (addr == (void *)-1)
     {
       ERROR_PRINTF("%s: mmap failed (errno=%d): ", Me, errno);
