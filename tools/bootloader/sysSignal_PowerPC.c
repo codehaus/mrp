@@ -27,9 +27,14 @@
 #define GET_GPR(save, r)        ((unsigned int *)&save->r0)[(r)]
 #define SET_GPR(save, r, value) ((unsigned int *)&save->r0)[(r)] = (value)
 #define PPC_IAR(save)           save->srr0
+#define PPC_LR(save)            save->lr
+#define PPC_FP(save)            save->r1
 #else
 #define GET_GPR(save, r)             ((save)->gpr[(r)])
 #define SET_GPR(save, r, value)     (((save)->gpr[(r)]) = (value))
+#define PPC_IAR(save)                  save->nip
+#define PPC_LR(save)                   save->link
+#define PPC_FP(save)                   save->gpr[1]
 #endif
 
 
@@ -82,7 +87,55 @@ EXTERNAL Address readContextFramePointer(void *context, Address UNUSED threadPtr
  */
 EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int signo, Address instructionPtr, int *trapInfo)
 {
-  return 0;
+  SYS_START();
+  int instruction;
+
+  switch(signo) {
+  case SIGSEGV:
+    return Runtime_TRAP_NULL_POINTER;
+  case SIGTRAP:
+    instruction = *((int*)instructionPtr);
+    if ((instruction & Constants_ARRAY_INDEX_MASK) == Constants_ARRAY_INDEX_TRAP) {
+      MAKE_INFO(info, context);  
+      MAKE_SAVE(save, info);
+      *trapInfo = GET_GPR(save,
+                          (instruction & Constants_ARRAY_INDEX_REG_MASK)
+                          >> Constants_ARRAY_INDEX_REG_SHIFT);
+      return Runtime_TRAP_ARRAY_BOUNDS;
+    }
+    if ((instruction & Constants_CONSTANT_ARRAY_INDEX_MASK) == Constants_CONSTANT_ARRAY_INDEX_TRAP) {
+      *trapInfo = ((instruction & Constants_CONSTANT_ARRAY_INDEX_INFO)<<16)>>16;
+      return Runtime_TRAP_ARRAY_BOUNDS;
+    }
+    if ((instruction & Constants_DIVIDE_BY_ZERO_MASK) == Constants_DIVIDE_BY_ZERO_TRAP) {
+      return Runtime_TRAP_DIVIDE_BY_ZERO;
+    }
+    if ((instruction & Constants_MUST_IMPLEMENT_MASK) == Constants_MUST_IMPLEMENT_TRAP)  {
+      return Runtime_TRAP_MUST_IMPLEMENT;
+    }
+    if ((instruction & Constants_STORE_CHECK_MASK) == Constants_STORE_CHECK_TRAP) {
+      return Runtime_TRAP_STORE_CHECK;
+    }
+    if ((instruction & Constants_CHECKCAST_MASK ) == Constants_CHECKCAST_TRAP) {
+      return Runtime_TRAP_CHECKCAST;
+    }
+    if ((instruction & Constants_REGENERATE_MASK) == Constants_REGENERATE_TRAP) {
+      return Runtime_TRAP_REGENERATE;
+    }
+    if ((instruction & Constants_NULLCHECK_MASK) == Constants_NULLCHECK_TRAP) {
+      return Runtime_TRAP_NULL_POINTER;
+    }
+    if ((instruction & Constants_JNI_STACK_TRAP_MASK) == Constants_JNI_STACK_TRAP) {
+      return Runtime_TRAP_JNI_STACK;
+    }
+    ERROR_PRINTF(Me, "%s: Unexpected hardware trap 0x%x from instruction 0x%0x\n", Me, signo, instruction);
+    return Runtime_TRAP_UNKNOWN;    
+  case SIGFPE:
+    return Runtime_TRAP_DIVIDE_BY_ZERO;
+  default:
+    ERROR_PRINTF(Me, "%s: Unexpected hardware trap signal 0x%x\n", Me, signo);
+    return Runtime_TRAP_UNKNOWN;
+  }
 }
 
 /**
@@ -97,18 +150,9 @@ EXTERNAL void setupDumpStackAndDie(void *context)
   Offset DumpStackAndDieOffset = bootRecord->dumpStackAndDieOffset;  
   Address localJTOC = bootRecord->tocRegister;
   Address dumpStack = *(Address *)((char *)localJTOC + DumpStackAndDieOffset);
-#ifdef RVM_FOR_LINUX
-  save->link = save->nip + 4; // +4 so it looks like a return address
-  save->nip = dumpStack;
-#elif defined RVM_FOR_OSX
-  save->lr = save->srr0 + 4; // +4 so it looks like a return address
-  save->srr0 = dumpStack;
-#elif defined RVM_FOR_AIX
-  save->lr = save->iar + 4; // +4 so it looks like a return address
-  save->iar = dumpStack;
-#endif
-  SET_GPR(save, Constants_FIRST_VOLATILE_GPR,
-          GET_GPR(save, Constants_FRAME_POINTER));
+  PPC_LR(save) = PPC_IAR(save)+4; // +4 so it looks like a return address
+  PPC_IAR(save) = dumpStack;
+  SET_GPR(save, Constants_FIRST_VOLATILE_GPR, GET_GPR(save, Constants_FRAME_POINTER));
 }
 
 /**
@@ -118,6 +162,18 @@ EXTERNAL void setupDumpStackAndDie(void *context)
  */
 EXTERNAL void dumpContext(void *context)
 {
+  int i;
+  SYS_START();
+  MAKE_INFO(info, context);  
+  MAKE_SAVE(save, info);
+  ERROR_PRINTF("             fp=%p\n", GET_GPR(save, PPC_FP(save)));
+  ERROR_PRINTF("             tr=%p\n", GET_GPR(save, Constants_THREAD_REGISTER));
+  ERROR_PRINTF("             ip=%p\n", PPC_IAR(save));
+  ERROR_PRINTF("          instr=0x%08x\n", *((int*)PPC_IAR(save)));
+  ERROR_PRINTF("             lr=%p\n",  PPC_LR(save));
+  for (i=0; i<32; i++) {
+    ERROR_PRINTF("            r%02d=%p\n", i, GET_GPR(save, i));
+  }
 }
 
 /**
@@ -133,4 +189,5 @@ EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
 					    Address threadPtr, Address jtocPtr,
 					    Address framePtr, int signo)
 {
+  setupDumpStackAndDie(context);
 }
