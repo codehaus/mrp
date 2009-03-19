@@ -115,16 +115,52 @@ JavaVMInitArgs * JNICALL GetInitArgs (VMInterface * vmi)
 
 vmiError JNICALL GetSystemProperty (VMInterface * vmi, char *key, char **valuePtr)
 {
+  JNIEnv *env;
+  jstring jkey, jvalue;
+  jclass systemClass;
+  jmethodID mid;
+  jboolean isCopy;
   SYS_START();
-  TRACE_PRINTF("%s: VMI call GetSystemProperty (unimplemented)\n", Me);
-  return VMI_ERROR_UNIMPLEMENTED;
+  TRACE_PRINTF("%s: VMI call GetSystemProperty %s\n", Me, key);
+  if (sysJavaVM.functions->GetEnv (&sysJavaVM, (void **) &env, JNI_VERSION_1_2) != JNI_OK)
+    return VMI_ERROR_UNKNOWN;
+  jkey = (*env)->NewStringUTF(env, key);  
+  systemClass = (*env)->FindClass (env, "java/lang/System");
+  if (!systemClass)
+    return VMI_ERROR_UNKNOWN;
+  mid = (*env)->GetStaticMethodID (env, systemClass, "getProperty",
+				   "(Ljava/lang/String;)Ljava/lang/String;");
+  if (!mid)
+    return VMI_ERROR_UNKNOWN;
+  jvalue = (*env)->CallStaticObjectMethod(env, systemClass, mid, jkey);
+  *valuePtr = (*env)->GetStringUTFChars(env, jvalue, &isCopy);
+  /* TODO: release this string */
+  TRACE_PRINTF("%s: VMI call GetSystemProperty %s = %s\n", Me, key, *valuePtr);
+  return VMI_ERROR_NONE;
 }
 
 vmiError JNICALL SetSystemProperty (VMInterface * vmi, char *key, char *value)
 {
+  JNIEnv *env;
+  jstring jkey, jvalue;
+  jclass systemClass;
+  jmethodID mid;
+  jboolean isCopy;
   SYS_START();
-  TRACE_PRINTF("%s: VMI call SetSystemProperty (unimplemented)\n", Me);
-  return VMI_ERROR_UNIMPLEMENTED;
+  TRACE_PRINTF("%s: VMI call SetSystemProperty %s = %s\n", Me, key, value);
+  if (sysJavaVM.functions->GetEnv (&sysJavaVM, (void **) &env, JNI_VERSION_1_2) != JNI_OK)
+    return VMI_ERROR_UNKNOWN;
+  jkey = (*env)->NewStringUTF(env, key);
+  jvalue = (*env)->NewStringUTF(env, key);
+  systemClass = (*env)->FindClass (env, "java/lang/System");
+  if (!systemClass)
+    return VMI_ERROR_UNKNOWN;
+  mid = (*env)->GetStaticMethodID (env, systemClass, "setProperty",
+				   "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+  if (!mid)
+    return VMI_ERROR_UNKNOWN;
+  jvalue = (*env)->CallStaticObjectMethod(env, systemClass, mid, jkey, jvalue);
+  return VMI_ERROR_NONE;
 }
 
 vmiError JNICALL CountSystemProperties (VMInterface * vmi, int *countPtr)
@@ -161,8 +197,7 @@ VMInterface* JNICALL VMI_GetVMIFromJavaVM(JavaVM* vm)
  *
  * @return a VMInterface pointer
  */
-VMInterface* JNICALL 
-VMI_GetVMIFromJNIEnv(JNIEnv* env)
+VMInterface* JNICALL VMI_GetVMIFromJNIEnv(JNIEnv* env)
 {
   SYS_START();
   TRACE_PRINTF("%s: GetVMIFromJNIEnv\n", Me);
