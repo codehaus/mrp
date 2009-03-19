@@ -155,9 +155,7 @@ jint GetEnv(JavaVM UNUSED *vm, void **penv, jint version)
 
 /** JNI 1.4 */
 /* TODO: Implement */
-static
-jint
-AttachCurrentThreadAsDaemon(JavaVM UNUSED * vm, /* JNIEnv */ void UNUSED ** penv, /* JavaVMAttachArgs */ void UNUSED *args)
+static jint AttachCurrentThreadAsDaemon(JavaVM UNUSED * vm, /* JNIEnv */ void UNUSED ** penv, /* JavaVMAttachArgs */ void UNUSED *args)
 {
     fprintf(stderr, "Unimplemented JNI call AttachCurrentThreadAsDaemon\n");
     return JNI_ERR;
