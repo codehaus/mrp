@@ -3985,6 +3985,10 @@ public class JNIFunctions implements SizeConstants {
 
     String str = (String) env.getJNIRef(strJREF);
 
+    if (str == null) {
+      return Address.zero();
+    }
+
     // Get length of C string
     int len = UTF8Convert.utfLength(str) + 1; // for terminating zero
 
