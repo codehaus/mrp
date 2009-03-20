@@ -1195,10 +1195,11 @@ public class RVMThread extends ThreadContext {
     bindIfRequested();
 
     threadingInitialized = true;
+
+    TimerThread tt = new TimerThread();
+    tt.makeDaemon(true);
+    tt.start();
     if (VM.BuildForAdaptiveSystem) {
-      TimerThread tt = new TimerThread();
-      tt.makeDaemon(true);
-      tt.start();
       ObjectHolder.boot();
     }
     CollectorThread.boot();
@@ -4427,7 +4428,9 @@ public class RVMThread extends ThreadContext {
         VM._assert(VM.NOT_REACHED);
     }
 
-    if (!isAddressValidFramePointer(fp)) {
+    if (fp.EQ(StackframeLayoutConstants.STACKFRAME_SENTINEL_FP)) {
+      VM.sysWriteln("Empty stack");
+    } else if (!isAddressValidFramePointer(fp)) {
       VM.sysWrite("Bogus looking frame pointer: ", fp);
       VM.sysWriteln(" not dumping stack");
     } else {
