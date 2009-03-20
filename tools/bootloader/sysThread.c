@@ -477,7 +477,7 @@ static void* sysThreadStartup(void *args)
   jb = (jmp_buf*)sysMalloc(sizeof(jmp_buf));
   if (setjmp(*jb)) {
     // this is where we come to terminate the thread
-    TRACE_PRINTF("%s: sysThreadStartup: terminating", Me);
+    TRACE_PRINTF("%s: sysThreadStartup: terminating\n", Me);
 #ifdef RVM_FOR_HARMONY
     hythread_detach(NULL);
 #endif
