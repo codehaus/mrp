@@ -1858,10 +1858,17 @@ target.jni-suffix=${target.jni-suffix}
             <include name="*${target.jni-suffix}"/>
             <include name="*.properties"/>
             <exclude name="*vmi${target.jni-suffix}"/>
+            <exclude name="bootclasspath.properties"/>
           </fileset>
           <fileset dir="${build.base}">
             <include name="*${target.dll-ext}"/>
             <include name="*${target.jni-suffix}"/>
+          </fileset>
+        </copy>
+        <mkdir dir="${dist.base}/lib/boot"/>
+        <copy todir="${dist.base}/lib/boot">
+          <fileset dir="${harmony.lib.dir}">
+            <include name="bootclasspath.properties"/>
           </fileset>
         </copy>
         <copy todir="${dist.base}">
