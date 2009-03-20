@@ -686,11 +686,12 @@ EXTERNAL void sysMonitorExit(Address _monitor)
 EXTERNAL void sysMonitorTimedWaitAbsolute(Address _monitor, long long whenWakeupNanos)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMonitorTimedWaitAbsolute\n", Me);
+  TRACE_PRINTF("%s: sysMonitorTimedWaitAbsolute %ld\n", Me, whenWakeupNanos);
 #ifdef RVM_FOR_HARMONY
   // syscall wait is absolute, but harmony monitor wait is relative.
   whenWakeupNanos -= sysNanoTime();
   if (whenWakeupNanos <= 0) return;
+  TRACE_PRINTF("%s: sysMonitorTimedWaitAbsolute - wait for %ld %d\n", Me, (I_64)(whenWakeupNanos / 1000000LL), (IDATA)(whenWakeupNanos % 1000000LL));
   hythread_monitor_wait_timed((hythread_monitor_t)_monitor, (I_64)(whenWakeupNanos / 1000000LL), (IDATA)(whenWakeupNanos % 1000000LL));
 #else
   struct timespec ts;
