@@ -50,7 +50,7 @@ EXTERNAL long long sysNanoTime()
   TRACE_PRINTF("%s: sysNanoTime\n", Me);
 #if RVM_FOR_HARMONY
   // TODO: there's probably a more accurate way to do this
-  retVal = hytime_current_time_millis() * 1000;
+  retVal = hytime_current_time_millis() * 1000000;
 #else
 #ifdef __MACH__
   unsigned long long high;
