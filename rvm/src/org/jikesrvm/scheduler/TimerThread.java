@@ -50,16 +50,18 @@ public class TimerThread extends RVMThread {
 
         // grab the lock to prevent threads from getting GC'd while we are
         // iterating (since this thread doesn't stop for GC)
-        RVMThread.acctLock.lock();
-        RVMThread.timerTicks++;
-        for (int i=0;i<RVMThread.numThreads;++i) {
-          RVMThread candidate=RVMThread.threads[i];
-          if (candidate!=null && candidate.shouldBeSampled()) {
-            candidate.timeSliceExpired++;
-            candidate.takeYieldpoint=1;
+        if (VM.BuildForAdaptiveSystem) {
+          RVMThread.acctLock.lock();
+          RVMThread.timerTicks++;
+          for (int i=0;i<RVMThread.numThreads;++i) {
+            RVMThread candidate=RVMThread.threads[i];
+            if (candidate!=null && candidate.shouldBeSampled()) {
+              candidate.timeSliceExpired++;
+              candidate.takeYieldpoint=1;
+            }
           }
+          RVMThread.acctLock.unlock();
         }
-        RVMThread.acctLock.unlock();
 
         RVMThread.checkDebugRequest();
       }
