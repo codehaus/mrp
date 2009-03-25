@@ -16,10 +16,12 @@
 
 #include <stdio.h>
 #include <jni.h>
-#include <stdint.h>
 #include "cAttributePortability.h"
 #ifdef __MACH__
 #include <mach/mach_time.h>
+#endif
+#ifndef _WIN32
+#include <stdint.h>
 #endif
 
 #ifdef __cplusplus
@@ -40,6 +42,25 @@ EXTERNAL void VMI_Initialize();
 EXTERNAL UDATA DefaultPageSize;
 #endif
 
+#ifdef _WIN32
+typedef __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+typedef __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+#endif
+
+#ifdef RVM_FOR_32_ADDR
+typedef uint32_t Address;
+typedef  int32_t Offset;
+typedef uint32_t Extent;
+typedef uint32_t Word;
+#else
+typedef uint64_t Address;
+typedef  int64_t Offset;
+typedef uint64_t Extent;
+typedef uint64_t Word;
+#endif
+
 #ifndef __SIZEOF_POINTER__
 #  ifdef RVM_FOR_32_ADDR
 #    define __SIZEOF_POINTER__ 4
@@ -48,21 +69,9 @@ EXTERNAL UDATA DefaultPageSize;
 #  endif
 #endif
 
-#ifdef RVM_FOR_32_ADDR
-#  define Address uint32_t
-#  define Offset int32_t
-#  define Extent uint32_t
-#  define Word uint32_t
-#else
-#  define Address uint64_t
-#  define Offset int64_t
-#  define Extent uint64_t
-#  define Word uint64_t
-#endif
-
 /** Macro that starts all sys related functions */
 #ifdef RVM_FOR_HARMONY
-#define SYS_START()  PORT_ACCESS_FROM_VMI(VMI_GetVMIFromJavaVM(&sysJavaVM))
+#define SYS_START()  PORT_ACCESS_FROM_VMI(VMI_GetVMIFromJavaVM((JavaVM*)(&sysJavaVM)))
 #else
 #define SYS_START()
 #endif
@@ -100,7 +109,7 @@ extern char **JavaArgs;
 /** C access to shared C/Java boot record data structure */
 extern struct BootRecord *bootRecord;
 /** JVM datastructure used for JNI declared in jvm.c */
-extern struct JavaVM_ sysJavaVM;
+extern const struct JavaVM_ sysJavaVM;
 
 #ifdef RVM_WITH_ALIGNMENT_CHECKING
 extern volatile int numEnableAlignCheckingCalls;
@@ -232,7 +241,7 @@ EXTERNAL void sysExit(int) NORETURN;
 EXTERNAL void sysStashVMThread(Address vmThread);
 EXTERNAL void* getVMThread();
 EXTERNAL int sysNumProcessors();
-EXTERNAL void sysStartMainThread(jboolean vmInSeparateThread, Address ip, Address fp, Address tr, Address jtoc, uint32_t *bootCompleted);
+EXTERNAL void sysStartMainThread(jboolean vmInSeparateThread, Address ip, Address fp, Address tr, Address jtoc, jint *bootCompleted);
 EXTERNAL Address sysThreadCreate(Address ip, Address fp, Address tr, Address jtoc);
 EXTERNAL void sysThreadTerminate();
 EXTERNAL int sysThreadBindSupported();

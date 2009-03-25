@@ -207,10 +207,10 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
                                  jboolean exec, jboolean commit)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMemoryReserve %p %d - %d %d %d %d\n",
-               Me, start, length, read, write, exec, commit);
 #ifdef RVM_FOR_HARMONY
   HyPortVmemIdentifier ident;
+  TRACE_PRINTF("%s: sysMemoryReserve %p %d - %d %d %d %d\n",
+               Me, start, length, read, write, exec, commit);
   ident.pageSize = DefaultPageSize;
   ident.mode = 0;
   if (read) {
@@ -231,6 +231,8 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
   int flags = MAP_PRIVATE;
   int fd = -1;
   off_t offset = 0;
+  TRACE_PRINTF("%s: sysMemoryReserve %p %d - %d %d %d %d\n",
+               Me, start, length, read, write, exec, commit);
 #if defined(MAP_ANONYMOUS)
   flags |= MAP_ANONYMOUS;
 #elif defined(MAP_ANON)
@@ -306,10 +308,10 @@ EXTERNAL jboolean sysMemoryCommit(char *start, size_t length,
                                  jboolean exec)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMemoryCommit %p %d - %d %d %d\n",
-               Me, start, length, read, write, exec);
 #ifdef RVM_FOR_HARMONY
   HyPortVmemIdentifier ident;
+  TRACE_PRINTF("%s: sysMemoryCommit %p %d - %d %d %d\n",
+               Me, start, length, read, write, exec);
   ident.pageSize = DefaultPageSize;
   ident.mode = 0;
   if (read) {
@@ -328,6 +330,8 @@ EXTERNAL jboolean sysMemoryCommit(char *start, size_t length,
   }
 #else
   int protection = 0;
+  TRACE_PRINTF("%s: sysMemoryCommit %p %d - %d %d %d\n",
+               Me, start, length, read, write, exec);
   if (read) {
     protection |= PROT_READ;
   }
@@ -354,9 +358,9 @@ EXTERNAL jboolean sysMemoryCommit(char *start, size_t length,
 EXTERNAL jboolean sysMemoryDecommit(char *start, size_t length)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMemoryDecommit %p %d\n", Me, start, length);
 #ifdef RVM_FOR_HARMONY
   HyPortVmemIdentifier ident;
+  TRACE_PRINTF("%s: sysMemoryDecommit %p %d\n", Me, start, length);
   ident.pageSize = DefaultPageSize;
   if(hyvmem_decommit_memory(start, length, &ident) == 0) {
     return JNI_TRUE;
@@ -364,6 +368,7 @@ EXTERNAL jboolean sysMemoryDecommit(char *start, size_t length)
     return JNI_FALSE;
   }
 #else
+  TRACE_PRINTF("%s: sysMemoryDecommit %p %d\n", Me, start, length);
   return JNI_TRUE; // success - unsupported operation for UNIX environments
 #endif // RVM_FOR_HARMONY
 }

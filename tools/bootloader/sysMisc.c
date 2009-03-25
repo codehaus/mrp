@@ -129,13 +129,18 @@ EXTERNAL unsigned int parse_memory_size(const char *sizeName, const char *sizeFl
 					int *fastExit)
 {
   SYS_START();
-  errno = 0;
   double userNum;
   char *endp;                 /* Should be const char *, but if we do that,
 				 then the C++ compiler complains about the
 				 prototype for strtold() or strtod().   This
 				 is probably a bug in the specification
 				 of the prototype. */
+  const char *factorStr = defaultFactor;
+  long double factor = 0.0;   // 0.0 is a sentinel meaning Unset
+  long double tot_d;
+  unsigned tot;
+
+  errno = 0;
   userNum = strtod(subtoken, &endp);
   if (endp == subtoken) {
     CONSOLE_PRINTF( "%s: \"%s\": -X%s must be followed by a number.\n", Me, token, sizeFlag);
@@ -144,9 +149,6 @@ EXTERNAL unsigned int parse_memory_size(const char *sizeName, const char *sizeFl
 
   // First, set the factor appropriately, and make sure there aren't extra
   // characters at the end of the line.
-  const char *factorStr = defaultFactor;
-  long double factor = 0.0;   // 0.0 is a sentinel meaning Unset
-
   if (*endp == '\0') {
     /* no suffix.  Along with the Sun JVM, we now assume Bytes by
        default. (This is a change from  previous Jikes RVM behaviour.)  */
@@ -211,11 +213,11 @@ EXTERNAL unsigned int parse_memory_size(const char *sizeName, const char *sizeFl
     }
     return 0U;              // Distinguished value meaning trouble.
   }
-  long double tot_d = userNum * factor;
+  tot_d = userNum * factor;
   if ((tot_d > (UINT_MAX - roundTo)) || (tot_d < 1)) {
     ERROR_PRINTF("Unexpected memory size %f", tot_d);
   }
-  unsigned tot = (unsigned) tot_d;
+  tot = (unsigned) tot_d;
   if (tot % roundTo) {
     unsigned newTot = tot + roundTo - (tot % roundTo);
     CONSOLE_PRINTF("%s: Rounding up %s size from %u bytes to %u,\n"
@@ -244,11 +246,14 @@ EXTERNAL jlong sysParseMemorySize(const char *sizeName, const char *sizeFlag,
                                   const char *token, const char *subtoken)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysParseMemorySize %s\n", Me, token);
   int fastExit = 0;
-  unsigned ret_uns=  parse_memory_size(sizeName, sizeFlag, defaultFactor,
-                                       (unsigned) roundTo, token, subtoken,
-                                       &fastExit);
+  unsigned ret_uns;
+
+  TRACE_PRINTF("%s: sysParseMemorySize %s\n", Me, token);
+
+  ret_uns=  parse_memory_size(sizeName, sizeFlag, defaultFactor,
+			      (unsigned) roundTo, token, subtoken,
+			      &fastExit);
   if (fastExit)
     return -1;
   else

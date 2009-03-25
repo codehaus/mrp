@@ -69,8 +69,11 @@ static void* sysThreadStartup(void *args);
 EXTERNAL void sysInitialize()
 {
 #ifdef RVM_FOR_HARMONY
+  VMInterface *vmi;
+  HyPortLibrary *privatePortLibrary;
   VMI_Initialize();
-  SYS_START(); /* start after VMI is initialized */
+  vmi = VMI_GetVMIFromJavaVM((JavaVM*)(&sysJavaVM));
+  privatePortLibrary = (*vmi)->GetPortLibrary(vmi);
   DefaultPageSize = hyvmem_supported_page_sizes()[0];
 #else
 #ifdef __MACH__

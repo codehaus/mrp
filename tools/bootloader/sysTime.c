@@ -12,8 +12,11 @@
  */
 
 #include "sys.h"
+
+#ifndef RVM_FOR_HARMONY
 #include <time.h>
 #include <sys/time.h>
+#endif
 
 #if !defined(RVM_FOR_HARMONY) && defined(__MACH__)
 mach_timebase_info_data_t timebaseInfo;
