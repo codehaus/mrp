@@ -13,7 +13,9 @@
 #ifndef JNI_H
 #define JNI_H
 
-#include <inttypes.h>
+#ifndef _WIN32
+#include <stdint.h>
+#endif
 #include <stdio.h>  /* For 1.1 version of args (i.e., vfprintf) */
 #include <stdarg.h> /* For va_list */
 
@@ -55,12 +57,21 @@ extern "C" {
 #define JNI_EEXIST		(-5)
 #define JNI_EINVAL		(-6)
 
+#ifdef _WIN32
+typedef unsigned __int8 jboolean;
+typedef __int8 jbyte;
+typedef unsigned __int16 jchar;
+typedef __int16 jshort;
+typedef __int32 jint;
+typedef __int64 jlong;
+#else
 typedef uint8_t jboolean;
 typedef int8_t jbyte;
 typedef uint16_t jchar;
 typedef int16_t jshort;
 typedef int32_t jint;
 typedef int64_t jlong;
+#endif
 typedef float jfloat;
 typedef double jdouble;
 typedef jint jsize;
