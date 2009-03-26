@@ -241,7 +241,7 @@ EXTERNAL void sysExit(int) NORETURN;
 EXTERNAL void sysStashVMThread(Address vmThread);
 EXTERNAL void* getVMThread();
 EXTERNAL int sysNumProcessors();
-EXTERNAL void sysStartMainThread(jboolean vmInSeparateThread, Address ip, Address fp, Address tr, Address jtoc, jint *bootCompleted);
+EXTERNAL void sysStartMainThread(jboolean vmInSeparateThread, Address ip, Address fp, Address tr, Address jtoc, uint32_t *bootCompleted);
 EXTERNAL Address sysThreadCreate(Address ip, Address fp, Address tr, Address jtoc);
 EXTERNAL void sysThreadTerminate();
 EXTERNAL int sysThreadBindSupported();

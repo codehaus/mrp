@@ -283,6 +283,7 @@ EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
 					    Address framePtr, int signo)
 {
   SYS_START();
+  Address sp, stackLimit, fp;
   Address *vmr_gprs  = *(Address **) (vmRegisters + Registers_gprs_offset);
   Address vmr_ip     =  (Address)    (vmRegisters + Registers_ip_offset);
   Address vmr_fp     =  (Address)    (vmRegisters + Registers_fp_offset);
@@ -316,8 +317,8 @@ EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
    * Runtime.deliverHardwareException et al. in the guard region of the
    * stack to avoid bashing stuff in the bottom opt-frame.
    */
-  Address sp = IA32_ESP(context);
-  Address stackLimit = *(Address *)(threadPtr + RVMThread_stackLimit_offset);
+  sp = IA32_ESP(context);
+  stackLimit = *(Address *)(threadPtr + RVMThread_stackLimit_offset);
   if (sp <= stackLimit - 384) {
     ERROR_PRINTF("sp (%p)too far below stackLimit (%p)to recover\n", sp, stackLimit);
     signal(signo, SIG_DFL);
@@ -332,7 +333,7 @@ EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
   /* Insert artificial stackframe at site of trap. */
   /* This frame marks the place where "hardware exception registers" were saved. */
   sp = sp - Constants_STACKFRAME_HEADER_SIZE;
-  Address fp = sp - __SIZEOF_POINTER__ - Constants_STACKFRAME_BODY_OFFSET;
+  fp = sp - __SIZEOF_POINTER__ - Constants_STACKFRAME_BODY_OFFSET;
   /* fill in artificial stack frame */
   ((Address*)(fp + Constants_STACKFRAME_FRAME_POINTER_OFFSET))[0]  = framePtr;
   ((int *)   (fp + Constants_STACKFRAME_METHOD_ID_OFFSET))[0]      = bootRecord->hardwareTrapMethodId;

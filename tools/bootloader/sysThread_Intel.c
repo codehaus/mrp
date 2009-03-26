@@ -23,6 +23,7 @@
 void bootThread (void *ip, void *tr, void *sp, void UNUSED *jtoc)
 {
   void *saved_ebp;
+#ifndef _WIN32
   asm volatile (
 #ifndef __x86_64__
        "mov   %%ebp, %0     \n"
@@ -46,4 +47,17 @@ void bootThread (void *ip, void *tr, void *sp, void UNUSED *jtoc)
 	 "S"(tr), // ESI = Thread Register
 	 "r"(sp)
        );
+#else
+  __asm{
+      mov eax, ip
+      mov esi, tr
+      mov saved_ebp, ebp
+      mov ebp, esp
+      mov esp, sp
+      push ebp
+      call [eax]
+      pop esp
+      mov ebp, saved_ebp
+  }
+#endif
 }

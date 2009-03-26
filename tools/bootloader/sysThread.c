@@ -504,12 +504,13 @@ static void* sysThreadStartup(void *args)
 /** Terminate a thread */
 EXTERNAL void sysThreadTerminate()
 {
+  jmp_buf *jb;
   SYS_START();
   TRACE_PRINTF("%s: sysThreadTerminate\n", Me);
 #ifdef RVM_FOR_POWERPC
   asm("sync");
 #endif
-  jmp_buf *jb = (jmp_buf*)getThreadLocal(TerminateJmpBufKey);
+  jb = (jmp_buf*)getThreadLocal(TerminateJmpBufKey);
   longjmp(*jb,1);
 }
 
