@@ -72,7 +72,7 @@ JavaVM * JNICALL GetJavaVM (VMInterface * vmi)
 {
   SYS_START();
   TRACE_PRINTF("%s: VMI call GetJavaVM\n", Me);
-  return &sysJavaVM;
+  return (JavaVM*)&sysJavaVM;
 }
 
 HyPortLibrary * JNICALL GetPortLibrary (VMInterface * vmi)
@@ -110,7 +110,7 @@ JavaVMInitArgs * JNICALL GetInitArgs (VMInterface * vmi)
 {
   SYS_START();
   TRACE_PRINTF("%s: VMI call GetInitArgs\n", Me);
-  return JavaArgs;
+  return (JavaVMInitArgs*)JavaArgs;
 }
 
 vmiError JNICALL GetSystemProperty (VMInterface * vmi, char *key, char **valuePtr)
@@ -220,6 +220,5 @@ EXTERNAL void VMI_Initialize()
     abort();
   }
 #endif
-  initializeVMLocalStorage(&sysJavaVM);
+  initializeVMLocalStorage((JavaVM*)&sysJavaVM);
 }
-
