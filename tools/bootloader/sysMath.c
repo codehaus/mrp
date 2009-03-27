@@ -92,7 +92,11 @@ EXTERNAL double sysDoubleRemainder(double a, double b)
   double tmp;
   SYS_START();
   TRACE_PRINTF("%s: sysDoubleRemainder %f %% %f\n", Me, a);
+#ifdef _WIN32
+  tmp = fmod(a, b);
+#else
   tmp = remainder(a, b);
+#endif
   if (a > 0.0) {
     if (b > 0.0) {
       if (tmp < 0.0) {
@@ -281,7 +285,11 @@ EXTERNAL double sysVMMathPow(double a, double b) {
 EXTERNAL double sysVMMathIEEEremainder(double a, double b) {
   SYS_START();
   TRACE_PRINTF("%s: sysVMMathIEEEremainder %f %f\n", Me, a, b);
+#ifdef _WIN32
+  return fmod(a, b);
+#else
   return remainder(a, b);
+#endif
 }
 
 EXTERNAL double sysVMMathCeil(double a) {
@@ -299,19 +307,37 @@ EXTERNAL double sysVMMathFloor(double a) {
 EXTERNAL double sysVMMathRint(double a) {
   SYS_START();
   TRACE_PRINTF("%s: sysVMMathRint %f\n", Me, a);
+#ifdef _WIN32
+  ERROR_PRINTF("%s: unsupported math operation rint\n", Me);
+  sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
+  return 0.0;
+#else
   return rint(a);
+#endif
 }
 
 EXTERNAL double sysVMMathCbrt(double a) {
   SYS_START();
   TRACE_PRINTF("%s: sysVMMathCbrt %f\n", Me, a);
+#ifdef _WIN32
+  ERROR_PRINTF("%s: unsupported math operation cbrt\n", Me);
+  sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
+  return 0.0;
+#else
   return cbrt(a);
+#endif
 }
 
 EXTERNAL double sysVMMathExpm1(double a) {
   SYS_START();
   TRACE_PRINTF("%s: sysVMMathExpm1 %f\n", Me, a);
+#ifdef _WIN32
+  ERROR_PRINTF("%s: unsupported math operation expm1\n", Me);
+  sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
+  return 0.0;
+#else
   return expm1(a);
+#endif
 }
 
 EXTERNAL double sysVMMathHypot(double a, double b) {
@@ -329,5 +355,11 @@ EXTERNAL double sysVMMathLog10(double a) {
 EXTERNAL double sysVMMathLog1p(double a) {
   SYS_START();
   TRACE_PRINTF("%s: sysVMMathLog1p %f\n", Me, a);
+#ifdef _WIN32
+  ERROR_PRINTF("%s: unsupported math operation log1p\n", Me);
+  sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
+  return 0.0;
+#else
   return log1p(a);
+#endif
 }

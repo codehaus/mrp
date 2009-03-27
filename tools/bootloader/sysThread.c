@@ -488,7 +488,13 @@ static void* sysThreadStartup(void *args)
     *(int*)(tr + RVMThread_execStatus_offset) = RVMThread_TERMINATED;
     sysEndThreadSignals(sigStack);
     if (threadData == MAIN_THREAD_DONT_TERMINATE) {
-      while(1) pause();
+      while(1) {
+#ifndef RVM_FOR_HARMONY
+	pause();
+#else
+	hythread_sleep(-1);
+#endif
+      }
     }
   } else {
     TRACE_PRINTF("%s: sysThreadStartup: booting\n", Me);
