@@ -360,6 +360,7 @@ public class VM extends Properties implements Constants, ExitStatus {
       runClassInitializer("java.util.regex.Matcher");
       runClassInitializer("java.util.regex.Pattern");
       runClassInitializer("org.apache.harmony.luni.internal.net.www.protocol.jar.JarURLConnection");
+      runClassInitializer("org.apache.harmony.luni.internal.process.SystemProcess");
       runClassInitializer("org.apache.harmony.luni.platform.OSMemory");
       runClassInitializer("org.apache.harmony.luni.platform.Platform");
       runClassInitializer("org.apache.harmony.luni.platform.AbstractMemorySpy");
