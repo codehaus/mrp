@@ -376,7 +376,7 @@ public class Runtime {
       String udp = System.getProperty("user.dir");
       String pathSeparator = System.getProperty("path.separator");
       String fileSeparator = System.getProperty("file.separator");
-      allPaths = (jlp!=null?jlp:"")+(vblp!=null?pathSeparator+vblp:"")+(udp!=null?pathSeparator+udp:"");
+      allPaths = (vblp!=null?vblp:"")+(jlp!=null?pathSeparator+jlp:"")+(udp!=null?pathSeparator+udp:"");
 
       if (allPaths.length()==0) {
         throw new UnsatisfiedLinkError("Can not find the library: " +
