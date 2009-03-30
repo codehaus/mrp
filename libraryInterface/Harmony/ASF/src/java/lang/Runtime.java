@@ -25,6 +25,7 @@ import java.util.StringTokenizer;
 
 import org.apache.harmony.luni.util.DeleteOnExit;
 import org.apache.harmony.luni.internal.net.www.protocol.jar.JarURLConnection;
+import org.apache.harmony.luni.internal.process.SystemProcess;
 import org.apache.harmony.lang.RuntimePermissionCollection;
 import org.apache.harmony.kernel.vm.VM;
 
@@ -111,7 +112,31 @@ public class Runtime {
    */
   public Process exec(String[] progArray, String[] envp, File directory)
   throws java.io.IOException {
-    throw new Error("TODO");
+    SecurityManager currentSecurity = System.getSecurityManager();
+    if (currentSecurity != null) {
+      currentSecurity.checkExec(progArray[0]);
+    }
+    if (progArray == null) {
+      throw new NullPointerException("Command argument shouldn't be empty.");
+    }
+    if (progArray.length == 0) {
+      throw new IndexOutOfBoundsException();
+    }
+    for (int i = 0; i < progArray.length; i++) {
+      if (progArray[i] == null) {
+        throw new NullPointerException("An element of progArray shouldn't be empty.");
+      }
+    }
+    if (envp == null) {
+      envp = new String[0];
+    } else if (envp.length > 0) {
+      for (int i = 0; i < envp.length; i++) {
+        if (envp[i] == null) {
+          throw new NullPointerException("An element of envp shouldn't be empty.");
+        }
+      }
+    }
+    return SystemProcess.create(progArray, envp, directory);
   }
 
   /**
