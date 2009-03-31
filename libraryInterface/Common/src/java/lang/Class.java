@@ -877,7 +877,7 @@ public final class Class<T> implements Serializable, Type, AnnotatedElement, Gen
   @Pure
   private RVMMethod getMethodInternal1(Atom aName, Class<?>... parameterTypes) {
     RVMMethod answer = null;
-    for (RVMClass current = type.asClass(); current != null; current = current.getSuperClass()) {
+    for (RVMClass current = type.asClass(); current != null && answer == null; current = current.getSuperClass()) {
       RVMMethod[] methods = current.getDeclaredMethods();
       for (RVMMethod meth : methods) {
         if (meth.getName() == aName && meth.isPublic() &&
@@ -886,6 +886,8 @@ public final class Class<T> implements Serializable, Type, AnnotatedElement, Gen
             answer = meth;
           } else {
             RVMMethod m2 = meth;
+            // make answer have the weakest return type of the methods declared
+            // in this class
             if (answer.getReturnType().resolve().isAssignableFrom(m2.getReturnType().resolve())) {
               answer = m2;
             }
