@@ -1,0 +1,23 @@
+LIBRARY JVM
+
+SECTIONS
+	.data	READ WRITE
+	.text	EXECUTE READ
+
+EXPORTS
+	JavaArgc
+	JavaArgs
+	Me
+	bootRecord
+	verbose
+	sysJavaVM
+	findMappable
+	parse_memory_size
+	sysGetPageSize
+	sysInitialize
+	sysMalloc
+	sysMemoryReserve
+	sysSetLinkage
+	sysStartMainThread
+	sysSyncCache
+	sysExit

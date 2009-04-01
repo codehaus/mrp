@@ -1,0 +1,8 @@
+LIBRARY JVM_JNI
+
+SECTIONS
+	.data	READ WRITE
+	.text	EXECUTE READ
+
+EXPORTS
+	Java_org_jikesrvm_runtime_DynamicLibrary_runJNI_1OnLoad
