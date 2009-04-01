@@ -46,6 +46,7 @@ static int inRVMAddressSpace(Address addr)
  * @param si      [in] additional signal information
  * @param context [in,out] register contents at the point of the signal
  */
+#ifndef RVM_FOR_WINDOWS
 static void hardwareTrapHandler(int signo, siginfo_t *si, void *context)
 {
   /** instruction causing trap */
@@ -107,6 +108,7 @@ static void hardwareTrapHandler(int signo, siginfo_t *si, void *context)
   TRACE_PRINTF("%s: hardwareTrapHandler: trap context on exit:\n", Me);
   if(TRACE) dumpContext(context);
 }
+#endif // RVM_FOR_WINDOWS
 
 /**
  * Software signal handler
@@ -115,6 +117,7 @@ static void hardwareTrapHandler(int signo, siginfo_t *si, void *context)
  * @param si      [in] additional signal information
  * @param context [in,out] register contents at the point of the signal
  */
+#ifndef RVM_FOR_WINDOWS
 static void softwareSignalHandler(int signo, siginfo_t UNUSED *si, void *context)
 {
   SYS_START();
@@ -164,6 +167,7 @@ static void softwareSignalHandler(int signo, siginfo_t UNUSED *si, void *context
 #endif
   TRACE_PRINTF("; ignoring it.\n");
 }
+#endif  //RVM_FOR_WINDOWS
 
 /**
  * Set up signals for a child thread
@@ -172,6 +176,9 @@ static void softwareSignalHandler(int signo, siginfo_t UNUSED *si, void *context
  */
 EXTERNAL void* sysStartMainThreadSignals()
 {
+#ifdef RVM_FOR_WINDOWS
+  return NULL;
+#else
   SYS_START();
   /* install a stack for hardwareTrapHandler() to run on */
   stack_t stack;
@@ -234,6 +241,7 @@ EXTERNAL void* sysStartMainThreadSignals()
     return NULL;
   }
   return stackBuf;
+#endif //RVM_FOR_WINDOWS
 }
 
 /**
@@ -243,6 +251,9 @@ EXTERNAL void* sysStartMainThreadSignals()
  */
 EXTERNAL void* sysStartChildThreadSignals()
 {
+#ifdef RVM_FOR_WINDOWS
+  return NULL;
+#else
   stack_t stack;
   char *stackBuf;
   int rc;
@@ -281,6 +292,7 @@ EXTERNAL void* sysStartChildThreadSignals()
     sysExit(EXIT_STATUS_IMPOSSIBLE_LIBRARY_FUNCTION_ERROR);
   }
   return stackBuf;
+#endif //RVM_FOR_WINDOWS
 }
 
 /**
@@ -290,9 +302,11 @@ EXTERNAL void* sysStartChildThreadSignals()
  */
 EXTERNAL void sysEndThreadSignals(void *stackBuf)
 {
+#ifndef RVM_FOR_WINDOWS
   stack_t stack;
   memset (&stack, 0, sizeof stack);
   stack.ss_flags = SS_DISABLE;
   sigaltstack(&stack, 0);
   sysFree(stackBuf);
+#endif RVM_FOR_WINDOWS
 }

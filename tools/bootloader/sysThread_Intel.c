@@ -17,10 +17,16 @@
 
 #include "sys.h"
 
+#ifdef _WIN32
+/* disable warning C4731: frame pointer register 'ebp' modified by
+   inline assembly code */
+#pragma warning(disable: 4731)
+#endif
+
 /**
  * Transfer execution from C to Java for thread startup
  */
-void bootThread (void *ip, void *tr, void *sp, void UNUSED *jtoc)
+void bootThread (void *_ip, void *_tr, void *_sp, void UNUSED *_jtoc)
 {
   void *saved_ebp;
 #ifndef _WIN32
@@ -43,17 +49,17 @@ void bootThread (void *ip, void *tr, void *sp, void UNUSED *jtoc)
        "mov   %0, %%rbp     \n"
 #endif
        : "=m"(saved_ebp)
-       : "a"(ip), // EAX = Instruction Pointer
-	 "S"(tr), // ESI = Thread Register
-	 "r"(sp)
+       : "a"(_ip), // EAX = Instruction Pointer
+	 "S"(_tr), // ESI = Thread Register
+	 "r"(_sp)
        );
 #else
   __asm{
-      mov eax, ip
-      mov esi, tr
+      mov eax, _ip
+      mov esi, _tr
       mov saved_ebp, ebp
       mov ebp, esp
-      mov esp, sp
+      mov esp, _sp
       push ebp
       call [eax]
       pop esp

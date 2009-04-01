@@ -63,7 +63,7 @@
 #define IA32_EFLAGS(context)  (__GREGS(context)[REG_EFL])
 #define IA32_TRAPNO(context) (__GREGS(context)[REG_TRAPNO])
 #define IA32_ERR(context) (__GREGS(context)[REG_ERR])
-#define IA32_FALUTVADDR(context) (__GREGS(context)[REG_CS])
+#define IA32_FAULTVADDR(context) (__GREGS(context)[REG_CS])
 #define IA32_FPREGS(context) (__MC(context).fpregs)
 #endif // RVM_FOR_LINUX
 
@@ -120,6 +120,30 @@
 #define IA32_FPREGS(context)  (__MC(context).fpregs)
 #endif // RVM_FOR_SOLARIS
 
+#ifdef RVM_FOR_WINDOWS
+#define __MC(context)         (*((Address*)NULL))
+#define __GREGS(context)      (*((Address*)NULL))
+#define IA32_EAX(context)     (*((Address*)NULL))
+#define IA32_EBX(context)     (*((Address*)NULL))
+#define IA32_ECX(context)     (*((Address*)NULL))
+#define IA32_EDX(context)     (*((Address*)NULL))
+#define IA32_EDI(context)     (*((Address*)NULL))
+#define IA32_ESI(context)     (*((Address*)NULL))
+#define IA32_EBP(context)     (*((Address*)NULL))
+#define IA32_ESP(context)     (*((Address*)NULL))
+#define IA32_SS(context)      (*((Address*)NULL))
+#define IA32_EFLAGS(context)  (*((Address*)NULL))
+#define IA32_EIP(context)     (*((Address*)NULL))
+#define IA32_CS(context)      (*((Address*)NULL))
+#define IA32_DS(context)      (*((Address*)NULL))
+#define IA32_ES(context)      (*((Address*)NULL))
+#define IA32_FS(context)      (*((Address*)NULL))
+#define IA32_GS(context)      (*((Address*)NULL))
+#define IA32_TRAPNO(context)  (*((Address*)NULL))
+#define IA32_ERR(context)     (*((Address*)NULL))
+#define IA32_FPREGS(context)  (*((Address*)NULL))
+#endif
+
 /**
  * Compute the number of bytes used to encode the given modrm part of
  * an Intel instruction
@@ -154,7 +178,7 @@ static int decodeModRMLength(unsigned char modrm)
     default:
       return 5;
     }
-  case 3: // reg, reg
+  default: // case 3 - reg, reg
     return 1;
   }
 }
@@ -399,7 +423,7 @@ EXTERNAL void setupDumpStackAndDie(void *context)
   sp -= __SIZEOF_POINTER__;
   *sp = 0;
 
-  IA32_ESP(context) = sp;
+  IA32_ESP(context) = (Address)sp;
 
   /* goto dumpStackAndDie routine (in Scheduler) as if called */
   IA32_EIP(context) = dumpStack;
@@ -444,7 +468,7 @@ EXTERNAL void dumpContext(void *context)
   ERROR_PRINTF("eflags        0x%08x\n", IA32_EFLAGS(context));
   /* null if fp registers haven't been used yet */
   ERROR_PRINTF("fpregs        %p\n", IA32_FPREGS(context));
-#ifndef __x86_64__
+#if !defined(__x86_64__) && defined(RVM_FOR_LINUX)
   ERROR_PRINTF("oldmask       0x%08lx\n", (unsigned long) IA32_OLDMASK(context));
   /* seems to contain mem address that faulting instruction was trying to access */
   ERROR_PRINTF("cr2           0x%08lx\n", (unsigned long) IA32_FPFAULTDATA(context));

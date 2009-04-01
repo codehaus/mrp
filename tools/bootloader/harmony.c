@@ -122,7 +122,7 @@ vmiError JNICALL GetSystemProperty (VMInterface * vmi, char *key, char **valuePt
   jboolean isCopy;
   SYS_START();
   TRACE_PRINTF("%s: VMI call GetSystemProperty %s\n", Me, key);
-  if (sysJavaVM.functions->GetEnv (&sysJavaVM, (void **) &env, JNI_VERSION_1_2) != JNI_OK)
+  if (sysJavaVM.functions->GetEnv ((JavaVM*)&sysJavaVM, (void **) &env, JNI_VERSION_1_2) != JNI_OK)
     return VMI_ERROR_UNKNOWN;
   jkey = (*env)->NewStringUTF(env, key);  
   systemClass = (*env)->FindClass (env, "java/lang/System");
@@ -133,7 +133,7 @@ vmiError JNICALL GetSystemProperty (VMInterface * vmi, char *key, char **valuePt
   if (!mid)
     return VMI_ERROR_UNKNOWN;
   jvalue = (*env)->CallStaticObjectMethod(env, systemClass, mid, jkey);
-  *valuePtr = (*env)->GetStringUTFChars(env, jvalue, &isCopy);
+  *valuePtr = (char*)(*env)->GetStringUTFChars(env, jvalue, &isCopy);
   /* TODO: release this string */
   TRACE_PRINTF("%s: VMI call GetSystemProperty %s = %s\n", Me, key, *valuePtr);
   return VMI_ERROR_NONE;
@@ -148,7 +148,7 @@ vmiError JNICALL SetSystemProperty (VMInterface * vmi, char *key, char *value)
   jboolean isCopy;
   SYS_START();
   TRACE_PRINTF("%s: VMI call SetSystemProperty %s = %s\n", Me, key, value);
-  if (sysJavaVM.functions->GetEnv (&sysJavaVM, (void **) &env, JNI_VERSION_1_2) != JNI_OK)
+  if (sysJavaVM.functions->GetEnv ((JavaVM*)&sysJavaVM, (void **) &env, JNI_VERSION_1_2) != JNI_OK)
     return VMI_ERROR_UNKNOWN;
   jkey = (*env)->NewStringUTF(env, key);
   jvalue = (*env)->NewStringUTF(env, key);

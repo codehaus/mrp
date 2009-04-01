@@ -17,9 +17,8 @@
 
 // Interface to VM data structures.
 //
-#define NEED_BOOT_RECORD_INITIALIZATION 1
-#include "sys.h"
 #include "bootloader.h"
+#include "sys.h"
 #include <ctype.h> /* isspace */
 #include <errno.h> /* for strtol errors */
 #include <limits.h> /* INT_MAX, ... */
@@ -179,7 +178,7 @@ static void nonstandard_usage()
 static void shortVersion()
 {
   SYS_START();
-  CONSOLE_PRINTF( "%s %s\n",rvm_configuration, rvm_version);
+  CONSOLE_PRINTF( "%s %s\n", rvm_configuration, rvm_version);
 }
 
 static void fullVersion()
@@ -258,10 +257,11 @@ static const char ** processCommandLineArguments(const char *CLAs[], int n_CLAs,
       continue;
     }
     if (STRNEQUAL(token, nonStandardArgs[VERBOSE_BOOT_INDEX], 15)) {
+      char *endp;
+      long vb;
       subtoken = token + 15;
       errno = 0;
-      char *endp;
-      long vb = strtol(subtoken, &endp, 0);
+      vb = strtol(subtoken, &endp, 0);
       while (*endp && isspace(*endp)) // gobble trailing spaces
         ++endp;
 
@@ -313,10 +313,10 @@ static const char ** processCommandLineArguments(const char *CLAs[], int n_CLAs,
       if (token[11] == '\0') {
         level = 1;
       } else {
+        char *endp;
         /* skip to after the "=" in "-verbose:gc=<num>" */
         subtoken = token + 12;
         errno = 0;
-        char *endp;
         level = strtol(subtoken, &endp, 0);
         while (*endp && isspace(*endp)) // gobble trailing spaces
           ++endp;
@@ -338,22 +338,27 @@ static const char ** processCommandLineArguments(const char *CLAs[], int n_CLAs,
       }
       /* Canonicalize the argument, and pass it on to the heavy-weight
        * Java code that parses -X:gc:verbose */
-      const size_t bufsiz = 20;
-      char *buf = (char *)sysMalloc(bufsiz);
-      int ret = snprintf(buf, bufsiz, "-X:gc:verbose=%ld", level);
-      if (ret < 0) {
-        CONSOLE_PRINTF("%s: Internal error processing the argument"
-                       " \"%s\"\n", Me, token);
-        sysExit(EXIT_STATUS_IMPOSSIBLE_LIBRARY_FUNCTION_ERROR);
+      if (1) {
+        const size_t bufsiz = 20;
+        char *buf = (char *)sysMalloc(bufsiz);
+#ifndef RVM_FOR_WINDOWS
+        int ret = snprintf(buf, bufsiz, "-X:gc:verbose=%ld", level);
+#else
+        int ret = sprintf(buf, "-X:gc:verbose=%ld", level);
+#endif
+        if (ret < 0) {
+          CONSOLE_PRINTF("%s: Internal error processing the argument"
+                         " \"%s\"\n", Me, token);
+          sysExit(EXIT_STATUS_IMPOSSIBLE_LIBRARY_FUNCTION_ERROR);
+        }
+        if ((unsigned) ret >= bufsiz) {
+          CONSOLE_PRINTF( "%s: \"%s\": %ld is too big a number"
+                          " to process internally\n", Me, token, level);
+          *fastExit = 1;
+          break;
+        }
+        CLAs[n_JCLAs++]=buf; // Leave buf allocated!
       }
-      if ((unsigned) ret >= bufsiz) {
-        CONSOLE_PRINTF( "%s: \"%s\": %ld is too big a number"
-                        " to process internally\n", Me, token, level);
-        *fastExit = 1;
-        break;
-      }
-
-      CLAs[n_JCLAs++]=buf; // Leave buf allocated!
       continue;
     }
 
@@ -395,15 +400,15 @@ static const char ** processCommandLineArguments(const char *CLAs[], int n_CLAs,
       continue;
     }
     if (STRNEQUAL(token, nonStandardArgs[BOOTIMAGE_CODE_FILE_INDEX], 6)) {
-      bootCodeFilename = token + 6;
+      bootCodeFilename = (char*)(token + 6);
       continue;
     }
     if (STRNEQUAL(token, nonStandardArgs[BOOTIMAGE_DATA_FILE_INDEX], 6)) {
-      bootDataFilename = token + 6;
+      bootDataFilename = (char*)(token + 6);
       continue;
     }
     if (STRNEQUAL(token, nonStandardArgs[BOOTIMAGE_RMAP_FILE_INDEX], 6)) {
-      bootRMapFilename = token + 6;
+      bootRMapFilename = (char*)(token + 6);
       continue;
     }
 
@@ -477,6 +482,9 @@ static void* mapImageFile(const char *fileName, const void *targetAddress,
                           jboolean executable, jboolean writable, long *roundedImageSize) {
   long actualImageSize;
   void *bootRegion = 0;
+#ifdef RVM_FOR_HARMONY
+  IDATA fin;
+#endif
   SYS_START();
   TRACE_PRINTF("%s: mapImageFile \"%s\" to %p\n", Me, fileName, targetAddress);
   /* TODO: respect access protection when mapping. Problems, need to
@@ -485,15 +493,15 @@ static void* mapImageFile(const char *fileName, const void *targetAddress,
   writable = JNI_TRUE;
   executable = JNI_TRUE;
 #ifdef RVM_FOR_HARMONY
-  IDATA fin = hyfile_open(fileName, HyOpenRead, 0);
+  fin = hyfile_open(fileName, HyOpenRead, 0);
   if (fin < 0) {
     ERROR_PRINTF("%s: can't find bootimage file\"%s\"\n", Me, fileName);
     return 0;
   }
   actualImageSize = hyfile_length(fileName);
   *roundedImageSize = pageRoundUp(actualImageSize);
-  bootRegion = sysMemoryReserve(targetAddress, *roundedImageSize, JNI_TRUE,
-                                writable, executable, JNI_TRUE);
+  bootRegion = sysMemoryReserve((void*)targetAddress, *roundedImageSize,
+                                JNI_TRUE, writable, executable, JNI_TRUE);
   if (bootRegion == targetAddress) {
     hyfile_read(fin, bootRegion, actualImageSize);
   } else {
@@ -554,32 +562,37 @@ static void* mapImageFile(const char *fileName, const void *targetAddress,
  */
 static int createVM(int vmInSeparateThread)
 {
-  SYS_START();
+  void *bootDataRegion;
   unsigned roundedDataRegionSize;
-  void *bootDataRegion = mapImageFile(bootDataFilename,
-				      bootImageDataAddress,
-				      JNI_FALSE,
-                                      JNI_TRUE,
-				      &roundedDataRegionSize);
-  if (bootDataRegion != bootImageDataAddress)
-    return 1;
-
+  void *bootCodeRegion;
   unsigned roundedCodeRegionSize;
-  void *bootCodeRegion = mapImageFile(bootCodeFilename,
-				      bootImageCodeAddress,
-				      JNI_TRUE,
-                                      JNI_FALSE,
-				      &roundedCodeRegionSize);
-  if (bootCodeRegion != bootImageCodeAddress)
+  void *bootRMapRegion;
+  unsigned roundedRMapRegionSize;
+  SYS_START();
+
+  bootDataRegion = mapImageFile(bootDataFilename,
+				(void*)bootImageDataAddress,
+				JNI_FALSE,
+                                JNI_TRUE,
+				&roundedDataRegionSize);
+  if (bootDataRegion != (void*)bootImageDataAddress)
     return 1;
 
-  unsigned roundedRMapRegionSize;
-  void *bootRMapRegion = mapImageFile(bootRMapFilename,
-				      bootImageRMapAddress,
-				      JNI_FALSE,
-                                      JNI_FALSE,
-				      &roundedRMapRegionSize);
-  if (bootRMapRegion != bootImageRMapAddress)
+
+  bootCodeRegion = mapImageFile(bootCodeFilename,
+	                        (void*)bootImageCodeAddress,
+				JNI_TRUE,
+                                JNI_FALSE,
+				&roundedCodeRegionSize);
+  if (bootCodeRegion != (void*)bootImageCodeAddress)
+    return 1;
+
+  bootRMapRegion = mapImageFile(bootRMapFilename,
+	                        (void*)bootImageRMapAddress,
+				JNI_FALSE,
+                                JNI_FALSE,
+				&roundedRMapRegionSize);
+  if (bootRMapRegion != (void*)bootImageRMapAddress)
     return 1;
 
 
@@ -616,7 +629,7 @@ static int createVM(int vmInSeparateThread)
     return 1;
   }
 
-  if (((u_int32_t *) bootRecord->spRegister)[-1] != 0xdeadbabe) {
+  if (((uint32_t *) bootRecord->spRegister)[-1] != 0xdeadbabe) {
     ERROR_PRINTF("%s: image format error: missing stack sanity check marker (%p)\n",
 		 Me, ((int *) bootRecord->spRegister)[-1]);
     return 1;
@@ -634,7 +647,7 @@ static int createVM(int vmInSeparateThread)
   bootRecord->verboseBoot      = verboseBoot;
 
   /* write sys.C linkage information into boot record */
-  setLinkage(bootRecord);
+  sysSetLinkage();
 
   if (verbose) {
     TRACE_PRINTF("%s: boot record contents:\n", Me);
@@ -666,6 +679,7 @@ static int createVM(int vmInSeparateThread)
   sysStartMainThread(vmInSeparateThread, bootRecord->ipRegister, bootRecord->spRegister,
                      *(Address *) (bootRecord->tocRegister + bootRecord->bootThreadOffset),
                      bootRecord->tocRegister, &bootRecord->bootCompleted);
+  return 0;
 }
 
 /**
@@ -677,7 +691,7 @@ static int createVM(int vmInSeparateThread)
  */
 int main(int argc, const char **argv)
 {
-  int j;
+  int j, ret, fastBreak = 0;
   SYS_START();
 #ifndef RVM_FOR_HARMONY
   SysErrorFile = stderr;
@@ -706,9 +720,8 @@ int main(int argc, const char **argv)
   }
 
   // call processCommandLineArguments().
-  int fastBreak = 0;
   // Sets JavaArgc
-  JavaArgs = processCommandLineArguments(argv, argc, &fastBreak);
+  JavaArgs = (char **)processCommandLineArguments(argv, argc, &fastBreak);
   if (fastBreak) {
     sysExit(EXIT_STATUS_BOGUS_COMMAND_LINE_ARG);
   }
@@ -767,7 +780,7 @@ int main(int argc, const char **argv)
     return EXIT_STATUS_BOGUS_COMMAND_LINE_ARG;
   }
 
-  int ret = createVM(0);
+  ret = createVM(0);
   if (ret == 1) {
     ERROR_PRINTF("%s: Could not create the virtual machine; goodbye\n", Me);
     sysExit(EXIT_STATUS_MISC_TROUBLE);

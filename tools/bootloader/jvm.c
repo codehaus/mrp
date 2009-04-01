@@ -42,14 +42,18 @@ FILE *SysTraceFile;
 /** Verbose command line option */
 int verbose=0;
 
-// Fish out an address stored in an instance field of an object.
+/**
+ * Fish out an address stored in an instance field of an object.
+ */
 static void *getFieldAsAddress(void *objPtr, int fieldOffset)
 {
     char *fieldAddress = ((char*) objPtr) + fieldOffset;
     return *((void**) fieldAddress);
 }
 
-// Get the JNI environment object from the Processor.
+/**
+ * Get the JNI environment object from the VM thread.
+ */
 static JNIEnv * getJniEnvFromVmThread(void *vmThreadPtr)
 {
   void *jniEnvironment;
@@ -73,18 +77,17 @@ static JNIEnv * getJniEnvFromVmThread(void *vmThreadPtr)
 
 /**
  * Destroying the Java VM only makes sense if programs can create a VM
- * on-the-fly.   Further, as of Sun's Java 1.2, it sitll didn't support
+ * on-the-fly.   Further, as of Sun's Java 1.2, it still didn't support
  * unloading virtual machine instances.  It is supposed to block until all
  * other user threads are gone, and then return an error code.
  *
  * TODO: Implement.
  */
-static
-jint
-DestroyJavaVM(JavaVM UNUSED * vm)
+static jint DestroyJavaVM(JavaVM UNUSED * vm)
 {
-    fprintf(stderr, "JikesRVM: Unimplemented JNI call DestroyJavaVM\n");
-    return JNI_ERR;
+  SYS_START();
+  ERROR_PRINTF("JikesRVM: Unimplemented JNI call DestroyJavaVM\n");
+  return JNI_ERR;
 }
 
 /**
@@ -97,41 +100,43 @@ DestroyJavaVM(JavaVM UNUSED * vm)
  */
 static jint AttachCurrentThread(JavaVM UNUSED * vm, /* JNIEnv */ void ** penv, /* JavaVMAttachArgs */ void *args)
 {
-    JavaVMAttachArgs *aargs = (JavaVMAttachArgs *) args;
-    jint version;
-    jint retval;
-    if (args == NULL) {
-        version = JNI_VERSION_1_1;
-    } else {
-        version = aargs->version ;
-        /* We'd like to handle aargs->name and aargs->group */
-    }
+  SYS_START();
+  JavaVMAttachArgs *aargs = (JavaVMAttachArgs *) args;
+  jint version;
+  jint retval;
+  if (args == NULL) {
+    version = JNI_VERSION_1_1;
+  } else {
+    version = aargs->version ;
+    /* We'd like to handle aargs->name and aargs->group */
+  }
 
-    // Handled for us by GetEnv().  We do it here anyway so that we avoid
-    // printing an error message further along in this function.
-    if (version > JNI_VERSION_1_4)
-        return JNI_EVERSION;
+  // Handled for us by GetEnv().  We do it here anyway so that we avoid
+  // printing an error message further along in this function.
+  if (version > JNI_VERSION_1_4)
+    return JNI_EVERSION;
 
-    /* If we're already attached, we're gold. */
-    retval = GetEnv(vm, penv, version);
-    if (retval == JNI_OK)
-        return retval;
-    else if (retval == JNI_EDETACHED) {
-        fprintf(stderr, "JikesRVM: JNI call AttachCurrentThread Unimplemented for threads not already attached to the VM\n");
-    } else {
-        fprintf(stderr, "JikesRVM: JNI call AttachCurrentThread failed; returning UNEXPECTED error code %d\n", (int) retval);
-    }
-
-    // Upon failure:
-    *penv = NULL;               // Make sure we don't yield a bogus one to use.
+  /* If we're already attached, we're gold. */
+  retval = GetEnv(vm, penv, version);
+  if (retval == JNI_OK)
     return retval;
+  else if (retval == JNI_EDETACHED) {
+    ERROR_PRINTF("JikesRVM: JNI call AttachCurrentThread Unimplemented for threads not already attached to the VM\n");
+  } else {
+    ERROR_PRINTF("JikesRVM: JNI call AttachCurrentThread failed; returning UNEXPECTED error code %d\n", (int) retval);
+  }
+
+  // Upon failure:
+  *penv = NULL;               // Make sure we don't yield a bogus one to use.
+  return retval;
 }
 
 /* TODO: Implement */
 static jint DetachCurrentThread(JavaVM UNUSED *vm)
 {
-    fprintf(stderr, "UNIMPLEMENTED JNI call DetachCurrentThread\n");
-    return JNI_ERR;
+  SYS_START();
+  ERROR_PRINTF("UNIMPLEMENTED JNI call DetachCurrentThread\n");
+  return JNI_ERR;
 }
 
 jint GetEnv(JavaVM UNUSED *vm, void **penv, jint version)
@@ -151,7 +156,7 @@ jint GetEnv(JavaVM UNUSED *vm, void **penv, jint version)
   // Get the JNIEnv from the RVMThread object
   env = getJniEnvFromVmThread(vmThread);
 
-  *penv = env;
+  *((JNIEnv**)penv) = env;
 
   return JNI_OK;
 }
@@ -184,3 +189,4 @@ const struct JavaVM_ sysJavaVM = {
   NULL, // threadIDTable
   NULL, // jniEnvTable
 };
+

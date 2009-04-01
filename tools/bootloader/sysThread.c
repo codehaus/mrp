@@ -11,6 +11,7 @@
  *  regarding copyright ownership.
  */
 
+#define NEED_BOOT_RECORD_INITIALIZATION 1
 #include "sys.h"
 #include <setjmp.h>
 #include <stdlib.h>
@@ -82,6 +83,12 @@ EXTERNAL void sysInitialize()
 #endif // __MACH__
 #endif // RVM_FOR_HARMONY
   DeathLock = sysMonitorCreate();
+}
+
+/** Initialize bootRecord for linkage */
+EXTERNAL void sysSetLinkage()
+{
+  setLinkage(bootRecord);
 }
 
 /** Exit with a return code. */
