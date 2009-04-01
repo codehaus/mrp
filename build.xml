@@ -1622,7 +1622,7 @@ Check to make sure all required properties are specified. This includes properti
           <arg value="${toString:vmi.dll}"/>
           <arg value="${bl.dir}/harmony.c"/>
           <arg value="libraryInterface/Harmony/ASF/native/vmls.c"/>
-          <arg value="-Wl,--version-script=${bl.dir}/harmony.exp"/>
+          <arg value="-Wl,--version-script=${bl.dir}/libvmi.exp"/>
         </exec>
       </sequential>
     </if>
