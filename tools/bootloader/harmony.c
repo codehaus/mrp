@@ -14,7 +14,7 @@
 /**
  * Implementation of Harmony VMI Invocation API for Jikes RVM.
  */
-
+#define NOT_JVM_DLL
 #include "sys.h"
 
 struct VMInterfaceFunctions_ vmi_impl = {

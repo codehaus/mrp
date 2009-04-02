@@ -104,16 +104,29 @@ extern FILE *SysTraceFile;
 #define ERROR_PRINTF(...) fprintf(SysErrorFile, __VA_ARGS__)
 #endif
 
+#if defined(NOT_JVM_DLL) && defined(_WIN32)
+#define DLLSYMBOL __declspec(dllimport)
+#else
+#define DLLSYMBOL
+#endif
+
 /** String used for name of RVM */
-extern char *Me;
+extern DLLSYMBOL char *Me;
+
 /** Number of Java args */
-extern int JavaArgc;
+extern DLLSYMBOL int JavaArgc;
+
 /** Java args */
-extern char **JavaArgs;
+extern DLLSYMBOL char **JavaArgs;
+
 /** C access to shared C/Java boot record data structure */
-extern struct BootRecord *bootRecord;
+extern DLLSYMBOL struct BootRecord *bootRecord;
+
 /** JVM datastructure used for JNI declared in jvm.c */
-extern const struct JavaVM_ sysJavaVM;
+extern DLLSYMBOL const struct JavaVM_ sysJavaVM;
+
+/** Verbose command line option */
+extern DLLSYMBOL int verbose;
 
 #ifdef RVM_WITH_ALIGNMENT_CHECKING
 extern volatile int numEnableAlignCheckingCalls;
@@ -122,9 +135,6 @@ extern volatile int numEnableAlignCheckingCalls;
 #if !defined(RVM_FOR_HARMONY) && defined(__MACH__)
 extern mach_timebase_info_data_t timebaseInfo;
 #endif
-
-/** Verbose command line option */
-extern int verbose;
 
 /** Trace execution of syscalls */
 #define TRACE verbose

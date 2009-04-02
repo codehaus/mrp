@@ -21,7 +21,13 @@
 /* generated class header */
 #include "org_jikesrvm_runtime_DynamicLibrary.h"
 
+#ifdef _WIN32
+extern __declspec(dllimport) struct JavaVM_ sysJavaVM;
+#else
 extern struct JavaVM_ sysJavaVM;
+#endif
+
+
 
 typedef jint (*JNI_OnLoad)(struct JavaVM_ *vm, void *reserved);
 

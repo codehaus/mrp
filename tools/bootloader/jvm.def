@@ -5,12 +5,12 @@ SECTIONS
 	.text	EXECUTE READ
 
 EXPORTS
-	JavaArgc
-	JavaArgs
-	Me
-	bootRecord
-	verbose
-	sysJavaVM
+	JavaArgc	DATA
+	JavaArgs	DATA
+	Me	DATA
+	bootRecord	DATA
+	verbose	DATA
+	sysJavaVM	DATA
 	findMappable
 	parse_memory_size
 	sysGetPageSize

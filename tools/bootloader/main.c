@@ -18,6 +18,7 @@
 // Interface to VM data structures.
 //
 #include "bootloader.h"
+#define NOT_JVM_DLL
 #include "sys.h"
 #include <ctype.h> /* isspace */
 #include <errno.h> /* for strtol errors */
