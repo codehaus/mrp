@@ -278,14 +278,18 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
 EXTERNAL jboolean sysMemoryFree(char *start, size_t length)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMemoryFree %p %d\n", Me, start, length);
 #ifdef RVM_FOR_HARMONY
-  if (hyvmem_free_memory(start, length, NULL) == 0) {
+  HyPortVmemIdentifier ident;
+  TRACE_PRINTF("%s: sysMemoryFree %p %d\n", Me, start, length);
+  ident.pageSize = DefaultPageSize;
+  ident.mode = 0;
+  if (hyvmem_free_memory(start, length, &ident) == 0) {
     return JNI_TRUE;
   } else {
     return JNI_FALSE;
   }
 #else
+  TRACE_PRINTF("%s: sysMemoryFree %p %d\n", Me, start, length);
   if (munmap(start, length) == 0) {
     return JNI_TRUE;
   } else {
