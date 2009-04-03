@@ -206,6 +206,7 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
                                  jboolean read, jboolean write,
                                  jboolean exec, jboolean commit)
 {
+  void* result;
   SYS_START();
 #ifdef RVM_FOR_HARMONY
   HyPortVmemIdentifier ident;
@@ -222,10 +223,21 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
   if (exec) {
     ident.mode |= HYPORT_VMEM_MEMORY_MODE_EXECUTE;
   }
+#ifndef RVM_FOR_WINDOWS
   if (commit) {
     ident.mode |= HYPORT_VMEM_MEMORY_MODE_COMMIT;
   }
-  return hyvmem_reserve_memory(start, length, &ident, ident.mode, ident.pageSize);
+  result = hyvmem_reserve_memory(start, length, &ident, ident.mode, ident.pageSize);
+#else
+  /* Work around bug HARMONY-6138 */
+  result = hyvmem_reserve_memory(start, length, &ident, ident.mode, ident.pageSize);
+  if(result != NULL) {
+    if (commit) {
+      ident.mode |= HYPORT_VMEM_MEMORY_MODE_COMMIT;
+      result = hyvmem_reserve_memory(start, length, &ident, ident.mode, ident.pageSize);
+    }
+  }
+#endif // RVM_FOR_WINDOWS
 #else
   int protection = 0;
   int flags = MAP_PRIVATE;
@@ -254,19 +266,20 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
     protection = PROT_NONE;
     flags |= MAP_NORESERVE;
   }
-  void* res = mmap(start, (size_t)(length), protection, flags, fd, (off_t)offset);
+  result = mmap(start, (size_t)(length), protection, flags, fd, (off_t)offset);
 #if !defined(MAP_ANONYMOUS) && !defined(MAP_ANON)
   close(fd);
 #endif
-  if (res == (void *) -1){
+  if (result == (void *) -1){
     CONSOLE_PRINTF("%s: sysMemoryReserve %p %d %d %d %d %d failed with %d.\n",
                    Me, start, length, protection, flags, fd, offset, errno);
     return (void *) errno;
-  } else {
-    TRACE_PRINTF("MemoryReserve succeeded- region = [0x%x ... 0x%x]    size = %d\n", res, ((size_t)res) + length, length);
-    return res;
   }
 #endif // RVM_FOR_HARMONY
+  if (result != NULL) {
+    TRACE_PRINTF("MemoryReserve succeeded- region = [0x%x ... 0x%x]    size = %d\n", result, ((size_t)result) + length, length);
+  }
+  return result;
 }
 
 /**
@@ -404,11 +417,12 @@ EXTERNAL void findMappable()
   int max = (1 << 30) / (granularity >> 2);
   int pageSize = sysGetPageSize();
   SYS_START();
+  CONSOLE_PRINTF("Attempting to find mappable blocks of size %d\n", pageSize);
   for (i=0; i<max; i++) {
     char *start = (char *) (i * granularity);
-    void *result = sysMemoryReserve(start, pageSize, JNI_TRUE, JNI_TRUE, JNI_TRUE, JNI_TRUE);
-    if (result == NULL) {
-      CONSOLE_PRINTF("%p FAILED\n", start);
+    void *result = sysMemoryReserve(start, pageSize, JNI_TRUE, JNI_TRUE, JNI_TRUE, JNI_FALSE);
+    if (result == NULL || result != start) {
+      CONSOLE_PRINTF("%p %p FAILED\n", start, result);
     } else {
       CONSOLE_PRINTF("%p SUCCESS\n", start);
       sysMemoryFree(start, pageSize);
