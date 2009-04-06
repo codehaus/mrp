@@ -627,7 +627,8 @@ EXTERNAL void sysNanoSleep(long long howLongNanos)
   SYS_START();
   TRACE_PRINTF("%s: sysNanosleep %lld\n", Me, howLongNanos);
 #ifdef RVM_FOR_HARMONY
-  hythread_sleep(howLongNanos/1000);
+  // 2^20 == 1048576 which is nearly 1000000
+  hythread_sleep(howLongNanos>>20);
 #else
   struct timespec req;
   const long long nanosPerSec = 1000LL * 1000 * 1000;
@@ -708,8 +709,9 @@ EXTERNAL void sysMonitorTimedWaitAbsolute(Address _monitor, long long whenWakeup
   // syscall wait is absolute, but harmony monitor wait is relative.
   whenWakeupNanos -= sysNanoTime();
   if (whenWakeupNanos <= 0) return;
-  TRACE_PRINTF("%s: sysMonitorTimedWaitAbsolute - wait for %ld %d\n", Me, (I_64)(whenWakeupNanos / 1000000LL), (IDATA)(whenWakeupNanos % 1000000LL));
-  hythread_monitor_wait_timed((hythread_monitor_t)_monitor, (I_64)(whenWakeupNanos / 1000000LL), (IDATA)(whenWakeupNanos % 1000000LL));
+  // 2^20 == 1048576 which is nearly 1000000
+  TRACE_PRINTF("%s: sysMonitorTimedWaitAbsolute - wait for %ld %d\n", Me, (I_64)(whenWakeupNanos >> 20), (IDATA)(whenWakeupNanos & ((1LL << 20)-1)));
+  hythread_monitor_wait_timed((hythread_monitor_t)_monitor, (I_64)(whenWakeupNanos >> 20), (IDATA)(whenWakeupNanos & ((1LL << 20)-1)));
 #else
   struct timespec ts;
   ts.tv_sec = (time_t)(whenWakeupNanos/1000000000LL);

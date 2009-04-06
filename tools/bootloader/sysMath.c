@@ -20,20 +20,6 @@
 const double maxlong = 0.5 + (double)0x7fffffffffffffffLL;
 const double maxint  = 0.5 + (double)0x7fffffff;
 
-EXTERNAL long long sysLongDivide(long long a, long long b)
-{
-  SYS_START();
-  TRACE_PRINTF("%s: sysLongDivide %ld / %ld\n", Me, a, b);  
-  return a/b;
-}
-
-EXTERNAL long long sysLongRemainder(long long a, long long b)
-{
-  SYS_START();
-  TRACE_PRINTF("%s: sysLongRemainder %ld %% %ld\n", Me, a, b);
-  return a % b;
-}
-
 EXTERNAL double sysLongToDouble(long long a)
 {
   SYS_START();
