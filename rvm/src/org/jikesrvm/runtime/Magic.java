@@ -878,6 +878,26 @@ public final class Magic {
   }
 
   /**
+   * A hardware signed long divide by 32bit divisor giving 32bit quotient
+   */
+  public static int signedDivide(long u, int v) {
+    if (VM.runningVM && VM.VerifyAssertions) {
+      VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
+    }
+    return 0;
+  }
+
+  /**
+   * A hardware unsigned long divide by 32bit divisor giving 32bit quotient
+   */
+  public static int unsignedDivide(long u, int v) {
+    if (VM.runningVM && VM.VerifyAssertions) {
+      VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
+    }
+    return 0;
+  }
+
+  /**
    * A hardware SQRT instruction
    */
   public static float sqrt(float value) {

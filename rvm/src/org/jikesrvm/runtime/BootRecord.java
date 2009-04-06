@@ -266,10 +266,6 @@ public class BootRecord {
 
   // arithmetic
   @Entrypoint
-  public Address sysLongDivideIP;
-  @Entrypoint
-  public Address sysLongRemainderIP;
-  @Entrypoint
   public Address sysLongToFloatIP;
   @Entrypoint
   public Address sysLongToDoubleIP;

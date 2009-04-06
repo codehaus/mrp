@@ -215,12 +215,6 @@ public abstract class SysCall {
 
   // arithmetic
   @SysCallTemplate
-  public abstract long sysLongDivide(long x, long y);
-
-  @SysCallTemplate
-  public abstract long sysLongRemainder(long x, long y);
-
-  @SysCallTemplate
   public abstract float sysLongToFloat(long x);
 
   @SysCallTemplate

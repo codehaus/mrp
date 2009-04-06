@@ -45,6 +45,11 @@ public class Entrypoints {
                "objectAddressRemapper",
                org.jikesrvm.runtime.ObjectAddressRemapper.class);
 
+  public static final NormalMethod ldivMethod =
+      getMethod(org.jikesrvm.runtime.RuntimeEntrypoints.class, "ldiv", "(JJ)J");
+  public static final NormalMethod lremMethod =
+      getMethod(org.jikesrvm.runtime.RuntimeEntrypoints.class, "lrem", "(JJ)J");
+
   public static final NormalMethod instanceOfMethod =
       getMethod(org.jikesrvm.runtime.RuntimeEntrypoints.class, "instanceOf", "(Ljava/lang/Object;I)Z");
   public static final NormalMethod checkcastMethod =
@@ -331,10 +336,6 @@ public class Entrypoints {
       getField(org.jikesrvm.runtime.BootRecord.class, "the_boot_record", org.jikesrvm.runtime.BootRecord.class);
   public static final RVMField externalSignalFlagField =
       getField(org.jikesrvm.runtime.BootRecord.class, "externalSignalFlag", int.class);
-  public static final RVMField sysLongDivideIPField =
-      getField(org.jikesrvm.runtime.BootRecord.class, "sysLongDivideIP", org.vmmagic.unboxed.Address.class);
-  public static final RVMField sysLongRemainderIPField =
-      getField(org.jikesrvm.runtime.BootRecord.class, "sysLongRemainderIP", org.vmmagic.unboxed.Address.class);
   public static final RVMField sysLongToFloatIPField =
       getField(org.jikesrvm.runtime.BootRecord.class, "sysLongToFloatIP", org.vmmagic.unboxed.Address.class);
   public static final RVMField sysLongToDoubleIPField =

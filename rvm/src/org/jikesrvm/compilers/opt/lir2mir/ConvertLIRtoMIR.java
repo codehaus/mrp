@@ -216,34 +216,6 @@ public final class ConvertLIRtoMIR extends OptimizationPlanCompositeElement {
           }
           break;
 
-          case LONG_DIV_opcode: {
-            if (VM.BuildForPowerPC && VM.BuildFor64Addr) break; // don't reduce operator -- leave for BURS
-            Call.mutate2(s,
-                         SYSCALL,
-                         GuardedBinary.getClearResult(s),
-                         null,
-                         MethodOperand.STATIC(Entrypoints.sysLongDivideIPField),
-                         GuardedBinary.getClearVal1(s),
-                         GuardedBinary.getClearVal2(s));
-            ConvertToLowLevelIR.expandSysCallTarget(s, ir);
-            CallingConvention.expandSysCall(s, ir);
-          }
-          break;
-
-          case LONG_REM_opcode: {
-            if (VM.BuildForPowerPC && VM.BuildFor64Addr) break; // don't reduce operator -- leave for BURS
-            Call.mutate2(s,
-                         SYSCALL,
-                         GuardedBinary.getClearResult(s),
-                         null,
-                         MethodOperand.STATIC(Entrypoints.sysLongRemainderIPField),
-                         GuardedBinary.getClearVal1(s),
-                         GuardedBinary.getClearVal2(s));
-            ConvertToLowLevelIR.expandSysCallTarget(s, ir);
-            CallingConvention.expandSysCall(s, ir);
-          }
-          break;
-
           case FLOAT_REM_opcode:
           case DOUBLE_REM_opcode: {
             if (VM.BuildForPowerPC) {

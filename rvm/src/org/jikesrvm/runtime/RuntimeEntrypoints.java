@@ -92,6 +92,80 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
   public static final int TRAP_STORE_CHECK = 8; // opt-compiler
   public static final int TRAP_STACK_OVERFLOW_FATAL = 9; // assertion checking
 
+  /**
+   * Perform signed division implementing the ldiv bytecode
+   *
+   * @param u dividend
+   * @param v divisor
+   * @return quotient
+   */
+  @Entrypoint
+  static long ldiv(long u, long v) {
+    if (v == 0) {
+      raiseArithmeticException();
+    }
+    long au = Math.abs(u);
+    long av = Math.abs(v);
+    if ((av >>> 31) == 0) {
+      if (au < (av << 31)) {
+        long q = Magic.signedDivide(u, (int)v);
+        return (q << 32) >> 32;
+      }
+    }
+    long q = unsignedDivide(au, av);
+    long t = (u ^ v) >> 63;
+    return (q ^ t) - t;
+  }
+
+  /**
+   * Perform the unsigned division subcase of the ldiv bytecode
+   *
+   * @param u dividend
+   * @param v divisor
+   * @return quotient
+   */
+  private static long unsignedDivide(long u, long v) {
+    if ((v >>> 32) == 0) {
+      if ((u >>> 32) < v) {
+        return Magic.unsignedDivide(u, (int)v) & 0xFFFFFFFF;
+      } else {
+        long u1 = u >>> 32;
+        long u0 = u & 0xFFFFFFFF;
+        long q1 = Magic.unsignedDivide(u1, (int)v) & 0xFFFFFFFF;
+        long k = u1 - q1 * v;
+        long q0 = Magic.unsignedDivide((k << 32) + u0, (int)v) & 0xFFFFFFFF;
+        return (q1 << 32) + q0;
+      }
+    } else {
+      int n = Long.numberOfLeadingZeros(v);
+      long v1 = (v << n) >>> 32;
+      long u1 = u >>> 1;
+      long q1 = Magic.unsignedDivide(u1, (int)v1) & 0xFFFFFFFF;
+      long q0 = (q1 << n) >>> 31;
+      if (q0 != 0) {
+        q0 = q0-1;
+      }
+      if ((u - q0*v) >= v) {
+        q0 = q0+1;
+      }
+      return q0;
+    }
+  }
+
+  /**
+   * Perform signed remainder implementing the lrem bytecode
+   *
+   * @param u dividend
+   * @param v divisor
+   * @return remainder
+   */
+  @Entrypoint
+  static long lrem(long u, long v) {
+    // @TODO: optimize this further
+    long r = ldiv(u, v);
+    return u - (r * v);
+  }
+
   //---------------------------------------------------------------//
   //                     Type Checking.                            //
   //---------------------------------------------------------------//
