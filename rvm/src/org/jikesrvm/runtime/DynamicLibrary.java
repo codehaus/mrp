@@ -36,7 +36,7 @@ public final class DynamicLibrary {
    * Add symbol for the boot image runner to find symbols within it.
    */
   public static void boot() {
-    System.loadLibrary("rvmdynlib");
+    System.loadLibrary("jvm_jni");
   }
 
   /**

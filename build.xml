@@ -123,6 +123,10 @@
     <test-property name="target.bootimage.rmap.address" location="${target.file}"/>
     <test-property name="target.max-mappable.address" location="${target.file}"/>
     <test-property name="target.address.size" location="${target.file}"/>
+    <test-property name="target.obj-prefix" location="${target.file}"/>
+    <test-property name="target.obj-ext" location="${target.file}"/>
+    <test-property name="target.lib-prefix" location="${target.file}"/>
+    <test-property name="target.lib-ext" location="${target.file}"/>
     <test-property name="target.dll-prefix" location="${target.file}"/>
     <test-property name="target.dll-ext" location="${target.file}"/>
     <test-property name="target.jni-suffix" location="${target.file}"/>
@@ -135,19 +139,26 @@
       directory without the .properties suffix.
     </fail>
     <test-file name="bison.exe" location="${host.file}"/>
-    <test-file name="c++.exe" location="${host.file}"/>
     <test-file name="c.exe" location="${host.file}"/>
     <test-file name="perl.exe" location="${host.file}"/>
     <test-file name="bash.exe" location="${host.file}"/>
-    <test-property name="c++.args" location="${host.file}"/>
     <test-property name="c.args" location="${host.file}"/>
-    <test-property name="shld.args" location="${host.file}"/>
+<!--    <if>
+      <conditions>
+        <equals arg1="${target.os}" arg2="Windows"/>
+      </conditions>
+      <sequential>
+        <test-file name="lib.exe" location="${host.file}"/>
+        <test-file name="mt.exe" location="${host.file}"/>
+        <test-property name="lib.args" location="${host.file}"/>
+      </sequential>
+    </if> -->
   </target>
 
   <target name="check-classlibrary-properties">
     <fail message="Cannot have both Harmony and Classpath class libraries">
       <condition>
-	<and>
+        <and>
           <isset property="harmony.classlib"/>
           <isset property="classpath.classlib"/>
 	</and>
@@ -352,7 +363,7 @@ Check to make sure all required properties are specified. This includes properti
     <condition property="os.filter" value="-DRVM_FOR_AIX=1">
       <equals arg1="${target.os}" arg2="AIX"/>
     </condition>
-    <condition property="os.filter" value="-DRVM_FOR_LINUX=1">
+    <condition property="os.filter" value="-DRVM_FOR_LINUX=1 -DLINUX=1">
       <equals arg1="${target.os}" arg2="Linux"/>
     </condition>
     <condition property="os.filter" value="-DRVM_FOR_OSX=1">
@@ -361,7 +372,7 @@ Check to make sure all required properties are specified. This includes properti
     <condition property="os.filter" value="-DRVM_FOR_SOLARIS=1">
       <equals arg1="${target.os}" arg2="Solaris"/>
     </condition>
-    <condition property="os.filter" value="-DRVM_FOR_WINDOWS=1">
+    <condition property="os.filter" value="-DRVM_FOR_WINDOWS=1 -DWIN32=1">
       <equals arg1="${target.os}" arg2="Windows"/>
     </condition>
 
@@ -1484,14 +1495,15 @@ Check to make sure all required properties are specified. This includes properti
 
   <target name="gen-runbootimage" depends="check-properties">
     <mkdir dir="${build.native}"/>
-    <echo file="${build.native}/bootloader.h">
-      const unsigned heap_default_initial_size = ${config.default-heapsize.initial}*1024*1024;
-      const unsigned heap_default_maximum_size = ${config.default-heapsize.maximum}*1024*1024;
-      const char *rvm_version = "Jikes RVM ${rvm.version} (r${svn.revision})";
-      const char *rvm_configuration = "${config.name}";
-      const char *rvm_host_configuration = "${config.file}";
-      const char *rvm_target_configuration = "${target.file}";
-    </echo>
+<echo file="${build.native}/bootloader.h">
+const unsigned heap_default_initial_size = ${config.default-heapsize.initial}*1024*1024;
+const unsigned heap_default_maximum_size = ${config.default-heapsize.maximum}*1024*1024;
+const char *rvm_version = "Jikes RVM ${rvm.version} (r${svn.revision})";
+const char *rvm_configuration = "${config.name}";
+const char *rvm_host_configuration = "${config.file}";
+const char *rvm_target_configuration = "${target.file}";
+</echo>
+    <replaceregexp file="${build.native}/bootloader.h" match="\\" replace="/" byline="true" flags="g"/>
   </target>
 
   <!-- generate all headers required when compiling bootloader -->
@@ -1535,11 +1547,7 @@ Check to make sure all required properties are specified. This includes properti
 
     <property name="rvm.defines" value="-D_REENTRANT ${filter} "/>
 
-    <condition property="rvm.sse.args" value="" else="-mfpmath=sse">
-        <equals arg1="${target.arch.sse2}" arg2="none"/>
-    </condition>
-    <property name="rvm.common.args" value="${rvm.includes} ${rvm.defines} ${rvm.sse.args}"/>
-    <property name="rvm.c.args" value="${shld.args} ${rvm.common.args}"/>
+    <property name="rvm.c.args" value="${c.args} ${rvm.includes} ${rvm.defines}"/>
 
     <condition property="rvm.arch.src"
                value="${bl.dir}/sysThread_Intel.c ${bl.dir}/sysSignal_Intel.c">
@@ -1551,60 +1559,243 @@ Check to make sure all required properties are specified. This includes properti
       <equals arg1="${target.arch}" arg2="ppc"/>
     </condition>
 
-    <condition property="perfctr.src" value="${bl.dir}/perfctr.C" else="">
-      <equals arg1="${config.include.perfctr}" arg2="true"/>
-    </condition>
-
     <condition property="rvm.syscall.src"
                value="${bl.dir}/sysGCSpy.c ${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${rvm.arch.src}"
-               else="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${rvm.arch.src}">
+               else="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c"> <!--  ${bl.dir}/sysSignal.c ${rvm.arch.src}"> -->
       <equals arg1="include.gcspy" arg2="true"/>
     </condition>
 
-    <property name="rvm.src"  value="${bl.dir}/main.c ${perfctr.src}"/>
+    <property name="rvm.src"  value="${bl.dir}/main.c"/>
   </target>
 
+  <!-- Macro to compile a C file to a object file -->
+  <macrodef name="CompileCtoObj">
+    <attribute name="cfile"/>
+    <attribute name="objfile"/>
+    <sequential>
+    <if>
+      <conditions>
+        <equals arg1="${target.os}" arg2="Windows"/>
+      </conditions>
+      <sequential>
+        <exec executable="${c.exe}" failonerror="true">
+          <arg line="${rvm.c.args} /c /Fo@{objfile} @{cfile}"/>
+        </exec>
+      </sequential>
+    </if>
+    <if>
+      <conditions>
+        <not>
+          <equals arg1="${target.os}" arg2="Windows"/>
+        </not>
+      </conditions>
+      <sequential>
+        <exec executable="${c.exe}" failonerror="true">
+          <arg line="${rvm.c.args} -c -o @{objfile} @{cfile}"/>
+        </exec>
+      </sequential>
+    </if>
+    </sequential>
+  </macrodef>
+
+  <!-- Macro to link object files into a library -->
+  <macrodef name="CreateLibrary">
+    <attribute name="dllname"/>
+    <attribute name="outdir"/>
+    <attribute name="srcdir"/>
+    <element name="ObjectFiles"/>
+    <sequential>
+    <if>
+      <conditions>
+        <equals arg1="${target.os}" arg2="Windows"/>
+      </conditions>
+      <sequential>
+        <exec executable="${lib.exe}" failonerror="true">
+          <arg line="${lib.args}"/>
+          <arg value="/DEF:@{srcdir}\@{dllname}.def"/>
+          <arg value="/OUT:@{outdir}/@{dllname}${target.lib-ext}"/>
+          <ObjectFiles/>
+        </exec>
+      </sequential>
+    </if>
+    </sequential>
+  </macrodef>
+
+  <!-- Macro to link object files into a DLL -->
+  <macrodef name="CreateDLL">
+    <attribute name="dllname"/>
+    <attribute name="outdir"/>
+    <attribute name="srcdir"/>
+    <attribute name="lib" default=""/>
+    <element name="ObjectFiles"/>
+    <sequential>
+    <if>
+      <conditions>
+        <equals arg1="${target.os}" arg2="Windows"/>
+      </conditions>
+      <sequential>
+        <exec executable="${ld.exe}" failonerror="true">
+          <arg line="/DLL /DEBUG /NODEFAULTLIB:libcmt /NODEFAULTLIB:libc /entry:_DllMainCRTStartup@12"/>
+          <arg value="/DEF:@{srcdir}\@{dllname}.def"/>
+          <arg value="/OUT:@{outdir}\@{dllname}${target.dll-ext}"/>
+          <arg value="msvcrt.lib"/>
+          <arg value="/LIBPATH:@{outdir}"/>
+          <arg line="@{lib}"/>
+          <arg value="/LIBPATH:${harmony.lib.dir}"/>
+          <arg line="hythr.lib hyzip.lib hyprt.lib hypool.lib"/>
+          <ObjectFiles/>
+        </exec>
+        <available property="@{dllname}.manifest.exists" file="@{outdir}\@{dllname}${target.dll-ext}.manifest"/>
+        <if>
+          <conditions>
+            <equals arg1="${@{dllname}.manifest.exists}" arg2="true"/>
+          </conditions>
+          <sequential>
+            <echo message="Running mt.exe for @{outdir}/@{dllname}${target.dll-ext}.manifest"/>
+            <exec executable="${mt.exe}" failonerror="true">
+              <arg line="-manifest @{outdir}/@{dllname}${target.dll-ext}.manifest -outputresource:@{outdir}/@{dllname}${target.dll-ext};#2"/>
+            </exec>            
+          </sequential>
+        </if>
+      </sequential>
+    </if>
+    <if>
+      <conditions>
+        <not>
+          <equals arg1="${target.os}" arg2="Windows"/>
+        </not>
+      </conditions>
+      <sequential>
+        <exec executable="${ld.exe}" failonerror="true">
+          <arg line="-m elf_i386 -shared"/>
+          <arg value="--version-script=@{srcdir}/${target.dll-prefix}@{dllname}.exp"/>
+          <arg line="-o @{outdir}/${target.dll-prefix}@{dllname}${target.dll-ext}"/>
+          <arg value="-L@{outdir}"/>
+<!--          <arg value="-L${harmony.lib.dir}"/>
+          <arg line="-lhythr -lhyprt"/> -->
+          <ObjectFiles/>
+        </exec>
+      </sequential>
+    </if>
+    </sequential>
+  </macrodef>
+
+  <!-- Macro to link object files into a DLL -->
+  <macrodef name="CreateEXE">
+    <attribute name="exename"/>
+    <attribute name="outdir"/>
+    <attribute name="srcdir"/>
+    <attribute name="lib" default=""/>
+    <element name="ObjectFiles"/>
+    <sequential>
+    <if>
+      <conditions>
+        <equals arg1="${target.os}" arg2="Windows"/>
+      </conditions>
+      <sequential>
+        <exec executable="${ld.exe}" failonerror="true">
+          <arg line="/DEBUG /NOLOGO"/>
+          <arg value="/OUT:@{outdir}/@{exename}.exe"/>
+          <arg value="/LIBPATH:@{outdir}"/>
+          <arg line="@{lib}"/>
+          <arg value="/LIBPATH:${harmony.lib.dir}"/>
+          <arg line="hythr.lib hyzip.lib hyprt.lib hypool.lib"/>
+          <ObjectFiles/>
+        </exec>
+        <available property="@{exename}.manifest.exists" file="@{outdir}/@{exename}${target.exe-ext}.manifest"/>
+        <if>
+          <conditions>
+            <equals arg1="${@{dllname}.manifest.exists}" arg2="true"/>
+          </conditions>
+          <sequential>
+            <exec executable="${mt.exe}" failonerror="true">
+              <arg line="-manifest @{outdir}/@{exename}${target.exe-ext}.manifest -outputresource:@{outdir}/@{exename}${target.exe-ext};#1"/>
+            </exec>            
+          </sequential>
+        </if>
+      </sequential>
+    </if>
+    <if>
+      <conditions>
+        <not>
+          <equals arg1="${target.os}" arg2="Windows"/>
+        </not>
+      </conditions>
+      <sequential>
+        <exec executable="${c.exe}" failonerror="true">
+          <arg line="${c.args} -o @{outdir}/@{exename}"/>
+          <arg value="-L@{outdir}"/>
+          <arg value="-L${harmony.lib.dir}"/>
+          <ObjectFiles/>
+          <arg line="-lm -lc -ljvm"/>
+	  <arg line="-lpthread -ldl -lrt"/>
+<!--	  <arg line="-lvmi -lhythr -lhyprt -lhyarchive -lhyzlib"/> -->
+        </exec>
+      </sequential>
+    </if>
+    </sequential>
+  </macrodef>
+
   <target name="build-gcspy-stub" depends="check-bootloader-properties" if="include.gcspy-stub">
-    <exec executable="${c.exe}" failonerror="true">
-      <arg line="${shld.args}"/>
-      <arg value="-o"/>
-      <arg path="${build.base}/${target.dll-prefix}gcspy${target.dll-ext}"/>
-      <arg path="${jikesrvm.dir}/tools/gcspy-stub/src/gcspy_main_server.c"/>
-    </exec>
+    <CompileCtoObj cfile="${jikesrvm.dir}/tools/gcspy-stub/src/gcspy_main_server.c"
+                   objfile="${build.base}/${target.obj-prefix}gcspy${target.obj-ext}"/>
+    <CreateDLL outdir="${build.base}" dllname="gcspy" srcdir="${jikesrvm.dir}/tools/gcspy-stub/src">
+      <ObjectFiles>
+        <arg value="${build.base}/${target.obj-prefix}gcspy${target.obj-ext}"/>
+      </ObjectFiles>
+    </CreateDLL>
   </target>
 
   <target name="build-bootloader" depends="build-gcspy-stub">
+    <!-- create JVM library -->
+    <echo message="Creating jvm${target.lib-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/jvm.c"
+                   objfile="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysAlignmentCheck.c"
+                   objfile="${build.base}/${target.obj-prefix}sysAlignmentCheck${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysConsole.c"
+                   objfile="${build.base}/${target.obj-prefix}sysConsole${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysIO.c"
+                   objfile="${build.base}/${target.obj-prefix}sysIO${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysLibrary.c"
+                   objfile="${build.base}/${target.obj-prefix}sysLibrary${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysMath.c"
+                   objfile="${build.base}/${target.obj-prefix}sysMath${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysMemory.c"
+                   objfile="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysMisc.c"
+                   objfile="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysPerfCtr.c"
+                   objfile="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysSignal.c"
+                   objfile="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysSignal_Intel.c"
+                   objfile="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysThread.c"
+                   objfile="${build.base}/${target.obj-prefix}sysThread${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysThread_Intel.c"
+                   objfile="${build.base}/${target.obj-prefix}sysThread_Intel${target.obj-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/sysTime.c"
+                   objfile="${build.base}/${target.obj-prefix}sysTime${target.obj-ext}"/>
 
-    <!-- rdynamic flag used to control the exporting of symbols into an ELF -->
-    <condition property="c.rdynamic" value="" else="-rdynamic">
-      <or>
-      	<equals arg1="${target.os}" arg2="OSX"/>
-      	<equals arg1="${target.os}" arg2="AIX" />
-      </or>
-    </condition>
-
-    <!-- is the real-time library necessary? -->
-    <condition property="c.librt" value="" else="-lrt">
-      <or>
-        <equals arg1="${target.os}" arg2="OSX"/>
-        <equals arg1="${target.os}" arg2="Windows"/>
-      </or>
-    </condition>
-
-    <!-- create jvm shared library -->
-    <echo message="Creating rvm.dll"/>
-    <path id="rvm.dll">
-      <pathelement path="${build.base}/${target.dll-prefix}rvm${target.dll-ext}"/>
-    </path>
-    <path id="rvm.obj">
-      <pathelement path="${build.base}/${target.dll-prefix}rvm.obj"/>
-    </path>
-    <exec executable="${c.exe}" failonerror="true">
-      <arg line="${rvm.c.args} -lpthread ${c.librt}"/>
-      <arg value="-o"/>
-      <arg path="${toString:rvm.dll}"/>
-      <arg line="${bl.dir}/jvm.c ${rvm.syscall.src}"/>
-    </exec>
+    <CreateLibrary outdir="${build.base}" dllname="jvm" srcdir="${bl.dir}">
+      <ObjectFiles>
+        <arg value="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysAlignmentCheck${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysConsole${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysIO${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysLibrary${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysMath${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysThread${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysThread_Intel${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysTime${target.obj-ext}"/>
+      </ObjectFiles>
+    </CreateLibrary>
 
     <!-- create vmi shared library -->
     <if>
@@ -1612,76 +1803,66 @@ Check to make sure all required properties are specified. This includes properti
         <equals arg1="${classlib.provider}" arg2="Harmony"/>
       </conditions>
       <sequential>
-        <echo message="Creating vmi.dll"/>
-        <path id="vmi.dll">
-          <pathelement path="${build.base}/${target.dll-prefix}vmi${target.dll-ext}"/>
-        </path>
-        <exec executable="${c.exe}" failonerror="true">
-          <arg line="-DLINUX=1 ${rvm.c.args} -lpthread ${c.librt} -L${harmony.lib.dir} -lhyprt -lhyarchive -lhyzlib"/>
-          <arg value="-o"/>
-          <arg value="${toString:vmi.dll}"/>
-          <arg value="${bl.dir}/harmony.c"/>
-          <arg value="libraryInterface/Harmony/ASF/native/vmls.c"/>
-          <arg value="-Wl,--version-script=${bl.dir}/libvmi.exp"/>
-        </exec>
+        <echo message="Creating vmi${target.lib-ext} and vmi${target.dll-ext}"/>
+        <CompileCtoObj cfile="${bl.dir}/harmony.c"
+                       objfile="${build.base}/${target.obj-prefix}harmony${target.obj-ext}"/>
+        <CompileCtoObj cfile="libraryInterface/Harmony/ASF/native/vmls.c"
+                       objfile="${build.base}/${target.obj-prefix}vmls${target.obj-ext}"/>
+        <CreateLibrary outdir="${build.base}" dllname="vmi" srcdir="${bl.dir}">
+          <ObjectFiles>
+            <arg value="${build.base}/${target.obj-prefix}harmony${target.obj-ext}"/>
+            <arg value="${build.base}/${target.obj-prefix}vmls${target.obj-ext}"/>
+          </ObjectFiles>
+        </CreateLibrary>
+        <CreateDLL outdir="${build.base}" dllname="vmi" srcdir="${bl.dir}" lib="jvm${target.lib-ext}">
+          <ObjectFiles>
+            <arg value="${build.base}/${target.obj-prefix}harmony${target.obj-ext}"/>
+            <arg value="${build.base}/${target.obj-prefix}vmls${target.obj-ext}"/>
+          </ObjectFiles>
+        </CreateDLL>
       </sequential>
     </if>
 
-    <!-- create rvmdynlib shared library -->
-    <echo message="Creating rvmdynlib.dll"/>
-    <property name="rvmdynlib.dll" value="${target.dll-prefix}rvmdynlib${target.jni-suffix}"/>
-    <exec executable="${c.exe}" failonerror="true">
-      <arg line="${rvm.c.args}"/>
-      <arg value="-o"/>
-      <arg value="${build.base}/${rvmdynlib.dll}"/>
-      <arg value="-L${build.base}"/>
-      <arg value="-lrvm"/>
-      <arg value="${bl.dir}/jni/org_jikesrvm_runtime_DynamicLibrary.c"/>
-    </exec>
+    <!-- create JVM shared library -->
+    <echo message="Creating jvm${target.dll-ext}"/>
+    <CreateDLL outdir="${build.base}" dllname="jvm" srcdir="${bl.dir}" lib="vmi${target.lib-ext}">
+      <ObjectFiles>
+        <arg value="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysAlignmentCheck${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysConsole${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysIO${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysLibrary${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysMath${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysThread${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysThread_Intel${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysTime${target.obj-ext}"/>
+      </ObjectFiles>
+    </CreateDLL>
 
-    <condition property="perfctr.lib" value="-lperfctr" else="">
-      <equals arg1="${config.include.perfctr}" arg2="true"/>
-    </condition>
+    <!-- create jvm_jni shared library -->
+    <echo message="Creating jvm_jni${target.dll-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/jni/org_jikesrvm_runtime_DynamicLibrary.c"
+                   objfile="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"/>
+    <CreateDLL outdir="${build.base}" dllname="jvm_jni" srcdir="${bl.dir}/jni" lib="jvm${target.lib-ext}">
+      <ObjectFiles>
+        <arg value="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"/>
+      </ObjectFiles>
+    </CreateDLL>
 
-    <if>
-      <conditions>
-        <equals arg1="${classlib.provider}" arg2="GNU Classpath"/>
-      </conditions>
-      <sequential>
-        <echo message="Creating JikesRVM"/>
-        <exec executable="${c.exe}" failonerror="true">
-          <arg line="${c.args} ${rvm.common.args} ${gcspy.lib.dir} ${perfctr.lib} ${c.librt} ${rvm.src} ${c.rdynamic} -g"/>
-          <arg value="-o"/>
-          <arg path="${build.base}/JikesRVM"/>
-          <arg value="-L${build.base}"/>
-          <arg value="-ldl"/>
-          <arg line="-lrvm -lm -pthread"/>
-	</exec>
-      </sequential>
-    </if>
-    <if>
-      <conditions>
-        <equals arg1="${classlib.provider}" arg2="Harmony"/>
-      </conditions>
-      <sequential>
-        <echo message="Creating JikesRVM"/>
-        <exec executable="${c.exe}" failonerror="true">
-          <arg line="${c.args} ${rvm.common.args} ${gcspy.lib.dir} -lpthread ${perfctr.lib} ${c.librt} ${c.rdynamic} -g"/>
-          <arg value="-o"/>
-          <arg path="${build.base}/JikesRVM"/>
-          <arg value="-L${build.base}"/>
-	  <arg value="-L${harmony.lib.dir}"/>
-          <arg value="-ldl"/>
-          <arg value="-lrvm"/>
-          <arg value="-lvmi"/>
-          <arg value="-lhyarchive"/>
-          <arg value="-lhyprt"/>
-          <arg value="-lhythr"/>
-          <arg value="-lhyzlib"/>
-          <arg line="${rvm.src}"/>
-	</exec>
-      </sequential>
-    </if>
+    <!-- create JikesRVM executable -->
+    <echo message="Creating JikesRVM"/>
+    <CompileCtoObj cfile="${bl.dir}/main.c"
+                   objfile="${build.base}/${target.obj-prefix}main${target.obj-ext}"/>
+    <CreateEXE outdir="${build.base}" exename="JikesRVM" srcdir="${bl.dir}" lib="jvm${target.lib-ext} vmi${target.lib-ext}">
+      <ObjectFiles>
+        <arg value="${build.base}/${target.obj-prefix}main${target.obj-ext}"/>
+      </ObjectFiles>
+    </CreateEXE>
 
     <antcall target="build-debug-symbols"/>
   </target>
