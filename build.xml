@@ -1518,21 +1518,51 @@ const char *rvm_target_configuration = "${target.file}";
       <equals arg1="${target.arch}" arg2="ppc"/>
     </condition>
 
+    <condition property="libpath.specifier" value="/LIBPATH:" else="-L">
+      <equals arg1="${target.os}" arg2="Windows"/>
+    </condition>
+    <condition property="lib.specifier" value="" else="-l">
+      <equals arg1="${target.os}" arg2="Windows"/>
+    </condition>
+
     <condition property="gcspy.includes.dir" value="-I${jikesrvm.dir}/tools/gcspy-stub/src">
       <isset property="include.gcspy-stub"/>
     </condition>
     <condition property="gcspy.includes.dir" value="-I${gcspy.server.dir}/include" else="">
       <equals arg1="${config.include.gcspy}" arg2="true"/>
     </condition>
-    <condition property="gcspy.lib.dir" value="-L${dist.base}/include -lgcspy">
+    <condition property="gcspy.lib.dir" value="${libpath.specifier}${dist.base}/include ${lib.specifier}gcspy">
       <isset property="include.gcspy-stub"/>
     </condition>
-    <condition property="gcspy.lib.dir" value="-L${gcspy.server.dir} -lgcspy" else="">
+    <condition property="gcspy.lib.dir" value="${libpath.specifier}${gcspy.server.dir} ${lib.specifier}gcspy" else="">
       <equals arg1="${config.include.gcspy}" arg2="true"/>
     </condition>
 
     <condition property="classlib.includes" value="-I${harmony.include.dir}" else="">
       <equals arg1="${classlib.provider}" arg2="Harmony"/>
+    </condition>
+
+    <condition property="classlib.libraries"
+               value="${lib.specifier}pthread ${lib.specifier}dl ${lib.specifier}rt">
+      <not>
+        <equals arg1="${classlib.provider}" arg2="Harmony"/>
+      </not>
+    </condition>
+    <condition property="classlib.libraries"
+               value="${libpath.specifier}${harmony.lib.dir} ${lib.specifier}hythr${target.lib-ext} ${lib.specifier}hyzip${target.lib-ext} ${lib.specifier}hyprt${target.lib-ext} ${lib.specifier}hypool${target.lib-ext}">
+      <and>
+        <equals arg1="${classlib.provider}" arg2="Harmony"/>
+        <equals arg1="${target.os}" arg2="Windows"/>
+      </and>
+    </condition>
+    <condition property="classlib.libraries"
+               value="${libpath.specifier}${harmony.lib.dir} ${lib.specifier}hyarchive${target.lib-ext} ${lib.specifier}hyprt${target.lib-ext} ${lib.specifier}hythr${target.lib-ext} ${lib.specifier}hyzlib${target.lib-ext}">
+      <and>
+        <equals arg1="${classlib.provider}" arg2="Harmony"/>
+        <not>
+          <equals arg1="${target.os}" arg2="Windows"/>
+        </not>
+      </and>
     </condition>
 
     <condition property="arch.includes" value="-I${bl.dir}/ia32">
@@ -1641,8 +1671,7 @@ const char *rvm_target_configuration = "${target.file}";
           <arg value="msvcrt.lib"/>
           <arg value="/LIBPATH:@{outdir}"/>
           <arg line="@{lib}"/>
-          <arg value="/LIBPATH:${harmony.lib.dir}"/>
-          <arg line="hythr.lib hyzip.lib hyprt.lib hypool.lib"/>
+          <arg line="${classlib.libraries}"/>
           <ObjectFiles/>
         </exec>
         <available property="@{dllname}.manifest.exists" file="@{outdir}\@{dllname}${target.dll-ext}.manifest"/>
@@ -1668,11 +1697,8 @@ const char *rvm_target_configuration = "${target.file}";
       <sequential>
         <exec executable="${c.exe}" failonerror="true">
           <arg line="${c.args} -shared"/>
-          <arg value="--version-script=@{srcdir}/${target.dll-prefix}@{dllname}.exp"/>
+          <arg line="-Xlinker --version-script=@{srcdir}/${target.dll-prefix}@{dllname}.exp"/>
           <arg line="-o @{outdir}/${target.dll-prefix}@{dllname}${target.dll-ext}"/>
-          <arg value="-L@{outdir}"/>
-<!--          <arg value="-L${harmony.lib.dir}"/>
-          <arg line="-lhythr -lhyprt"/> -->
           <ObjectFiles/>
         </exec>
       </sequential>
@@ -1698,8 +1724,7 @@ const char *rvm_target_configuration = "${target.file}";
           <arg value="/OUT:@{outdir}/@{exename}.exe"/>
           <arg value="/LIBPATH:@{outdir}"/>
           <arg line="@{lib}"/>
-          <arg value="/LIBPATH:${harmony.lib.dir}"/>
-          <arg line="hythr.lib hyzip.lib hyprt.lib hypool.lib"/>
+          <arg line="${classlib.libraries}"/>
           <ObjectFiles/>
         </exec>
         <available property="@{exename}.manifest.exists" file="@{outdir}/@{exename}${target.exe-ext}.manifest"/>
@@ -1725,11 +1750,9 @@ const char *rvm_target_configuration = "${target.file}";
         <exec executable="${c.exe}" failonerror="true">
           <arg line="${c.args} -o @{outdir}/@{exename}"/>
           <arg value="-L@{outdir}"/>
-          <arg value="-L${harmony.lib.dir}"/>
           <ObjectFiles/>
-          <arg line="-ljvm -lm -lc"/>
-	  <arg line="-lpthread -ldl -lrt"/>
-<!--	  <arg line="-lvmi -lhythr -lhyprt -lhyarchive -lhyzlib"/> -->
+          <arg line="@{lib} -lm -lc"/>
+          <arg line="${classlib.libraries}"/>
         </exec>
       </sequential>
     </if>
@@ -1814,7 +1837,7 @@ const char *rvm_target_configuration = "${target.file}";
             <arg value="${build.base}/${target.obj-prefix}vmls${target.obj-ext}"/>
           </ObjectFiles>
         </CreateLibrary>
-        <CreateDLL outdir="${build.base}" dllname="vmi" srcdir="${bl.dir}" lib="jvm${target.lib-ext}">
+        <CreateDLL outdir="${build.base}" dllname="vmi" srcdir="${bl.dir}" lib="${lib.specifier}jvm${target.lib-ext}">
           <ObjectFiles>
             <arg value="${build.base}/${target.obj-prefix}harmony${target.obj-ext}"/>
             <arg value="${build.base}/${target.obj-prefix}vmls${target.obj-ext}"/>
@@ -1825,7 +1848,10 @@ const char *rvm_target_configuration = "${target.file}";
 
     <!-- create JVM shared library -->
     <echo message="Creating jvm${target.dll-ext}"/>
-    <CreateDLL outdir="${build.base}" dllname="jvm" srcdir="${bl.dir}" lib="vmi${target.lib-ext}">
+    <condition property="jvm.vmi.lib.filter" value="${lib.specifier}vmi${target.lib-ext}" else="">
+      <equals arg1="${classlib.provider}" arg2="Harmony"/>
+    </condition>
+    <CreateDLL outdir="${build.base}" dllname="jvm" srcdir="${bl.dir}" lib="${jvm.vmi.lib.filter}">
       <ObjectFiles>
         <arg value="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysAlignmentCheck${target.obj-ext}"/>
@@ -1848,7 +1874,7 @@ const char *rvm_target_configuration = "${target.file}";
     <echo message="Creating jvm_jni${target.dll-ext}"/>
     <CompileCtoObj cfile="${bl.dir}/jni/org_jikesrvm_runtime_DynamicLibrary.c"
                    objfile="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"/>
-    <CreateDLL outdir="${build.base}" dllname="jvm_jni" srcdir="${bl.dir}/jni" lib="jvm${target.lib-ext}">
+    <CreateDLL outdir="${build.base}" dllname="jvm_jni" srcdir="${bl.dir}/jni" lib="${lib.specifier}jvm${target.lib-ext}">
       <ObjectFiles>
         <arg value="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"/>
       </ObjectFiles>
@@ -1858,7 +1884,7 @@ const char *rvm_target_configuration = "${target.file}";
     <echo message="Creating JikesRVM"/>
     <CompileCtoObj cfile="${bl.dir}/main.c"
                    objfile="${build.base}/${target.obj-prefix}main${target.obj-ext}"/>
-    <CreateEXE outdir="${build.base}" exename="JikesRVM" srcdir="${bl.dir}" lib="jvm${target.lib-ext} vmi${target.lib-ext}">
+    <CreateEXE outdir="${build.base}" exename="JikesRVM" srcdir="${bl.dir}" lib="${lib.specifier}jvm${target.lib-ext} ${jvm.vmi.lib.filter}">
       <ObjectFiles>
         <arg value="${build.base}/${target.obj-prefix}main${target.obj-ext}"/>
       </ObjectFiles>
