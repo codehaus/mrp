@@ -1978,6 +1978,8 @@ target.jni-suffix=${target.jni-suffix}
     </copy>
     <copy file="${basedir}/tools/bootloader/rvm.harmony" tofile="${dist.base}/rvm">
     </copy>
+    <copy file="${basedir}/tools/bootloader/rvm.bat" tofile="${dist.base}/rvm.bat">
+    </copy>
     <chmod file="${dist.base}/rvm" perm="ugo+rx"/>
     <copy file="${build.rt.jar}" todir="${dist.base}"/>
     <copy file="${build.vm.jar}" todir="${dist.base}"/>
@@ -2041,7 +2043,7 @@ target.jni-suffix=${target.jni-suffix}
           <fileset dir="${build.base}">
             <include name="*${target.dll-ext}"/>
             <include name="*${target.jni-suffix}"/>
-            <include name="JikesRVM"/>
+            <include name="JikesRVM${target.exe-ext}"/>
             <include name="JikesRVM-symbols.o"/>
           </fileset>
         </copy>
@@ -2049,7 +2051,7 @@ target.jni-suffix=${target.jni-suffix}
           <fileset dir="${dist.base}">
             <include name="*${target.dll-ext}"/>
             <include name="*${target.jni-suffix}"/>
-            <include name="JikesRVM"/>
+            <include name="JikesRVM${target.exe-ext}"/>
           </fileset>
         </chmod>
       </sequential>
@@ -2080,7 +2082,7 @@ target.jni-suffix=${target.jni-suffix}
         </copy>
         <copy todir="${dist.base}">
           <fileset dir="${build.base}">
-            <include name="JikesRVM"/>
+            <include name="JikesRVM${target.exe-ext}"/>
             <include name="JikesRVM-symbols.o"/>
           </fileset>
         </copy>
@@ -2090,7 +2092,7 @@ target.jni-suffix=${target.jni-suffix}
             <include name="*${target.jni-suffix}"/>
           </fileset>
           <fileset dir="${dist.base}">
-            <include name="JikesRVM"/>
+            <include name="JikesRVM${target.exe-ext}"/>
           </fileset>
         </chmod>
       </sequential>
@@ -2099,7 +2101,7 @@ target.jni-suffix=${target.jni-suffix}
       <fileset dir="${dist.base}">
         <include name="*${target.dll-ext}"/>
         <include name="*${target.jni-suffix}"/>
-        <include name="JikesRVM"/>
+        <include name="JikesRVM${target.exe-ext}"/>
       </fileset>
     </chmod>
   </target>

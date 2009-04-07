@@ -180,7 +180,7 @@
                     to="${target.dll-prefix}\2${target.jni-suffix}"/>
       <fileset dir="${harmony.deploy.dir}">
         <include name="jdk/jre/bin/*${library.suffix}"/>
-        <include name="lib/*${library.suffix}"/>
+        <include name="lib/*"/>
       </fileset>
     </copy>
     <copy todir="${harmony.package.dir}/${target.name}/include" flatten="true">
