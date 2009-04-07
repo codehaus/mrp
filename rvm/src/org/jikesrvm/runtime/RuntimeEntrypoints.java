@@ -240,9 +240,9 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
           final int n2 = n1 >>> b;
           final int n1_ = (n1 << bm) | (n0 >>> b);
           final int n0_ = n0 << bm;
-          int q0 = Magic.unsignedDivide(makeLong(n2,n1_), d1_);
+          final int q0 = Magic.unsignedDivide(makeLong(n2,n1_), d1_);
           final int n1__ = Magic.unsignedRemainder(makeLong(n2,n1_), d1_);
-          final long m = unsignedMultiply(q0, d0_);
+          long m = unsignedMultiply(q0, d0_);
           final int m0 = (int)m;
           final int m1 = (int)(m >>> 32);
           if (unsignedGT(m1, n1__) || ((m1 == n1__) && unsignedGT(m0, n0_))) {
