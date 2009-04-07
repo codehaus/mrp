@@ -157,24 +157,24 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
     final int n1 = (int)(n >>> 32);
     if (d1 == 0) {
       if (unsignedGT(d0, n1)) {
-	// 0q = nn / 0d
-	return makeLong(0, Magic.unsignedDivide(n, d0));
+        // 0q = nn / 0d
+        return makeLong(0, Magic.unsignedDivide(n, d0));
       } else {
-	// qq = NN / 0d
+        // qq = NN / 0d
         if (d0 == 0) {
           raiseArithmeticException();
         }
         final int q1 = Magic.unsignedDivide(makeLong(0, n1), d0);
         final int n1_ = Magic.unsignedRemainder(makeLong(0, n1), d0);
         final int q0 = Magic.unsignedDivide(makeLong(n1_,n0), d0);
-	return makeLong(q1, q0);
+        return makeLong(q1, q0);
       }
     } else {
       if (unsignedGT(d1, n1)) {
-	// 00 = nn / DD
-	return 0L;
+        // 00 = nn / DD
+        return 0L;
       } else {
-	// 0q = NN / dd
+        // 0q = NN / dd
         final int bm = Integer.numberOfLeadingZeros(d1);
         if (bm == 0) {
           return (unsignedGT(n1, d1) || unsignedGE(n0, d0)) ? 1L : 0L;
@@ -213,23 +213,23 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
     final int n1 = (int)(n >>> 32);
     if (d1 == 0) {
       if (unsignedGT(d0, n1)) {
-	// 0q = nn / 0d
-	return makeLong(0, Magic.unsignedRemainder(n, d0));
+        // 0q = nn / 0d
+        return makeLong(0, Magic.unsignedRemainder(n, d0));
       } else {
-	// qq = NN / 0d
+        // qq = NN / 0d
         if (d0 == 0) {
           raiseArithmeticException();
         }
         final int n1_ = Magic.unsignedRemainder(makeLong(0, n1), d0);
         final int r0 = Magic.unsignedRemainder(makeLong(n1_,n0), d0);
-	return makeLong(0, r0);
+        return makeLong(0, r0);
       }
     } else {
       if (unsignedGT(d1, n1)) {
-	// 00 = nn / DD
-	return n;
+        // 00 = nn / DD
+        return n;
       } else {
-	// 0q = NN / dd
+        // 0q = NN / dd
         final int bm = Integer.numberOfLeadingZeros(d1);
         if (bm == 0) {
           return (unsignedGT(n1, d1) || unsignedGE(n0, d0)) ? n-d : n;
@@ -246,7 +246,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
           final int m0 = (int)m;
           final int m1 = (int)(m >>> 32);
           if (unsignedGT(m1, n1__) || ((m1 == n1__) && unsignedGT(m0, n0_))) {
-	    m = m - makeLong(d1_, d0_);
+            m = m - makeLong(d1_, d0_);
           }
           return (makeLong(n1__, n0_) - m) >>> bm;
         }
