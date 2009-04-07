@@ -1666,8 +1666,8 @@ const char *rvm_target_configuration = "${target.file}";
         </not>
       </conditions>
       <sequential>
-        <exec executable="${ld.exe}" failonerror="true">
-          <arg line="-m elf_i386 -shared"/>
+        <exec executable="${c.exe}" failonerror="true">
+          <arg line="${c.args} -shared"/>
           <arg value="--version-script=@{srcdir}/${target.dll-prefix}@{dllname}.exp"/>
           <arg line="-o @{outdir}/${target.dll-prefix}@{dllname}${target.dll-ext}"/>
           <arg value="-L@{outdir}"/>
@@ -1727,7 +1727,7 @@ const char *rvm_target_configuration = "${target.file}";
           <arg value="-L@{outdir}"/>
           <arg value="-L${harmony.lib.dir}"/>
           <ObjectFiles/>
-          <arg line="-lm -lc -ljvm"/>
+          <arg line="-ljvm -lm -lc"/>
 	  <arg line="-lpthread -ldl -lrt"/>
 <!--	  <arg line="-lvmi -lhythr -lhyprt -lhyarchive -lhyzlib"/> -->
         </exec>
