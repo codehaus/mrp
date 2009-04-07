@@ -34,6 +34,7 @@ import static org.jikesrvm.compilers.opt.ir.Operators.IA32_CMPLESS;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_CMPLTSD;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_CMPLTSS;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_CVTSS2SD;
+import static org.jikesrvm.compilers.opt.ir.Operators.IA32_DIV;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FCMOV;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FCOMI;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FCOMIP;
@@ -1197,7 +1198,7 @@ Operand value, boolean signExtend) {
   }
 
   /**
-   * Expansion of INT_DIV and INT_REM
+   * Expansion of INT_DIV, SIGNED_DIV_64_32, UNSIGNED_DIV_64_32 and INT_REM
    *
    * @param s the instruction to expand
    * @param result the result operand
@@ -1206,7 +1207,7 @@ Operand value, boolean signExtend) {
    * @param isDiv true for div, false for rem
    */
   protected final void INT_DIVIDES(Instruction s, RegisterOperand result, Operand val1, Operand val2,
-                                   boolean isDiv) {
+                                   boolean isDiv, boolean signed) {
     if (val1.isIntConstant()) {
       int value = val1.asIntConstant().value;
       if (value < 0) {
@@ -1216,6 +1217,20 @@ Operand value, boolean signExtend) {
         EMIT(CPOS(s, MIR_Move.create(IA32_MOV, new RegisterOperand(getEDX(), TypeReference.Int), IC(0))));
         EMIT(CPOS(s, MIR_Move.create(IA32_MOV, new RegisterOperand(getEAX(), TypeReference.Int), val1)));
       }
+    } else if (val1.isLongConstant()) {
+      int upper32 = val1.asLongConstant().upper32();
+      int lower32 = val1.asLongConstant().lower32();
+      EMIT(CPOS(s, MIR_Move.create(IA32_MOV, new RegisterOperand(getEDX(), TypeReference.Int), IC(upper32))));
+      EMIT(CPOS(s, MIR_Move.create(IA32_MOV, new RegisterOperand(getEAX(), TypeReference.Int), IC(lower32))));
+    } else if (val1.getType().isLongType()) {
+      Register upperReg = ((RegisterOperand) val1).getRegister();
+      Register lowerReg = regpool.getSecondReg(upperReg);
+      EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
+                                   new RegisterOperand(getEDX(), TypeReference.Int),
+                                   new RegisterOperand(upperReg, TypeReference.Int))));
+      EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
+                                   new RegisterOperand(getEAX(), TypeReference.Int),
+                                   new RegisterOperand(lowerReg, TypeReference.Int))));
     } else {
       EMIT(CPOS(s, MIR_Move.create(IA32_MOV, new RegisterOperand(getEAX(), TypeReference.Int), val1)));
       EMIT(CPOS(s, MIR_ConvertDW2QW.create(IA32_CDQ,
@@ -1228,7 +1243,7 @@ Operand value, boolean signExtend) {
       val2 = temp.copyRO();
     }
     EMIT(MIR_Divide.mutate(s,
-                           IA32_IDIV,
+                           signed ? IA32_IDIV : IA32_DIV,
                            new RegisterOperand(getEDX(), TypeReference.Int),
                            new RegisterOperand(getEAX(), TypeReference.Int),
                            val2,

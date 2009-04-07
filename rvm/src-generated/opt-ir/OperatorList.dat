@@ -748,6 +748,24 @@ none
 
 
 
+# Unsigned divide a long operand by an int operand putting the
+# quotient result in an int register operand. Magic operation used to
+# implement long division on 32bit architectures.
+UNSIGNED_DIV_64_32
+GuardedBinary
+none
+
+
+
+# Unsigned remainder a long operand by an int operand putting the
+# quotient result in an int register operand. Magic operation used to
+# implement long division on 32bit architectures.
+UNSIGNED_REM_64_32
+GuardedBinary
+none
+
+
+
 # Divide two (register/constant) float operands putting
 # the result in a register operand.
 FLOAT_DIV

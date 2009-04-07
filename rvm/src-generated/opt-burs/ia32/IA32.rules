@@ -949,14 +949,46 @@ r:	INT_DIV(riv, riv)
 52
 EMIT_INSTRUCTION
 INT_DIVIDES(P(p), GuardedBinary.getResult(P(p)), GuardedBinary.getVal1(P(p)), \\
-	                GuardedBinary.getVal2(P(p)), true);
+            GuardedBinary.getVal2(P(p)), true, true);
 
 ### Memory operands ###
 r:	INT_DIV(riv, load32)
 55
 EMIT_INSTRUCTION
 INT_DIVIDES(P(p), GuardedBinary.getResult(P(p)), GuardedBinary.getVal1(P(p)), \\
-	                consumeMO(), true);
+            consumeMO(), true, true);
+
+#####
+# UNSIGNED_DIV_64_32
+#####
+r:	UNSIGNED_DIV_64_32(rlv, riv)
+52
+EMIT_INSTRUCTION
+INT_DIVIDES(P(p), GuardedBinary.getResult(P(p)), GuardedBinary.getVal1(P(p)), \\
+            GuardedBinary.getVal2(P(p)), true, false);
+
+### Memory operands ###
+r:	UNSIGNED_DIV_64_32(rlv, load32)
+55
+EMIT_INSTRUCTION
+INT_DIVIDES(P(p), GuardedBinary.getResult(P(p)), GuardedBinary.getVal1(P(p)), \\
+            consumeMO(), true, false);
+
+#####
+# UNSIGNED_REM_64_32
+#####
+r:	UNSIGNED_REM_64_32(rlv, riv)
+52
+EMIT_INSTRUCTION
+INT_DIVIDES(P(p), GuardedBinary.getResult(P(p)), GuardedBinary.getVal1(P(p)), \\
+            GuardedBinary.getVal2(P(p)), false, false);
+
+### Memory operands ###
+r:	UNSIGNED_REM_64_32(rlv, load32)
+55
+EMIT_INSTRUCTION
+INT_DIVIDES(P(p), GuardedBinary.getResult(P(p)), GuardedBinary.getVal1(P(p)), \\
+            consumeMO(), false, false);
 
 #####
 # INT_REM
@@ -965,14 +997,14 @@ r:	INT_REM(riv, riv)
 52
 EMIT_INSTRUCTION
 INT_DIVIDES(P(p), GuardedBinary.getResult(P(p)), GuardedBinary.getVal1(P(p)), \\
-	                GuardedBinary.getVal2(P(p)), false);
+	    GuardedBinary.getVal2(P(p)), false, true);
 
 ### Memory operands ###
 r:	INT_REM(riv, load32)
 55
 EMIT_INSTRUCTION
 INT_DIVIDES(P(p), GuardedBinary.getResult(P(p)), GuardedBinary.getVal1(P(p)), \\
-	                consumeMO(), false);
+            consumeMO(), false, true);
 
 #####
 # INT_NEG

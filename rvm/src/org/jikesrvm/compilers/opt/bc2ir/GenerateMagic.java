@@ -65,6 +65,8 @@ import static org.jikesrvm.compilers.opt.ir.Operators.SHORT_LOAD;
 import static org.jikesrvm.compilers.opt.ir.Operators.SHORT_STORE;
 import static org.jikesrvm.compilers.opt.ir.Operators.SYSCALL;
 import static org.jikesrvm.compilers.opt.ir.Operators.UBYTE_LOAD;
+import static org.jikesrvm.compilers.opt.ir.Operators.UNSIGNED_DIV_64_32;
+import static org.jikesrvm.compilers.opt.ir.Operators.UNSIGNED_REM_64_32;
 import static org.jikesrvm.compilers.opt.ir.Operators.USHORT_LOAD;
 
 import org.jikesrvm.VM;
@@ -79,6 +81,7 @@ import org.jikesrvm.compilers.opt.ir.Attempt;
 import org.jikesrvm.compilers.opt.ir.Binary;
 import org.jikesrvm.compilers.opt.ir.BooleanCmp;
 import org.jikesrvm.compilers.opt.ir.Call;
+import org.jikesrvm.compilers.opt.ir.GuardedBinary;
 import org.jikesrvm.compilers.opt.ir.GuardedUnary;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.Load;
@@ -551,6 +554,22 @@ public class GenerateMagic implements TIBLayoutConstants  {
       RegisterOperand op0 = gc.temps.makeTempDouble();
       bc2ir.appendInstruction(Unary.create(LONG_BITS_AS_DOUBLE, op0, val));
       bc2ir.pushDual(op0.copyD2U());
+    } else if (methodName == MagicNames.unsignedDivide) {
+      Operand divisor = bc2ir.popInt();
+      Operand dividend = bc2ir.popLong();
+      RegisterOperand res = gc.temps.makeTempInt();
+      bc2ir.appendInstruction(GuardedBinary.create(UNSIGNED_DIV_64_32, res,
+                                                   dividend, divisor,
+                                                   bc2ir.getCurrentGuard()));
+      bc2ir.push(res.copyD2U());
+    } else if (methodName == MagicNames.unsignedRemainder) {
+      Operand divisor = bc2ir.popInt();
+      Operand dividend = bc2ir.popLong();
+      RegisterOperand res = gc.temps.makeTempInt();
+      bc2ir.appendInstruction(GuardedBinary.create(UNSIGNED_REM_64_32, res,
+                                                   dividend, divisor,
+                                                   bc2ir.getCurrentGuard()));
+      bc2ir.push(res.copyD2U());
     } else if (methodName == MagicNames.sqrt) {
       TypeReference[] args = meth.getParameterTypes();
       if (args[0] == TypeReference.Float) {

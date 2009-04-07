@@ -878,9 +878,9 @@ public final class Magic {
   }
 
   /**
-   * A hardware signed long divide by 32bit divisor giving 32bit quotient
+   * A hardware unsigned long divide by 32bit divisor giving 32bit quotient
    */
-  public static int signedDivide(long u, int v) {
+  public static int unsignedDivide(long u, int v) {
     if (VM.runningVM && VM.VerifyAssertions) {
       VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
     }
@@ -888,9 +888,9 @@ public final class Magic {
   }
 
   /**
-   * A hardware unsigned long divide by 32bit divisor giving 32bit quotient
+   * A hardware unsigned long remainder by 32bit divisor giving 32bit remainder
    */
-  public static int unsignedDivide(long u, int v) {
+  public static int unsignedRemainder(long u, int v) {
     if (VM.runningVM && VM.VerifyAssertions) {
       VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
     }

@@ -40,6 +40,7 @@ import org.vmmagic.pragma.Unpreemptible;
 import org.vmmagic.pragma.UnpreemptibleNoWarn;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
+import org.vmmagic.unboxed.Word;
 
 /**
  * Entrypoints into the runtime of the virtual machine.
@@ -101,54 +102,155 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
    */
   @Entrypoint
   static long ldiv(long u, long v) {
-    if (v == 0) {
-      raiseArithmeticException();
+    boolean c = false;
+    if (u < 0) {
+      c = !c;
+      u = -u;
     }
-    long au = Math.abs(u);
-    long av = Math.abs(v);
-    if ((av >>> 31) == 0) {
-      if (au < (av << 31)) {
-        long q = Magic.signedDivide(u, (int)v);
-        return (q << 32) >> 32;
-      }
+    if (v < 0) {
+      c = !c;
+      v = -v;
     }
-    long q = unsignedDivide(au, av);
-    long t = (u ^ v) >> 63;
-    return (q ^ t) - t;
+    long w = unsignedDivide(u, v);
+    return c ? -w : w;
   }
 
   /**
-   * Perform the unsigned division subcase of the ldiv bytecode
+   * Combine two ints to make a long
+   */
+  private static long makeLong(int a, int b) {
+    return (((long)a) << 32) | (((long)b)&0xFFFFFFFFL);
+  }
+
+  /**
+   * Perform unsigned multiply of 2 ints returning a long
+   */
+  private static long unsignedMultiply(int a, int b) {
+    return (((long)a) & 0xFFFFFFFFL) * (((long)b) & 0xFFFFFFFFL);
+  }
+
+  /**
+   * Unsigned > comparison
+   */
+  private static boolean unsignedGT(int a, int b) {
+    return Word.fromIntZeroExtend(a).GT(Word.fromIntZeroExtend(b));
+  }
+
+  /**
+   * Unsigned >= comparison
+   */
+  private static boolean unsignedGE(int a, int b) {
+    return Word.fromIntZeroExtend(a).GE(Word.fromIntZeroExtend(b));
+  }
+
+  /**
+   * Perform the unsigned division part of the ldiv bytecode
    *
    * @param u dividend
    * @param v divisor
    * @return quotient
    */
-  private static long unsignedDivide(long u, long v) {
-    if ((v >>> 32) == 0) {
-      if ((u >>> 32) < v) {
-        return Magic.unsignedDivide(u, (int)v) & 0xFFFFFFFF;
+  private static long unsignedDivide(final long n, final long d) {
+    final int d0 = (int)d;
+    final int d1 = (int)(d >>> 32);
+    final int n0 = (int)n;
+    final int n1 = (int)(n >>> 32);
+    if (d1 == 0) {
+      if (unsignedGT(d0, n1)) {
+	// 0q = nn / 0d
+	return makeLong(0, Magic.unsignedDivide(n, d0));
       } else {
-        long u1 = u >>> 32;
-        long u0 = u & 0xFFFFFFFF;
-        long q1 = Magic.unsignedDivide(u1, (int)v) & 0xFFFFFFFF;
-        long k = u1 - q1 * v;
-        long q0 = Magic.unsignedDivide((k << 32) + u0, (int)v) & 0xFFFFFFFF;
-        return (q1 << 32) + q0;
+	// qq = NN / 0d
+        if (d0 == 0) {
+          raiseArithmeticException();
+        }
+        final int q1 = Magic.unsignedDivide(makeLong(0, n1), d0);
+        final int n1_ = Magic.unsignedRemainder(makeLong(0, n1), d0);
+        final int q0 = Magic.unsignedDivide(makeLong(n1_,n0), d0);
+	return makeLong(q1, q0);
       }
     } else {
-      int n = Long.numberOfLeadingZeros(v);
-      long v1 = (v << n) >>> 32;
-      long u1 = u >>> 1;
-      long q1 = Magic.unsignedDivide(u1, (int)v1) & 0xFFFFFFFF;
-      long q0 = (q1 << n) >>> 31;
-      if (q0 != 0) {
-        q0 = q0-1;
+      if (unsignedGT(d1, n1)) {
+	// 00 = nn / DD
+	return 0L;
+      } else {
+	// 0q = NN / dd
+        final int bm = Integer.numberOfLeadingZeros(d1);
+        if (bm == 0) {
+          return (unsignedGT(n1, d1) || unsignedGE(n0, d0)) ? 1L : 0L;
+        } else {
+          final int b = 32 - bm;
+          final int d1_ = (d1 << bm) | (d0 >>> b);
+          final int d0_ = d0 << bm;
+          final int n2 = n1 >>> b;
+          final int n1_ = (n1 << bm) | (n0 >>> b);
+          final int n0_ = n0 << bm;
+          int q0 = Magic.unsignedDivide(makeLong(n2,n1_), d1_);
+          final int n1__ = Magic.unsignedRemainder(makeLong(n2,n1_), d1_);
+          final long m = unsignedMultiply(q0, d0_);
+          final int m0 = (int)m;
+          final int m1 = (int)(m >>> 32);
+          if (unsignedGT(m1, n1__) || ((m1 == n1__) && unsignedGT(m0, n0_))) {
+            q0--;
+          }
+          return makeLong(0, q0);
+        }
       }
-      if ((u - q0*v) >= v) {
-        q0 = q0+1;
+    }
+  }
+
+  /**
+   * Perform the unsigned remainder part of the lrem bytecode
+   *
+   * @param u dividend
+   * @param v divisor
+   * @return quotient
+   */
+  private static long unsignedRemainder(final long n, final long d) {
+    final int d0 = (int)d;
+    final int d1 = (int)(d >>> 32);
+    final int n0 = (int)n;
+    final int n1 = (int)(n >>> 32);
+    if (d1 == 0) {
+      if (unsignedGT(d0, n1)) {
+	// 0q = nn / 0d
+	return makeLong(0, Magic.unsignedRemainder(n, d0));
+      } else {
+	// qq = NN / 0d
+        if (d0 == 0) {
+          raiseArithmeticException();
+        }
+        final int n1_ = Magic.unsignedRemainder(makeLong(0, n1), d0);
+        final int r0 = Magic.unsignedRemainder(makeLong(n1_,n0), d0);
+	return makeLong(0, r0);
       }
-      return q0;
+    } else {
+      if (unsignedGT(d1, n1)) {
+	// 00 = nn / DD
+	return n;
+      } else {
+	// 0q = NN / dd
+        final int bm = Integer.numberOfLeadingZeros(d1);
+        if (bm == 0) {
+          return (unsignedGT(n1, d1) || unsignedGE(n0, d0)) ? n-d : n;
+        } else {
+          final int b = 32 - bm;
+          final int d1_ = (d1 << bm) | (d0 >>> b);
+          final int d0_ = d0 << bm;
+          final int n2 = n1 >>> b;
+          final int n1_ = (n1 << bm) | (n0 >>> b);
+          final int n0_ = n0 << bm;
+          int q0 = Magic.unsignedDivide(makeLong(n2,n1_), d1_);
+          final int n1__ = Magic.unsignedRemainder(makeLong(n2,n1_), d1_);
+          final long m = unsignedMultiply(q0, d0_);
+          final int m0 = (int)m;
+          final int m1 = (int)(m >>> 32);
+          if (unsignedGT(m1, n1__) || ((m1 == n1__) && unsignedGT(m0, n0_))) {
+	    m = m - makeLong(d1_, d0_);
+          }
+          return (makeLong(n1__, n0_) - m) >>> bm;
+        }
+      }
     }
   }
 
@@ -161,9 +263,16 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
    */
   @Entrypoint
   static long lrem(long u, long v) {
-    // @TODO: optimize this further
-    long r = ldiv(u, v);
-    return u - (r * v);
+    boolean c = false;
+    if (u < 0) {
+      c = !c;
+      u = -u;
+    }
+    if (v < 0) {
+      v = -v;
+    }
+    long w = unsignedRemainder(u, v);
+    return c ? -w : w;
   }
 
   //---------------------------------------------------------------//
