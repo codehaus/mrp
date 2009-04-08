@@ -61,7 +61,7 @@ void bootThread (void *_ip, void *_tr, void *_sp, void UNUSED *_jtoc)
       mov ebp, esp
       mov esp, _sp
       push ebp
-      call [eax]
+      call eax
       pop esp
       mov ebp, saved_ebp
   }
