@@ -92,9 +92,9 @@ extern FILE *SysTraceFile;
 
 /** Portable default printf */
 #ifdef RVM_FOR_HARMONY
-#define CONSOLE_PRINTF(...) hytty_err_printf(PORTLIB, __VA_ARGS__)
+#define CONSOLE_PRINTF(...) hytty_printf(PORTLIB, __VA_ARGS__)
 #else
-#define CONSOLE_PRINTF(...) fprintf(SysTraceFile, __VA_ARGS__)
+#define CONSOLE_PRINTF(...) printf(__VA_ARGS__)
 #endif
 
 /** Portable error printf */
