@@ -22,7 +22,26 @@ if [%1]==[-gdb] GOTO DEBUG
 GOTO END
 
 :DEBUG
+:: Remove executable and -gdb from args
 SHIFT
-"c:\Program Files\Microsoft Visual Studio 9.0\Common7\IDE\VCExpress.exe" /debugexe %RVM_HOME%\JikesRVM %BASE_ARGS% %*
+SHIFT
+:: Silly attempt to build up other args and work around %* and batches
+:: swallowing equal signs
+set ARGS=
+:LOOP_TO_BUILD_ARGS
+if [%0]==[] GOTO END_LOOP_TO_BUILD_ARGS
+  if [%1]==[] GOTO ONE_ARG
+  set ARGS=%ARGS% %0=%1
+  SHIFT
+  SHIFT
+  GOTO LOOP_TO_BUILD_ARGS
+:ONE_ARG
+  set ARGS=%ARGS% %0
+  SHIFT
+  GOTO LOOP_TO_BUILD_ARGS
+:END_LOOP_TO_BUILD_ARGS
+
+:: Run the debugger
+"c:\Program Files\Microsoft Visual Studio 9.0\Common7\IDE\VCExpress.exe" /debugexe %RVM_HOME%\JikesRVM %BASE_ARGS% %ARGS%
 
 :END
