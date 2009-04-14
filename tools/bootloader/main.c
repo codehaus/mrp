@@ -702,7 +702,16 @@ int main(int argc, const char **argv)
   setvbuf(stdout,NULL,_IONBF,0);
   setvbuf(stderr,NULL,_IONBF,0);
 #endif
-  Me            = strrchr(*argv, '/') + 1;
+#ifndef RVM_FOR_WINDOWS
+  Me = strrchr(*argv, '/');
+#else
+  Me = strrchr(*argv, '\\');
+#endif
+  if (Me == NULL) {
+    Me = "RVM";
+  } else {
+    Me++;
+  }
   ++argv, --argc;
   initialHeapSize = heap_default_initial_size;
   maximumHeapSize = heap_default_maximum_size;
