@@ -493,6 +493,7 @@ public class JNIFunctions implements SizeConstants {
    * @exception InstantiationException if the class is abstract or is an interface
    * @exception OutOfMemoryError if no more memory to allocate
    */
+  @DotDotVarArgs
   private static int NewObject(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: NewObject  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -698,6 +699,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the JREF index for the object returned from the method invocation
    */
+  @DotDotVarArgs
   private static int CallObjectMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallObjectMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -773,6 +775,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the boolean value returned from the method invocation
    */
+  @DotDotVarArgs
   private static boolean CallBooleanMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallBooleanMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -848,6 +851,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the byte value returned from the method invocation
    */
+  @DotDotVarArgs
   private static byte CallByteMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallByteMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -923,6 +927,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the char value returned from the method invocation
    */
+  @DotDotVarArgs
   private static char CallCharMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallCharMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -998,6 +1003,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the short value returned from the method invocation
    */
+  @DotDotVarArgs
   private static short CallShortMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallShortMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -1073,6 +1079,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the int value returned from the method invocation
    */
+  @DotDotVarArgs
   private static int CallIntMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallIntMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -1148,6 +1155,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the long value returned from the method invocation
    */
+  @DotDotVarArgs
   private static long CallLongMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallLongMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -1223,6 +1231,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the float value returned from the method invocation
    */
+  @DotDotVarArgs
   private static float CallFloatMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallFloatMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -1298,6 +1307,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the double value returned from the method invocation
    */
+  @DotDotVarArgs
   private static double CallDoubleMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallDoubleMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -1372,6 +1382,7 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param methodID id of a MethodReference
    */
+  @DotDotVarArgs
   private static void CallVoidMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallVoidMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -1440,6 +1451,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the JREF index for the object returned from the method invocation
    */
+  @DotDotVarArgs
   private static int CallNonvirtualObjectMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualObjectMethod  \n");
@@ -1519,6 +1531,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the boolean value returned from the method invocation
    */
+  @DotDotVarArgs
   private static boolean CallNonvirtualBooleanMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualBooleanMethod  \n");
@@ -1598,6 +1611,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the byte value returned from the method invocation
    */
+  @DotDotVarArgs
   private static byte CallNonvirtualByteMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualByteMethod  \n");
@@ -1677,6 +1691,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the char value returned from the method invocation
    */
+  @DotDotVarArgs
   private static char CallNonvirtualCharMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualCharMethod  \n");
@@ -1756,6 +1771,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the short value returned from the method invocation
    */
+  @DotDotVarArgs
   private static short CallNonvirtualShortMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualShortMethod  \n");
@@ -1835,6 +1851,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the int value returned from the method invocation
    */
+  @DotDotVarArgs
   private static int CallNonvirtualIntMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualIntMethod  \n");
@@ -1914,6 +1931,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the long value returned from the method invocation
    */
+  @DotDotVarArgs
   private static long CallNonvirtualLongMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualLongMethod  \n");
@@ -1993,6 +2011,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the float value returned from the method invocation
    */
+  @DotDotVarArgs
   private static float CallNonvirtualFloatMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualFloatMethod  \n");
@@ -2072,6 +2091,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the double value returned from the method invocation
    */
+  @DotDotVarArgs
   private static double CallNonvirtualDoubleMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualDoubleMethod  \n");
@@ -2150,6 +2170,7 @@ public class JNIFunctions implements SizeConstants {
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
    */
+  @DotDotVarArgs
   private static void CallNonvirtualVoidMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualVoidMethod  \n");
@@ -2708,6 +2729,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the JREF index for the object returned from the method invocation
    */
+  @DotDotVarArgs
   private static int CallStaticObjectMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticObjectMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -2780,6 +2802,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the boolean value returned from the method invocation
    */
+  @DotDotVarArgs
   private static boolean CallStaticBooleanMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticBooleanMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -2852,6 +2875,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the byte value returned from the method invocation
    */
+  @DotDotVarArgs
   private static byte CallStaticByteMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticByteMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -2924,6 +2948,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the char value returned from the method invocation
    */
+  @DotDotVarArgs
   private static char CallStaticCharMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticCharMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -2996,6 +3021,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the short value returned from the method invocation
    */
+  @DotDotVarArgs
   private static short CallStaticShortMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticShortMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -3068,6 +3094,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the integer value returned from the method invocation
    */
+  @DotDotVarArgs
   private static int CallStaticIntMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticIntMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -3140,6 +3167,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the long value returned from the method invocation
    */
+  @DotDotVarArgs
   private static long CallStaticLongMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticLongMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -3212,6 +3240,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID id of a MethodReference
    * @return the float value returned from the method invocation
    */
+  @DotDotVarArgs
   private static float CallStaticFloatMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticFloatMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -3284,6 +3313,7 @@ public class JNIFunctions implements SizeConstants {
    * @param methodID an id of a MethodReference
    * @return the double value returned from the method invocation
    */
+  @DotDotVarArgs
   private static double CallStaticDoubleMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticDoubleMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
@@ -3355,6 +3385,7 @@ public class JNIFunctions implements SizeConstants {
    * @param classJREF a JREF index for the class object
    * @param methodID id of a MethodReference
    */
+  @DotDotVarArgs
   private static void CallStaticVoidMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallStaticVoidMethod  \n");
     RuntimeEntrypoints.checkJNICountDownToGC();
