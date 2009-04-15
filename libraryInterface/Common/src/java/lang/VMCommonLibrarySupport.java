@@ -151,14 +151,21 @@ final class VMCommonLibrarySupport {
    */
   static String mapLibraryName(String libname) {
     String libSuffix;
-    if (VM.BuildForLinux || VM.BuildForSolaris) {
+    String libPrefix;
+    if (VM.BuildForWindows) {
+      libPrefix = "";
+      libSuffix = ".dll";
+    } else if (VM.BuildForLinux || VM.BuildForSolaris) {
+      libPrefix = "lib";
       libSuffix = ".so";
     } else if (VM.BuildForOsx) {
+      libPrefix = "lib";
       libSuffix = ".jnilib";
     } else {
+      libPrefix = "lib";
       libSuffix = ".a";
     }
-    return "lib" + libname + libSuffix;
+    return libPrefix + libname + libSuffix;
   }
   /**
    * Get the value of an environment variable.
