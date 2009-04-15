@@ -35,7 +35,8 @@ public abstract class Configuration {
   public static final boolean BuildForAix = @_RVM_FOR_AIX_@;
   public static final boolean BuildForLinux = @_RVM_FOR_LINUX_@;
   public static final boolean BuildForSolaris = @_RVM_FOR_SOLARIS_@; 
-  public static final boolean BuildForOsx = !BuildForAix && !BuildForLinux && !BuildForSolaris;
+  public static final boolean BuildForOsx = @_RVM_FOR_OSX_@;
+  public static final boolean BuildForWindows = @_RVM_FOR_WINDOWS_@;
 
   public static final boolean BuildForGnuClasspath = @_RVM_WITH_GNU_CLASSPATH_@;
   public static final boolean BuildForHarmony = @_RVM_WITH_HARMONY_@;

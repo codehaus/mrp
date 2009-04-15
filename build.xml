@@ -130,6 +130,7 @@
     <test-property name="target.dll-prefix" location="${target.file}"/>
     <test-property name="target.dll-ext" location="${target.file}"/>
     <test-property name="target.jni-suffix" location="${target.file}"/>
+    <test-property name="target.debug-suffix" location="${target.file}"/>
   </target>
 
   <target name="check-host-properties" depends="check-host-name">
@@ -908,6 +909,12 @@ Check to make sure all required properties are specified. This includes properti
     <condition property="pp_RVM_FOR_SOLARIS" value="true" else="false">
       <equals arg1="${target.os}" arg2="Solaris" />
     </condition>
+    <condition property="pp_RVM_FOR_OSX" value="true" else="false">
+      <equals arg1="${target.os}" arg2="OSX" />
+    </condition>
+    <condition property="pp_RVM_FOR_WINDOWS" value="true" else="false">
+      <equals arg1="${target.os}" arg2="Windows" />
+    </condition>
     <condition property="pp_RVM_FOR_SSE2" value="true" else="false">
       <not>
         <equals arg1="${target.arch.sse2}" arg2="none"/>
@@ -951,6 +958,8 @@ Check to make sure all required properties are specified. This includes properti
         <filter token="_RVM_FOR_AIX_" value="${pp_RVM_FOR_AIX}"/>
         <filter token="_RVM_FOR_LINUX_" value="${pp_RVM_FOR_LINUX}"/>
         <filter token="_RVM_FOR_SOLARIS_" value="${pp_RVM_FOR_SOLARIS}" />
+        <filter token="_RVM_FOR_OSX_" value="${pp_RVM_FOR_OSX}" />
+        <filter token="_RVM_FOR_WINDOWS_" value="${pp_RVM_FOR_WINDOWS}" />
         <filter token="_RVM_FOR_SSE2_" value="${pp_RVM_FOR_SSE2}"/>
         <filter token="_RVM_FOR_SSE2_FULL_" value="${pp_RVM_FOR_SSE2_FULL}"/>
         <filter token="_RVM_FOR_HW_FSQRT_" value="${target.arch.hw_fsqrt}"/>
@@ -2072,6 +2081,7 @@ target.jni-suffix=${target.jni-suffix}
           <fileset dir="${build.base}">
             <include name="*${target.dll-ext}"/>
             <include name="*${target.jni-suffix}"/>
+            <include name="*${target.debug-suffix}"/>
           </fileset>
         </copy>
         <mkdir dir="${dist.base}/lib/boot"/>
