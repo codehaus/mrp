@@ -948,6 +948,24 @@ public abstract class JNICompiler implements BaselineConstants {
     } else {
       asm.emitADD_Reg_Imm_Quad(SP, 3*WORDSIZE); // discard current stack frame
     }
-    asm.emitRET();                // return to caller
+    int bytesToRelease;
+    if (!VM.BuildForWindows || method.hasDotDotVarArgsAnnotation()) {
+      // return to caller using UNIX or Windows cdecl convention
+      bytesToRelease = 0;
+    } else {
+      // return to caller using Windows stdcall convention
+      bytesToRelease = method.getParameterTypes().length * WORDSIZE;
+      // TODO: take care of Win64 conventions
+      for (TypeReference arg : method.getParameterTypes()) {
+	if (arg.isLongType() || arg.isDoubleType()) {
+	  bytesToRelease += WORDSIZE;
+	}
+      }
+    }
+    if (bytesToRelease == 0) {
+      asm.emitRET();
+    } else {
+      asm.emitRET_Imm(bytesToRelease);
+    }
   }
 }
