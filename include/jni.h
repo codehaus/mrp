@@ -19,9 +19,15 @@
 #include <stdio.h>  /* For 1.1 version of args (i.e., vfprintf) */
 #include <stdarg.h> /* For va_list */
 
+#ifndef _WIN32
 #define JNIEXPORT
+#define JNIIMPORT
 #define JNICALL
-
+#else
+#define JNIEXPORT __declspec(dllexport)
+#define JNIIMPORT __declspec(dllimport)
+#define JNICALL __stdcall
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -661,57 +667,19 @@ struct JNIEnv_ {
 #endif
 };
 
-/******
- * Arguments for RVM  (Java 1.1 version)
- * Default values set by calling JNI_GetDefaultJavaVMInitArgs(JDK1_1InitArgs *)
- */
-typedef struct JDK1_1InitArgs {
-    jint version;
-    char **properties;
-    jint checkSource;
-    jint nativeStackSize;
-    jint javaStackSize;
-    jint minHeapSize;
-    jint maxHeapSize;
-    jint verifyMode;
-    char *classpath;
-    jint (PJNICALL vfprintf)(FILE *fp, const char *format, va_list args);
-    void (PJNICALL exit)(jint code);
-    void (PJNICALL abort)(void);
-    jint enableClassGC;
-    jint enableVerboseGC;
-    jint disableAsyncGC;
-
-    /* The following are RVM specific */
-    jint verbose;
-    unsigned smallHeapSize;     /* specify with option "-h"          */
-    unsigned largeHeapSize;     /* specify with option "-lh"         */
-    unsigned nurserySize;       /* specify with option "-nh"         */
-    unsigned permanentHeapSize; /* specify with option "-ph"         */
-    char*    sysLogFile;        /* specify with option "-sysLogFile" */
-    char*    bootFilename;      /* boot image, specify with option "-i" */
-    char**   JavaArgs;          /* command line arguments to pass to the VM */
-
-} JDK1_1InitArgs;
-
-
-typedef struct JDK1_1AttachArgs {
-    void * __padding; /* C compilers don't allow empty structures. */
-} JDK1_1AttachArgs;
-
-
 /* 1.2 args */
 typedef struct JavaVMOption {
     char *optionString;
     void *extraInfo;
 } JavaVMOption;
+
 typedef struct JavaVMInitArgs {
     jint version;
-
     jint nOptions;
     JavaVMOption *options;
     jboolean ignoreUnrecognized;
 } JavaVMInitArgs;
+
 typedef struct {
     jint version;
     char *name;
@@ -745,10 +713,9 @@ struct JavaVM_ {
 #endif
 };
 
-/* Jikes RVM needs to implement these: */
-jint JNICALL JNI_GetDefaultJavaVMInitArgs(void *);
-jint JNICALL JNI_CreateJavaVM(JavaVM **, JNIEnv **, void *);
-jint JNICALL JNI_GetCreatedJavaVMs(JavaVM **, jsize, jsize *);
+JNIEXPORT jint JNICALL JNI_GetDefaultJavaVMInitArgs(void *);
+JNIEXPORT jint JNICALL JNI_CreateJavaVM(JavaVM **, JNIEnv **, void *);
+JNIEXPORT jint JNICALL JNI_GetCreatedJavaVMs(JavaVM **, jsize, jsize *);
 
 #ifdef __cplusplus
 }
