@@ -4344,12 +4344,12 @@ public class RVMThread extends ThreadContext {
    * bytecodes that require RuntimeEntrypoints support).
    */
   public static void traceback(String message) {
-    if (VM.runningVM) {
+    if (VM.runningVM && threadingInitialized) {
       outputLock.lock();
     }
     VM.sysWriteln(message);
     tracebackWithoutLock();
-    if (VM.runningVM) {
+    if (VM.runningVM && threadingInitialized) {
       outputLock.unlock();
     }
   }
