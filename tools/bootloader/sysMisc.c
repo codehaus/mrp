@@ -251,7 +251,7 @@ EXTERNAL jlong sysParseMemorySize(const char *sizeName, const char *sizeFlag,
 
   TRACE_PRINTF("%s: sysParseMemorySize %s\n", Me, token);
 
-  ret_uns=  parse_memory_size(sizeName, sizeFlag, defaultFactor,
+  ret_uns = parse_memory_size(sizeName, sizeFlag, defaultFactor,
 			      (unsigned) roundTo, token, subtoken,
 			      &fastExit);
   if (fastExit)
