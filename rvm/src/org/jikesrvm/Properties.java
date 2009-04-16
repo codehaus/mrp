@@ -83,6 +83,11 @@ public class Properties extends Options {
    */
   public static boolean verboseJNI = false;
 
+  /**
+   * Is stack growth managed by the OS/signals or automatic tests?
+   */
+  public static final boolean AutomaticStackGrowth = Configuration.BuildForWindows;
+
   // Runtime subsystem tracing.
   //
   public static final boolean TraceDictionaries = false;

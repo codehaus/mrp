@@ -2532,11 +2532,13 @@ public class VM extends Properties implements Constants, ExitStatus {
     }
 
     // 1.
-    //
-    if (Magic.getFramePointer().minus(ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED)
-        .LT(myThread.stackLimit) && !myThread.hasNativeStackFrame()) {
-      RVMThread.resizeCurrentStack(myThread.getStackLength()+
-          ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED, null);
+    //    
+    if (!VM.AutomaticStackGrowth) {
+      if (Magic.getFramePointer().minus(ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED)
+	  .LT(myThread.stackLimit) && !myThread.hasNativeStackFrame()) {
+	RVMThread.resizeCurrentStack(myThread.getStackLength()+
+				     ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED, null);
+      }
     }
 
     // 2.

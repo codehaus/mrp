@@ -3721,7 +3721,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
       /*
        * generate stacklimit check
        */
-      if (isInterruptible) {
+      if (!VM.AutomaticStackGrowth && isInterruptible) {
         // S0<-limit
         if (VM.BuildFor32Addr) {
           asm.emitCMP_Reg_RegDisp(SP, TR, Entrypoints.stackLimitField.getOffset());

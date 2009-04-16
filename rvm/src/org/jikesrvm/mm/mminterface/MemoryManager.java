@@ -511,7 +511,7 @@ public final class MemoryManager implements HeapLayoutConstants, Constants {
     // In general we don't know which spaces may hold allocated stacks.
     // If we want to be more specific than the space being mapped we
     // will need to add a check in Plan that can be overriden.
-    return Space.isMappedAddress(address);
+    return VM.AutomaticStackGrowth || Space.isMappedAddress(address);
   }
   /***********************************************************************
    *
