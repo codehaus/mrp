@@ -104,10 +104,10 @@ extern FILE *SysTraceFile;
 #define ERROR_PRINTF(...) fprintf(SysErrorFile, __VA_ARGS__)
 #endif
 
-#if defined(NOT_JVM_DLL) && defined(_WIN32)
-#define DLLSYMBOL __declspec(dllimport)
+#if defined(NOT_JVM_DLL)
+#define DLLSYMBOL JNIIMPORT
 #else
-#define DLLSYMBOL
+#define DLLSYMBOL JNIEXPORT
 #endif
 
 /** String used for name of RVM */
@@ -127,6 +127,27 @@ extern DLLSYMBOL const struct JavaVM_ sysJavaVM;
 
 /** Verbose command line option */
 extern DLLSYMBOL int verbose;
+
+/** File name for part of boot image containing code */
+extern DLLSYMBOL char *bootCodeFilename;
+
+/** File name for part of boot image containing data */
+extern DLLSYMBOL char *bootDataFilename;
+
+/** File name for part of boot image containing the root map */
+extern DLLSYMBOL char *bootRMapFilename;
+
+/** Specified or default initial heap size */
+extern DLLSYMBOL uint64_t initialHeapSize;
+
+/** Specified or default maximum heap size */
+extern DLLSYMBOL uint64_t maximumHeapSize;
+
+/** Verbose boot up set */
+extern DLLSYMBOL int verboseBoot;
+
+/** JNI standard JVM initialization arguments */
+extern DLLSYMBOL JavaVMInitArgs *sysInitArgs;
 
 #ifdef RVM_WITH_ALIGNMENT_CHECKING
 extern volatile int numEnableAlignCheckingCalls;
@@ -166,7 +187,7 @@ EXTERNAL int sysWriteBytes(int fd, char *buf, int cnt);
 /* Library declarations */
 
 EXTERNAL void* sysDlopen(char *libname);
-EXTERNAL void* sysDlsym(Address libHandler, char *symbolName);
+EXTERNAL void* sysDlsym(Address libHandler, char *symbolName, char *argSignature);
 
 /* Math declarations */
 

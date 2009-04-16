@@ -110,7 +110,7 @@ JavaVMInitArgs * JNICALL GetInitArgs (VMInterface * vmi)
 {
   SYS_START();
   TRACE_PRINTF("%s: VMI call GetInitArgs\n", Me);
-  return (JavaVMInitArgs*)JavaArgs;
+  return sysInitArgs;
 }
 
 vmiError JNICALL GetSystemProperty (VMInterface * vmi, char *key, char **valuePtr)

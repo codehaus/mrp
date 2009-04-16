@@ -13,11 +13,9 @@ EXPORTS
 	sysJavaVM	DATA
 	findMappable
 	parse_memory_size
-	sysGetPageSize
 	sysInitialize
 	sysMalloc
-	sysMemoryReserve
-	sysSetLinkage
-	sysStartMainThread
-	sysSyncCache
 	sysExit
+	JNI_GetDefaultJavaVMInitArgs
+	JNI_CreateJavaVM
+	JNI_GetCreatedJavaVMs
