@@ -10,6 +10,12 @@ EXPORTS
 	Me	DATA
 	bootRecord	DATA
 	verbose	DATA
+	bootCodeFilename	DATA
+	bootDataFilename	DATA
+	bootRMapFilename	DATA
+	initialHeapSize	DATA
+	maximumHeapSize	DATA
+	verboseBoot	DATA
 	sysJavaVM	DATA
 	findMappable
 	parse_memory_size

@@ -7,6 +7,12 @@ JVM_0.1 {
     Me;
     bootRecord;
     verbose;
+    bootCodeFilename;
+    bootDataFilename;
+    bootRMapFilename;
+    initialHeapSize;
+    maximumHeapSize;
+    verboseBoot;
     sysJavaVM;
     findMappable;
     parse_memory_size;

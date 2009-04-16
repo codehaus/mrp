@@ -17,6 +17,11 @@
 
 #include "sys.h"
 
+#ifndef RVM_FOR_HARMONY
+#include <sys/mman.h>
+#include <errno.h>
+#endif
+
 /** String used for name of RVM */
 char *Me;
 

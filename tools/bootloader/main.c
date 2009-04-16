@@ -26,10 +26,6 @@
 #include <stdlib.h>
 #include <string.h> /* strcmp, ... */
 
-#ifndef RVM_FOR_HARMONY
-#include <sys/mman.h>
-#endif
-
 #define BYTES_IN_PAGE MMTk_Constants_BYTES_IN_PAGE
 
 /* These definitions must remain in sync with nonStandardArgs, the array
