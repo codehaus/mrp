@@ -283,7 +283,7 @@ public abstract class SysCall {
   public abstract Address sysDlopen(byte[] libname);
 
   @SysCallTemplate
-  public abstract Address sysDlsym(Address libHandler, byte[] symbolName);
+  public abstract Address sysDlsym(Address libHandler, byte[] symbolName, byte[] argSignature);
 
   // system calls for alignment checking
   @SysCallTemplate

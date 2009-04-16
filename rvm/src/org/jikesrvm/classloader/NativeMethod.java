@@ -168,18 +168,36 @@ public final class NativeMethod extends RVMMethod {
     return mangledName;
   }
 
+  /**
+   * Compute the Harmony mangling of the args for the native routine
+   */
+  @Pure
+  private String getMangledArgs() {
+    if (!VM.BuildForHarmony) {
+      return null;
+    } else {
+      // encode result and the JNIEnv and this/class reference
+      String result = (char)getReturnType().getName().parseForTypeCode() + "PL";
+      // encode the arguments
+      for (TypeReference arg : getParameterTypes()) {
+	result += (char)arg.getName().parseForTypeCode();
+      }
+      return result;
+    }
+  }
+
   private boolean resolveNativeMethod() {
     if (!nativeIP.isZero()) {
       // method has already been resolved via registerNative.
       return true;
     }
 
-    final String nativeProcedureName = getMangledName(false);
+    final String encodedArguments = getMangledArgs();
     final String nativeProcedureNameWithSignature = getMangledName(true);
-
-    Address symbolAddress = DynamicLibrary.resolveSymbol(nativeProcedureNameWithSignature);
+    Address symbolAddress = DynamicLibrary.resolveSymbol(nativeProcedureNameWithSignature, encodedArguments);
     if (symbolAddress.isZero()) {
-      symbolAddress = DynamicLibrary.resolveSymbol(nativeProcedureName);
+      final String nativeProcedureName = getMangledName(false);
+      symbolAddress = DynamicLibrary.resolveSymbol(nativeProcedureName, encodedArguments);
     }
 
     if (symbolAddress.isZero()) {

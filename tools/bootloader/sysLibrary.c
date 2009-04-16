@@ -53,13 +53,12 @@ EXTERNAL void* sysDlopen(char *libname)
 /**
  * Look up symbol in dynamic library.
  */
-EXTERNAL void* sysDlsym(Address libHandler, char *symbolName)
+EXTERNAL void* sysDlsym(Address libHandler, char *symbolName, char *argSignature)
 {
   SYS_START();
 #ifdef RVM_FOR_HARMONY
   UDATA func;
-  char *argSignature=NULL;
-  TRACE_PRINTF("%s: sysDlsym %s\n", Me, symbolName);
+  TRACE_PRINTF("%s: sysDlsym %s %s\n", Me, symbolName, argSignature);
   if(hysl_lookup_name((UDATA)libHandler, symbolName, &func, argSignature) != 0) {
     return NULL;
   } else {

@@ -86,7 +86,7 @@ public final class DynamicLibrary {
    * @return JNI_OnLoad address or zero if not present
    */
   private Address getJNI_OnLoad() {
-    Address candidate = getSymbol("JNI_OnLoad");
+    Address candidate = getSymbol("JNI_OnLoad", "IPP");
     Iterator<DynamicLibrary> libs = dynamicLibraries.valueIterator();
     while(libs.hasNext()) {
       DynamicLibrary lib = libs.next();
@@ -102,7 +102,7 @@ public final class DynamicLibrary {
    * @return JNI_OnUnload address or zero if not present
    */
   private Address getJNI_OnUnload() {
-    Address candidate = getSymbol("JNI_OnUnload");
+    Address candidate = getSymbol("JNI_OnUnload", "IPP");
     Iterator<DynamicLibrary> libs = dynamicLibraries.valueIterator();
     while(libs.hasNext()) {
       DynamicLibrary lib = libs.next();
@@ -154,18 +154,24 @@ public final class DynamicLibrary {
   public String getLibName() { return libName; }
 
   /**
-   * look up this dynamic library for a symbol
+   * Look up a symbol in this dynamic library
+   *
    * @param symbolName symbol name
-   * @return The <code>Address</code> of the symbol system handler
-   * (actually an address to an AixLinkage triplet).
-   *           (-1: not found or couldn't be created)
+   * @param argSignature optional encoding of argument signature (used
+   * by Harmony in Windows). The first character encodes the result,
+   * subsequent characters encode the arguments where the characters
+   * used are the regular Java descriptor characters with the addition
+   * of P for a pointer type.
+   * @return The <code>Address</code> of the symbol or an AixLinkage
+   * triplet.  -1 if not found or error.
    */
-  public Address getSymbol(String symbolName) {
+  private Address getSymbol(String symbolName, String argSignature) {
     // Convert file name from unicode to filesystem character set
     // (assume file name is ascii, for now).
     //
-    byte[] asciiName = StringUtilities.stringToBytesNullTerminated(symbolName);
-    return SysCall.sysCall.sysDlsym(libHandler, asciiName);
+    final byte[] asciiName = StringUtilities.stringToBytesNullTerminated(symbolName);
+    final byte[] asciiArgs = (argSignature != null) ? StringUtilities.stringToBytesNullTerminated(argSignature) : null;
+    return SysCall.sysCall.sysDlsym(libHandler, asciiName, asciiArgs);
   }
 
   /**
@@ -201,17 +207,19 @@ public final class DynamicLibrary {
       // (Assume file name is ASCII, for now).
       byte[] asciiName = StringUtilities.stringToBytesNullTerminated(libname);
 
-      // make sure we have enough stack to load the library.
-      // This operation has been known to require more than 20K of stack.
-      RVMThread myThread = RVMThread.getCurrentThread();
-      Offset remaining = Magic.getFramePointer().diff(myThread.stackLimit);
-      int stackNeededInBytes = StackframeLayoutConstants.STACK_SIZE_DLOPEN - remaining.toInt();
-      if (stackNeededInBytes > 0) {
-        if (myThread.hasNativeStackFrame()) {
-          throw new java.lang.StackOverflowError("Not enough space to open shared library");
-        } else {
-          RVMThread.resizeCurrentStack(myThread.getStackLength() + stackNeededInBytes, null);
-        }
+      if (!VM.AutomaticStackGrowth) {
+	// make sure we have enough stack to load the library.
+	// This operation has been known to require more than 20K of stack.
+	RVMThread myThread = RVMThread.getCurrentThread();
+	Offset remaining = Magic.getFramePointer().diff(myThread.stackLimit);
+	int stackNeededInBytes = StackframeLayoutConstants.STACK_SIZE_DLOPEN - remaining.toInt();
+	if (stackNeededInBytes > 0) {
+	  if (myThread.hasNativeStackFrame()) {
+	    throw new java.lang.StackOverflowError("Not enough space to open shared library");
+	  } else {
+	    RVMThread.resizeCurrentStack(myThread.getStackLength() + stackNeededInBytes, null);
+	  }
+	}
       }
 
       Address libHandler = SysCall.sysCall.sysDlopen(asciiName);
@@ -227,11 +235,14 @@ public final class DynamicLibrary {
 
   /**
    * Resolve a symbol to an address in a currently loaded dynamic library.
+   * @param symbol the symbol to resolve
+   * @param argSignature optional encoding of argument signature
+   *        (used by Harmony in Windows)
    * @return the address of the symbol of Address.zero() if it cannot be resolved
    */
-  public static synchronized Address resolveSymbol(String symbol) {
+  public static synchronized Address resolveSymbol(String symbol, String argSignature) {
     for (DynamicLibrary lib : dynamicLibraries.values()) {
-      Address symbolAddress = lib.getSymbol(symbol);
+      Address symbolAddress = lib.getSymbol(symbol, argSignature);
       if (!symbolAddress.isZero()) {
         return symbolAddress;
       }
