@@ -427,19 +427,23 @@ public abstract class JNICompiler implements BaselineConstants {
     // make the call to native code
     asm.emitCALL_Reg(T0);
 
-    // (7) Discard parameters on stack
-    // TODO: optimize stack adjustment
-    if (VM.BuildFor32Addr) {
-      // throw away args, class/this ptr and env
-      int argsToThrowAway = method.getParameterWords()+2-argsPassedInRegister;
-      if (argsToThrowAway != 0) {
-        asm.emitADD_Reg_Imm(SP, argsToThrowAway << LG_WORDSIZE);
-      }
-    } else {
-      // throw away args, class/this ptr and env
-      int argsToThrowAway = args.length+2-argsPassedInRegister;
-      if (argsToThrowAway != 0) {
-        asm.emitADD_Reg_Imm_Quad(SP, argsToThrowAway << LG_WORDSIZE);
+    // (7) Discard parameters on stack if not Windows
+    //     NB. Windows JNI routines use the stdcall convention that reclaims
+    //     the parameters
+    if (!VM.BuildForWindows) {
+      // TODO: optimize stack adjustment
+      if (VM.BuildFor32Addr) {
+	// throw away args, class/this ptr and env
+	int argsToThrowAway = method.getParameterWords()+2-argsPassedInRegister;
+	if (argsToThrowAway != 0) {
+	  asm.emitADD_Reg_Imm(SP, argsToThrowAway << LG_WORDSIZE);
+	}
+      } else {
+	// throw away args, class/this ptr and env
+	int argsToThrowAway = args.length+2-argsPassedInRegister;
+	if (argsToThrowAway != 0) {
+	  asm.emitADD_Reg_Imm_Quad(SP, argsToThrowAway << LG_WORDSIZE);
+	}
       }
     }
 
