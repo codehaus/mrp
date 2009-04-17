@@ -200,9 +200,15 @@ Ljava/util/Hashtable$2;
 Ljava/util/Hashtable$3;
 Ljava/util/Hashtable$4$1;
 Ljava/util/Hashtable$4;
+Ljava/util/Hashtable$5;
+Ljava/util/Hashtable$6$1;
+Ljava/util/Hashtable$6;
+Ljava/util/Hashtable$7$1;
+Ljava/util/Hashtable$7;
 Ljava/util/Hashtable$Entry;
 [Ljava/util/Hashtable$Entry;
 Ljava/util/Hashtable$HashIterator;
+Ljava/util/Hashtable$HashEnumIterator;
 
 Ljava/util/List;
 Ljava/util/ListResourceBundle;
