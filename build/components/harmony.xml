@@ -15,9 +15,9 @@
   <import file="base.xml"/>
   <property file="${components.file}"/>
 
-  <property name="harmony.version" value="5.0M8"/>
+  <property name="harmony.version" value="5.0M9"/>
   <property name="harmony.description" value="Apache Harmony class libraries"/>
-  <property name="harmony.svn.revision" value="713673"/>
+  <property name="harmony.svn.revision" value="765173"/>
   <property name="harmony.patchlevel" value="0"/>
   <property name="harmony.component.dir" location="${components.dir}/harmony"/>
   <property name="harmony.package.dir" value="${harmony.component.dir}/${harmony.version}p${harmony.patchlevel}"/>
@@ -164,6 +164,10 @@
       <equals arg1="${target.os}" arg2="Windows"/>
     </condition>
 
+    <condition property="library.debug.suffix" value=".pdb" else="${library.suffix}">
+      <equals arg1="${target.os}" arg2="Windows"/>
+    </condition>
+
     <condition property="harmony.deploy.dir" value="${harmony.dir}/deploy" else="${harmony.hdk.dir}">
       <not>
         <isset property="harmony.from-hdk"/>
@@ -176,10 +180,9 @@
       </fileset>
     </copy>
     <copy todir="${harmony.package.dir}/${target.name}/lib" flatten="true">
-      <regexpmapper from="^(.*${file.separator})lib([^${file.separator}]+)${library.suffix}$$"
-                    to="${target.dll-prefix}\2${target.jni-suffix}"/>
       <fileset dir="${harmony.deploy.dir}">
         <include name="jdk/jre/bin/*${library.suffix}"/>
+        <include name="jdk/jre/bin/*${library.debug.suffix}"/>
         <include name="lib/*"/>
       </fileset>
     </copy>
