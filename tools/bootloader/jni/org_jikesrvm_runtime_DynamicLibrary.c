@@ -23,7 +23,7 @@
 
 extern JNIIMPORT struct JavaVM_ sysJavaVM;
 
-typedef jint (*JNI_OnLoad)(struct JavaVM_ *vm, void *reserved);
+typedef JNIEXPORT jint (JNICALL *JNI_OnLoad)(struct JavaVM_ *vm, void *reserved);
 
 /*
  * Class:     org.jikesrvm.runtime.DynamicLibrary
