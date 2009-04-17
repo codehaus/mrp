@@ -17,6 +17,7 @@ EXPORTS
 	maximumHeapSize	DATA
 	verboseBoot	DATA
 	sysJavaVM	DATA
+	sysInitArgs	DATA
 	findMappable
 	parse_memory_size
 	sysInitialize

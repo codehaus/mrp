@@ -14,6 +14,7 @@ JVM_0.1 {
     maximumHeapSize;
     verboseBoot;
     sysJavaVM;
+    sysInitArgs;
     findMappable;
     parse_memory_size;
     sysInitialize;
