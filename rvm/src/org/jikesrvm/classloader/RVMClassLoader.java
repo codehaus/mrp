@@ -324,7 +324,7 @@ public class RVMClassLoader implements Constants, ClassLoaderConstants {
         throw cfe;
       }
     } else {
-      Atom classDescriptor = Atom.findOrCreateAsciiAtom(className.replace('.', '/')).descriptorFromClassName();
+      Atom classDescriptor = Atom.findOrCreateAsciiAtom(className).descriptorFromClassName();
       tRef = TypeReference.findOrCreate(classloader, classDescriptor);
     }
 

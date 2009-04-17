@@ -532,7 +532,7 @@ public abstract class ClassLoader {
 	if (className == null) {
             throw new NullPointerException();
         }
-        if(className.indexOf("/") != -1) {
+        if(className.indexOf('/') != -1) {
             throw new ClassNotFoundException(className);
         }
 

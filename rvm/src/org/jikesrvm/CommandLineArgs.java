@@ -342,7 +342,11 @@ public class CommandLineArgs {
    * Find a Prefix object of a given type.
    */
   private static Prefix findPrefix(PrefixType type) {
-    for (Prefix prefix : prefixes) if (prefix.type == type) return prefix;
+    for (Prefix prefix : prefixes) {
+      if (prefix.type == type) {
+        return prefix;
+      }
+    }
     return null;
   }
 
@@ -353,7 +357,7 @@ public class CommandLineArgs {
    * @param prefix type of arguments to extract
    * @return array of arguments or null if type is invalid
    */
-  public static String[] getArgs(PrefixType prefix) {
+  private static String[] getArgs(PrefixType prefix) {
     String[] retarg = null;
     Prefix p = findPrefix(prefix);
     if (p != null) {
@@ -463,17 +467,21 @@ public class CommandLineArgs {
     }
 
     // concatenate all bootclasspath entries
-    String result = vmClasses;
-
-    for(int c = 0; c < prependClasses.length; c++) {
-      result = prependClasses[c] + ":" + result;
+    if ((prependClasses.length == 0) && (appendClasses.length == 0)) {
+      return vmClasses;
+    } else {
+      StringBuilder result = new StringBuilder();
+      for(String prependClass : prependClasses) {
+        result.append(prependClass);
+        result.append(File.pathSeparatorChar);
+      }
+      result.append(vmClasses);
+      for(String appendClass : appendClasses) {
+        result.append(File.pathSeparatorChar);
+        result.append(appendClass);
+      }
+      return result.toString();
     }
-
-    for(int c = 0; c < appendClasses.length; c++) {
-      result = result + ":" + appendClasses[c];
-    }
-
-    return result;
   }
 
   /**
