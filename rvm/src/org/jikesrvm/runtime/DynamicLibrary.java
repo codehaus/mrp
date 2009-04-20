@@ -208,18 +208,18 @@ public final class DynamicLibrary {
       byte[] asciiName = StringUtilities.stringToBytesNullTerminated(libname);
 
       if (!VM.AutomaticStackGrowth) {
-	// make sure we have enough stack to load the library.
-	// This operation has been known to require more than 20K of stack.
-	RVMThread myThread = RVMThread.getCurrentThread();
-	Offset remaining = Magic.getFramePointer().diff(myThread.stackLimit);
-	int stackNeededInBytes = StackframeLayoutConstants.STACK_SIZE_DLOPEN - remaining.toInt();
-	if (stackNeededInBytes > 0) {
-	  if (myThread.hasNativeStackFrame()) {
-	    throw new java.lang.StackOverflowError("Not enough space to open shared library");
-	  } else {
-	    RVMThread.resizeCurrentStack(myThread.getStackLength() + stackNeededInBytes, null);
-	  }
-	}
+        // make sure we have enough stack to load the library.
+        // This operation has been known to require more than 20K of stack.
+        RVMThread myThread = RVMThread.getCurrentThread();
+        Offset remaining = Magic.getFramePointer().diff(myThread.stackLimit);
+        int stackNeededInBytes = StackframeLayoutConstants.STACK_SIZE_DLOPEN - remaining.toInt();
+        if (stackNeededInBytes > 0) {
+          if (myThread.hasNativeStackFrame()) {
+            throw new java.lang.StackOverflowError("Not enough space to open shared library");
+          } else {
+            RVMThread.resizeCurrentStack(myThread.getStackLength() + stackNeededInBytes, null);
+          }
+        }
       }
 
       Address libHandler = SysCall.sysCall.sysDlopen(asciiName);

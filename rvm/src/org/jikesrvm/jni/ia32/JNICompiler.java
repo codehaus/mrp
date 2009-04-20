@@ -433,17 +433,17 @@ public abstract class JNICompiler implements BaselineConstants {
     if (!VM.BuildForWindows) {
       // TODO: optimize stack adjustment
       if (VM.BuildFor32Addr) {
-	// throw away args, class/this ptr and env
-	int argsToThrowAway = method.getParameterWords()+2-argsPassedInRegister;
-	if (argsToThrowAway != 0) {
-	  asm.emitADD_Reg_Imm(SP, argsToThrowAway << LG_WORDSIZE);
-	}
+        // throw away args, class/this ptr and env
+        int argsToThrowAway = method.getParameterWords()+2-argsPassedInRegister;
+        if (argsToThrowAway != 0) {
+          asm.emitADD_Reg_Imm(SP, argsToThrowAway << LG_WORDSIZE);
+        }
       } else {
-	// throw away args, class/this ptr and env
-	int argsToThrowAway = args.length+2-argsPassedInRegister;
-	if (argsToThrowAway != 0) {
-	  asm.emitADD_Reg_Imm_Quad(SP, argsToThrowAway << LG_WORDSIZE);
-	}
+        // throw away args, class/this ptr and env
+        int argsToThrowAway = args.length+2-argsPassedInRegister;
+        if (argsToThrowAway != 0) {
+          asm.emitADD_Reg_Imm_Quad(SP, argsToThrowAway << LG_WORDSIZE);
+        }
       }
     }
 
@@ -961,9 +961,9 @@ public abstract class JNICompiler implements BaselineConstants {
       bytesToRelease = method.getParameterTypes().length * WORDSIZE;
       // TODO: take care of Win64 conventions
       for (TypeReference arg : method.getParameterTypes()) {
-	if (arg.isLongType() || arg.isDoubleType()) {
-	  bytesToRelease += WORDSIZE;
-	}
+        if (arg.isLongType() || arg.isDoubleType()) {
+          bytesToRelease += WORDSIZE;
+        }
       }
     }
     if (bytesToRelease == 0) {
