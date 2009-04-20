@@ -18,7 +18,6 @@ import org.mmtk.plan.Plan;
 import org.mmtk.plan.TraceLocal;
 import org.mmtk.plan.Trace;
 import org.mmtk.policy.Space;
-import org.mmtk.policy.immix.ImmixSpace;
 import org.mmtk.utility.deque.ObjectReferenceDeque;
 import org.mmtk.vm.VM;
 
@@ -94,16 +93,20 @@ public final class ImmixDefragTraceLocal extends TraceLocal {
   @Override
   public ObjectReference precopyObject(ObjectReference object) {
     if (VM.VERIFY_ASSERTIONS) VM.assertions._assert(Immix.immixSpace.inImmixDefragCollection());
-    if (object.isNull()) return object;
-    ObjectReference rtn;
-    if (Space.isInSpace(Immix.IMMIX, object))
-      rtn = Immix.immixSpace.traceObject(this, object, Plan.ALLOC_DEFAULT);
-    else
-      rtn = object;
+    ObjectReference rtn = traceObject(object);
     if (VM.VERIFY_ASSERTIONS) VM.assertions._assert(willNotMoveInCurrentCollection(rtn));
     return rtn;
   }
 
+  /**
+   * Return true if this object is guaranteed not to move during this
+   * collection (i.e. this object is defintely not an unforwarded
+   * object).
+   *
+   * @param object
+   * @return True if this object is guaranteed not to move during this
+   *         collection.
+   */
   @Override
   public boolean willNotMoveInCurrentCollection(ObjectReference object) {
     if (VM.VERIFY_ASSERTIONS) VM.assertions._assert(Immix.immixSpace.inImmixDefragCollection());
@@ -129,7 +132,7 @@ public final class ImmixDefragTraceLocal extends TraceLocal {
     if (VM.VERIFY_ASSERTIONS) VM.assertions._assert(Immix.immixSpace.inImmixDefragCollection());
     super.scanObject(object);
     if (MARK_LINE_AT_SCAN_TIME && Space.isInSpace(Immix.IMMIX, object))
-       ImmixSpace.markLines(object);
+      Immix.immixSpace.markLines(object);
   }
 
   /**

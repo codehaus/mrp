@@ -13,7 +13,6 @@
 package org.mmtk.plan;
 
 import org.mmtk.policy.MarkSweepSpace;
-import org.mmtk.policy.SegregatedFreeListSpace;
 import org.mmtk.policy.Space;
 import org.mmtk.policy.ImmortalSpace;
 import org.mmtk.policy.RawPageSpace;
@@ -96,14 +95,18 @@ public abstract class Plan implements Constants {
   public static final int DEFAULT_SITE = -1;
 
   /* Miscellaneous Constants */
-  public static final int LOS_SIZE_THRESHOLD = SegregatedFreeListSpace.MAX_CELL_SIZE;
+//  public static final int LOS_SIZE_THRESHOLD = SegregatedFreeListSpace.MAX_CELL_SIZE;
   public static final int NON_PARTICIPANT = 0;
   public static final boolean GATHER_WRITE_BARRIER_STATS = false;
   public static final int DEFAULT_MIN_NURSERY = (256 * 1024) >> LOG_BYTES_IN_PAGE;
   public static final int DEFAULT_MAX_NURSERY = (32 << 20) >> LOG_BYTES_IN_PAGE;
   public static final boolean SCAN_BOOT_IMAGE = true;  // scan it for roots rather than trace it
   public static final int MAX_COLLECTION_ATTEMPTS = 10;
-  public static final boolean REQUIRES_LOS = VM.activePlan.constraints().requiresLOS();
+ // public static final boolean REQUIRES_LOS = VM.activePlan.constraints().requiresLOS();
+  public static final int MAX_NON_LOS_DEFAULT_ALLOC_BYTES = VM.activePlan.constraints().maxNonLOSDefaultAllocBytes();
+  public static final int MAX_NON_LOS_NONMOVING_ALLOC_BYTES = VM.activePlan.constraints().maxNonLOSNonMovingAllocBytes();
+  public static final int MAX_NON_LOS_COPY_BYTES = VM.activePlan.constraints().maxNonLOSCopyBytes();
+
 
 /* Do we support a log bit in the object header?  Some write barriers may use it */
   public static final boolean NEEDS_LOG_BIT_IN_HEADER = VM.activePlan.constraints().needsLogBitInHeader();
@@ -325,6 +328,13 @@ public abstract class Plan implements Constants {
   public void insertPhaseAfter(int markerScheduledPhase, int scheduledPhase) {
     short tempPhase = Phase.createComplex("auto-gen", null, markerScheduledPhase, scheduledPhase);
     replacePhase(markerScheduledPhase, Phase.scheduleComplex(tempPhase));
+  }
+
+  /**
+   * @return Whether last GC was an exhaustive attempt to collect the heap.  For many collectors this is the same as asking whether the last GC was a full heap collection.
+   */
+  public boolean lastCollectionWasExhaustive() {
+    return lastCollectionFullHeap();
   }
 
   /**

@@ -28,8 +28,10 @@ public class ImmixConstants {
   public static final boolean TMP_PREFER_COPY_ON_NURSERY_GC = true;
   /* end temporary experimental constants */
 
+  static final byte MAX_LINE_MARK_STATE = 127;
+  static final byte RESET_LINE_MARK_STATE = 1;
+
   public static final boolean MARK_LINE_AT_SCAN_TIME = true; // else do it at mark time
-  static final boolean DONT_CLEAR_MARKS_AT_EVERY_GC = false && Plan.NEEDS_LOG_BIT_IN_HEADER;
 
   public static final boolean SANITY_CHECK_LINE_MARKS = false && VM.VERIFY_ASSERTIONS;
 
@@ -55,6 +57,8 @@ public class ImmixConstants {
   static final int LINES_IN_CHUNK = 1<<LOG_LINES_IN_CHUNK;
 
   public static final int BYTES_IN_LINE = 1<<LOG_BYTES_IN_LINE;
+
+  public static final int MAX_IMMIX_OBJECT_BYTES = BYTES_IN_BLOCK>>1;
 
   private static final int LOG_BLOCKS_IN_RECYCLE_ALLOC_CHUNK = 4; // 3 + 15 -> 19 (512KB)
   private static final int LOG_BYTES_IN_RECYCLE_ALLOC_CHUNK = LOG_BLOCKS_IN_RECYCLE_ALLOC_CHUNK + LOG_BYTES_IN_BLOCK;
