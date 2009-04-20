@@ -1400,6 +1400,17 @@ public class VM extends Properties implements Constants, ExitStatus {
   }
 
   @NoInline
+  public static void sysWriteln(String s1, long i1,String s2, long i2) {
+    swLock();
+    write(s1);
+    write(i1);
+    write(s2);
+    write(i2);
+    writeln();
+    swUnlock();
+  }
+
+  @NoInline
   public static void sysWrite(int i, String s) {
     swLock();
     write(i);
@@ -2532,12 +2543,11 @@ public class VM extends Properties implements Constants, ExitStatus {
     }
 
     // 1.
-    //    
+    //
     if (!VM.AutomaticStackGrowth) {
       if (Magic.getFramePointer().minus(ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED)
-	  .LT(myThread.stackLimit) && !myThread.hasNativeStackFrame()) {
-	RVMThread.resizeCurrentStack(myThread.getStackLength()+
-				     ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED, null);
+          .LT(myThread.stackLimit) && !myThread.hasNativeStackFrame()) {
+        RVMThread.resizeCurrentStack(myThread.getStackLength() + ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED, null);
       }
     }
 

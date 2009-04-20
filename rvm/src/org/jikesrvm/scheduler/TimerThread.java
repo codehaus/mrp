@@ -51,7 +51,7 @@ public class TimerThread extends RVMThread {
         // grab the lock to prevent threads from getting GC'd while we are
         // iterating (since this thread doesn't stop for GC)
         if (VM.BuildForAdaptiveSystem) {
-          RVMThread.acctLock.lock();
+          RVMThread.acctLock.lockNoHandshake();
           RVMThread.timerTicks++;
           for (int i=0;i<RVMThread.numThreads;++i) {
             RVMThread candidate=RVMThread.threads[i];

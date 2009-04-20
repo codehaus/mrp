@@ -180,7 +180,7 @@ public final class NativeMethod extends RVMMethod {
       String result = (char)getReturnType().getName().parseForTypeCode() + "PL";
       // encode the arguments
       for (TypeReference arg : getParameterTypes()) {
-	result += (char)arg.getName().parseForTypeCode();
+        result += (char)arg.getName().parseForTypeCode();
       }
       return result;
     }
