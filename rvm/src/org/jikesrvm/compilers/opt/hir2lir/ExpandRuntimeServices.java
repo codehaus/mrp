@@ -154,6 +154,7 @@ public final class ExpandRuntimeServices extends CompilerPhase {
           if (!ir.options.FREQ_FOCUS_EFFORT || !inst.getBasicBlock().getInfrequent()) {
             inline(inst, ir);
           }
+          break;
         }
 
         case LONG_REM_opcode: {
@@ -169,6 +170,7 @@ public final class ExpandRuntimeServices extends CompilerPhase {
           if (!ir.options.FREQ_FOCUS_EFFORT || !inst.getBasicBlock().getInfrequent()) {
             inline(inst, ir);
           }
+          break;
         }
 
         case NEW_opcode: {
