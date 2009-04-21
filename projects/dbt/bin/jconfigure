@@ -1,0 +1,352 @@
+#! /usr/bin/env bash
+#
+# This file is part of binarytranslator.org. The binarytranslator.org
+# project is distributed under the Common Public License (CPL).
+# A copy of the license is included in the distribution, and is also
+# available at http://www.opensource.org/licenses/cpl1.0.php
+#
+# (C) Copyright Ian Rogers, The University of Manchester 2003-2006
+#
+# Configure the Jikes RVM with binary translation support
+#
+# This script is organized into the following sections:
+#    0 - Simple checks
+#    1 - Run RVM jconfigure
+#    2 - Patch RVM.sources so that jbuild.copy copies DBT files
+#    3 - Create jbuild.dbt to patch copied RVM files that require DBT modifications
+#    4 - Modify jbuild to call jbuild.dbt
+#
+# @author Ian Rogers
+# @date 24/06/2005
+
+# What is our name?
+# Bash internal shorthand that works like the "basename" command.
+ME="${0##*/}"
+
+#--------------------------------------
+echo "Step 0: Simple checks"
+if [[ ! -x ${RVM_ROOT}/rvm/bin/jconfigure ]]; then
+	echo >&2 "$ME: ERROR: Unable to find Jikes RVM jconfigure. Make sure RVM_ROOT is set correctly."
+	exit 2
+fi
+
+if [[ $1 = "" ]]; then
+	echo >&2 "$ME: ERROR: You must specify a Jikes RVM build configuration"
+	exit 2
+fi
+
+#--------------------------------------
+echo "Step 1: Run Jikes RVM jconfigure"
+
+cd ${RVM_ROOT}/rvm/bin
+./jconfigure $1
+cd ${RVM_ROOT}/dbt/bin
+
+if [[ ! -f ${RVM_BUILD}/RVM.sources ]]; then
+	echo >&2 "$ME: ERROR: Unable to find valid RVM.sources in RVM_BUILD directory. Did Jikes RVM jconfigure fail?"
+	exit 2
+fi
+
+#--------------------------------------
+echo "Step 2: Patch RVM.sources"
+
+function emitDBTdirectories (){
+    find ${RVM_ROOT}/dbt/src -type d | grep -v CVS
+    find ${RVM_ROOT}/dbt/ext -type d | grep -v CVS
+    echo ${RVM_ROOT}/rvm/src/vm/arch/powerPC/disassembler
+}
+
+emitDBTdirectories >> ${RVM_BUILD}/RVM.sources
+
+#--------------------------------------
+echo "Step 3: Create jbuild.dbt"
+
+function emitDBT (){
+	 cat <<EOF2
+#! /usr/bin/env bash
+#
+# This file patches the copied Jikes RVM sources to make them suitable for use inside a DBT.
+
+# What is our name?
+# Bash internal shorthand that works like the "basename" command.
+ME="\${0##*/}"
+. ${RVM_ROOT}/rvm/bin/libjconfigure.bash
+
+while (( \$# > 0 )); do
+    arg="\$1"
+    if [[ \$arg = -- ]]; then
+        shift           # The end of the flag arguments
+        break;
+    fi
+    [[ \$arg != --?* ]] || arg="\${arg#-}"
+    if [[ \$arg == -trace* ]]; then
+        TRACE_FLAG="\$arg"
+    elif [[ \$arg = -v ]]; then
+        VFLAG=-v
+    elif [[ \$arg = -x ]]; then
+        XFLAG=-x
+    elif [[ \$arg = -clean ]]; then
+        CLEAN_FLAG=-clean
+    else
+        show_mesg >&2 "Unknown argument: \$arg"
+        trap '' EXIT
+        exit 33
+    fi
+    shift
+done
+
+if [[ ! \$CLEAN_FLAG ]]; then
+   if tracing jbuild; then
+      echo "\$ME: Modifying source files to make them amenable to building as a DBT"
+   fi
+   cd RVM.classes
+   # --- VM_NormalMethod ---
+   file=com/ibm/JikesRVM/classloader/VM_NormalMethod.java
+   # Make HIR generation phase alterable
+   run patch -u -p0 -l <<EOF
+--- \$file
++++ \$file
+@@ -5,6 +5,9 @@
+ package com.ibm.JikesRVM.classloader;
+
+ import com.ibm.JikesRVM.*;
++import com.ibm.JikesRVM.opt.ir.OPT_HIRGenerator;
++import com.ibm.JikesRVM.opt.ir.OPT_BC2IR;
++import com.ibm.JikesRVM.opt.ir.OPT_GenerationContext;
+ import java.io.DataInputStream;
+ import java.io.IOException;
+ import org.vmmagic.pragma.*;
+@@ -324,6 +327,24 @@
+   }
+   //-#endif RVM_WITH_OSR
+
++  /**
++       * Create an optimizing compiler HIR code generator for this type of
++       * method
++       * @param context the generation context for the HIR generation
++       * @return a HIR generator
++       */
++  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context){
++        return new OPT_BC2IR(context);
++  }
++
++  /**
++       * Must this method be OPT compiled?
++       * @param context the generation context for the HIR generation
++       * @return a HIR generator
++       */
++  public boolean optCompileOnly() {
++        return false;
++  }
+
+   /*
+    * Methods to access and compute method summary information
+EOF
+   # Make VM_NormalMethod HAS fields accessible to DBT_Trace
+   run sed -i -e's/private static final int HAS_/protected static final int HAS_/g' \$file
+   # Make VM_NormalMethod non-final
+   run sed -i -e's/public final class VM_NormalMethod/public class VM_NormalMethod/g' \$file
+   # Make constructor public
+   run sed -i -e's/VM_NormalMethod(VM_TypeReference dc, VM_MemberReference mr,/public VM_NormalMethod(VM_TypeReference dc, VM_MemberReference mr,/g' \$file
+   # Make summary protected
+   run sed -i -e's/private int summary;/protected int summary;/g' \$file
+   # Make bytecodes public
+   run sed -i -e's/private final byte\[\] bytecodes;/public final byte\[\] bytecodes;/g' \$file
+   # Make genCode public
+   run sed -i -e's/protected VM_CompiledMethod genCode() throws VerifyError/public VM_CompiledMethod genCode() throws VerifyError/g' \$file
+
+   # --- VM_RuntimeCompiler ---
+   file=com/ibm/JikesRVM/VM_RuntimeCompiler.java
+   # Make HIR generation phase alterable
+   run patch -u -p0 -l <<EOF
+--- \$file
++++ \$file
+@@ -792,3 +792,3 @@
+       }
+-      if (VM_Controller.options.optIRC()) {
++      if (VM_Controller.options.optIRC() || method.optCompileOnly()) {
+         if (// will only run once: don't bother optimizing
+@@ -811,3 +811,18 @@
+           }
+-          cm = optCompileWithFallBack(method, compPlan);
++                        if(!method.optCompileOnly()) {
++                               cm = optCompileWithFallBack(method, compPlan);
++                        }
++                        else {
++                               compilationInProgress = true;
++                               try {
++                                 cm = optCompile(method, compPlan);
++                               } catch (OPT_OptimizingCompilerException e) {
++                                 String msg = "Optimizing compiler "
++                                        +"(on method that can only be optimizing compiler compiled): "
++                                        +"can't optimize \"" + method + "\"";
++                                 throw new Error(msg, e);
++                               } finally {
++                                 compilationInProgress = false;
++                               }
++                        }
+         }
+EOF
+   # --- OPT_BC2IR ---
+   file=com/ibm/JikesRVM/opt/ir/OPT_BC2IR.java
+   # Make HIR generation phase alterable
+   run patch -u -p0 -l <<EOF
+--- \$file
++++ \$file
+@@ -61 +61,2 @@
+-                                        OPT_Constants
++                                        OPT_Constants,
++                                        OPT_HIRGenerator
+EOF
+   # Make OPT_BC2IR 'generateHIR' method public
+   run sed -i -e's/private void generateHIR()/public void generateHIR()/' \$file
+   # Make OPT_BC2IR constructor public
+   run sed -i -e's/private OPT_BC2IR(OPT_GenerationContext context)/public OPT_BC2IR(OPT_GenerationContext context)/' \$file
+
+   # --- OPT_ConvertBCtoHIR ---
+   file=com/ibm/JikesRVM/opt/ir/OPT_ConvertBCtoHIR.java
+   # Make HIR generation phase alterable
+   run patch -u -p0 -l <<EOF
+--- \$file
++++ \$file
+@@ -28,7 +28,7 @@
+     OPT_GenerationContext gc =
+       new OPT_GenerationContext(ir.method, ir.compiledMethod,
+                                 ir.options, ir.inlinePlan);
+-    OPT_BC2IR.generateHIR(gc);
++    ir.method.createHIRGenerator(gc).generateHIR();
+     // Transfer HIR and misc state from gc to the ir object
+     ir.gc = gc;
+     ir.cfg = gc.cfg;
+EOF
+
+   # --- VM_Member ---
+   file=com/ibm/JikesRVM/classloader/VM_Member.java
+   # Make modifiers public
+   run sed -i -e's/protected final int modifiers;/public final int modifiers;/g' \$file
+
+   # --- VM_Method ---
+   file=com/ibm/JikesRVM/classloader/VM_Method.java
+   # Make replaceCompiledMethod non-final
+   run sed -i -e's/public final synchronized void replaceCompiledMethod/public synchronized void replaceCompiledMethod/g' \$file
+
+   # --- VM_DynamicBridge ---
+   file=com/ibm/JikesRVM/VM_DynamicBridge.java
+   # Make VM_DynamicBridge accessible to DynamicCodeRunner
+   run sed -i -e's/interface VM_DynamicBridge/public interface VM_DynamicBridge/' \$file
+
+   # --- OPT_GenerationContext ---
+   file=com/ibm/JikesRVM/opt/ir/OPT_GenerationContext.java
+   # Make OPT_GenerationContext 'method' field public
+   run sed -i -e's/VM_NormalMethod method/public VM_NormalMethod method/' \$file
+   # Make OPT_GenerationContext 'temps' field public
+   run sed -i -e's/OPT_RegisterPool temps/public OPT_RegisterPool temps/' \$file
+   # Make OPT_GenerationContext 'arguments' field public
+   run sed -i -e's/OPT_Operand\[\] arguments/public OPT_Operand\[\] arguments/' \$file
+   # Make OPT_GenerationContext 'options' field public
+   run sed -i -e's/OPT_Options options/public OPT_Options options/' \$file
+   # Make OPT_GenerationContext 'epilogue' field public
+   run sed -i -e's/OPT_BasicBlock epilogue/public OPT_BasicBlock epilogue/' \$file
+   # Make OPT_GenerationContext 'prologue' field public
+   run sed -i -e's/OPT_BasicBlock prologue/public OPT_BasicBlock prologue/' \$file
+   # Make OPT_GenerationContext 'cfg' field public
+   run sed -i -e's/OPT_ControlFlowGraph cfg/public OPT_ControlFlowGraph cfg/' \$file
+   # Make OPT_GenerationContext 'resultReg' field public
+   run sed -i -e's/OPT_Register resultReg/public OPT_Register resultReg/' \$file
+
+   # --- OPT_ConditionOperand ---
+   # Direct creation of floating point compares required by DBT
+   file=com/ibm/JikesRVM/opt/ir/OPT_ConditionOperand.java
+   run patch -u -p0 -l <<EOF
+--- \$file
++++ \$file
+@@ -150,6 +150,51 @@
+   }
+
+   /**
++   * Create the condition code operand for CMPL_EQUAL
++   *
++   * @return a newly created condition code operand
++   */
++  public static OPT_ConditionOperand CMPL_EQUAL() {
++    return new OPT_ConditionOperand(CMPL_EQUAL);
++  }
++
++  /**
++   * Create the condition code operand for CMPL_NOT_EQUAL
++   *
++   * @return a newly created condition code operand
++   */
++  public static OPT_ConditionOperand CMPL_NOT_EQUAL() {
++    return new OPT_ConditionOperand(CMPL_NOT_EQUAL);
++  }
++
++  /**
++   * Create the condition code operand for CMPL_GREATER
++   *
++   * @return a newly created condition code operand
++   */
++  public static OPT_ConditionOperand CMPL_GREATER() {
++    return new OPT_ConditionOperand(CMPL_GREATER);
++  }
++
++  /**
++   * Create the condition code operand for CMPL_GREATER_EQUAL
++   *
++   * @return a newly created condition code operand
++   */
++  public static OPT_ConditionOperand CMPL_GREATER_EQUAL() {
++    return new OPT_ConditionOperand(CMPL_GREATER_EQUAL);
++  }
++
++  /**
++   * Create the condition code operand for CMPG_LESS
++   *
++   * @return a newly created condition code operand
++   */
++  public static OPT_ConditionOperand CMPG_LESS() {
++    return new OPT_ConditionOperand(CMPG_LESS);
++  }
++
++  /**
+    * Is the condition code EQUAL?
+    *
+    * @return <code>true</code> if it is or <code>false</code> if it is not
+EOF
+
+   # --- PPC_Disassembler ---
+   # Allow disassembler to exist outside of PPC backend
+   file=com/ibm/JikesRVM/PPC_Disassembler.java
+   run patch -u -p0 -l <<EOF
+--- \$file
++++ \$file
+@@ -121,2 +121,13 @@
+   static final int FPSCRX = 148;
++  static final String GPR_NAMES[] = { "R0", "R1", "R2", "R3", "R4", "R5",
++                                                                                                 "R6", "R7","R8", "R9", "R10", "R11",
++                                                                                                 "R12", "R13","R14", "R15","R16", "R17",
++                                                                                                 "R18", "R19", "R20", "R21", "R22", "R23",
++                                                                                                 "R24", "R25", "R26", "R27", "R28", "R29", "R30", "R31"
++  };
++  static final String FPR_NAMES[] = { "F0",  "F1",  "F2",  "F3",  "F4",  "F5",  "F6", "F7",
++                                                                                                 "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15",
++                                                                                                 "F16",  "F17",  "F18",  "F19",  "F20",  "F21",  "F22",  "F23",
++                                                                                                 "F24",  "F25",  "F26",  "F27",  "F28",  "F29",  "F30",  "F31"
++  };
+
+EOF
+fi
+
+trap '' EXIT
+EOF2
+}
+
+emitDBT > ${RVM_BUILD}/jbuild.dbt
+chmod +x ${RVM_BUILD}/jbuild.dbt
+#--------------------------------------
+echo "Step 4: Patch jbuild"
+
+# Add jbuild.dbt to be performed after all cases of jbuild.copy
+sed -i -e's/\(.*\)jbuild.copy\(.*\)/\1jbuild.copy\2\n\1jbuild.dbt\2/g' ${RVM_BUILD}/jbuild
+# Add binary translator main to the list of jikes compiled sources
+sed -i -e's/Dummy.java/Dummy.java org\/binarytranslator\/Main.java/' ${RVM_BUILD}/jbuild.compile

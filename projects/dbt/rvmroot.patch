@@ -1,0 +1,162 @@
+Index: build.xml
+===================================================================
+--- build.xml	(revision 12603)
++++ build.xml	(working copy)
+@@ -848,8 +848,8 @@
+            debugLevel="lines,source"
+            source="1.5"
+            target="1.5"
+-           srcdir="${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}:${classlib.library-interface.non-cpl2.java}:${mmtk-rvm.java}"
+-           sourcepath="${mmtk.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:${main.java}:${mmtk-rvm.java}">
++           srcdir="projects/dbt/ext:${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}:${classlib.library-interface.non-cpl2.java}:${mmtk-rvm.java}"
++           sourcepath="${mmtk.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:projects/dbt/ext:${main.java}:${mmtk-rvm.java}">
+       <bootclasspath>
+         <pathelement location="${classpath.lib.dir}/classpath.jar"/>
+       </bootclasspath>
+@@ -907,7 +907,7 @@
+     </javac>
+   </target>
+ 
+-  <target name="package" depends="compile,compile-vmmagic">
++  <target name="package" depends="compile,compile-vmmagic,compile-projects">
+     <!-- create a rt.jar for the RVM -->
+     <copy file="${classpath.lib.dir}/classpath.jar" tofile="${build.rt.jar}"/>
+     <zip destfile="${build.rt.jar}" update="true" basedir="${build.classes}">
+@@ -929,7 +929,20 @@
+     </jar>
+   </target>
+ 
++  <!-- **************************************************************************** -->
++  <!-- *                                                                          * -->
++  <!-- *             Section for compiling and packaging external projects        * -->
++  <!-- *                                                                          * -->
++  <!-- **************************************************************************** -->
+ 
++  <target name="compile-projects"
++          depends="compile"
++          description="Build any projects included with the RVM">
++    <subant target="" inheritall="true">
++      <fileset dir="projects" includes="*/build.xml" />
++    </subant>
++  </target>
++
+   <!-- **************************************************************************** -->
+   <!-- *                                                                          * -->
+   <!-- *                Section for building the boot image                       * -->
+Index: rvm/src-generated/opt-ir/InstructionFormatList.dat
+===================================================================
+--- rvm/src-generated/opt-ir/InstructionFormatList.dat	(revision 12603)
++++ rvm/src-generated/opt-ir/InstructionFormatList.dat	(working copy)
+@@ -151,6 +151,14 @@
+ "U Cond OPT_ConditionOperand" "U BranchProfile OPT_BranchProfileOperand"
+ 
+ 
++BooleanCmp2
++1 0 8
++"D Result OPT_RegisterOperand" "U Val1 OPT_Operand" "U Val2 OPT_Operand" \
++"U Cond1 OPT_ConditionOperand" "U BranchProfile1 OPT_BranchProfileOperand" \
++"U Val3 OPT_Operand" "U Val4 OPT_Operand" \
++"U Cond2 OPT_ConditionOperand" "U BranchProfile2 OPT_BranchProfileOperand"
++
++
+ CondMove
+ 1 0 5
+ "D Result OPT_RegisterOperand" "U Val1 OPT_Operand" "U Val2 OPT_Operand" \
+Index: rvm/src-generated/opt-ir/OperatorList.dat
+===================================================================
+--- rvm/src-generated/opt-ir/OperatorList.dat	(revision 12603)
++++ rvm/src-generated/opt-ir/OperatorList.dat	(working copy)
+@@ -1269,6 +1269,20 @@
+ 
+ 
+ 
++# Compare two sets of two int values and put the boolean OR in the result register
++BOOLEAN_CMP2_INT_OR
++BooleanCmp2
++compare
++
++
++
++# Compare two sets of two int values and put the boolean AND in the result register
++BOOLEAN_CMP2_INT_AND
++BooleanCmp2
++compare
++
++
++
+ # Load a singed byte
+ # NOTE: Because of our strategy of using explict guard instructions, there is no
+ # way in the HIR/LIR that the actual load instruction can except.
+Index: rvm/src-generated/opt-burs/ia32/IA32.rules
+===================================================================
+--- rvm/src-generated/opt-burs/ia32/IA32.rules	(revision 12603)
++++ rvm/src-generated/opt-burs/ia32/IA32.rules	(working copy)
+@@ -533,8 +533,9 @@
+ boolcmp: BOOLEAN_CMP_INT(r,riv)
+ 13
+ EMIT_INSTRUCTION
+-pushCOND(BooleanCmp.getCond(P(p))); \
+-EMIT(MIR_Compare.mutate(P(p), IA32_CMP, BooleanCmp.getVal1(P(p)), BooleanCmp.getVal2(P(p))));
++OPT_ConditionOperand cond = BooleanCmp.getCond(P(p)); \
++pushCOND(cond); \
++EMIT_Compare(P(p), cond, BooleanCmp.getVal1(P(p)), BooleanCmp.getVal2(P(p)));
+ 
+ r:	BOOLEAN_CMP_INT(r,INT_CONSTANT)
+ VR(p) == 0 && EQ_NE(BooleanCmp.getCond(P(p)))?37:INFINITE
+@@ -640,8 +641,9 @@
+ boolcmp: BOOLEAN_CMP_INT(load32,riv)
+ 15
+ EMIT_INSTRUCTION
+-pushCOND(BooleanCmp.getCond(P(p))); \
+-EMIT(MIR_Compare.mutate(PL(p), IA32_CMP, consumeMO(), BooleanCmp.getVal2(P(p))));
++OPT_ConditionOperand cond = BooleanCmp.getCond(P(p)); \
++pushCOND(cond); \
++EMIT_Compare(P(p), cond, consumeMO(), BooleanCmp.getVal2(P(p)));
+ 
+ r:	BOOLEAN_CMP_INT(r,load32)
+ 41
+@@ -653,8 +655,9 @@
+ boolcmp: BOOLEAN_CMP_INT(r,load32)
+ 15
+ EMIT_INSTRUCTION
+-pushCOND(BooleanCmp.getCond(P(p))); \
+-EMIT(MIR_Compare.mutate(PR(p), IA32_CMP, BooleanCmp.getVal1(P(p)), consumeMO()));
++OPT_ConditionOperand cond = BooleanCmp.getCond(P(p)); \
++pushCOND(cond); \
++EMIT_Compare(P(p), cond, BooleanCmp.getVal1(P(p)), consumeMO());
+ 
+ stm:	BYTE_STORE(boolcmp, OTHER_OPERAND(riv,riv))
+ 15
+Index: rvm/src/OptDummy.java
+===================================================================
+--- rvm/src/OptDummy.java	(revision 12603)
++++ rvm/src/OptDummy.java	(working copy)
+@@ -22,4 +22,5 @@
+   static org.jikesrvm.compilers.opt.OPT_Compiler a;
+   static org.jikesrvm.compilers.opt.VM_OptSaveVolatile g;
+   static org.jikesrvm.compilers.opt.OPT_SpecializedMethodPool q;
++  static org.jikesrvm.compilers.opt.ir.BooleanCmp2 b;
+ }
+Index: build/primordials/RVM_OPT.txt
+===================================================================
+--- build/primordials/RVM_OPT.txt	(revision 12759)
++++ build/primordials/RVM_OPT.txt	(working copy)
+@@ -16,3 +16,15 @@
+ Ljava/io/PushbackReader;
+ [Lorg/jikesrvm/compilers/opt/OPT_Simplifier$DefUseEffect;
+ [Lorg/jikesrvm/compilers/opt/ir/OPT_Operator;
++[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$ELF_Identity$AddressSize;
++[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$ByteOrder;
++[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$Header$ObjectFileType;
++[Lorg/binarytranslator/generic/os/loader/elf/ELF_File$SegmentRange;
++[Lorg/binarytranslator/vmInterface/DummyDynamicCodeRunner;
++Lorg/binarytranslator/vmInterface/DBT_Trace;
++[Lorg/binarytranslator/vmInterface/DBT_Trace;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_InstructionDecoder$ARM32$Decoder;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_InstructionDecoder$Thumb$Decoder;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_Instructions$Instruction$Condition;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_Instructions$DataProcessing$Opcode;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_Instructions$OperandWrapper$ShiftType;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_Laziness$Operation;
++[Lorg/binarytranslator/arch/arm/decoder/ARM_Laziness$Flag;
+ 

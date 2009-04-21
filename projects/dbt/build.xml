@@ -1,0 +1,50 @@
+<project name="binarytranslator.org" default="compile" basedir="../..">
+  <property name="dbt.java"     location="projects/dbt/src"/>
+  <property name="dbt-ext.java" location="projects/dbt/ext"/>
+  <target name="compile" depends="compile-external">
+    <javac destdir="${build.classes}"
+           debug="true"
+           debugLevel="lines,source"
+           source="1.5"
+           target="1.5"
+           srcdir="${dbt.java}">
+      <classpath>
+        <pathelement location="${build.vmmagic-stub.classes}"/>
+        <pathelement location="${build.classes}"/>
+      </classpath>
+    </javac>
+  </target>
+  <target name="compile-external">
+    <delete verbose="true">
+      <fileset dir="${build.classes}">
+        <include name="org/jikesrvm/opt/ir/ia32/OPT_IA32ConditionOperand.class" />
+        <include name="org/jikesrvm/opt/ir/OPT_ConvertBCtoHIR.class" />
+        <include name="org/jikesrvm/opt/ir/OPT_HIRGenerator.class" />
+        <include name="org/jikesrvm/opt/ir/OPT_GenerationContext.class" />
+        <include name="org/jikesrvm/opt/ir/OPT_ConditionOperand.class" />
+        <include name="org/jikesrvm/opt/ir/OPT_BC2IR.class" />
+        <include name="org/jikesrvm/opt/ir/OPT_HIRInfo.class" />
+        <include name="org/jikesrvm/opt/OPT_Simplifier.class" />
+        <include name="org/jikesrvm/ppc/PPC_Disassembler.class" />
+        <include name="org/jikesrvm/ppc/opcode_tab.class" />
+        <include name="org/jikesrvm/ppc/opcodeXX.class" />
+        <include name="org/jikesrvm/VM_RuntimeCompiler.class" />
+        <include name="org/jikesrvm/classloader/VM_Method.class" />
+        <include name="org/jikesrvm/classloader/VM_Member.class" />
+        <include name="org/jikesrvm/classloader/VM_NormalMethod.class" />
+      </fileset>
+    </delete>
+    <javac destdir="${build.classes}"
+           debug="true"
+           debugLevel="lines,source"
+           source="1.5"
+           target="1.5"
+           srcdir="${dbt-ext.java}">
+      <include name="DBT_Dummy.java" />
+      <classpath>
+        <pathelement location="${build.vmmagic-stub.classes}"/>
+        <pathelement location="${build.classes}"/>
+      </classpath>
+    </javac>
+  </target>
+</project>
