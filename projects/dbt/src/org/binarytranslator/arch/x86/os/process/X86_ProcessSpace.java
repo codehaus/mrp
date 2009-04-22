@@ -11,7 +11,7 @@ package org.binarytranslator.arch.x86.os.process;
 import java.io.*;
 import java.util.Hashtable;
 
-import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.memory.ByteAddressedLittleEndianMemory;
@@ -25,7 +25,7 @@ import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.DynamicCodeRunner;
 import org.vmmagic.pragma.Uninterruptible;
-import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
+import org.jikesrvm.ArchitectureSpecific.CodeArray;
 
 /**
  * Encapsulate the parts of an X86 process that are common across operating systems
@@ -149,7 +149,7 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
    * @return a HIR generator
    */
   @Override
-  public CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) {
+  public CodeTranslator createTranslator(GenerationContext context, DBT_Trace trace) {
     return new X862IR(context, trace);
   }
 
@@ -188,7 +188,7 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
         trace.compile();
         singleInstrCodeHash.put(registers.eip, trace);
       }
-      VM_CodeArray code = trace.getCurrentCompiledMethod().getEntryCodeArray();
+      CodeArray code = trace.getCurrentCompiledMethod().getEntryCodeArray();
       registers.eip = DynamicCodeRunner.invokeCode(code, this);
     } catch (NullPointerException e) {
       throw new BadInstructionException(registers.eip, this);

@@ -12,7 +12,7 @@ import org.binarytranslator.generic.decoder.Interpreter;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.DynamicCodeRunner;
-import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
+import org.jikesrvm.ArchitectureSpecific.CodeArray;
 
 /**
  * This controller implements staged emulation, i.e. switching between interpretation
@@ -126,7 +126,7 @@ public class StagedEmulationController extends ExecutionController {
       }
       
       //execute the trace
-      VM_CodeArray code = trace.compiledTrace.getCurrentCompiledMethod().getEntryCodeArray();
+      CodeArray code = trace.compiledTrace.getCurrentCompiledMethod().getEntryCodeArray();
       ps.setCurrentInstructionAddress(DynamicCodeRunner.invokeCode(code, ps));
       
       if (DBT_Options.debugTranslation)

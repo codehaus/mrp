@@ -21,15 +21,17 @@ import org.binarytranslator.generic.decoder.Laziness.Key;
 import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
-import org.jikesrvm.classloader.VM_Atom;
-import org.jikesrvm.classloader.VM_BytecodeConstants;
-import org.jikesrvm.classloader.VM_Class;
-import org.jikesrvm.classloader.VM_MemberReference;
-import org.jikesrvm.classloader.VM_Method;
-import org.jikesrvm.classloader.VM_MethodReference;
-import org.jikesrvm.classloader.VM_TypeReference;
-import org.jikesrvm.compilers.opt.OPT_Constants;
-import org.jikesrvm.compilers.opt.OPT_InlineDecision;
+import org.jikesrvm.classloader.Atom;
+import org.jikesrvm.classloader.BytecodeConstants;
+import org.jikesrvm.classloader.RVMClass;
+import org.jikesrvm.classloader.MemberReference;
+import org.jikesrvm.classloader.RVMMethod;
+import org.jikesrvm.classloader.MethodReference;
+import org.jikesrvm.classloader.TypeReference;
+import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
+import org.jikesrvm.compilers.opt.driver.OptConstants;
+import org.jikesrvm.compilers.opt.inlining.InlineDecision;
+import org.jikesrvm.compilers.opt.inlining.Inliner;
 import org.jikesrvm.compilers.opt.ir.Athrow;
 import org.jikesrvm.compilers.opt.ir.BBend;
 import org.jikesrvm.compilers.opt.ir.Call;
@@ -39,28 +41,26 @@ import org.jikesrvm.compilers.opt.ir.IfCmp2;
 import org.jikesrvm.compilers.opt.ir.LookupSwitch;
 import org.jikesrvm.compilers.opt.ir.Move;
 import org.jikesrvm.compilers.opt.ir.New;
-import org.jikesrvm.compilers.opt.ir.OPT_AddressConstantOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_BasicBlock;
-import org.jikesrvm.compilers.opt.ir.OPT_BranchOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_BranchProfileOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_ConditionOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
-import org.jikesrvm.compilers.opt.ir.OPT_Inliner;
-import org.jikesrvm.compilers.opt.ir.OPT_Instruction;
-import org.jikesrvm.compilers.opt.ir.OPT_IntConstantOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_MethodOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_Operand;
-import org.jikesrvm.compilers.opt.ir.OPT_Operator;
-import org.jikesrvm.compilers.opt.ir.OPT_Operators;
-import org.jikesrvm.compilers.opt.ir.OPT_Register;
-import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_TrueGuardOperand;
-import org.jikesrvm.compilers.opt.ir.OPT_TypeOperand;
+import org.jikesrvm.compilers.opt.ir.BasicBlock;
+import org.jikesrvm.compilers.opt.ir.HIRGenerator;
+import org.jikesrvm.compilers.opt.ir.Instruction;
+import org.jikesrvm.compilers.opt.ir.Operator;
+import org.jikesrvm.compilers.opt.ir.Operators;
+import org.jikesrvm.compilers.opt.ir.Register;
+import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
+import org.jikesrvm.compilers.opt.ir.operand.BranchProfileOperand;
+import org.jikesrvm.compilers.opt.ir.operand.ConditionOperand;
+import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
+import org.jikesrvm.compilers.opt.ir.operand.MethodOperand;
+import org.jikesrvm.compilers.opt.ir.operand.AddressConstantOperand;
+import org.jikesrvm.compilers.opt.ir.operand.Operand;
+import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.operand.TrueGuardOperand;
+import org.jikesrvm.compilers.opt.ir.operand.TypeOperand;
 
 /**
  * A collection of common tools used by decoders. The public entry point for the
- * translators is generateHIR(OPT_GenerationContext gc).
+ * translators is generateHIR(GenerationContext gc).
  * 
  * <dl>
  * <dt>Description of the translation algorithm</dt>
@@ -79,47 +79,47 @@ import org.jikesrvm.compilers.opt.ir.OPT_TypeOperand;
  * </dd>
  * </dl>
  */
-public abstract class CodeTranslator implements OPT_Constants,
-    OPT_Operators, OPT_HIRGenerator {
+public abstract class CodeTranslator implements OptConstants,
+    Operators, HIRGenerator {
 
   /** The trace that we're currently translating code for. */
   protected final DBT_Trace trace;
 
-  /** VM_TypeReference of org.binarytranslator.generic.os.process.ProcessSpace */
-  private static final VM_TypeReference psTref;
+  /** TypeReference of org.binarytranslator.generic.os.process.ProcessSpace */
+  private static final TypeReference psTref;
 
   /** Method ProcessSpace.doSysCall */
-  public static final VM_Method sysCallMethod;
+  public static final RVMMethod sysCallMethod;
 
-  /** VM_TypeReference of org.binarytranslator.generic.fault.BadInstructionException */
-  public static final VM_Class badInstrKlass;
+  /** TypeReference of org.binarytranslator.generic.fault.BadInstructionException */
+  public static final RVMClass badInstrKlass;
 
   /** Method BadInstructionException.<init> */
-  public static final VM_Method badInstrKlassInitMethod;
+  public static final RVMMethod badInstrKlassInitMethod;
 
   /** Method ProcessSpace.recordUncaughtBranchBadInstructionException.<init> */
-  public static final VM_Method recordUncaughtBranchMethod;
+  public static final RVMMethod recordUncaughtBranchMethod;
 
   static {
-    psTref = VM_TypeReference.findOrCreate(ProcessSpace.class);
-    VM_MethodReference sysCallMethRef = (VM_MethodReference) VM_MemberReference
-        .findOrCreate(psTref, VM_Atom.findOrCreateAsciiAtom("doSysCall"),
-            VM_Atom.findOrCreateAsciiAtom("()V"));
+    psTref = TypeReference.findOrCreate(ProcessSpace.class);
+    MethodReference sysCallMethRef = (MethodReference) MemberReference
+        .findOrCreate(psTref, Atom.findOrCreateAsciiAtom("doSysCall"),
+            Atom.findOrCreateAsciiAtom("()V"));
     sysCallMethod = sysCallMethRef.resolveInvokeSpecial();
 
-    badInstrKlass = VM_TypeReference.findOrCreate(BadInstructionException.class).resolve().asClass();
+    badInstrKlass = TypeReference.findOrCreate(BadInstructionException.class).resolve().asClass();
 
-    VM_MethodReference badInstrKlassInitMethRef = (VM_MethodReference) VM_MemberReference
+    MethodReference badInstrKlassInitMethRef = (MethodReference) MemberReference
         .findOrCreate(
             badInstrKlass.getTypeRef(),
-            VM_Atom.findOrCreateAsciiAtom("<init>"),
-            VM_Atom
+            Atom.findOrCreateAsciiAtom("<init>"),
+            Atom
                 .findOrCreateAsciiAtom("(ILorg/binarytranslator/generic/os/process/ProcessSpace;)V"));
     badInstrKlassInitMethod = badInstrKlassInitMethRef.resolveInvokeSpecial();
 
-    VM_MethodReference recordUncaughtBranchMethRef = (VM_MethodReference) VM_MemberReference
-        .findOrCreate(psTref, VM_Atom
-            .findOrCreateAsciiAtom("recordUncaughtBranch"), VM_Atom
+    MethodReference recordUncaughtBranchMethRef = (MethodReference) MemberReference
+        .findOrCreate(psTref, Atom
+            .findOrCreateAsciiAtom("recordUncaughtBranch"), Atom
             .findOrCreateAsciiAtom("(IIII)V"));
     recordUncaughtBranchMethod = recordUncaughtBranchMethRef
         .resolveInvokeSpecial();
@@ -132,10 +132,10 @@ public abstract class CodeTranslator implements OPT_Constants,
   public final ProcessSpace ps;
 
   /** The VM method's generation context. */
-  protected final OPT_GenerationContext gc;
+  protected final GenerationContext gc;
 
-  /** The OPT_BasicBlock in which instructions are currently being inserted */
-  protected OPT_BasicBlock currentBlock;
+  /** The BasicBlock in which instructions are currently being inserted */
+  protected BasicBlock currentBlock;
 
   /** The pc value corresponding to the instruction currently being translated */
   protected int currentPC;
@@ -143,19 +143,19 @@ public abstract class CodeTranslator implements OPT_Constants,
   /** The pc value of the first instruction in the trace */
   protected int startingPC;
 
-  /** The OPT_BasicBlock which will contain the next translated instruction */
-  protected OPT_BasicBlock nextBlock;
+  /** The BasicBlock which will contain the next translated instruction */
+  protected BasicBlock nextBlock;
 
   /**
    * The basic block is used by finish trace to hold all the code that must be
    * executed before returning to the main run loop
    */
-  protected OPT_BasicBlock finishBlock;
+  protected BasicBlock finishBlock;
 
   /**
    * This block gets instructions to pre-fill registers inserted into it.
    */
-  protected OPT_BasicBlock preFillBlock;
+  protected BasicBlock preFillBlock;
   
   /** 
    * This variable is being set by a call to {@link #printTraceAfterCompletion()} and notifies
@@ -163,14 +163,14 @@ public abstract class CodeTranslator implements OPT_Constants,
   private boolean printTraceAfterCompletionRequested;
 
   /** Map to locate HIR basic blocks to re-use translation within a trace */
-  protected final HashMap<Laziness.Key, OPT_BasicBlock> blockMap;
+  protected final HashMap<Laziness.Key, BasicBlock> blockMap;
 
   /** This class stores information about a jump instruction within the current trace, whose
    * target has not yet been resolved. */
   protected final static class UnresolvedJumpInstruction {
     
     /** A reference to the jump instruction within the code. This is either a GOTO or SWITCH instruction. */
-    public final OPT_Instruction instruction;
+    public final Instruction instruction;
 
     /** The lazy state at the jump location. */
     public final Laziness lazyStateAtJump;
@@ -184,7 +184,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     /** Identifies the type of branch. */
     public final BranchType type;
 
-    public UnresolvedJumpInstruction(OPT_Instruction instruction,
+    public UnresolvedJumpInstruction(Instruction instruction,
         Laziness lazyStateAtJump, int pc, int targetPC, BranchType type) {
       this.instruction = instruction;
       this.lazyStateAtJump = lazyStateAtJump;
@@ -210,7 +210,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param context
    *          The JRVM generation context for this trace.
    */
-  protected CodeTranslator(OPT_GenerationContext context, 
+  protected CodeTranslator(GenerationContext context, 
       DBT_Trace trace) {
 
     // Store the trace that we're invoked from
@@ -225,8 +225,8 @@ public abstract class CodeTranslator implements OPT_Constants,
     // Number of translated instructions
     numberOfInstructions = 0;
 
-    // Create map of (PC & laziness) -> OPT_BasicBlock
-    blockMap = new HashMap<Key, OPT_BasicBlock>();
+    // Create map of (PC & laziness) -> BasicBlock
+    blockMap = new HashMap<Key, BasicBlock>();
 
     // Create preFillBlock, currentBlock and finishBlock
     gc.prologue.insertOut(gc.epilogue);
@@ -309,7 +309,7 @@ public abstract class CodeTranslator implements OPT_Constants,
       // Create next block
       nextBlock = createBlockAfterCurrent();
       // Finish block to return and exit
-      appendTraceExit(lazy, new OPT_IntConstantOperand(pc));
+      appendTraceExit(lazy, new IntConstantOperand(pc));
       // Move currentBlock along
       currentBlock = nextBlock;
     } else {
@@ -341,19 +341,19 @@ public abstract class CodeTranslator implements OPT_Constants,
         // Are we translating in single instruction mode
         if (DBT_Options.singleInstrTranslation == true) {
           if (pc != -1) {
-            appendTraceExit(lazy, new OPT_IntConstantOperand(pc));
+            appendTraceExit(lazy, new IntConstantOperand(pc));
           }
 
           break;
         }
 
         // Do we already have a translation for this next block?
-        OPT_BasicBlock possibleNextBlock = findMapping(pc, lazy);
+        BasicBlock possibleNextBlock = findMapping(pc, lazy);
         if (possibleNextBlock != null) {
           // Yes, branch to that and stop translating
           appendInstruction(Goto.create(GOTO, possibleNextBlock
               .makeJumpTarget()));
-          OPT_BasicBlock gotoBlock = currentBlock;
+          BasicBlock gotoBlock = currentBlock;
           currentBlock = createBlockAfterCurrent();
           gotoBlock.deleteNormalOut();
           gotoBlock.insertOut(possibleNextBlock);
@@ -373,7 +373,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * 
    * @return the current block
    */
-  public OPT_BasicBlock getCurrentBlock() {
+  public BasicBlock getCurrentBlock() {
     return currentBlock;
   }
 
@@ -383,7 +383,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * 
    * @return the next block
    */
-  public OPT_BasicBlock getNextBlock() {
+  public BasicBlock getNextBlock() {
     return nextBlock;
   }
 
@@ -393,7 +393,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param newCurrentBlock
    *          the new current basic block
    */
-  public void setCurrentBlock(OPT_BasicBlock newCurrentBlock) {
+  public void setCurrentBlock(BasicBlock newCurrentBlock) {
     currentBlock = newCurrentBlock;
   }
 
@@ -404,7 +404,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param newCurrentBlock
    *          the new next basic block
    */
-  public void setNextBlock(OPT_BasicBlock newNextBlock) {
+  public void setNextBlock(BasicBlock newNextBlock) {
     nextBlock = newNextBlock;
   }
 
@@ -414,9 +414,9 @@ public abstract class CodeTranslator implements OPT_Constants,
    * 
    * @return the new basic block
    */
-  public OPT_BasicBlock createBlockAfterCurrent() {
-    OPT_BasicBlock nxtBlock = currentBlock.nextBasicBlockInCodeOrder();
-    OPT_BasicBlock newBlock = new OPT_BasicBlock(0, gc.inlineSequence, gc.cfg);
+  public BasicBlock createBlockAfterCurrent() {
+    BasicBlock nxtBlock = currentBlock.nextBasicBlockInCodeOrder();
+    BasicBlock newBlock = new BasicBlock(0, gc.inlineSequence, gc.cfg);
 
     gc.cfg.breakCodeOrder(currentBlock, nxtBlock);
     gc.cfg.linkInCodeOrder(currentBlock, newBlock);
@@ -448,9 +448,9 @@ public abstract class CodeTranslator implements OPT_Constants,
    * 
    * @return the new basic block
    */
-  public OPT_BasicBlock createBlockAfterCurrentNotInCFG() {
-    OPT_BasicBlock nxtBlock = currentBlock.nextBasicBlockInCodeOrder();
-    OPT_BasicBlock newBlock = new OPT_BasicBlock(0, gc.inlineSequence, gc.cfg);
+  public BasicBlock createBlockAfterCurrentNotInCFG() {
+    BasicBlock nxtBlock = currentBlock.nextBasicBlockInCodeOrder();
+    BasicBlock newBlock = new BasicBlock(0, gc.inlineSequence, gc.cfg);
 
     gc.cfg.breakCodeOrder(currentBlock, nxtBlock);
     gc.cfg.linkInCodeOrder(currentBlock, newBlock);
@@ -471,9 +471,9 @@ public abstract class CodeTranslator implements OPT_Constants,
    *          The block after which the new block is to be created.
    * @return the new basic block
    */
-  public OPT_BasicBlock createBlockAfter(OPT_BasicBlock afterBlock) {
-    OPT_BasicBlock nxtBlock = afterBlock.nextBasicBlockInCodeOrder();
-    OPT_BasicBlock newBlock = new OPT_BasicBlock(0, gc.inlineSequence, gc.cfg);
+  public BasicBlock createBlockAfter(BasicBlock afterBlock) {
+    BasicBlock nxtBlock = afterBlock.nextBasicBlockInCodeOrder();
+    BasicBlock newBlock = new BasicBlock(0, gc.inlineSequence, gc.cfg);
 
     gc.cfg.breakCodeOrder(afterBlock, nxtBlock);
     gc.cfg.linkInCodeOrder(afterBlock, newBlock);
@@ -499,7 +499,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param i
    *          The instruciton that is to be appended to the current bloc.
    */
-  public void appendInstruction(OPT_Instruction i) {
+  public void appendInstruction(Instruction i) {
     if (i.bcIndex == UNKNOWN_BCI) {
       i.position = gc.inlineSequence;
       // we only have 16bits to distinguish instructions (the bcIndex
@@ -518,7 +518,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param likely
    *          Does this branch have a likely hint?
    */
-  public OPT_BranchProfileOperand getConditionalBranchProfileOperand(
+  public BranchProfileOperand getConditionalBranchProfileOperand(
       boolean likely) {
     return gc.getConditionalBranchProfileOperand(
         ((currentPC - startingPC) >> 4) & 0x7FFF, likely);
@@ -538,7 +538,7 @@ public abstract class CodeTranslator implements OPT_Constants,
   /**
    * Get the generation context.
    */
-  public final OPT_GenerationContext getGenerationContext() {
+  public final GenerationContext getGenerationContext() {
     return gc;
   }
 
@@ -552,7 +552,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param hirBlock
    *          The block that is to be registered.
    */
-  protected final void registerMapping(int pc, Laziness lazy, OPT_BasicBlock hirBlock) {
+  protected final void registerMapping(int pc, Laziness lazy, BasicBlock hirBlock) {
     blockMap.put(lazy.makeKey(pc), hirBlock);
   }
 
@@ -566,7 +566,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    *          The lazy state assumed within the returned trace.
    * @return An appropriate basic block or null if no translation exists.
    */
-  protected final OPT_BasicBlock findMapping(int pc, Laziness lazy) {
+  protected final BasicBlock findMapping(int pc, Laziness lazy) {
     return blockMap.get(lazy.makeKey(pc));
   }
 
@@ -594,7 +594,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param targetLaziness
    *          The current at the point of jump.
    */
-  public void appendConditionalBranch(OPT_Instruction conditional, int targetPC, Laziness targetLaziness) {
+  public void appendConditionalBranch(Instruction conditional, int targetPC, Laziness targetLaziness) {
     
     if (DBT.VerifyAssertions) DBT._assert(IfCmp.conforms(conditional) || IfCmp2.conforms(conditional));
     appendStaticBranch(conditional, targetPC, targetLaziness, BranchType.DIRECT_BRANCH, -1);
@@ -617,7 +617,7 @@ public abstract class CodeTranslator implements OPT_Constants,
     appendStaticBranch(Goto.create(GOTO, null), targetPC, targetLaziness, BranchType.CALL, retAddr);
   }
 
-  private void appendStaticBranch(OPT_Instruction branch, int targetPC, Laziness targetLaziness, BranchType branchType, int retAddr) {
+  private void appendStaticBranch(Instruction branch, int targetPC, Laziness targetLaziness, BranchType branchType, int retAddr) {
     // Place a GOTO instruction at this point. However, this instruction
     // serves more as a placeholder and might be mutated later on.
     appendInstruction(branch);
@@ -647,7 +647,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param retAddr
    *  The address, to which the function call will (most likely) return.
    */
-  public void appendCall(OPT_RegisterOperand targetAddress, Laziness lazyStateAtJump, int retAddr) {
+  public void appendCall(RegisterOperand targetAddress, Laziness lazyStateAtJump, int retAddr) {
     
     appendDynamicBranch(targetAddress, lazyStateAtJump, BranchType.CALL, retAddr);
   }
@@ -663,7 +663,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param branchType
    *  The type of jump.
    */
-  public void appendBranch(OPT_RegisterOperand targetAddress, Laziness lazyStateAtJump, BranchType branchType) {
+  public void appendBranch(RegisterOperand targetAddress, Laziness lazyStateAtJump, BranchType branchType) {
     
     if (DBT.VerifyAssertions && branchType == BranchType.CALL) throw new RuntimeException("Use the more specific appendCall to create dynamic calls.");
     
@@ -684,10 +684,10 @@ public abstract class CodeTranslator implements OPT_Constants,
    *  The address, to which the function call will (most likely) return or an arbitrary value, if
    *  branchType is not BranchType.CALL.
    */
-  private void appendDynamicBranch(OPT_RegisterOperand targetAddress, Laziness lazyStateAtJump, BranchType branchType, int retAddr) {
+  private void appendDynamicBranch(RegisterOperand targetAddress, Laziness lazyStateAtJump, BranchType branchType, int retAddr) {
     
-    OPT_BasicBlock fallThrough = createBlockAfterCurrent();
-    OPT_Instruction switchInstr;
+    BasicBlock fallThrough = createBlockAfterCurrent();
+    Instruction switchInstr;
     switchInstr = LookupSwitch.create(LOOKUPSWITCH, targetAddress.copyRO(), null, null, fallThrough.makeJumpTarget(), null, 0);
     appendInstruction(switchInstr);
     
@@ -709,8 +709,8 @@ public abstract class CodeTranslator implements OPT_Constants,
       UnresolvedJumpInstruction unresolvedInstr = unresolvedDirectBranches.remove(0);
       int targetPc = unresolvedInstr.targetPC;
       Laziness lazyStateAtJump = unresolvedInstr.lazyStateAtJump;
-      OPT_Instruction gotoInstr = unresolvedInstr.instruction;
-      OPT_BasicBlock targetBB = resolveBranchTarget(targetPc, unresolvedInstr);
+      Instruction gotoInstr = unresolvedInstr.instruction;
+      BasicBlock targetBB = resolveBranchTarget(targetPc, unresolvedInstr);
 
       if (DBT_Options.debugBranchResolution) {
         report("Resolved goto in block " + gotoInstr.getBasicBlock()
@@ -730,7 +730,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param target
    *  The jump target.
    */
-  private void setBranchTarget(OPT_Instruction branch, OPT_BranchOperand target) {
+  private void setBranchTarget(Instruction branch, BranchOperand target) {
     if (Goto.conforms(branch)) {
       Goto.setTarget(branch, target);
     }
@@ -811,9 +811,9 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @return A basic block that is equivalent to the program counter address
    *         <code>targetPc</code> in the original binary.
    */
-  private OPT_BasicBlock resolveBranchTarget(int targetPc, UnresolvedJumpInstruction jump) {
+  private BasicBlock resolveBranchTarget(int targetPc, UnresolvedJumpInstruction jump) {
     // Resolve the address of the target block
-    OPT_BasicBlock targetBB = findMapping(targetPc, jump.lazyStateAtJump);
+    BasicBlock targetBB = findMapping(targetPc, jump.lazyStateAtJump);
 
     // If the target is already part of this trace, then just use the
     // precompiled target
@@ -828,7 +828,7 @@ public abstract class CodeTranslator implements OPT_Constants,
 
       //Just exit the trace and continue at the target address in a new trace
       targetBB = currentBlock;
-      appendTraceExit(jump.lazyStateAtJump, new OPT_IntConstantOperand(targetPc));
+      appendTraceExit(jump.lazyStateAtJump, new IntConstantOperand(targetPc));
       registerMapping(targetPc, jump.lazyStateAtJump, targetBB);
     } 
     else {
@@ -845,7 +845,7 @@ public abstract class CodeTranslator implements OPT_Constants,
 
   /**
    * Resolves all dynamic branches that have been added with
-   * {@link #appendBranch(OPT_RegisterOperand, Laziness, BranchType)}.
+   * {@link #appendBranch(RegisterOperand, Laziness, BranchType)}.
    */
   private void resolveAllDynamicBranches() {
 
@@ -860,7 +860,7 @@ public abstract class CodeTranslator implements OPT_Constants,
 
   /**
    * Resolves a single dynamic jump that has previously been created with
-   * {@link #appendBranch(OPT_RegisterOperand, Laziness, BranchType)}.
+   * {@link #appendBranch(RegisterOperand, Laziness, BranchType)}.
    * 
    * @param lazy
    *          The lazy state of the jump that is to be resolved.
@@ -877,41 +877,41 @@ public abstract class CodeTranslator implements OPT_Constants,
     if (DBT.VerifyAssertions)
       DBT._assert(LookupSwitch.conforms(unresolvedJump.instruction));
 
-    OPT_Instruction lookupswitch = unresolvedJump.instruction;
-    OPT_BranchOperand default_target = LookupSwitch.getDefault(lookupswitch);
-    OPT_Operand value = LookupSwitch.getValue(lookupswitch);
+    Instruction lookupswitch = unresolvedJump.instruction;
+    BranchOperand default_target = LookupSwitch.getDefault(lookupswitch);
+    Operand value = LookupSwitch.getValue(lookupswitch);
 
     if (destinations != null && destinations.size() > 0) {
       if ((destinations.size() > 1)
           || (lookupswitch.getBasicBlock().nextBasicBlockInCodeOrder() != default_target.target
               .getBasicBlock())) {
-        float branchProb = (1.0f - OPT_BranchProfileOperand.UNLIKELY)
+        float branchProb = (1.0f - BranchProfileOperand.UNLIKELY)
             / (float) destinations.size();
         LookupSwitch.mutate(lookupswitch, LOOKUPSWITCH, value, null, null,
-            default_target, OPT_BranchProfileOperand.unlikely(), destinations
+            default_target, BranchProfileOperand.unlikely(), destinations
                 .size() * 3);
         int match_no = 0;
         for (int dest_pc : destinations) {
 
-          OPT_BasicBlock target = resolveBranchTarget(dest_pc, unresolvedJump);
+          BasicBlock target = resolveBranchTarget(dest_pc, unresolvedJump);
 
           LookupSwitch.setMatch(lookupswitch, match_no,
-              new OPT_IntConstantOperand(dest_pc));
+              new IntConstantOperand(dest_pc));
           LookupSwitch.setTarget(lookupswitch, match_no, target
               .makeJumpTarget());
           LookupSwitch.setBranchProfile(lookupswitch, match_no,
-              new OPT_BranchProfileOperand(branchProb));
+              new BranchProfileOperand(branchProb));
           lookupswitch.getBasicBlock().insertOut(target);
           match_no++;
         }
       } else {
         int dest_pc = destinations.iterator().next();
 
-        OPT_BasicBlock target = resolveBranchTarget(dest_pc, unresolvedJump);
+        BasicBlock target = resolveBranchTarget(dest_pc, unresolvedJump);
 
         IfCmp.mutate(lookupswitch, INT_IFCMP, null, value,
-            new OPT_IntConstantOperand(dest_pc), OPT_ConditionOperand.EQUAL(),
-            target.makeJumpTarget(), OPT_BranchProfileOperand.likely());
+            new IntConstantOperand(dest_pc), ConditionOperand.EQUAL(),
+            target.makeJumpTarget(), BranchProfileOperand.likely());
         lookupswitch.getBasicBlock().insertOut(target);
       }
     } else {
@@ -927,11 +927,11 @@ public abstract class CodeTranslator implements OPT_Constants,
    *          return value for translated code (the PC value of the next
    *          instruction to translate)
    */
-  public void appendTraceExit(Laziness laziness, OPT_Operand nextPc) {
+  public void appendTraceExit(Laziness laziness, Operand nextPc) {
 
     // Copy the value into the register specified by gc.resultReg.
-    appendInstruction(Move.create(INT_MOVE, new OPT_RegisterOperand(
-        gc.resultReg, VM_TypeReference.Int), nextPc.copy()));
+    appendInstruction(Move.create(INT_MOVE, new RegisterOperand(
+        gc.resultReg, TypeReference.Int), nextPc.copy()));
     resolveLaziness((Laziness)laziness.clone());
     appendInstruction(Goto.create(GOTO, finishBlock.makeJumpTarget()));
     currentBlock.deleteNormalOut();
@@ -992,7 +992,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    * Load all the registers from the ProcessSpace into the pre-fill block
    */
   private void preFillAllRegisters() {
-    OPT_BasicBlock temp = currentBlock;
+    BasicBlock temp = currentBlock;
     currentBlock = preFillBlock;
     fillAllRegisters();
     ps.memory.initTranslate(this); // Set up memory
@@ -1003,20 +1003,20 @@ public abstract class CodeTranslator implements OPT_Constants,
    * Eliminate unnecessary register spill and fill code - ie a register wasn't
    * used so eliminate references to it
    */
-  protected void eliminateRegisterFills(OPT_Register unusedRegisters[]) {
+  protected void eliminateRegisterFills(Register unusedRegisters[]) {
     if (unusedRegisters.length > 0) {
-      OPT_BasicBlock curBB = gc.prologue;
+      BasicBlock curBB = gc.prologue;
       while (curBB != null) {
-        OPT_Instruction curInstr = curBB.firstInstruction();
+        Instruction curInstr = curBB.firstInstruction();
         loop_over_instructions: while (BBend.conforms(curInstr) == false) {
           for (Enumeration du = curInstr.getRootOperands(); du
               .hasMoreElements();) {
-            OPT_Operand curOp = (OPT_Operand) du.nextElement();
+            Operand curOp = (Operand) du.nextElement();
             if (curOp.isRegister()) {
-              OPT_Register curReg = curOp.asRegister().register;
+              Register curReg = curOp.asRegister().register;
               for (int i = 0; i < unusedRegisters.length; i++) {
                 if (unusedRegisters[i] == curReg) {
-                  OPT_Instruction toRemove = curInstr;
+                  Instruction toRemove = curInstr;
                   curInstr = curInstr.nextInstructionInCodeOrder();
                   toRemove.remove();
                   continue loop_over_instructions;
@@ -1046,18 +1046,18 @@ public abstract class CodeTranslator implements OPT_Constants,
     spillAllRegisters();
 
     // Plant call
-    OPT_Instruction s = Call.create(CALL, null, null, null, null, 1);
+    Instruction s = Call.create(CALL, null, null, null, null, 1);
 
-    OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(sysCallMethod
+    MethodOperand methOp = MethodOperand.VIRTUAL(sysCallMethod
         .getMemberRef().asMethodReference(), sysCallMethod);
 
-    OPT_Operand psRef = gc.makeLocal(1, psTref);
+    Operand psRef = gc.makeLocal(1, psTref);
     Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer for
     // doSysCall
-    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setGuard(s, new TrueGuardOperand());
     Call.setMethod(s, methOp);
     Call.setAddress(s,
-        new OPT_AddressConstantOperand(sysCallMethod.getOffset()));
+        new AddressConstantOperand(sysCallMethod.getOffset()));
     s.position = gc.inlineSequence;
     s.bcIndex = DBT_Trace.DO_SYSCALL;
     appendInstruction(s);
@@ -1081,9 +1081,9 @@ public abstract class CodeTranslator implements OPT_Constants,
     resolveLaziness(lazy);
     spillAllRegisters();
 
-    OPT_Operator newOperator;
-    OPT_TypeOperand typeOperand = new OPT_TypeOperand(badInstrKlass);
-    VM_TypeReference eTref = badInstrKlass.getTypeRef();
+    Operator newOperator;
+    TypeOperand typeOperand = new TypeOperand(badInstrKlass);
+    TypeReference eTref = badInstrKlass.getTypeRef();
 
     if (badInstrKlass.isInitialized() || badInstrKlass.isInBootImage()) {
       newOperator = NEW;
@@ -1091,37 +1091,37 @@ public abstract class CodeTranslator implements OPT_Constants,
       newOperator = NEW_UNRESOLVED;
     }
 
-    OPT_RegisterOperand eRef = gc.temps.makeTemp(eTref);
-    OPT_Instruction n = New.create(newOperator, eRef, typeOperand);
+    RegisterOperand eRef = gc.temps.makeTemp(eTref);
+    Instruction n = New.create(newOperator, eRef, typeOperand);
     n.position = gc.inlineSequence;
     n.bcIndex = DBT_Trace.BAD_INSTRUCTION_NEW;
     appendInstruction(n);
 
-    OPT_Operand psRef = gc.makeLocal(1, psTref);
-    OPT_Instruction c = Call.create(CALL, null, null, null, null, 3);
-    OPT_MethodOperand methOp = OPT_MethodOperand.SPECIAL(
+    Operand psRef = gc.makeLocal(1, psTref);
+    Instruction c = Call.create(CALL, null, null, null, null, 3);
+    MethodOperand methOp = MethodOperand.SPECIAL(
         badInstrKlassInitMethod.getMemberRef().asMethodReference(),
         badInstrKlassInitMethod);
     Call.setParam(c, 0, eRef.copy()); // 'this' pointer in
     // BadInstructionException.init
-    Call.setParam(c, 1, new OPT_IntConstantOperand(pc));
+    Call.setParam(c, 1, new IntConstantOperand(pc));
     Call.setParam(c, 2, psRef);
-    Call.setGuard(c, new OPT_TrueGuardOperand());
+    Call.setGuard(c, new TrueGuardOperand());
     Call.setMethod(c, methOp);
-    Call.setAddress(c, new OPT_AddressConstantOperand(badInstrKlassInitMethod
+    Call.setAddress(c, new AddressConstantOperand(badInstrKlassInitMethod
         .getOffset()));
     c.position = gc.inlineSequence;
     c.bcIndex = DBT_Trace.BAD_INSTRUCTION_INIT;
 
     appendInstruction(c);
 
-    OPT_Instruction t = Athrow.create(ATHROW, eRef.copyRO());
+    Instruction t = Athrow.create(ATHROW, eRef.copyRO());
     t.position = gc.inlineSequence;
     t.bcIndex = DBT_Trace.BAD_INSTRUCTION_THROW;
 
     appendInstruction(t);
 
-    appendTraceExit(lazy, new OPT_IntConstantOperand(0xEBADC0DE));
+    appendTraceExit(lazy, new IntConstantOperand(0xEBADC0DE));
   }
 
   /**
@@ -1137,26 +1137,26 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param retAddr
    *  An optional return address, in case the branch is a call. Otherwise, this value is ignored.
    */
-  private void appendRecordUncaughtBranch(int pc, OPT_RegisterOperand destination, BranchType branchType, int retAddr) {
+  private void appendRecordUncaughtBranch(int pc, RegisterOperand destination, BranchType branchType, int retAddr) {
     // Is it sensible to record this information?
     if ((gc.options.getOptLevel() > 0)
         && (DBT_Options.plantUncaughtBranchWatcher)) {
       // Plant call
-      OPT_Instruction s = Call.create(CALL, null, null, null, null, 5);
-      OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(
+      Instruction s = Call.create(CALL, null, null, null, null, 5);
+      MethodOperand methOp = MethodOperand.VIRTUAL(
           recordUncaughtBranchMethod.getMemberRef().asMethodReference(),
           recordUncaughtBranchMethod);
-      OPT_Operand psRef = gc.makeLocal(1, psTref);
+      Operand psRef = gc.makeLocal(1, psTref);
       Call.setParam(s, 0, psRef); // Reference to ps, sets 'this' pointer
-      Call.setParam(s, 1, new OPT_IntConstantOperand(pc)); // Address of branch
+      Call.setParam(s, 1, new IntConstantOperand(pc)); // Address of branch
       // instruction
       Call.setParam(s, 2, destination.copy()); // Destination of branch value
-      Call.setParam(s, 3, new OPT_IntConstantOperand(branchType.ordinal())); // Branch type
-      Call.setParam(s, 4, new OPT_IntConstantOperand(retAddr)); // return address
+      Call.setParam(s, 3, new IntConstantOperand(branchType.ordinal())); // Branch type
+      Call.setParam(s, 4, new IntConstantOperand(retAddr)); // return address
       // value
-      Call.setGuard(s, new OPT_TrueGuardOperand());
+      Call.setGuard(s, new TrueGuardOperand());
       Call.setMethod(s, methOp);
-      Call.setAddress(s, new OPT_AddressConstantOperand(
+      Call.setAddress(s, new AddressConstantOperand(
           recordUncaughtBranchMethod.getOffset()));
       s.position = gc.inlineSequence;
       s.bcIndex = DBT_Trace.RECORD_BRANCH;
@@ -1165,7 +1165,7 @@ public abstract class CodeTranslator implements OPT_Constants,
   }
 
   /** Temporary int variables */
-  private OPT_Register intTemps[];
+  private Register intTemps[];
 
   /**
    * Get/create a temporary int
@@ -1173,25 +1173,25 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param num
    *          a hint to allow for reuse of temps across instructions
    */
-  public OPT_RegisterOperand getTempInt(int num) {
+  public RegisterOperand getTempInt(int num) {
     if (DBT.VerifyAssertions) DBT._assert(num < 10);
     
     if (intTemps == null) {
-      intTemps = new OPT_Register[10];
+      intTemps = new Register[10];
     }
     
-    OPT_Register result = intTemps[num];
+    Register result = intTemps[num];
     if (result == null) {
-      OPT_RegisterOperand regOp = gc.temps.makeTempInt();
+      RegisterOperand regOp = gc.temps.makeTempInt();
       intTemps[num] = regOp.register;
       return regOp;
     } else {
-      return new OPT_RegisterOperand(result, VM_TypeReference.Int);
+      return new RegisterOperand(result, TypeReference.Int);
     }
   }
 
   /** Temporary long variables */
-  private OPT_Register longTemps[];
+  private Register longTemps[];
 
   /**
    * Get/create a temporary long
@@ -1199,26 +1199,26 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param num
    *          a hint to allow for reuse of temps across instructions
    */
-  public OPT_RegisterOperand getTempLong(int num) {
+  public RegisterOperand getTempLong(int num) {
     if (DBT.VerifyAssertions) DBT._assert(num < 10);
     
     if (longTemps == null) {
-      longTemps = new OPT_Register[10];
+      longTemps = new Register[10];
     }
     
-    OPT_Register result = longTemps[num];
+    Register result = longTemps[num];
     
     if (result == null) {
-      OPT_RegisterOperand regOp = gc.temps.makeTempLong();
+      RegisterOperand regOp = gc.temps.makeTempLong();
       longTemps[num] = regOp.register;
       return regOp;
     } else {
-      return new OPT_RegisterOperand(result, VM_TypeReference.Long);
+      return new RegisterOperand(result, TypeReference.Long);
     }
   }
 
   /** Temporary intArray variables */
-  private OPT_Register intArrayTemp;
+  private Register intArrayTemp;
 
   /**
    * Get/create a temporary intArray
@@ -1226,22 +1226,22 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param num
    *          a hint to allow for reuse of temps across instructions
    */
-  public OPT_RegisterOperand getTempIntArray(int num) {
+  public RegisterOperand getTempIntArray(int num) {
     if (DBT.VerifyAssertions)
       DBT._assert(num == 0);
 
-    OPT_Register result = intArrayTemp;
+    Register result = intArrayTemp;
     if (result == null) {
-      OPT_RegisterOperand regOp = gc.temps.makeTemp(VM_TypeReference.IntArray);
+      RegisterOperand regOp = gc.temps.makeTemp(TypeReference.IntArray);
       intArrayTemp = regOp.register;
       return regOp;
     } else {
-      return new OPT_RegisterOperand(result, VM_TypeReference.IntArray);
+      return new RegisterOperand(result, TypeReference.IntArray);
     }
   }
 
   /** Temporary float variables */
-  private OPT_Register floatTemps[];
+  private Register floatTemps[];
 
   /**
    * Get/create a temporary float
@@ -1249,24 +1249,24 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param num
    *          a hint to allow for reuse of temps across instructions
    */
-  public OPT_RegisterOperand getTempFloat(int num) {
+  public RegisterOperand getTempFloat(int num) {
     if (DBT.VerifyAssertions)
       DBT._assert(num == 0 || num == 1);
     if (floatTemps == null) {
-      floatTemps = new OPT_Register[2];
+      floatTemps = new Register[2];
     }
-    OPT_Register result = floatTemps[num];
+    Register result = floatTemps[num];
     if (result == null) {
-      OPT_RegisterOperand regOp = gc.temps.makeTempFloat();
+      RegisterOperand regOp = gc.temps.makeTempFloat();
       floatTemps[num] = regOp.register;
       return regOp;
     } else {
-      return new OPT_RegisterOperand(result, VM_TypeReference.Float);
+      return new RegisterOperand(result, TypeReference.Float);
     }
   }
 
   /** Temporary Double variables */
-  private OPT_Register doubleTemp;
+  private Register doubleTemp;
 
   /**
    * Get/create a temporary float
@@ -1274,22 +1274,22 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param num
    *          a hint to allow for reuse of temps across instructions
    */
-  public OPT_RegisterOperand getTempDouble(int num) {
+  public RegisterOperand getTempDouble(int num) {
     if (DBT.VerifyAssertions)
       DBT._assert(num == 0);
     
-    OPT_Register result = doubleTemp;
+    Register result = doubleTemp;
     if (result == null) {
-      OPT_RegisterOperand regOp = gc.temps.makeTempDouble();
+      RegisterOperand regOp = gc.temps.makeTempDouble();
       doubleTemp = regOp.register;
       return regOp;
     } else {
-      return new OPT_RegisterOperand(result, VM_TypeReference.Double);
+      return new RegisterOperand(result, TypeReference.Double);
     }
   }
 
   /** Temporary validation variables */
-  private OPT_Register validationTemp;
+  private Register validationTemp;
 
   /**
    * Get/create a temporary validation variable
@@ -1297,17 +1297,17 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param num
    *          a hint to allow for reuse of temps across instructions
    */
-  public OPT_RegisterOperand getTempValidation(int num) {
+  public RegisterOperand getTempValidation(int num) {
     if (DBT.VerifyAssertions)
       DBT._assert(num == 0);
 
-    OPT_Register result = validationTemp;
+    Register result = validationTemp;
     if (result == null) {
-      OPT_RegisterOperand regOp = gc.temps.makeTempValidation();
+      RegisterOperand regOp = gc.temps.makeTempValidation();
       validationTemp = regOp.register;
       return regOp;
     } else {
-      return new OPT_RegisterOperand(result, VM_TypeReference.VALIDATION_TYPE);
+      return new RegisterOperand(result, TypeReference.VALIDATION_TYPE);
     }
   }
 
@@ -1329,32 +1329,32 @@ public abstract class CodeTranslator implements OPT_Constants,
     spillAllRegisters();
 
     // Prepare a local variable of type Interpreter
-    VM_TypeReference interpreterTypeRef = VM_TypeReference
+    TypeReference interpreterTypeRef = TypeReference
         .findOrCreate(Interpreter.class);
-    OPT_RegisterOperand interpreter = gc.temps.makeTemp(interpreterTypeRef);
+    RegisterOperand interpreter = gc.temps.makeTemp(interpreterTypeRef);
 
     // Plant a call to createInstructionInterpreter().
-    OPT_Instruction s = Call.create(CALL, null, null, null, null, 1);
+    Instruction s = Call.create(CALL, null, null, null, null, 1);
 
-    VM_MethodReference getInterpreterMethodRef = (VM_MethodReference) VM_MemberReference
-        .findOrCreate(psTref, VM_Atom
-            .findOrCreateAsciiAtom("createInstructionInterpreter"), VM_Atom
+    MethodReference getInterpreterMethodRef = (MethodReference) MemberReference
+        .findOrCreate(psTref, Atom
+            .findOrCreateAsciiAtom("createInstructionInterpreter"), Atom
             .findOrCreateAsciiAtom("()Lorg.binarytranslator.generic.decoder.Interpreter;"));
-    VM_Method getInterpreterMethod = getInterpreterMethodRef
+    RVMMethod getInterpreterMethod = getInterpreterMethodRef
         .resolveInterfaceMethod();
 
-    OPT_MethodOperand methOp = OPT_MethodOperand.INTERFACE(
+    MethodOperand methOp = MethodOperand.INTERFACE(
         getInterpreterMethodRef, getInterpreterMethod);
-    OPT_Operand psRef = gc.makeLocal(1, psTref);
+    Operand psRef = gc.makeLocal(1, psTref);
 
     if (DBT.VerifyAssertions)
       DBT._assert(psRef != null && getInterpreterMethod != null
           && interpreter != null && methOp != null);
 
     Call.setParam(s, 0, psRef);
-    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setGuard(s, new TrueGuardOperand());
     Call.setMethod(s, methOp);
-    Call.setAddress(s, new OPT_AddressConstantOperand(getInterpreterMethod
+    Call.setAddress(s, new AddressConstantOperand(getInterpreterMethod
         .getOffset()));
     Call.setResult(s, interpreter);
     
@@ -1362,51 +1362,51 @@ public abstract class CodeTranslator implements OPT_Constants,
 
     // then use the returned instruction interpreter to interpret the
     // instruction
-    VM_TypeReference instructionTypeRef = VM_TypeReference
+    TypeReference instructionTypeRef = TypeReference
         .findOrCreate(Interpreter.Instruction.class);
-    OPT_RegisterOperand instruction = gc.temps.makeTemp(instructionTypeRef);
+    RegisterOperand instruction = gc.temps.makeTemp(instructionTypeRef);
 
     s = Call.create(CALL, null, null, null, null, 1);
 
-    VM_MethodReference decodeMethodRef = (VM_MethodReference) VM_MemberReference
-        .findOrCreate(interpreterTypeRef, VM_Atom
-            .findOrCreateAsciiAtom("decode"), VM_Atom
+    MethodReference decodeMethodRef = (MethodReference) MemberReference
+        .findOrCreate(interpreterTypeRef, Atom
+            .findOrCreateAsciiAtom("decode"), Atom
             .findOrCreateAsciiAtom("(I)Lorg.binarytranslator.generic.decoder.Interpreter.Instruction;"));
-    VM_Method decodeMethod = decodeMethodRef.resolveInterfaceMethod();
+    RVMMethod decodeMethod = decodeMethodRef.resolveInterfaceMethod();
 
-    methOp = OPT_MethodOperand.INTERFACE(decodeMethodRef, decodeMethod);
+    methOp = MethodOperand.INTERFACE(decodeMethodRef, decodeMethod);
 
     if (DBT.VerifyAssertions)
       DBT._assert(decodeMethod != null && methOp != null && instruction != null
           && interpreter != null);
 
     Call.setParam(s, 0, interpreter);
-    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setGuard(s, new TrueGuardOperand());
     Call.setMethod(s, methOp);
-    Call.setAddress(s, new OPT_AddressConstantOperand(decodeMethod.getOffset()));
+    Call.setAddress(s, new AddressConstantOperand(decodeMethod.getOffset()));
     Call.setResult(s, instruction);
 
     appendCustomCall(s);
 
     // finally, call the execute method on the instruction
-    VM_MethodReference executeMethodRef = (VM_MethodReference) VM_MemberReference
-        .findOrCreate(instructionTypeRef, VM_Atom
-            .findOrCreateAsciiAtom("execute"), VM_Atom
+    MethodReference executeMethodRef = (MethodReference) MemberReference
+        .findOrCreate(instructionTypeRef, Atom
+            .findOrCreateAsciiAtom("execute"), Atom
             .findOrCreateAsciiAtom("()V"));
-    VM_Method executeMethod = executeMethodRef.resolveInterfaceMethod();
+    RVMMethod executeMethod = executeMethodRef.resolveInterfaceMethod();
 
     s = Call.create(CALL, null, null, null, null, 1);
-    methOp = OPT_MethodOperand.INTERFACE(executeMethodRef, executeMethod);
+    methOp = MethodOperand.INTERFACE(executeMethodRef, executeMethod);
 
     if (DBT.VerifyAssertions)
       DBT._assert(executeMethod != null && methOp != null
           && instruction != null);
 
     Call.setParam(s, 0, instruction);
-    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setGuard(s, new TrueGuardOperand());
     Call.setMethod(s, methOp);
     Call.setAddress(s,
-        new OPT_AddressConstantOperand(executeMethod.getOffset()));
+        new AddressConstantOperand(executeMethod.getOffset()));
 
     appendCustomCall(s);
 
@@ -1420,7 +1420,7 @@ public abstract class CodeTranslator implements OPT_Constants,
   }
 
   /** Make a temporary register */
-  public OPT_RegisterOperand makeTemp(VM_TypeReference type) {
+  public RegisterOperand makeTemp(TypeReference type) {
     return gc.temps.makeTemp(type);
   }
 
@@ -1434,7 +1434,7 @@ public abstract class CodeTranslator implements OPT_Constants,
    *          The number of blocks following <code>block</code> that shall be
    *          printed.
    */
-  public void printNextBlocks(OPT_BasicBlock block, int count) {
+  public void printNextBlocks(BasicBlock block, int count) {
     do {
       block.printExtended();
       block = block.nextBasicBlockInCodeOrder();
@@ -1447,20 +1447,20 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param callInstruction
    *          The call instruction that shall be added to the current block.
    */
-  public void appendCustomCall(OPT_Instruction callInstruction) {
+  public void appendCustomCall(Instruction callInstruction) {
     if (DBT.VerifyAssertions)
       DBT._assert(Call.conforms(callInstruction));
 
-    OPT_MethodOperand methOp = Call.getMethod(callInstruction);
-    VM_MethodReference methodRef = methOp.getMemberRef().asMethodReference();
+    MethodOperand methOp = Call.getMethod(callInstruction);
+    MethodReference methodRef = methOp.getMemberRef().asMethodReference();
     int callType;
 
     if (methOp.isVirtual())
-      callType = VM_BytecodeConstants.JBC_invokespecial;
+      callType = BytecodeConstants.JBC_invokespecial;
     else if (methOp.isInterface())
-      callType = VM_BytecodeConstants.JBC_invokeinterface;
+      callType = BytecodeConstants.JBC_invokeinterface;
     else if (methOp.isSpecial())
-      callType = VM_BytecodeConstants.JBC_invokespecial;
+      callType = BytecodeConstants.JBC_invokespecial;
     else
       throw new RuntimeException(
           "Unknown call type in call to appendCustomCall().");
@@ -1479,34 +1479,34 @@ public abstract class CodeTranslator implements OPT_Constants,
    * @param ir the governing IR
    * @param callSite the call site to inline
    */
-  public void appendInlinedCall(OPT_Instruction callSite) {
+  public void appendInlinedCall(Instruction callSite) {
     
     if (DBT.VerifyAssertions)
       DBT._assert(Call.conforms(callSite));
     
-    OPT_BasicBlock next = createBlockAfterCurrent();
+    BasicBlock next = createBlockAfterCurrent();
     
     //Find out where the call site is and isolate it in its own basic block. 
     currentBlock = createBlockAfterCurrent();
     currentBlock.appendInstruction(callSite);
     
-    OPT_BasicBlock in = currentBlock.prevBasicBlockInCodeOrder();
-    OPT_BasicBlock out = currentBlock.nextBasicBlockInCodeOrder();
+    BasicBlock in = currentBlock.prevBasicBlockInCodeOrder();
+    BasicBlock out = currentBlock.nextBasicBlockInCodeOrder();
     
     // Clear the sratch object of any register operands being
     // passed as parameters.
     // BC2IR uses this field for its own purposes, and will be confused
     // if the scratch object has been used by someone else and not cleared.
     for (int i = 0; i < Call.getNumberOfParams(callSite); i++) {
-      OPT_Operand arg = Call.getParam(callSite, i);
-      if (arg instanceof OPT_RegisterOperand) {
-        ((OPT_RegisterOperand) arg).scratchObject = null;
+      Operand arg = Call.getParam(callSite, i);
+      if (arg instanceof RegisterOperand) {
+        ((RegisterOperand) arg).scratchObject = null;
       }
     }
 
     // Execute the inlining decision, updating ir.gc's state.
-    OPT_InlineDecision inlDec = OPT_InlineDecision.YES(Call.getMethod(callSite).getTarget(), "");
-    OPT_GenerationContext childgc = OPT_Inliner.execute(inlDec, gc, null, callSite);
+    InlineDecision inlDec = InlineDecision.YES(Call.getMethod(callSite).getTarget(), "");
+    GenerationContext childgc = Inliner.execute(inlDec, gc, null, callSite);
     
     // Splice the callee into the caller's code order
     gc.cfg.removeFromCFGAndCodeOrder(currentBlock);
@@ -1558,5 +1558,5 @@ public abstract class CodeTranslator implements OPT_Constants,
   protected abstract void spillAllRegisters();
 
   /** Return an array of unused registers */
-  protected abstract OPT_Register[] getUnusedRegisters();
+  protected abstract Register[] getUnusedRegisters();
 }

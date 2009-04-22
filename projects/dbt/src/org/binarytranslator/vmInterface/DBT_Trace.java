@@ -15,27 +15,27 @@ import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DummyDynamicCodeRunner;
 import org.binarytranslator.DBT;
-import org.jikesrvm.compilers.common.VM_CompiledMethod;
-import org.jikesrvm.compilers.common.VM_CompiledMethods;
-import org.jikesrvm.classloader.VM_MethodReference;
-import org.jikesrvm.classloader.VM_NormalMethod;
-import org.jikesrvm.classloader.VM_Class;
-import org.jikesrvm.classloader.VM_MemberReference;
-import org.jikesrvm.classloader.VM_Atom;
-import org.jikesrvm.classloader.VM_BytecodeStream;
-import org.jikesrvm.classloader.VM_TypeReference;
-import org.jikesrvm.runtime.VM_Statics;
-import org.jikesrvm.runtime.VM_DynamicLink;
-import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
-import org.jikesrvm.compilers.opt.ir.OPT_HIRGenerator;
+import org.jikesrvm.compilers.common.CompiledMethod;
+import org.jikesrvm.compilers.common.CompiledMethods;
+import org.jikesrvm.classloader.MethodReference;
+import org.jikesrvm.classloader.NormalMethod;
+import org.jikesrvm.classloader.RVMClass;
+import org.jikesrvm.classloader.MemberReference;
+import org.jikesrvm.classloader.Atom;
+import org.jikesrvm.classloader.BytecodeStream;
+import org.jikesrvm.classloader.TypeReference;
+import org.jikesrvm.runtime.Statics;
+import org.jikesrvm.runtime.DynamicLink;
+import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
+import org.jikesrvm.compilers.opt.ir.HIRGenerator;
 import org.vmmagic.pragma.Uninterruptible;
 
 /**
- * A method class which can be used in place of a VM_NormalMethod but which
+ * A method class which can be used in place of a NormalMethod but which
  * includes a block of PPC machine code, since this is our starting point for
  * the PPC emulator, rather than Java byte codes.
  */
-public final class DBT_Trace extends VM_NormalMethod {
+public final class DBT_Trace extends NormalMethod {
   /*
    * Fake bytecode indexes (FB1) for dynamic linking
    */
@@ -104,10 +104,10 @@ public final class DBT_Trace extends VM_NormalMethod {
    * In order to allow arbitrary calls within a trace, we have to store at which bytecode index
    * a method is called in which way. This class stores the necessary information. */
   private class CustomCallInformation {
-    public final VM_MethodReference methodRef;
+    public final MethodReference methodRef;
     public final int callType;
     
-    public CustomCallInformation(VM_MethodReference methodRef, int callType) {
+    public CustomCallInformation(MethodReference methodRef, int callType) {
       this.methodRef = methodRef;
       this.callType = callType;
     }
@@ -127,7 +127,7 @@ public final class DBT_Trace extends VM_NormalMethod {
    * @return a HIR generator
    */
   @Override
-  public OPT_HIRGenerator createHIRGenerator(OPT_GenerationContext context) {
+  public HIRGenerator createHIRGenerator(GenerationContext context) {
     
     return ps.createTranslator(context, this);
   }
@@ -146,19 +146,19 @@ public final class DBT_Trace extends VM_NormalMethod {
   /**
    * Traces appear as DynamicCodeRunner.invokeCode methods
    */
-  private static final VM_Class dummyRunner;
+  private static final RVMClass dummyRunner;
 
-  private static final VM_NormalMethod invokeCode;
+  private static final NormalMethod invokeCode;
 
-  private static final VM_Atom invokeCodeDescriptor;
+  private static final Atom invokeCodeDescriptor;
 
   static {
-    dummyRunner = VM_TypeReference.findOrCreate(DummyDynamicCodeRunner.class).resolve().asClass();
+    dummyRunner = TypeReference.findOrCreate(DummyDynamicCodeRunner.class).resolve().asClass();
 
-    VM_Atom memName = VM_Atom.findOrCreateAsciiAtom("invokeCode");
-    invokeCodeDescriptor = VM_Atom
-        .findOrCreateAsciiAtom("(Lorg/jikesrvm/ArchitectureSpecific$VM_CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
-    invokeCode = (VM_NormalMethod) dummyRunner.findDeclaredMethod(memName,
+    Atom memName = Atom.findOrCreateAsciiAtom("invokeCode");
+    invokeCodeDescriptor = Atom
+        .findOrCreateAsciiAtom("(Lorg/jikesrvm/ArchitectureSpecific$CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
+    invokeCode = (NormalMethod) dummyRunner.findDeclaredMethod(memName,
         invokeCodeDescriptor);
     if (invokeCode == null) {
       throw new Error("Failed to find method " + memName + invokeCodeDescriptor
@@ -178,8 +178,8 @@ public final class DBT_Trace extends VM_NormalMethod {
    *          the address of the first instruction
    */
   public DBT_Trace(ProcessSpace ps, int startPC) {
-    super(dummyRunner.getTypeRef(), VM_MemberReference.findOrCreate(dummyRunner
-        .getTypeRef(), VM_Atom.findOrCreateAsciiAtom("invokeCode" + "_PC_0x"
+    super(dummyRunner.getTypeRef(), MemberReference.findOrCreate(dummyRunner
+        .getTypeRef(), Atom.findOrCreateAsciiAtom("invokeCode" + "_PC_0x"
         + Integer.toHexString(startPC)), invokeCodeDescriptor),
         invokeCode.modifiers, invokeCode.getExceptionTypes(),
         (short) invokeCode.getLocalWords(), (short) invokeCode
@@ -192,7 +192,7 @@ public final class DBT_Trace extends VM_NormalMethod {
         null // annotation default
     );
 
-    this.offset = VM_Statics.allocateReferenceSlot().toInt();
+    this.offset = Statics.allocateReferenceSlot().toInt();
 
     this.ps = ps;
     pc = startPC;
@@ -216,15 +216,15 @@ public final class DBT_Trace extends VM_NormalMethod {
    *          subclasses
    */
   public final synchronized void replaceCompiledMethod(
-      VM_CompiledMethod compiledMethod) {
+      CompiledMethod compiledMethod) {
 
     // Grab version that is being replaced
-    VM_CompiledMethod oldCompiledMethod = currentCompiledMethod;
+    CompiledMethod oldCompiledMethod = currentCompiledMethod;
     currentCompiledMethod = compiledMethod;
 
     // Now that we've updated the translation cache, old version is obsolete
     if (oldCompiledMethod != null) {
-      VM_CompiledMethods.setCompiledMethodObsolete(oldCompiledMethod);
+      CompiledMethods.setCompiledMethodObsolete(oldCompiledMethod);
     }
   }
 
@@ -248,7 +248,7 @@ public final class DBT_Trace extends VM_NormalMethod {
    * @return
    *  The bytecode index for this call
    */
-  public int registerDynamicLink(VM_MethodReference methodRef, int callType) {
+  public int registerDynamicLink(MethodReference methodRef, int callType) {
     if (DBT.VerifyAssertions) 
       DBT._assert(callType == JBC_invokeinterface || callType == JBC_invokespecial || 
                   callType == JBC_invokestatic ||  callType == JBC_invokevirtual);
@@ -270,7 +270,7 @@ public final class DBT_Trace extends VM_NormalMethod {
    *          the bcIndex of the invoke instruction
    */
   @Uninterruptible
-  public void getDynamicLink(VM_DynamicLink dynamicLink, int bcIndex) {
+  public void getDynamicLink(DynamicLink dynamicLink, int bcIndex) {
     switch (bcIndex) {
     case DO_SYSCALL:
       dynamicLink.set(CodeTranslator.sysCallMethod.getMemberRef()
@@ -316,7 +316,7 @@ public final class DBT_Trace extends VM_NormalMethod {
    * 
    * @return object representing the bytecodes
    */
-  public VM_BytecodeStream getBytecodes() {
+  public BytecodeStream getBytecodes() {
     return null;
   }
 

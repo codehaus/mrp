@@ -22,7 +22,7 @@ import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.binarytranslator.vmInterface.DBT_Trace;
-import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
 import org.jikesrvm.ppc.PPC_Disassembler;
 import org.vmmagic.pragma.Uninterruptible;
 
@@ -141,7 +141,7 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
    * @return a HIR generator
    */
   @Override
-  public CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) {
+  public CodeTranslator createTranslator(GenerationContext context, DBT_Trace trace) {
     return new PPC2IR(context, trace);
   }
 

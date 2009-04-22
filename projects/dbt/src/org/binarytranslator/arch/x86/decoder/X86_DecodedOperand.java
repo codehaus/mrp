@@ -10,29 +10,30 @@ package org.binarytranslator.arch.x86.decoder;
 
 import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.jikesrvm.compilers.opt.ir.*;
+import org.jikesrvm.compilers.opt.ir.operand.*;
 
 /**
  * Wrapper for X86 decoded operands that are either in memory, registers or
  * immediates
  */
-abstract class X86_DecodedOperand implements OPT_Operators {
+abstract class X86_DecodedOperand implements Operators {
   /**
    * Read the value into a register
    */
   abstract void readToRegister(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op);
+      RegisterOperand op);
 
   /**
    * Write the given operand to this
    */
   abstract void writeValue(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op);
+      RegisterOperand op);
 
   /**
    * Read the value as giving an address
    */
   abstract void readEffectiveAddress(X862IR translationHelper,
-      X86_Laziness lazy, OPT_RegisterOperand op);
+      X86_Laziness lazy, RegisterOperand op);
 
   /**
    * Get a decoded operand for an immediate
@@ -93,16 +94,16 @@ final class X86_IntDecodedOperand extends X86_DecodedOperand {
    * Read the value into a register
    */
   void readToRegister(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
+      RegisterOperand op) {
     translationHelper.appendInstruction(Move.create(INT_MOVE, op,
-        new OPT_IntConstantOperand(immediate)));
+        new IntConstantOperand(immediate)));
   }
 
   /**
    * Write the given operand to this
    */
   void writeValue(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
+      RegisterOperand op) {
     throw new Error("Trying to write a value to an immediate!");
   }
 
@@ -110,7 +111,7 @@ final class X86_IntDecodedOperand extends X86_DecodedOperand {
    * Read the value as giving an address
    */
   void readEffectiveAddress(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
+      RegisterOperand op) {
     throw new Error("Trying to read the address of an immediate!");
   }
 }
@@ -141,7 +142,7 @@ final class X86_RegDecodedOperand extends X86_DecodedOperand {
    * Read the value into a register
    */
   void readToRegister(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
+      RegisterOperand op) {
     translationHelper.appendInstruction(Move.create(INT_MOVE, op,
         translationHelper.getGPRegister(lazy, reg, size)));
   }
@@ -150,8 +151,8 @@ final class X86_RegDecodedOperand extends X86_DecodedOperand {
    * Write the given operand to this
    */
   void writeValue(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
-    OPT_RegisterOperand result = translationHelper.getGPRegister(lazy, reg,
+      RegisterOperand op) {
+    RegisterOperand result = translationHelper.getGPRegister(lazy, reg,
         size);
     translationHelper.appendInstruction(Move.create(INT_MOVE,
         result, op));
@@ -161,7 +162,7 @@ final class X86_RegDecodedOperand extends X86_DecodedOperand {
    * Read the value as giving an address
    */
   void readEffectiveAddress(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
+      RegisterOperand op) {
     throw new Error("Trying to read the address of a register!");
   }
 }
@@ -186,7 +187,7 @@ final class X86_SegRegDecodedOperand extends X86_DecodedOperand {
    * Read the value into a register
    */
   void readToRegister(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
+      RegisterOperand op) {
     translationHelper.appendInstruction(Move.create(INT_MOVE, op,
         translationHelper.getSegRegister(lazy, reg)));
   }
@@ -195,8 +196,8 @@ final class X86_SegRegDecodedOperand extends X86_DecodedOperand {
    * Write the given operand to this
    */
   void writeValue(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
-    OPT_RegisterOperand result = translationHelper.getSegRegister(lazy, reg);
+      RegisterOperand op) {
+    RegisterOperand result = translationHelper.getSegRegister(lazy, reg);
     translationHelper.appendInstruction(Move.create(INT_MOVE,
         result, op));
   }
@@ -205,7 +206,7 @@ final class X86_SegRegDecodedOperand extends X86_DecodedOperand {
    * Read the value as giving an address
    */
   void readEffectiveAddress(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
+      RegisterOperand op) {
     throw new Error("Trying to read the address of a register!");
   }
 }
@@ -280,8 +281,8 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
    * Read the value into a register
    */
   void readToRegister(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
-    OPT_RegisterOperand address = translationHelper.getTempInt(8);
+      RegisterOperand op) {
+    RegisterOperand address = translationHelper.getTempInt(8);
     readEffectiveAddress(translationHelper, lazy, address);
     // Perform the load
     switch (operandSize) {
@@ -303,8 +304,8 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
    * Write the given operand to this
    */
   void writeValue(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand op) {
-    OPT_RegisterOperand address = translationHelper.getTempInt(8);
+      RegisterOperand op) {
+    RegisterOperand address = translationHelper.getTempInt(8);
     readEffectiveAddress(translationHelper, lazy, address);
     // Perform the store
     switch (operandSize) {
@@ -326,7 +327,7 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
    * Read the value as giving an address
    */
   void readEffectiveAddress(X862IR translationHelper, X86_Laziness lazy,
-      OPT_RegisterOperand address) {
+      RegisterOperand address) {
     // Get the index and scale it
     if ((scale > 0) && (index != -1)) {
       translationHelper.appendInstruction(Move.create(INT_MOVE,
@@ -334,11 +335,11 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
       if (scale > 1) {
         translationHelper.appendInstruction(Binary.create(
             INT_MUL, address.copyRO(), address.copyRO(),
-            new OPT_IntConstantOperand(scale)));
+            new IntConstantOperand(scale)));
       }
     } else {
       translationHelper.appendInstruction(Move.create(INT_MOVE,
-          address, new OPT_IntConstantOperand(0)));
+          address, new IntConstantOperand(0)));
     }
     // Add on the base
     if (base != -1) {
@@ -349,7 +350,7 @@ final class X86_MemDecodedOperand extends X86_DecodedOperand {
     // Add on the displacement
     if (displacement != 0) {
       translationHelper.appendInstruction(Binary.create(INT_ADD,
-          address.copyRO(), address.copyRO(), new OPT_IntConstantOperand(
+          address.copyRO(), address.copyRO(), new IntConstantOperand(
               displacement)));
     }
     // Add on any base address from a segment override

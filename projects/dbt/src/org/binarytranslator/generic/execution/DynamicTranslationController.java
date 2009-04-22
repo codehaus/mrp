@@ -5,7 +5,7 @@ import org.binarytranslator.generic.fault.BadInstructionException;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.DynamicCodeRunner;
-import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
+import org.jikesrvm.ArchitectureSpecific.CodeArray;
 
 /**
  * Runtime loop, goes through the binary and looks in a Hashtable 
@@ -21,7 +21,7 @@ public class DynamicTranslationController extends ExecutionController {
   @Override
   public void run() {
     // The current block of compiled code.
-    VM_CodeArray code;
+    CodeArray code;
 
     try {
       while (ps.finished == false) {
@@ -41,9 +41,9 @@ public class DynamicTranslationController extends ExecutionController {
    * @param pc
    *  The program counter at which the code is supposed to start.
    * @return
-   *  An executable VM_CodeArray, which contains a trace starting at the given address.
+   *  An executable CodeArray, which contains a trace starting at the given address.
    */
-  private VM_CodeArray getCodeForPC(int pc) {
+  private CodeArray getCodeForPC(int pc) {
     DBT_Trace trace = ps.codeCache.tryGet(pc);
 
     if (trace == null) {

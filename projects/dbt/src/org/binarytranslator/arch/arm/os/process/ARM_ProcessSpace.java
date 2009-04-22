@@ -19,7 +19,7 @@ import org.binarytranslator.generic.os.loader.elf.ELF_Loader;
 import org.binarytranslator.generic.os.loader.elf.ELF_File.ByteOrder;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
-import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
 import org.vmmagic.pragma.Uninterruptible;
 
 public abstract class ARM_ProcessSpace extends ProcessSpace {
@@ -95,7 +95,7 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
    * @return a HIR generator
    */
   @Override
-  public CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) {
+  public CodeTranslator createTranslator(GenerationContext context, DBT_Trace trace) {
     return new ARM2IR(context, trace);
   }
 

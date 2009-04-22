@@ -24,7 +24,7 @@ import org.binarytranslator.generic.execution.GdbController.GdbTarget;
 import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.vmInterface.DBT_Trace;
-import org.jikesrvm.compilers.opt.ir.OPT_GenerationContext;
+import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
 import org.vmmagic.pragma.Uninterruptible;
 
 /**
@@ -70,7 +70,7 @@ public abstract class ProcessSpace {
    * @param trace 
    * @return a HIR generator
    */
-  public abstract CodeTranslator createTranslator(OPT_GenerationContext context, DBT_Trace trace) throws UnsupportedOperationException ;
+  public abstract CodeTranslator createTranslator(GenerationContext context, DBT_Trace trace) throws UnsupportedOperationException ;
   
   /** 
    * Returns an instance of {@link Interpreter} that can be used to interpret instructions

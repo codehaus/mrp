@@ -8,9 +8,9 @@
  */
 package org.binarytranslator.generic.memory;
 
-import org.jikesrvm.compilers.opt.ir.OPT_Operand;
-import org.jikesrvm.compilers.opt.ir.OPT_RegisterOperand;
-import org.jikesrvm.classloader.VM_MethodReference;
+import org.jikesrvm.compilers.opt.ir.operand.Operand;
+import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
+import org.jikesrvm.classloader.MethodReference;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.vmmagic.pragma.Uninterruptible;
 import java.io.RandomAccessFile;
@@ -208,8 +208,8 @@ public abstract class Memory {
    * @param dest the register to hold the result
    * @param addr the address of the value to load
    */
-  public abstract void translateLoadSigned8(OPT_Operand addr,
-      OPT_RegisterOperand dest);
+  public abstract void translateLoadSigned8(Operand addr,
+      RegisterOperand dest);
 
   /**
    * Generate the IR code for a byte load where the zero extended result fills
@@ -217,8 +217,8 @@ public abstract class Memory {
    * @param dest the register to hold the result
    * @param addr the address of the value to load
    */
-  public abstract void translateLoadUnsigned8(OPT_Operand addr,
-      OPT_RegisterOperand dest);
+  public abstract void translateLoadUnsigned8(Operand addr,
+      RegisterOperand dest);
 
   /**
    * Generate the IR code for a 16bit load where the sign extended result fills
@@ -226,8 +226,8 @@ public abstract class Memory {
    * @param dest the register to hold the result
    * @param addr the address of the value to load
    */
-  public abstract void translateLoadSigned16(OPT_Operand addr,
-      OPT_RegisterOperand dest);
+  public abstract void translateLoadSigned16(Operand addr,
+      RegisterOperand dest);
 
   /**
    * Generate the IR code for a 16bit load where the zero extended result fills
@@ -235,46 +235,46 @@ public abstract class Memory {
    * @param dest the register to hold the result
    * @param addr the address of the value to load
    */
-  public abstract void translateLoadUnsigned16(OPT_Operand addr,
-      OPT_RegisterOperand dest);
+  public abstract void translateLoadUnsigned16(Operand addr,
+      RegisterOperand dest);
 
   /**
    * Generate the IR code for a 32bit load
    * @param dest the register to hold the result
    * @param addr the address of the value to load
    */
-  public abstract void translateLoad32(OPT_Operand addr,
-      OPT_RegisterOperand dest);
+  public abstract void translateLoad32(Operand addr,
+      RegisterOperand dest);
 
   /**
    * Generate the IR code for a byte store
    * @param src the register that holds the value to store
    * @param addr the address of the value to store
    */
-  public abstract void translateStore8(OPT_Operand addr, OPT_Operand src);
+  public abstract void translateStore8(Operand addr, Operand src);
 
   /**
    * Generate the IR code for a 16bit store
    * @param src the register that holds the value to store
    * @param addr the address of the value to store
    */
-  public abstract void translateStore16(OPT_Operand addr,
-      OPT_Operand src);
+  public abstract void translateStore16(Operand addr,
+      Operand src);
 
   /**
    * Generate the IR code for a 32bit store
    * @param src the register that holds the value to store
    * @param addr the address of the value to store
    */
-  public abstract void translateStore32(OPT_Operand addr,
-      OPT_Operand src);
+  public abstract void translateStore32(Operand addr,
+      Operand src);
 
   /**
    * Get method reference if linking a call
    * @param callAddress the address associated with this call
    */
   @Uninterruptible
-  public VM_MethodReference getMethodRef(int callAddress) {
+  public MethodReference getMethodRef(int callAddress) {
     throw new Error("Error linking method at " + callAddress
         + " for memory model " + this.getClass());
   }

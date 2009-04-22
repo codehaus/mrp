@@ -13,13 +13,15 @@ import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
-import org.jikesrvm.classloader.VM_Atom;
-import org.jikesrvm.classloader.VM_FieldReference;
-import org.jikesrvm.classloader.VM_MemberReference;
-import org.jikesrvm.classloader.VM_Method;
-import org.jikesrvm.classloader.VM_MethodReference;
-import org.jikesrvm.classloader.VM_TypeReference;
+import org.jikesrvm.classloader.Atom;
+import org.jikesrvm.classloader.FieldReference;
+import org.jikesrvm.classloader.MemberReference;
+import org.jikesrvm.classloader.RVMMethod;
+import org.jikesrvm.classloader.MethodReference;
+import org.jikesrvm.classloader.TypeReference;
+import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
 import org.jikesrvm.compilers.opt.ir.*;
+import org.jikesrvm.compilers.opt.ir.operand.*;
 import org.vmmagic.pragma.Uninterruptible;
 
 /**
@@ -28,25 +30,25 @@ import org.vmmagic.pragma.Uninterruptible;
  * By default the translation methods plant calls to the load/store calls, which
  * are still abstract, ie there's no memory backing store yet
  */
-public abstract class CallBasedMemory extends Memory implements OPT_Operators {
+public abstract class CallBasedMemory extends Memory implements Operators {
 
   /**
    * The process space type reference
    */
-  private static final VM_TypeReference psTref;
+  private static final TypeReference psTref;
 
   /**
    * Field reference to ps.memory
    */
-  private static final VM_FieldReference psMemoryRef;
+  private static final FieldReference psMemoryRef;
 
   static {
-    psTref = VM_TypeReference.findOrCreate(ProcessSpace.class);
-    psMemoryRef = VM_MemberReference
+    psTref = TypeReference.findOrCreate(ProcessSpace.class);
+    psMemoryRef = MemberReference
         .findOrCreate(
             psTref,
-            VM_Atom.findOrCreateAsciiAtom("memory"),
-            VM_Atom
+            Atom.findOrCreateAsciiAtom("memory"),
+            Atom
                 .findOrCreateAsciiAtom("Lorg/binarytranslator/generic/memory/Memory;"))
         .asFieldReference();
   }
@@ -54,47 +56,47 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   /**
    * The store 8 method
    */
-  private final VM_Method store8;
+  private final RVMMethod store8;
 
   /**
    * The store 16 method
    */
-  private final VM_Method store16;
+  private final RVMMethod store16;
 
   /**
    * The store 32 method
    */
-  private final VM_Method store32;
+  private final RVMMethod store32;
 
   /**
    * The load signed 8 method
    */
-  private final VM_Method loadS8;
+  private final RVMMethod loadS8;
 
   /**
    * The load unsigned 8 method
    */
-  private final VM_Method loadU8;
+  private final RVMMethod loadU8;
 
   /**
    * The load signed 8 method
    */
-  private final VM_Method loadS16;
+  private final RVMMethod loadS16;
 
   /**
    * The load unsigned 8 method
    */
-  private final VM_Method loadU16;
+  private final RVMMethod loadU16;
 
   /**
    * The load 32 method
    */
-  private final VM_Method load32;
+  private final RVMMethod load32;
 
   /**
    * Type of underlying memory
    */
-  final VM_TypeReference memoryType;
+  final TypeReference memoryType;
 
   /**
    * A translation helper for generating code
@@ -104,12 +106,12 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   /**
    * The generation context we're translating within
    */
-  protected OPT_GenerationContext gc;
+  protected GenerationContext gc;
 
   /**
    * Register that references the memory object
    */
-  protected OPT_Register memory;
+  protected Register memory;
 
   /**
    * Constructor
@@ -126,33 +128,33 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
       store8 = store16 = store32 = null;
     }
     else {
-    memoryType = VM_TypeReference.findOrCreate(memoryClass);
-      VM_Atom storeDescriptor = VM_Atom.findOrCreateAsciiAtom("(II)V");
-      store8 = VM_MemberReference.findOrCreate(memoryType,
-          VM_Atom.findOrCreateAsciiAtom("store8"), storeDescriptor)
+    memoryType = TypeReference.findOrCreate(memoryClass);
+      Atom storeDescriptor = Atom.findOrCreateAsciiAtom("(II)V");
+      store8 = MemberReference.findOrCreate(memoryType,
+          Atom.findOrCreateAsciiAtom("store8"), storeDescriptor)
           .asMethodReference().resolve();
-      store16 = VM_MemberReference.findOrCreate(memoryType,
-          VM_Atom.findOrCreateAsciiAtom("store16"), storeDescriptor)
+      store16 = MemberReference.findOrCreate(memoryType,
+          Atom.findOrCreateAsciiAtom("store16"), storeDescriptor)
           .asMethodReference().resolve();
-      store32 = VM_MemberReference.findOrCreate(memoryType,
-          VM_Atom.findOrCreateAsciiAtom("store32"), storeDescriptor)
+      store32 = MemberReference.findOrCreate(memoryType,
+          Atom.findOrCreateAsciiAtom("store32"), storeDescriptor)
           .asMethodReference().resolve();
 
-      VM_Atom loadDescriptor = VM_Atom.findOrCreateAsciiAtom("(I)I");
-      loadS8 = VM_MemberReference.findOrCreate(memoryType,
-          VM_Atom.findOrCreateAsciiAtom("loadSigned8"), loadDescriptor)
+      Atom loadDescriptor = Atom.findOrCreateAsciiAtom("(I)I");
+      loadS8 = MemberReference.findOrCreate(memoryType,
+          Atom.findOrCreateAsciiAtom("loadSigned8"), loadDescriptor)
           .asMethodReference().resolve();
-      loadU8 = VM_MemberReference.findOrCreate(memoryType,
-          VM_Atom.findOrCreateAsciiAtom("loadUnsigned8"), loadDescriptor)
+      loadU8 = MemberReference.findOrCreate(memoryType,
+          Atom.findOrCreateAsciiAtom("loadUnsigned8"), loadDescriptor)
           .asMethodReference().resolve();
-      loadS16 = VM_MemberReference.findOrCreate(memoryType,
-          VM_Atom.findOrCreateAsciiAtom("loadSigned16"), loadDescriptor)
+      loadS16 = MemberReference.findOrCreate(memoryType,
+          Atom.findOrCreateAsciiAtom("loadSigned16"), loadDescriptor)
           .asMethodReference().resolve();
-      loadU16 = VM_MemberReference.findOrCreate(memoryType,
-          VM_Atom.findOrCreateAsciiAtom("loadUnsigned16"), loadDescriptor)
+      loadU16 = MemberReference.findOrCreate(memoryType,
+          Atom.findOrCreateAsciiAtom("loadUnsigned16"), loadDescriptor)
           .asMethodReference().resolve();
-      load32 = VM_MemberReference.findOrCreate(memoryType,
-          VM_Atom.findOrCreateAsciiAtom("load32"), loadDescriptor)
+      load32 = MemberReference.findOrCreate(memoryType,
+          Atom.findOrCreateAsciiAtom("load32"), loadDescriptor)
           .asMethodReference().resolve();
     }
   }
@@ -164,11 +166,11 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
   public void initTranslate(CodeTranslator helper) {
     this.translator = helper;
     this.gc = helper.getGenerationContext();
-    OPT_RegisterOperand memoryOp = helper.makeTemp(memoryType);
+    RegisterOperand memoryOp = helper.makeTemp(memoryType);
     helper.appendInstruction(GetField.create(GETFIELD, memoryOp,
-        gc.makeLocal(1, psTref), new OPT_AddressConstantOperand(psMemoryRef
-            .peekResolvedField().getOffset()), new OPT_LocationOperand(
-            psMemoryRef), new OPT_TrueGuardOperand()));
+        gc.makeLocal(1, psTref), new AddressConstantOperand(psMemoryRef
+            .peekResolvedField().getOffset()), new LocationOperand(
+            psMemoryRef), new TrueGuardOperand()));
     memory = memoryOp.register;
   }
 
@@ -185,19 +187,19 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  private void translateLoad(VM_Method loadMethod, int bcIndex,
-      OPT_Operand addr, OPT_RegisterOperand dest) {
-    OPT_Instruction s = Call.create(CALL, dest.copyRO(), null, null, null, 2);
-    VM_MethodReference loadMethRef = loadMethod.getMemberRef()
+  private void translateLoad(RVMMethod loadMethod, int bcIndex,
+      Operand addr, RegisterOperand dest) {
+    Instruction s = Call.create(CALL, dest.copyRO(), null, null, null, 2);
+    MethodReference loadMethRef = loadMethod.getMemberRef()
         .asMethodReference();
 
-    OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(loadMethRef, loadMethod);
-    OPT_RegisterOperand memoryOp = new OPT_RegisterOperand(memory, memoryType);
+    MethodOperand methOp = MethodOperand.VIRTUAL(loadMethRef, loadMethod);
+    RegisterOperand memoryOp = new RegisterOperand(memory, memoryType);
     Call.setParam(s, 0, memoryOp); // Sets 'this' pointer
     Call.setParam(s, 1, addr.copy());
-    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setGuard(s, new TrueGuardOperand());
     Call.setMethod(s, methOp);
-    Call.setAddress(s, new OPT_AddressConstantOperand(loadMethod.getOffset()));
+    Call.setAddress(s, new AddressConstantOperand(loadMethod.getOffset()));
     
     if (DBT_Options.inlineCallbasedMemory) {
       translator.appendInlinedCall(s);
@@ -218,8 +220,8 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoadSigned8(OPT_Operand addr,
-      OPT_RegisterOperand dest) {
+  public void translateLoadSigned8(Operand addr,
+      RegisterOperand dest) {
     translateLoad(loadS8, DBT_Trace.MEMORY_LOAD8, addr, dest);
   }
 
@@ -232,8 +234,8 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoadUnsigned8(OPT_Operand addr,
-      OPT_RegisterOperand dest) {
+  public void translateLoadUnsigned8(Operand addr,
+      RegisterOperand dest) {
     translateLoad(loadU8, DBT_Trace.MEMORY_ULOAD8, addr, dest);
   }
 
@@ -246,8 +248,8 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoadSigned16(OPT_Operand addr,
-      OPT_RegisterOperand dest) {
+  public void translateLoadSigned16(Operand addr,
+      RegisterOperand dest) {
     translateLoad(loadS16, DBT_Trace.MEMORY_LOAD16, addr, dest);
   }
 
@@ -260,8 +262,8 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoadUnsigned16(OPT_Operand addr,
-      OPT_RegisterOperand dest) {
+  public void translateLoadUnsigned16(Operand addr,
+      RegisterOperand dest) {
     translateLoad(loadU16, DBT_Trace.MEMORY_ULOAD16, addr, dest);
   }
 
@@ -273,7 +275,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  public void translateLoad32(OPT_Operand addr, OPT_RegisterOperand dest) {
+  public void translateLoad32(Operand addr, RegisterOperand dest) {
     translateLoad(load32, DBT_Trace.MEMORY_LOAD32, addr, dest);
   }
 
@@ -286,8 +288,8 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  protected void translateCallBasedLoadSigned16(OPT_Operand addr,
-      OPT_RegisterOperand dest) {
+  protected void translateCallBasedLoadSigned16(Operand addr,
+      RegisterOperand dest) {
     translateLoad(loadS16, DBT_Trace.MEMORY_LOAD16, addr, dest);
   }
 
@@ -300,8 +302,8 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  protected void translateCallBasedLoadUnsigned16(OPT_Operand addr,
-      OPT_RegisterOperand dest) {
+  protected void translateCallBasedLoadUnsigned16(Operand addr,
+      RegisterOperand dest) {
     translateLoad(loadU16, DBT_Trace.MEMORY_ULOAD16, addr, dest);
   }
 
@@ -313,8 +315,8 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to load
    */
-  protected void translateCallBasedLoad32(OPT_Operand addr,
-      OPT_RegisterOperand dest) {
+  protected void translateCallBasedLoad32(Operand addr,
+      RegisterOperand dest) {
     translateLoad(load32, DBT_Trace.MEMORY_LOAD32, addr, dest);
   }
 
@@ -331,20 +333,20 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  private void translateStore(VM_Method storeMethod, int bcIndex,
-      OPT_Operand addr, OPT_Operand src) {
-    OPT_Instruction s = Call.create(CALL, null, null, null, null, 3);
-    VM_MethodReference storeMethRef = storeMethod.getMemberRef()
+  private void translateStore(RVMMethod storeMethod, int bcIndex,
+      Operand addr, Operand src) {
+    Instruction s = Call.create(CALL, null, null, null, null, 3);
+    MethodReference storeMethRef = storeMethod.getMemberRef()
         .asMethodReference();
-    OPT_MethodOperand methOp = OPT_MethodOperand.VIRTUAL(storeMethRef,
+    MethodOperand methOp = MethodOperand.VIRTUAL(storeMethRef,
         storeMethod);
-    OPT_RegisterOperand memoryOp = new OPT_RegisterOperand(memory, memoryType);
+    RegisterOperand memoryOp = new RegisterOperand(memory, memoryType);
     Call.setParam(s, 0, memoryOp); // Sets 'this' pointer
     Call.setParam(s, 1, addr.copy());
     Call.setParam(s, 2, src.copy());
-    Call.setGuard(s, new OPT_TrueGuardOperand());
+    Call.setGuard(s, new TrueGuardOperand());
     Call.setMethod(s, methOp);
-    Call.setAddress(s, new OPT_AddressConstantOperand(storeMethod.getOffset()));
+    Call.setAddress(s, new AddressConstantOperand(storeMethod.getOffset()));
     
     if (DBT_Options.inlineCallbasedMemory) {
       translator.appendInlinedCall(s);
@@ -365,7 +367,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore8(OPT_Operand addr, OPT_Operand src) {
+  public void translateStore8(Operand addr, Operand src) {
     translateStore(store8, DBT_Trace.MEMORY_STORE8, addr, src);
   }
 
@@ -377,7 +379,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore16(OPT_Operand addr, OPT_Operand src) {
+  public void translateStore16(Operand addr, Operand src) {
     translateStore(store16, DBT_Trace.MEMORY_STORE16, addr, src);
   }
 
@@ -389,7 +391,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    * @param addr
    *          the address of the value to store
    */
-  public void translateStore32(OPT_Operand addr, OPT_Operand src) {
+  public void translateStore32(Operand addr, Operand src) {
     translateStore(store32, DBT_Trace.MEMORY_STORE32, addr, src);
   }
 
@@ -400,7 +402,7 @@ public abstract class CallBasedMemory extends Memory implements OPT_Operators {
    *          the address associated with this call
    */
   @Uninterruptible
-  public VM_MethodReference getMethodRef(int callAddress) {
+  public MethodReference getMethodRef(int callAddress) {
     switch (callAddress) {
     case DBT_Trace.MEMORY_STORE8:
       return store8.getMemberRef().asMethodReference();

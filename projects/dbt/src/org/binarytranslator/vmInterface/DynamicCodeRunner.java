@@ -9,8 +9,8 @@
 package org.binarytranslator.vmInterface;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecific.VM_CodeArray;
-import org.jikesrvm.runtime.VM_Magic;
+import org.jikesrvm.ArchitectureSpecific.CodeArray;
+import org.jikesrvm.runtime.Magic;
 import org.vmmagic.pragma.DynamicBridge;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.pragma.NoInline;
@@ -36,7 +36,7 @@ public class DynamicCodeRunner {
    * @return the code will return the PC value of the next instruction
    */
   @NoInline
-  public static int invokeCode(VM_CodeArray code, ProcessSpace ps)
+  public static int invokeCode(CodeArray code, ProcessSpace ps)
       throws BadInstructionException {
     // Useful when debugging in GDB:
     if (DBT_Options.debugRuntime) {
@@ -47,14 +47,14 @@ public class DynamicCodeRunner {
       VM.sysWrite(" ");
       VM.sysWriteln(ps.disassembleInstruction(ps.getCurrentInstructionAddress()));
       //VM.sysWrite("About to bridge to ");
-      //VM.sysWriteHex(VM_Magic.objectAsAddress(code).toInt());
+      //VM.sysWriteHex(Magic.objectAsAddress(code).toInt());
       //VM.sysWriteln();
     }
 
-    VM_Magic.dynamicBridgeTo(code);
+    Magic.dynamicBridgeTo(code);
     // Never get here, dynamicBridgeTo returns to the thing that calls
     // this method; the return value is provided by a suitable
-    // instruction in the VM_CodeArray.
+    // instruction in the CodeArray.
 
     // New pc value. Just to keep the compiler happy.
     return 0xEBADC0DE;
@@ -62,9 +62,9 @@ public class DynamicCodeRunner {
 }
 
 /**
- * This class is a hoax used to point our VM_PPC_Trace to. We can't use
+ * This class is a hoax used to point our PPC_Trace to. We can't use
  * DynamicCodeRunner as OPT_Compiler refuses to build something that implements
- * VM_DynamicBridge. Uninterruptible is used to prevent garbage collection
+ * DynamicBridge. Uninterruptible is used to prevent garbage collection
  * errors with the dynamic bridge code.
  */
 @Uninterruptible
@@ -73,7 +73,7 @@ class DummyDynamicCodeRunner {
    * The method replaced by a trace
    */
   @NoInline
-  public static int invokeCode(VM_CodeArray code, ProcessSpace ps)
+  public static int invokeCode(CodeArray code, ProcessSpace ps)
       throws BadInstructionException {
     throw new Error("This should never be executed");
   }
