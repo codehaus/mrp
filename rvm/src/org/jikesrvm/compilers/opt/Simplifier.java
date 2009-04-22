@@ -32,6 +32,7 @@ import org.jikesrvm.compilers.opt.inlining.InlineSequence;
 import org.jikesrvm.compilers.opt.ir.AbstractRegisterPool;
 import org.jikesrvm.compilers.opt.ir.Binary;
 import org.jikesrvm.compilers.opt.ir.BooleanCmp;
+import org.jikesrvm.compilers.opt.ir.BooleanCmp2;
 import org.jikesrvm.compilers.opt.ir.BoundsCheck;
 import org.jikesrvm.compilers.opt.ir.Call;
 import org.jikesrvm.compilers.opt.ir.CondMove;
@@ -222,6 +223,12 @@ public abstract class Simplifier extends IRTools {
       case BOOLEAN_CMP_ADDR_opcode:
         result = booleanCmpAddr(s, opts);
         break;
+      case BOOLEAN_CMP2_INT_OR_opcode:
+        result = booleanCmp2IntOr(s, opts);
+        break;
+      // case BOOLEAN_CMP2_INT_AND:
+      // result = booleanCmp2IntAnd(s);
+      // break;
       case INT_ADD_opcode:
         result = intAdd(s, opts);
         break;
@@ -1198,6 +1205,50 @@ public abstract class Simplifier extends IRTools {
           BooleanCmp.setVal1(s, BooleanCmp.getClearVal2(s));
           BooleanCmp.setVal2(s, tmp);
           BooleanCmp.getCond(s).flipOperands();
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect booleanCmp2IntOr(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_INTEGER_OPS) {
+      Operand op1 = BooleanCmp2.getVal1(s);
+      Operand op2 = BooleanCmp2.getVal2(s);
+      if (op1.isConstant()) {
+        if (op2.isConstant()) {
+          // 1st 2 operands are constants, can fold if result is true
+          int cond1 = BooleanCmp2.getCond1(s).evaluate(op1, op2);
+          if (cond1 == ConditionOperand.TRUE) {
+            Move.mutate(s, REF_MOVE, BooleanCmp2.getResult(s), IC(1));
+            return DefUseEffect.MOVE_FOLDED;
+          } else if (cond1 == ConditionOperand.FALSE) {
+            BooleanCmp.mutate(s, BOOLEAN_CMP_INT, BooleanCmp2.getResult(s),
+                BooleanCmp2.getVal3(s), BooleanCmp2.getVal4(s), BooleanCmp2
+                    .getCond2(s), BooleanCmp2.getBranchProfile2(s));
+            DefUseEffect result = booleanCmpInt(s, opts);
+            return (result == DefUseEffect.UNCHANGED) ? DefUseEffect.REDUCED
+                : result;
+          }
+        }
+      }
+      Operand op3 = BooleanCmp2.getVal3(s);
+      Operand op4 = BooleanCmp2.getVal4(s);
+      if (op3.isConstant()) {
+        if (op4.isConstant()) {
+          // 3rd and 4th operands are constants, can fold if result is true
+          int cond2 = BooleanCmp2.getCond1(s).evaluate(op3, op4);
+          if (cond2 == ConditionOperand.TRUE) {
+            Move.mutate(s, REF_MOVE, BooleanCmp2.getResult(s), IC(1));
+            return DefUseEffect.MOVE_FOLDED;
+          } else if (cond2 == ConditionOperand.FALSE) {
+            BooleanCmp.mutate(s, BOOLEAN_CMP_INT, BooleanCmp2.getResult(s),
+                BooleanCmp2.getVal1(s), BooleanCmp2.getVal2(s), BooleanCmp2
+                    .getCond1(s), BooleanCmp2.getBranchProfile1(s));
+            DefUseEffect result = booleanCmpInt(s, opts);
+            return (result == DefUseEffect.UNCHANGED) ? DefUseEffect.REDUCED
+                : result;
+          }
         }
       }
     }

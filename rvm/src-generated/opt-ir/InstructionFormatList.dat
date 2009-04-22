@@ -151,6 +151,14 @@ BooleanCmp
 "U Cond ConditionOperand" "U BranchProfile BranchProfileOperand"
 
 
+BooleanCmp2
+1 0 8
+"D Result RegisterOperand" "U Val1 Operand" "U Val2 Operand" \
+"U Cond1 ConditionOperand" "U BranchProfile1 BranchProfileOperand" \
+"U Val3 Operand" "U Val4 Operand" \
+"U Cond2 ConditionOperand" "U BranchProfile2 BranchProfileOperand"
+
+
 CondMove
 1 0 5
 "D Result RegisterOperand" "U Val1 Operand" "U Val2 Operand" \

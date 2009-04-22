@@ -1296,7 +1296,21 @@ compare
 
 
 
-# Load a singed byte
+# Compare two sets of two int values and put the boolean OR in the result register
+BOOLEAN_CMP2_INT_OR
+BooleanCmp2
+compare
+
+
+
+# Compare two sets of two int values and put the boolean AND in the result register
+BOOLEAN_CMP2_INT_AND
+BooleanCmp2
+compare
+
+
+
+# Load a signed byte
 # NOTE: Because of our strategy of using explict guard instructions, there is no
 # way in the HIR/LIR that the actual load instruction can except.
 BYTE_LOAD
