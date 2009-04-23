@@ -23,8 +23,7 @@ import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_OptimizingCompilerException;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
-import org.jikesrvm.ppc.PPC_Disassembler;
-import org.vmmagic.pragma.Uninterruptible;
+import org.jikesrvm.ppc.Disassembler;
 
 /**
  * Capture the running of a PowerPC process
@@ -171,7 +170,6 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
   /**
    * Return as an integer the current instruction's address
    */
-  @Uninterruptible
   public int getCurrentInstructionAddress() {
     return pc;
   }
@@ -186,10 +184,9 @@ public abstract class PPC_ProcessSpace extends ProcessSpace implements
   /**
    * Return a string disassembly of the instuction at the given address
    */
-  @Uninterruptible
   public String disassembleInstruction(int pc) {
     int instr = memory.load32(pc);
-    return PPC_Disassembler.disasm(instr, pc);
+    return Disassembler.disasm(instr, pc);
   }
 
   /**

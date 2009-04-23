@@ -32,7 +32,7 @@ import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.LongConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
-import org.jikesrvm.ppc.PPC_Disassembler;
+import org.jikesrvm.ppc.Disassembler;
 
 /**
  * This class is the super class of all instruction translators, it implements
@@ -265,7 +265,7 @@ public class PPC_InstructionDecoder implements
     int instr = ps.memory.load32(pc);
 
     if (DBT_Options.debugInstr) {
-      System.out.println(lazy.makeKey(pc) + PPC_Disassembler.disasm(instr, pc)
+      System.out.println(lazy.makeKey(pc) + Disassembler.disasm(instr, pc)
           + " " + ppc2ir.getCurrentBlock() + " " + ppc2ir.getNumInstructions());
     }
 
@@ -349,7 +349,7 @@ public class PPC_InstructionDecoder implements
             + Integer.toHexString(inst) + "\n" + "Opcode 0x"
             + Integer.toHexString(opcode) + " bits6_to_10=" + bits6_to_10
             + " bits11_to_15=" + bits11_to_15 + " bits16_to_31=" + bits16_to_31
-            + "\nDisassembly: " + PPC_Disassembler.disasm(inst, pc));
+            + "\nDisassembly: " + Disassembler.disasm(inst, pc));
   }
 
   protected int translateDS_FORM(int inst, int opcode) {
@@ -366,7 +366,7 @@ public class PPC_InstructionDecoder implements
         "Attempting to translateB_Form on a non B_Form instruction\n"
             + "Instruction 0x" + Integer.toHexString(inst) + "\n" + "Opcode 0x"
             + Integer.toHexString(primaryOpcode) + "\nDisassembly: "
-            + PPC_Disassembler.disasm(inst, pc));
+            + Disassembler.disasm(inst, pc));
   }
 
   protected int translateI_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -375,7 +375,7 @@ public class PPC_InstructionDecoder implements
         "Attempting to translateI_Form on a non I_Form instruction\n"
             + "Instruction 0x" + Integer.toHexString(inst) + "\n" + "Opcode 0x"
             + Integer.toHexString(opcode) + "\nDisassembly: "
-            + PPC_Disassembler.disasm(inst, pc));
+            + Disassembler.disasm(inst, pc));
   }
 
   protected int translateSC_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -387,7 +387,7 @@ public class PPC_InstructionDecoder implements
             + Integer.toHexString(primaryOpcode) + " bits_6_to_10="
             + bits_6_to_10 + " bits_11_to_15=" + bits_11_to_15
             + " bits_16_to_29=" + bits_16_to_29 + " bit30=" + bit30 + " bit31="
-            + bit31 + "\nDisassembly: " + PPC_Disassembler.disasm(inst, pc));
+            + bit31 + "\nDisassembly: " + Disassembler.disasm(inst, pc));
   }
 
   protected int translateX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -400,7 +400,7 @@ public class PPC_InstructionDecoder implements
             + Integer.toHexString(opcode) + " bits6_to_10=" + bits6_to_10
             + " bits11_to_15=" + bits11_to_15 + " bits16_to_20=" + bits16_to_20
             + " secondaryOpcode=" + secondaryOpcode + " bit31=" + bit31
-            + "\nDisassembly: " + PPC_Disassembler.disasm(inst, pc));
+            + "\nDisassembly: " + Disassembler.disasm(inst, pc));
   }
 
   protected int translateXFX_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -413,7 +413,7 @@ public class PPC_InstructionDecoder implements
             + Integer.toHexString(opcode) + " bits6_to_10=" + bits6_to_10
             + " bits11_to_20=" + bits11_to_20 + " secondaryOpcode="
             + secondaryOpcode + " bit31=" + bit31 + "\nDisassembly: "
-            + PPC_Disassembler.disasm(inst, pc));
+            + Disassembler.disasm(inst, pc));
   }
 
   protected int translateXFL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -426,7 +426,7 @@ public class PPC_InstructionDecoder implements
             + Integer.toHexString(opcode) + " bit6=" + bit6 + " bits7_to_14="
             + bits7_to_14 + " bit15=" + bit15 + " secondaryOpcode="
             + secondaryOpcode + " bit31=" + bit31 + "\nDisassembly: "
-            + PPC_Disassembler.disasm(inst, pc));
+            + Disassembler.disasm(inst, pc));
   }
 
   protected int translateXL_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -439,7 +439,7 @@ public class PPC_InstructionDecoder implements
             + Integer.toHexString(inst) + " bits6_to_10=" + bits6_to_10
             + " bits11_to_15=" + bits11_to_15 + " bits16_to_20=" + bits16_to_20
             + " secondaryOpcode=" + secondaryOpcode + " bit31=" + bit31
-            + "\nDisassembly: " + PPC_Disassembler.disasm(inst, pc));
+            + "\nDisassembly: " + Disassembler.disasm(inst, pc));
   }
 
   protected int translateXO_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -453,7 +453,7 @@ public class PPC_InstructionDecoder implements
             + " bits11_to_15=" + bits11_to_15 + " bits16_to_20=" + bits16_to_20
             + " bit21=" + bit21 + " secondaryOpcode=" + secondaryOpcode
             + " bit31=" + bit31 + "\nDisassembly: "
-            + PPC_Disassembler.disasm(inst, pc));
+            + Disassembler.disasm(inst, pc));
   }
 
   protected int translateM_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -467,7 +467,7 @@ public class PPC_InstructionDecoder implements
             + " bits11_to_15=" + bits11_to_15 + " bits16_to_20=" + bits16_to_20
             + " bits21_to_25=" + bits21_to_25 + " bits26_to_30=" + bits26_to_30
             + " bit31=" + bit31 + "\nDisassembly: "
-            + PPC_Disassembler.disasm(inst, pc));
+            + Disassembler.disasm(inst, pc));
   }
 
   protected int translateA_FORM(PPC2IR ppc2ir, PPC_Laziness lazy, int pc,
@@ -481,7 +481,7 @@ public class PPC_InstructionDecoder implements
             + " bits11_to_15=" + bits11_to_15 + " bits16_to_20=" + bits16_to_20
             + " bits21_to_25=" + bits21_to_25 + " bits26_to_30=" + bits26_to_30
             + " bit31=" + bit31 + "\nDisassembly: "
-            + PPC_Disassembler.disasm(inst, pc));
+            + Disassembler.disasm(inst, pc));
   }
 
   protected OpCodeLookUp getOpCodeLookUp(int primaryOpcode, int secondaryOpcode) {
