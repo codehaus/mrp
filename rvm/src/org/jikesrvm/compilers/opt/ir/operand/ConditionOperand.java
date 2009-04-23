@@ -227,8 +227,53 @@ public final class ConditionOperand extends Operand {
   }
 
   /**
+   * Create the condition code operand for CMPL_EQUAL
+   *
+   * @return a newly created condition code operand
+   */
+  public static ConditionOperand CMPL_EQUAL() {
+    return new ConditionOperand(CMPL_EQUAL);
+  }
+
+  /**
+   * Create the condition code operand for CMPL_NOT_EQUAL
+   *
+   * @return a newly created condition code operand
+   */
+  public static ConditionOperand CMPL_NOT_EQUAL() {
+    return new ConditionOperand(CMPL_NOT_EQUAL);
+  }
+
+  /**
+   * Create the condition code operand for CMPL_GREATER
+   *
+   * @return a newly created condition code operand
+   */
+  public static ConditionOperand CMPL_GREATER() {
+    return new ConditionOperand(CMPL_GREATER);
+  }
+
+  /**
+   * Create the condition code operand for CMPL_GREATER_EQUAL
+   *
+   * @return a newly created condition code operand
+   */
+  public static ConditionOperand CMPL_GREATER_EQUAL() {
+    return new ConditionOperand(CMPL_GREATER_EQUAL);
+  }
+
+  /**
+   * Create the condition code operand for CMPG_LESS
+   *
+   * @return a newly created condition code operand
+   */
+  public static ConditionOperand CMPG_LESS() {
+    return new ConditionOperand(CMPG_LESS);
+  }
+
+  /**
    * Create the condition code operand for CARRY_FROM_ADD
-   * 
+   *
    * @return a newly created condition code operand
    */
   public static ConditionOperand CARRY_FROM_ADD() {
@@ -237,7 +282,7 @@ public final class ConditionOperand extends Operand {
 
   /**
    * Create the condition code operand for OVERFLOW_FROM_ADD
-   * 
+   *
    * @return a newly created condition code operand
    */
   public static ConditionOperand OVERFLOW_FROM_ADD() {
@@ -246,7 +291,7 @@ public final class ConditionOperand extends Operand {
 
   /**
    * Create the condition code operand for BORROW_FROM_SUB
-   * 
+   *
    * @return a newly created condition code operand
    */
   public static ConditionOperand BORROW_FROM_SUB() {
@@ -255,7 +300,7 @@ public final class ConditionOperand extends Operand {
 
   /**
    * Create the condition code operand for OVERFLOW_FROM_SUB
-   * 
+   *
    * @return a newly created condition code operand
    */
   public static ConditionOperand OVERFLOW_FROM_SUB() {
@@ -264,7 +309,7 @@ public final class ConditionOperand extends Operand {
 
   /**
    * Create the condition code operand for BIT_TEST
-   * 
+   *
    * @return a newly created condition code operand
    */
   public static ConditionOperand BIT_TEST() {
@@ -273,7 +318,7 @@ public final class ConditionOperand extends Operand {
 
   /**
    * Create the condition code operand for OVERFLOW_FROM_ADD
-   * 
+   *
    * @return a newly created condition code operand
    */
   public static ConditionOperand OVERFLOW_FROM_MUL() {
@@ -455,10 +500,10 @@ public final class ConditionOperand extends Operand {
    */
   public boolean isUNSIGNED() {
     switch (value) {
-    case HIGHER: 
-    case LOWER: 
+    case HIGHER:
+    case LOWER:
     case HIGHER_EQUAL:
-    case LOWER_EQUAL: 
+    case LOWER_EQUAL:
       return true;
     default:
       return false;
@@ -479,7 +524,7 @@ public final class ConditionOperand extends Operand {
     case NO_BORROW_FROM_SUB:
     case OVERFLOW_FROM_SUB:
     case NO_OVERFLOW_FROM_SUB:
-    case BORROW_FROM_RSUB:        
+    case BORROW_FROM_RSUB:
     case NO_BORROW_FROM_RSUB:
     case OVERFLOW_FROM_RSUB:
     case NO_OVERFLOW_FROM_RSUB:
@@ -533,7 +578,7 @@ public final class ConditionOperand extends Operand {
    */
   public boolean isFLAG_OPERATION_FROM_RSUB() {
     switch (value) {
-    case BORROW_FROM_RSUB:        
+    case BORROW_FROM_RSUB:
     case NO_BORROW_FROM_RSUB:
     case OVERFLOW_FROM_RSUB:
     case NO_OVERFLOW_FROM_RSUB:
@@ -824,7 +869,7 @@ public final class ConditionOperand extends Operand {
       case LOWER:
       case BORROW_FROM_SUB:
       case NO_BORROW_FROM_SUB:
-      case BORROW_FROM_RSUB:        
+      case BORROW_FROM_RSUB:
       case NO_BORROW_FROM_RSUB:
       case OVERFLOW_FROM_SUB:
       case NO_OVERFLOW_FROM_SUB:
