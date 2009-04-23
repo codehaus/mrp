@@ -16,6 +16,9 @@ import org.jikesrvm.VM;
 import org.jikesrvm.compilers.common.BootImageCompiler;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.RuntimeCompiler;
+import org.jikesrvm.compilers.opt.bc2ir.BC2IR;
+import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
+import org.jikesrvm.compilers.opt.ir.HIRGenerator;
 import org.jikesrvm.runtime.DynamicLink;
 import org.jikesrvm.util.HashMapRVM;
 import org.vmmagic.pragma.Uninterruptible;
@@ -23,7 +26,7 @@ import org.vmmagic.pragma.Uninterruptible;
 /**
  * A method of a java class that has bytecodes.
  */
-public final class NormalMethod extends RVMMethod implements BytecodeConstants {
+public class NormalMethod extends RVMMethod implements BytecodeConstants {
 
   /* As we read the bytecodes for the method, we compute
    * a simple summary of some interesting properties of the method.
@@ -68,29 +71,29 @@ public final class NormalMethod extends RVMMethod implements BytecodeConstants {
   public static final int SWITCH_COST = CALL_COST;
 
   // Definition of flag bits
-  private static final char HAS_MAGIC = 0x8000;
-  private static final char HAS_SYNCH = 0x4000;
-  private static final char HAS_ALLOCATION = 0x2000;
-  private static final char HAS_THROW = 0x1000;
-  private static final char HAS_INVOKE = 0x0800;
-  private static final char HAS_FIELD_READ = 0x0400;
-  private static final char HAS_FIELD_WRITE = 0x0200;
-  private static final char HAS_ARRAY_READ = 0x0100;
-  private static final char HAS_ARRAY_WRITE = 0x0080;
-  private static final char HAS_JSR = 0x0040;
-  private static final char HAS_COND_BRANCH = 0x0020;
-  private static final char HAS_SWITCH = 0x0010;
-  private static final char HAS_BACK_BRANCH = 0x0008;
-  private static final char IS_RS_METHOD = 0x0004;
+  protected static final char HAS_MAGIC = 0x8000;
+  protected static final char HAS_SYNCH = 0x4000;
+  protected static final char HAS_ALLOCATION = 0x2000;
+  protected static final char HAS_THROW = 0x1000;
+  protected static final char HAS_INVOKE = 0x0800;
+  protected static final char HAS_FIELD_READ = 0x0400;
+  protected static final char HAS_FIELD_WRITE = 0x0200;
+  protected static final char HAS_ARRAY_READ = 0x0100;
+  protected static final char HAS_ARRAY_WRITE = 0x0080;
+  protected static final char HAS_JSR = 0x0040;
+  protected static final char HAS_COND_BRANCH = 0x0020;
+  protected static final char HAS_SWITCH = 0x0010;
+  protected static final char HAS_BACK_BRANCH = 0x0008;
+  protected static final char IS_RS_METHOD = 0x0004;
 
   /**
    * storage for bytecode summary flags
    */
-  private char summaryFlags;
+  protected char summaryFlags;
   /**
    * storage for bytecode summary size
    */
-  private char summarySize;
+  protected char summarySize;
 
   /**
    * words needed for local variables (including parameters)
@@ -159,9 +162,12 @@ public final class NormalMethod extends RVMMethod implements BytecodeConstants {
    * @param parameterAnnotations array of runtime visible paramter annotations
    * @param ad annotation default value for that appears in annotation classes
    */
-  NormalMethod(TypeReference dc, MemberReference mr, short mo, TypeReference[] et, short lw, short ow,
-                  byte[] bc, ExceptionHandlerMap eMap, int[] lm, LocalVariableTable lvt, int[] constantPool, Atom sig,
-                  RVMAnnotation[] annotations, RVMAnnotation[][] parameterAnnotations, Object ad) {
+  protected NormalMethod(TypeReference dc, MemberReference mr, short mo,
+                         TypeReference[] et, short lw, short ow,
+                         byte[] bc, ExceptionHandlerMap eMap, int[] lm,
+                         LocalVariableTable lvt, int[] constantPool, Atom sig,
+                         RVMAnnotation[] annotations, RVMAnnotation[][] parameterAnnotations,
+                         Object ad) {
     super(dc, mr, mo, et, sig, annotations, parameterAnnotations, ad);
     localWords = lw;
     operandWords = ow;
@@ -213,7 +219,7 @@ public final class NormalMethod extends RVMMethod implements BytecodeConstants {
    * @param dynamicLink the dynamicLink object to initialize
    * @param bcIndex the bcIndex of the invoke instruction
    */
-  @Uninterruptible
+  @Uninterruptible("Called from within GC map iterators")
   public void getDynamicLink(DynamicLink dynamicLink, int bcIndex) {
     if (VM.VerifyAssertions) VM._assert(bytecodes != null);
     if (VM.VerifyAssertions) VM._assert(bcIndex + 2 < bytecodes.length);
@@ -798,5 +804,27 @@ public final class NormalMethod extends RVMMethod implements BytecodeConstants {
    */
   public LocalVariableTable getLocalVariableTable() {
     return localVariableTables.get(this);
+  }
+
+  /**
+   * Create an optimizing compiler HIR code generator for this type of method
+   * 
+   * @param context
+   *          the generation context for the HIR generation
+   * @return a HIR generator
+   */
+  public HIRGenerator createHIRGenerator(GenerationContext context) {
+    return new BC2IR(context);
+  }
+
+  /**
+   * Must this method be OPT compiled?
+   * 
+   * @param context
+   *          the generation context for the HIR generation
+   * @return a HIR generator
+   */
+  public boolean optCompileOnly() {
+    return false;
   }
 }

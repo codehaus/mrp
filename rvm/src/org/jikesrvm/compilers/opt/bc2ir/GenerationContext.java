@@ -160,7 +160,7 @@ public final class GenerationContext implements org.jikesrvm.compilers.opt.drive
    * The Register to which BC2IR should assign the return value(s)
    * of the method. It will be null when the method has a void return.
    */
-  Register resultReg;
+  public Register resultReg;
 
   /**
    * The enclosing exception handlers (null if there are none).

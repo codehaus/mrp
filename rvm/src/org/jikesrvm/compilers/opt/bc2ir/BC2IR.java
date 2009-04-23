@@ -64,6 +64,7 @@ import org.jikesrvm.compilers.opt.ir.GetStatic;
 import org.jikesrvm.compilers.opt.ir.Goto;
 import org.jikesrvm.compilers.opt.ir.GuardedBinary;
 import org.jikesrvm.compilers.opt.ir.GuardedUnary;
+import org.jikesrvm.compilers.opt.ir.HIRGenerator;
 import org.jikesrvm.compilers.opt.ir.IRTools;
 import org.jikesrvm.compilers.opt.ir.IfCmp;
 import org.jikesrvm.compilers.opt.ir.InstanceOf;
@@ -149,7 +150,7 @@ import org.vmmagic.unboxed.Offset;
  * @see ConvertBCtoHIR
  */
 public final class BC2IR
-    implements IRGenOptions, Operators, BytecodeConstants, ClassLoaderConstants, OptConstants, OSRConstants {
+  implements IRGenOptions, Operators, BytecodeConstants, ClassLoaderConstants, OptConstants, OSRConstants, HIRGenerator {
   /**
    * Dummy slot.
    * Used to deal with the fact the longs/doubles take
@@ -291,7 +292,7 @@ public final class BC2IR
    *
    * @param context the context to generate HIR into
    */
-  private BC2IR(GenerationContext context) {
+  public BC2IR(GenerationContext context) {
     start(context);
     for (int argIdx = 0, localIdx = 0; argIdx < context.arguments.length;) {
       TypeReference argType = context.arguments[argIdx].getType();
@@ -358,7 +359,7 @@ public final class BC2IR
   /**
    * Main generation loop.
    */
-  private void generateHIR() {
+  public void generateHIR() {
     // Constructor initialized generation state to start
     // generating from bytecode 0, so get the ball rolling.
     if (DBG_BB || DBG_SELECTED) db("bbl: " + printBlocks());

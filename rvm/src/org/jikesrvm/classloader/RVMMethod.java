@@ -755,7 +755,7 @@ public abstract class RVMMethod extends RVMMember implements BytecodeConstants {
    * ("type information blocks")
    *              for this class and its subclasses
    */
-  public final synchronized void replaceCompiledMethod(CompiledMethod compiledMethod) {
+  public synchronized void replaceCompiledMethod(CompiledMethod compiledMethod) {
     if (VM.VerifyAssertions) VM._assert(getDeclaringClass().isInstantiated());
     // If we're replacing with a non-null compiledMethod, ensure that is still valid!
     if (compiledMethod != null) {

@@ -1212,7 +1212,7 @@ Check to make sure all required properties are specified. This includes properti
     </javac>
   </target>
 
-  <target name="package" depends="compile,compile-vmmagic,package-classpath,package-harmony"/>
+  <target name="package" depends="compile,compile-vmmagic,compile-projects,package-classpath,package-harmony"/>
 
   <target name="package-harmony" if="harmony.classlib">
     <zip destfile="${build.rt.jar}" duplicate="preserve" basedir="${build.classes}" compress="false">
@@ -1290,7 +1290,9 @@ Check to make sure all required properties are specified. This includes properti
   <target name="gen-primordial-list">
 
     <fileset id="primordials.main" dir="${build.classes}">
-      <include name="org/**/*.class" />
+      <include name="org/jikesrvm/**/*.class" />
+      <include name="org/mmtk/**/*.class" />
+      <include name="org/vmutil/**/*.class" />
       <include name="com/ibm/tuningfork/**/*.class" />
       <exclude name="**/ppc/*.class" unless="include.ppc"/>
       <exclude name="**/ia32/*.class" if="include.ppc"/>
@@ -1915,6 +1917,19 @@ const char *rvm_target_configuration = "${target.file}";
       <arg value="${build.base}/JikesRVM-symbols.o"/>
       <arg value="${build.base}/JikesRVM-symbols.s"/>
     </exec>
+  </target>
+
+  <!-- **************************************************************************** -->
+  <!-- *                                                                          * -->
+  <!-- *             Section for compiling and packaging external projects        * -->
+  <!-- *                                                                          * -->
+  <!-- **************************************************************************** -->
+  <target name="compile-projects"
+          depends="compile"
+          description="Build any projects included with the RVM">
+    <subant target="" inheritall="true">
+      <fileset dir="projects" includes="*/build.xml" />
+    </subant>
   </target>
 
   <!-- **************************************************************************** -->
