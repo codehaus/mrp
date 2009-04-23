@@ -12,7 +12,6 @@ import org.jikesrvm.VM;
 import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.runtime.Magic;
 import org.vmmagic.pragma.DynamicBridge;
-import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.pragma.NoInline;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
@@ -20,10 +19,8 @@ import org.binarytranslator.generic.fault.BadInstructionException;
 
 /**
  * This class provides the bridge between the Java compiled world and the world
- * compiled using the PPC emulator. Uninterruptible is used to prevent garbage
- * collection errors with the dynamic bridge code.
+ * compiled using the PPC emulator.
  */
-//@Uninterruptible
 @DynamicBridge
 public class DynamicCodeRunner {
   /**
@@ -62,12 +59,10 @@ public class DynamicCodeRunner {
 }
 
 /**
- * This class is a hoax used to point our PPC_Trace to. We can't use
- * DynamicCodeRunner as OPT_Compiler refuses to build something that implements
- * DynamicBridge. Uninterruptible is used to prevent garbage collection
- * errors with the dynamic bridge code.
+ * This class is a hoax used to point our DBT_Trace to. We can't use
+ * DynamicCodeRunner as the opt compiler refuses to build something
+ * that implements DynamicBridge.
  */
-@Uninterruptible
 class DummyDynamicCodeRunner {
   /**
    * The method replaced by a trace

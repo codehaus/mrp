@@ -144,7 +144,6 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   /**
    * Return as an integer the current instruction's address
    */
-  @Uninterruptible
   public int getCurrentInstructionAddress() {
     return registers.get(ARM_Registers.PC);
   }
@@ -159,7 +158,6 @@ public abstract class ARM_ProcessSpace extends ProcessSpace {
   /**
    * Return a string disassembly of the instuction at the given address
    */
-  @Uninterruptible
   public String disassembleInstruction(int pc) {
     return ARM_Disassembler.disassemble(pc, this).asString();
   }

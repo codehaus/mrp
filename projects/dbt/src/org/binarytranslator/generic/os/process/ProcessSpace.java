@@ -25,7 +25,6 @@ import org.binarytranslator.generic.memory.Memory;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
-import org.vmmagic.pragma.Uninterruptible;
 
 /**
  * A process space encapsulates a running process. This superclass contains non
@@ -85,7 +84,6 @@ public abstract class ProcessSpace {
   }
   
   /** Return a string disassembly of the instuction at the given address*/
-  @Uninterruptible
   public String disassembleInstruction(int pc) throws UnsupportedOperationException {
     return createDisassembler().disassemble(pc).asString();
   }
@@ -167,7 +165,6 @@ public abstract class ProcessSpace {
   }
 
   /** Return as an integer the current instruction's address */
-  @Uninterruptible
   public abstract int getCurrentInstructionAddress();
 
   /** Sets the current instruction's address */

@@ -24,7 +24,6 @@ import org.binarytranslator.arch.x86.decoder.X86_InstructionDecoder;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.DynamicCodeRunner;
-import org.vmmagic.pragma.Uninterruptible;
 import org.jikesrvm.ArchitectureSpecific.CodeArray;
 
 /**
@@ -198,7 +197,6 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
   /**
    * Return as an integer the current instruction's address
    */
-  @Uninterruptible
   public int getCurrentInstructionAddress() {
     return registers.eip;
   }
@@ -212,7 +210,6 @@ public abstract class X86_ProcessSpace extends ProcessSpace implements GdbTarget
   /**
    * Return a string disassembly of the instuction at the given address
    */
-  @Uninterruptible
   public String disassembleInstruction(int pc) {
     return X86_InstructionDecoder.getDecoder(this,pc).disassemble(this, pc);
   }

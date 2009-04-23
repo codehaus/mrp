@@ -12,6 +12,7 @@ import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.classloader.MethodReference;
 import org.binarytranslator.generic.decoder.CodeTranslator;
+import org.binarytranslator.DBT;
 import org.vmmagic.pragma.Uninterruptible;
 import java.io.RandomAccessFile;
 
@@ -275,8 +276,9 @@ public abstract class Memory {
    */
   @Uninterruptible
   public MethodReference getMethodRef(int callAddress) {
-    throw new Error("Error linking method at " + callAddress
-        + " for memory model " + this.getClass());
+    DBT.write(callAddress);
+    DBT.fail("Trying to dynamic link inside a DBT trace for an unknown dynamic link location or memory model.");
+    return null;
   }
   
   /**

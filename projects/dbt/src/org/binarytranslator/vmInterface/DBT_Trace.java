@@ -9,6 +9,7 @@
 package org.binarytranslator.vmInterface;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.binarytranslator.generic.decoder.CodeTranslator;
@@ -117,7 +118,7 @@ public final class DBT_Trace extends NormalMethod {
    * This list stores at which bytecode index a specific method call is executed. 
    * The index of an element plus {@link #CUSTOM_CALL_BCINDEX_BASE} equals the bytecode index
    * for the call.*/
-  private final List<CustomCallInformation> customCalls = new ArrayList<CustomCallInformation>();
+  private CustomCallInformation[] customCalls;
 
   /**
    * Create an optimizing compiler HIR code generator for this trace
@@ -178,21 +179,25 @@ public final class DBT_Trace extends NormalMethod {
    *          the address of the first instruction
    */
   public DBT_Trace(ProcessSpace ps, int startPC) {
-    super(dummyRunner.getTypeRef(), MemberReference.findOrCreate(dummyRunner
-        .getTypeRef(), Atom.findOrCreateAsciiAtom("invokeCode" + "_PC_0x"
-        + Integer.toHexString(startPC)), invokeCodeDescriptor),
-        invokeCode.modifiers, invokeCode.getExceptionTypes(),
-        (short) invokeCode.getLocalWords(), (short) invokeCode
-            .getOperandWords(), null, invokeCode.getExceptionHandlerMap(),
-        zeroLengthIntArray, // lm
-        null, // constant pool
-        null, // signature
-        null, // annotations
-        null, // parameter annotations
-        null // annotation default
+    super(dummyRunner.getTypeRef(),
+          MemberReference.findOrCreate(dummyRunner.getTypeRef(),
+                                       Atom.findOrCreateAsciiAtom("invokeCode"+"_PC_0x"+Integer.toHexString(startPC)),
+                                       invokeCodeDescriptor),
+          (short)invokeCode.getModifiers(),
+          invokeCode.getExceptionTypes(),
+          (short) invokeCode.getLocalWords(),
+          (short) invokeCode.getOperandWords(),
+          null, invokeCode.getExceptionHandlerMap(),
+          zeroLengthIntArray, // lm
+          null, // local variable table
+          null, // constant pool
+          null, // signature
+          null, // annotations
+          null, // parameter annotations
+          null // annotation default
     );
 
-    this.offset = Statics.allocateReferenceSlot().toInt();
+    this.offset = Statics.allocateReferenceSlot(false).toInt();
 
     this.ps = ps;
     pc = startPC;
@@ -253,10 +258,17 @@ public final class DBT_Trace extends NormalMethod {
       DBT._assert(callType == JBC_invokeinterface || callType == JBC_invokespecial || 
                   callType == JBC_invokestatic ||  callType == JBC_invokevirtual);
     
-    int nextBcIndex = customCalls.size();
-    
+    int nextBcIndex;
+    if (customCalls != null) {
+      nextBcIndex = customCalls.length;
+      customCalls = Arrays.copyOf(customCalls, customCalls.length+1);
+    } else {
+      customCalls = new CustomCallInformation[1];
+      nextBcIndex = 0;
+    }
+
     CustomCallInformation mapping = new CustomCallInformation(methodRef, callType);
-    customCalls.add(mapping);
+    customCalls[nextBcIndex] = mapping;
     
     return CUSTOM_CALL_BCINDEX_BASE + nextBcIndex;
   }
@@ -269,7 +281,7 @@ public final class DBT_Trace extends NormalMethod {
    * @param bcIndex
    *          the bcIndex of the invoke instruction
    */
-  @Uninterruptible
+  @Uninterruptible("Called from within GC map iterators")
   public void getDynamicLink(DynamicLink dynamicLink, int bcIndex) {
     switch (bcIndex) {
     case DO_SYSCALL:
@@ -301,12 +313,12 @@ public final class DBT_Trace extends NormalMethod {
       //check if a custom call has been registered for this bytecode index.
       int callIdx = bcIndex - CUSTOM_CALL_BCINDEX_BASE;
     
-      if (callIdx < 0 || callIdx >= customCalls.size()) {
+      if (callIdx < 0 || callIdx >= customCalls.length) {
         DBT.write(bcIndex);
         DBT.fail("Trying to dynamic link inside a DBT trace for an unknown dynamic link location");
       }
       
-      CustomCallInformation call = customCalls.get(callIdx);
+      CustomCallInformation call = customCalls[callIdx];
       dynamicLink.set(call.methodRef, call.callType);
     }
   }
