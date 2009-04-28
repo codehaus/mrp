@@ -808,7 +808,7 @@ public class NormalMethod extends RVMMethod implements BytecodeConstants {
 
   /**
    * Create an optimizing compiler HIR code generator for this type of method
-   * 
+   *
    * @param context
    *          the generation context for the HIR generation
    * @return a HIR generator
@@ -819,7 +819,7 @@ public class NormalMethod extends RVMMethod implements BytecodeConstants {
 
   /**
    * Must this method be OPT compiled?
-   * 
+   *
    * @param context
    *          the generation context for the HIR generation
    * @return a HIR generator

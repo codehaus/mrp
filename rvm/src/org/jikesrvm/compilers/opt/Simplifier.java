@@ -1227,8 +1227,7 @@ public abstract class Simplifier extends IRTools {
                 BooleanCmp2.getVal3(s), BooleanCmp2.getVal4(s), BooleanCmp2
                     .getCond2(s), BooleanCmp2.getBranchProfile2(s));
             DefUseEffect result = booleanCmpInt(s, opts);
-            return (result == DefUseEffect.UNCHANGED) ? DefUseEffect.REDUCED
-                : result;
+            return (result == DefUseEffect.UNCHANGED) ? DefUseEffect.REDUCED : result;
           }
         }
       }
@@ -1246,8 +1245,7 @@ public abstract class Simplifier extends IRTools {
                 BooleanCmp2.getVal1(s), BooleanCmp2.getVal2(s), BooleanCmp2
                     .getCond1(s), BooleanCmp2.getBranchProfile1(s));
             DefUseEffect result = booleanCmpInt(s, opts);
-            return (result == DefUseEffect.UNCHANGED) ? DefUseEffect.REDUCED
-                : result;
+            return (result == DefUseEffect.UNCHANGED) ? DefUseEffect.REDUCED : result;
           }
         }
       }
