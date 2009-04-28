@@ -1,11 +1,11 @@
 <!--
  ~  This file is part of the Jikes RVM project (http://jikesrvm.org).
  ~
- ~  This file is licensed to You under the Common Public License (CPL);
+ ~  This file is licensed to You under the Eclipse Public License (EPL);
  ~  You may not use this file except in compliance with the License. You
  ~  may obtain a copy of the License at
  ~
- ~      http://www.opensource.org/licenses/cpl1.0.php
+ ~      http://www.opensource.org/licenses/eclipse-1.0.php
  ~
  ~  See the COPYRIGHT.txt file distributed with this work for information
  ~  regarding copyright ownership.
@@ -1058,7 +1058,7 @@ Check to make sure all required properties are specified. This includes properti
         <equals arg1="${classlib.provider}" arg2="GNU Classpath"/>
       </conditions>
       <sequential>
-        <property name="classlib.library-interface.cpl.java" location="libraryInterface/GNUClasspath/CPL/src"/>
+        <property name="classlib.library-interface.cpl.java" location="libraryInterface/GNUClasspath/EPL/src"/>
         <property name="classlib.library-interface.non-cpl.java" location="libraryInterface/GNUClasspath/LGPL/src"/>
         <property name="classlib.library-interface.non-cpl2.java" location="libraryInterface/GNUClasspath/PD/src"/>
       </sequential>
@@ -1068,7 +1068,7 @@ Check to make sure all required properties are specified. This includes properti
         <equals arg1="${classlib.provider}" arg2="Harmony"/>
       </conditions>
       <sequential>
-        <property name="classlib.library-interface.cpl.java" location="libraryInterface/Harmony/CPL/src"/>
+        <property name="classlib.library-interface.cpl.java" location="libraryInterface/Harmony/EPL/src"/>
         <property name="classlib.library-interface.non-cpl.java" location="libraryInterface/Harmony/ASF/src"/>
       </sequential>
     </if>
@@ -2248,7 +2248,7 @@ target.jni-suffix=${target.jni-suffix}
       <fileset dir="common/vmmagic" includes="**/*.java"/>
       <fileset dir="common/options" includes="**/*.java"/>
       <fileset dir="libraryInterface/Common" includes="**/*.java"/>
-      <fileset dir="libraryInterface/GNUClasspath/CPL" includes="**/*.java"/>
+      <fileset dir="libraryInterface/GNUClasspath/EPL" includes="**/*.java"/>
       <fileset dir="tools" includes="**/*.java"/>
     </checkstyle>
 
