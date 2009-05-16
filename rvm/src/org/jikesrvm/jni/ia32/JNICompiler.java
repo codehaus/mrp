@@ -273,7 +273,7 @@ public abstract class JNICompiler implements BaselineConstants {
             if (SSE2_FULL) {
               asm.emitMOVSD_RegInd_Reg(SP, (XMM)PARAMETER_FPRS[argFpr]);
             } else {
-              asm.emitFSTP_RegInd_Reg_Quad(SP, (FPR)PARAMETER_FPRS[argFpr]);
+              asm.emitFSTP_RegInd_Reg_Quad(SP, FP0);
             }
           } else {
             asm.emitPUSH_RegDisp(EBP, currentArg.plus(WORDSIZE));
@@ -285,7 +285,7 @@ public abstract class JNICompiler implements BaselineConstants {
             if (SSE2_FULL) {
               asm.emitMOVSD_RegInd_Reg(SP, (XMM)PARAMETER_FPRS[argFpr]);
             } else {
-              asm.emitFSTP_RegInd_Reg_Quad(SP, (FPR)PARAMETER_FPRS[argFpr]);
+              asm.emitFSTP_RegInd_Reg_Quad(SP, FP0);
             }
           } else {
             asm.emitPUSH_RegDisp(EBP, currentArg);
