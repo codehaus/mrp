@@ -547,7 +547,7 @@ public class NormalMethod extends RVMMethod implements BytecodeConstants {
    * This method computes a summary of interesting method characteristics
    * and stores an encoding of the summary as an int.
    */
-  private void computeSummary(int[] constantPool) {
+  protected void computeSummary(int[] constantPool) {
     int calleeSize = 0;
     if (isSynchronized()) {
       summaryFlags |= HAS_SYNCH;

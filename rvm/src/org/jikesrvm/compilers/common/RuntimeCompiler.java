@@ -665,7 +665,7 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
             compilationInProgress = false;
           }
         }
-        if (Controller.options.optIRC()) {
+        if (Controller.options.optIRC() || method.optCompileOnly()) {
           if (// will only run once: don't bother optimizing
               method.isClassInitializer() ||
               // exception in progress. can't use opt compiler:
@@ -683,7 +683,21 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
                                         (OptimizationPlanElement[]) optimizationPlan,
                                         instrumentationPlan,
                                         (OptOptions) options);
-            cm = optCompileWithFallBack(method, compPlan);
+	    if (!method.optCompileOnly()) {
+              cm = optCompileWithFallBack(method, compPlan);
+            } else {
+              compilationInProgress = true;
+              try {
+                cm = optCompile(method, compPlan);
+              } catch (OptimizingCompilerException e) {
+                String msg = "Optimizing compiler "
+                  + "(on method that can only be optimizing compiler compiled): "
+                  + "can't optimize \"" + method + "\"";
+                throw new Error(msg, e);
+              } finally {
+                compilationInProgress = false;
+              }
+            }
           }
         } else {
           if ((Controller.options
