@@ -1,14 +1,16 @@
 @echo off
-:: This file is part of the Jikes RVM project (http://jikesrvm.org).
+::  This file is part of the Metacircular Research Platform (MRP)
 ::
-:: This file is licensed to You under the Common Public License (CPL);
-:: You may not use this file except in compliance with the License. You
-:: may obtain a copy of the License at
+::      http://mrp.codehaus.org/
 ::
-::     http://www.opensource.org/licenses/cpl1.0.php
+::  This file is licensed to you under the Eclipse Public License (EPL);
+::  You may not use this file except in compliance with the License. You
+::  may obtain a copy of the license at:
 ::
-:: See the COPYRIGHT.txt file distributed with this work for information
-:: regarding copyright ownership.
+::      http://www.opensource.org/licenses/eclipse-1.0.php
+::
+::  See the COPYRIGHT.txt file distributed with this work for information
+::  regarding copyright ownership.
 
 :: set RVM_HOME to directory of this file and then strip the trailing \
 set RVM_HOME=%~dp0
