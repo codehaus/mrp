@@ -3211,9 +3211,9 @@ public class RVMThread extends ThreadContext {
   @Unpreemptible("Does not perform actions that lead to blocking, but may wait for threads to rendezvous with the soft handshake")
   public static void softHandshake(SoftHandshakeVisitor v) {
     handshakeLock.lockWithHandshake(); /*
-                                 * prevent multiple (soft or hard) handshakes
-                                 * from proceeding concurrently
-                                 */
+                                        * prevent multiple (soft or hard) handshakes
+                                        * from proceeding concurrently
+                                        */
 
     int numToHandshake = snapshotHandshakeThreads();
     if (VM.VerifyAssertions)
@@ -3399,12 +3399,15 @@ public class RVMThread extends ThreadContext {
     RVMThread current=getCurrentThread();
 
     handshakeLock.lockWithHandshake();
+    int numLockedLocks=0;
     for (int i=0;i<nextSlot;++i) {
       Monitor l=communicationLockBySlot[i];
       if (l!=null) {
         l.lockWithHandshake();
+        numLockedLocks++;
       }
     }
+
     // fixpoint until there are no threads that we haven't blocked.
     // fixpoint is needed in case some thread spawns another thread
     // while we're waiting.  that is unlikely but possible.
@@ -3454,6 +3457,17 @@ public class RVMThread extends ThreadContext {
                                 * that they had stopped.
                                 */
 
+    int numUnlockedLocks=0;
+    for (int i=0;i<nextSlot;++i) {
+      Monitor l=communicationLockBySlot[i];
+      if (l!=null) {
+        l.unlock();
+        numUnlockedLocks++;
+      }
+    }
+    if (VM.VerifyAssertions) VM._assert(numLockedLocks==numUnlockedLocks);
+    handshakeLock.unlock();
+
     if (false) {
       long after=sysCall.sysNanoTime();
       totalSuspendTime+=after-before;
@@ -3466,6 +3480,8 @@ public class RVMThread extends ThreadContext {
   public static void hardHandshakeResume(BlockAdapter ba,
                                          HardHandshakeVisitor hhv) {
     long before=sysCall.sysNanoTime();
+
+    handshakeLock.lockWithHandshake();
 
     RVMThread current=getCurrentThread();
     worldStopped=false;
@@ -3484,12 +3500,7 @@ public class RVMThread extends ThreadContext {
       handshakeThreads[i].unblock(ba);
       handshakeThreads[i]=null; // help GC
     }
-    for (int i=0;i<nextSlot;++i) {
-      Monitor l=communicationLockBySlot[i];
-      if (l!=null) {
-        l.unlock();
-      }
-    }
+
     handshakeLock.unlock();
 
     if (false) {
@@ -3497,6 +3508,16 @@ public class RVMThread extends ThreadContext {
       totalResumeTime+=after-before;
       VM.sysWriteln("Resuming the world took ",(after-before)," ns (",totalResumeTime," ns total)");
     }
+  }
+
+  @Unpreemptible
+  public static void hardHandshakeSuspend() {
+    hardHandshakeSuspend(handshakeBlockAdapter,allButGC);
+  }
+
+  @Unpreemptible
+  public static void hardHandshakeResume() {
+    hardHandshakeResume(handshakeBlockAdapter,allButGC);
   }
 
   public static boolean worldStopped() {

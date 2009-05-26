@@ -20,10 +20,6 @@
 #include <sys/time.h>
 #endif
 
-#if !defined(RVM_FOR_HARMONY) && defined(__MACH__)
-mach_timebase_info_data_t timebaseInfo;
-#endif
-
 EXTERNAL long long sysCurrentTimeMillis()
 {
   SYS_START();
@@ -58,19 +54,13 @@ EXTERNAL long long sysNanoTime()
   retVal = hytime_current_time_millis() * 1000000;
 #else
 #ifdef __MACH__
-  unsigned long long high;
-  unsigned long long low;
-
-  low = mach_absolute_time();
-
-  high = low >> 32;
-  low &= 0xffffffff;
-
-  high *= timebaseInfo.numer;
-  low *= timebaseInfo.numer;
-
-  retVal = (high / timebaseInfo.denom) << 32;
-  retVal += (low + ((high % timebaseInfo.denom) << 32)) / timebaseInfo.denom;
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  retVal=tv.tv_sec;
+  retVal*=1000;
+  retVal*=1000;
+  retVal+=tv.tv_usec;
+  retVal*=1000;
 #else
   struct timespec tp;
   int rc = clock_gettime(CLOCK_MONOTONIC, &tp);
