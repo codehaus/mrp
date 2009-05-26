@@ -39,5 +39,6 @@ class Dummy {
   static org.vmmagic.unboxed.WordArray x;
   static org.vmmagic.unboxed.OffsetArray y;
   static org.vmmagic.unboxed.ExtentArray z;
+  static org.jikesrvm.scheduler.LightMonitor zz;
   static org.jikesrvm.ppc.Disassembler project1; // needed by projects/dbt
 }

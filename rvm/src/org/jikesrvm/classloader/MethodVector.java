@@ -17,10 +17,18 @@ import java.util.WeakHashMap;
 /**
  *  Lightweight implementation of a vector of Fields.
  */
-final class MethodVector {
-  //-----------//
-  // interface //
-  //-----------//
+public final class MethodVector {
+  private RVMMethod[] array;
+  private int cnt;
+
+  private static final RVMMethod[] empty = new RVMMethod[0];
+  private static WeakHashMap<MethodVector, RVMMethod[]>
+    popularMVs = new WeakHashMap<MethodVector, RVMMethod[]>();
+
+  public static void boot() {
+    // Reinitialize as buckets aren't written in bootstrap process
+    popularMVs = new WeakHashMap<MethodVector, RVMMethod[]>();
+  }
 
   public MethodVector() {
     array = new RVMMethod[10];
@@ -96,17 +104,6 @@ final class MethodVector {
       return false;
     }
   }
-
-  //----------------//
-  // implementation //
-  //----------------//
-
-  private RVMMethod[] array;
-  private int cnt;
-
-  private static final RVMMethod[] empty = new RVMMethod[0];
-  private static final WeakHashMap<MethodVector, RVMMethod[]>
-    popularMVs = new WeakHashMap<MethodVector, RVMMethod[]>();
 
   private void adjustLength(int newLength) {
     if (newLength == 0) {

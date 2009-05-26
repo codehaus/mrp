@@ -17,10 +17,19 @@ import java.util.WeakHashMap;
 /**
  *  Lightweight implementation of a vector of Fields.
  */
-final class TypeReferenceVector {
-  //-----------//
-  // interface //
-  //-----------//
+public final class TypeReferenceVector {
+
+  private TypeReference[] array;
+  private int cnt;
+
+  private static final TypeReference[] empty = new TypeReference[0];
+  private static WeakHashMap<TypeReferenceVector,TypeReference[]>
+    popularTRVs = new WeakHashMap<TypeReferenceVector,TypeReference[]>();
+
+  public static void boot() {
+    // Reinitialize as buckets aren't written in bootstrap process
+    popularTRVs = new WeakHashMap<TypeReferenceVector,TypeReference[]>();
+  }
 
   public TypeReferenceVector() {
     array = new TypeReference[10];
@@ -96,17 +105,6 @@ final class TypeReferenceVector {
       return false;
     }
   }
-
-  //----------------//
-  // implementation //
-  //----------------//
-
-  private TypeReference[] array;
-  private int cnt;
-
-  private static final TypeReference[] empty = new TypeReference[0];
-  private static final WeakHashMap<TypeReferenceVector,TypeReference[]>
-    popularTRVs = new WeakHashMap<TypeReferenceVector,TypeReference[]>();
 
   private void adjustLength(int newLength) {
     if (newLength == 0) {

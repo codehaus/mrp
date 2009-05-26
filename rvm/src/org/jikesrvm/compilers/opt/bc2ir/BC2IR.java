@@ -3636,6 +3636,7 @@ public final class BC2IR
    */
   public boolean do_NullCheck(Operand ref) {
     if (gc.noNullChecks()) {
+      setCurrentGuard(new TrueGuardOperand());
       return false;
     }
     if (ref.isDefinitelyNull()) {
@@ -4836,7 +4837,7 @@ public final class BC2IR
 
   /**
    * make a temporary register, and create a move instruction
-   * @param op, the local variable.
+   * @param op the local variable.
    * @return operand marked as use.
    */
   private Operand _loadLocalForOSR(Operand op) {

@@ -17,10 +17,18 @@ import java.util.WeakHashMap;
 /**
  *  Lightweight implementation of a vector of Fields.
  */
-final class FieldVector {
-  //-----------//
-  // interface //
-  //-----------//
+public final class FieldVector {
+  private RVMField[] array;
+  private int cnt;
+
+  private static final RVMField[] empty = new RVMField[0];
+  private static WeakHashMap<FieldVector, RVMField[]>
+    popularFVs = new WeakHashMap<FieldVector, RVMField[]>();
+
+  public static void boot() {
+    // Reinitialize as buckets aren't written in bootstrap process
+    popularFVs = new WeakHashMap<FieldVector, RVMField[]>();
+  }
 
   public FieldVector() {
     array = new RVMField[10];
@@ -96,17 +104,6 @@ final class FieldVector {
       return false;
     }
   }
-
-  //----------------//
-  // implementation //
-  //----------------//
-
-  private RVMField[] array;
-  private int cnt;
-
-  private static final RVMField[] empty = new RVMField[0];
-  private static final WeakHashMap<FieldVector, RVMField[]>
-    popularFVs = new WeakHashMap<FieldVector, RVMField[]>();
 
   private void adjustLength(int newLength) {
     if (newLength == 0) {

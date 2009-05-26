@@ -943,12 +943,17 @@ public final class Atom {
    * Inner class responsible for string interning. This class' initializer is
    * run during booting.
    */
-  private static class InternedStrings {
+  public static class InternedStrings {
     /**
      * Look up for interned strings.
      */
-    private static final WeakHashMap<String,WeakReference<String>> internedStrings =
+    private static WeakHashMap<String,WeakReference<String>> internedStrings =
       new WeakHashMap<String,WeakReference<String>>();
+
+    public static void boot() {
+      // Reinitialize to avoid empty buckets
+      internedStrings = new WeakHashMap<String,WeakReference<String>>();
+    }
 
     /**
      * Find an interned string but don't create it if not found

@@ -17,13 +17,16 @@ import org.jikesrvm.adaptive.controller.Controller;
 import org.jikesrvm.adaptive.util.CompilerAdvice;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.BootstrapClassLoader;
+import org.jikesrvm.classloader.FieldVector;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.RVMClassLoader;
 import org.jikesrvm.classloader.RVMMember;
 import org.jikesrvm.classloader.MemberReference;
+import org.jikesrvm.classloader.MethodVector;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.TypeDescriptorParsing;
 import org.jikesrvm.classloader.TypeReference;
+import org.jikesrvm.classloader.TypeReferenceVector;
 import org.jikesrvm.compilers.baseline.BaselineCompiler;
 import org.jikesrvm.compilers.baseline.EdgeCounts;
 import org.jikesrvm.compilers.common.BootImageCompiler;
@@ -214,9 +217,9 @@ public class VM extends Properties implements Constants, ExitStatus {
     if (verboseBoot >= 1) VM.sysWriteln("Running various class initializers");
 
     if (VM.BuildForGnuClasspath) {
-      runClassInitializer("java.util.WeakHashMap"); // Need for ThreadLocal
+      runClassInitializer("java.util.WeakHashMap"); // Need for String interning
     }
-    runClassInitializer("org.jikesrvm.classloader.Atom$InternedStrings");
+    org.jikesrvm.classloader.Atom.InternedStrings.boot();
 
     if (VM.BuildForGnuClasspath) {
       runClassInitializer("gnu.classpath.SystemProperties");
@@ -228,9 +231,9 @@ public class VM extends Properties implements Constants, ExitStatus {
     runClassInitializer("sun.misc.Unsafe");
 
     runClassInitializer("java.lang.Character");
-    runClassInitializer("org.jikesrvm.classloader.TypeReferenceVector");
-    runClassInitializer("org.jikesrvm.classloader.MethodVector");
-    runClassInitializer("org.jikesrvm.classloader.FieldVector");
+    TypeReferenceVector.boot();
+    MethodVector.boot();
+    FieldVector.boot();
     // Turn off security checks; about to hit EncodingManager.
     // Commented out because we haven't incorporated this into the CVS head
     // yet.
@@ -376,7 +379,7 @@ public class VM extends Properties implements Constants, ExitStatus {
       runClassInitializer("java.lang.VMDouble");
     }
     runClassInitializer("java.util.PropertyPermission");
-    runClassInitializer("org.jikesrvm.classloader.RVMAnnotation");
+    //org.jikesrvm.classloader.RVMAnnotation.boot();
     runClassInitializer("java.lang.annotation.RetentionPolicy");
     runClassInitializer("java.lang.annotation.ElementType");
     runClassInitializer("java.lang.Thread$State");
@@ -1894,6 +1897,18 @@ public class VM extends Properties implements Constants, ExitStatus {
   }
 
   @NoInline
+  public static void sysWriteln(String s1, long l1, String s2, long l2, String s3) {
+    swLock();
+    write(s1);
+    write(l1);
+    write(s2);
+    write(l2);
+    write(s3);
+    writeln();
+    swUnlock();
+  }
+
+  @NoInline
   public static void sysWrite(String s1, String s2, int i1, String s3) {
     swLock();
     write(s1);
@@ -2042,6 +2057,25 @@ public class VM extends Properties implements Constants, ExitStatus {
     write(a);
     write(s2);
     write(i);
+    writeln();
+    swUnlock();
+  }
+
+  @NoInline
+  public static void sysWriteln(String s0, Address a1, String s1, Word w1, String s2, int i1, String s3, int i2, String s4, Word w2, String s5, int i3) {
+    swLock();
+    write(s0);
+    write(a1);
+    write(s1);
+    write(w1);
+    write(s2);
+    write(i1);
+    write(s3);
+    write(i2);
+    write(s4);
+    write(w2);
+    write(s5);
+    write(i3);
     writeln();
     swUnlock();
   }
@@ -2286,7 +2320,7 @@ public class VM extends Properties implements Constants, ExitStatus {
    * @param value  value to pass to host o/s
    */
   @NoInline
-  @UnpreemptibleNoWarn("We need to do preemptible operations but are accessed from unpreemptible code")
+  @UninterruptibleNoWarn("We're never returning to the caller, so even though this code is preemptible it is safe to call from any context")
   public static void sysExit(int value) {
     handlePossibleRecursiveCallToSysExit();
 

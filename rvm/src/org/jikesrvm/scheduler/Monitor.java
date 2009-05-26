@@ -22,6 +22,7 @@ import org.vmmagic.pragma.NoInline;
 import org.vmmagic.pragma.NoOptCompile;
 import org.vmmagic.pragma.BaselineSaveLSRegisters;
 import org.vmmagic.unboxed.Address;
+import org.vmmagic.unboxed.Word;
 
 /**
  * Implementation of a heavy lock and condition variable implemented using
@@ -425,6 +426,20 @@ public class Monitor {
   @NoInline
   public static void unlock(boolean b, Monitor l) {
     if (b) l.unlock();
+  }
+
+  @NoInline
+  @NoOptCompile
+  @Unpreemptible
+  public static void lockWithHandshake(Monitor m1,Word priority1,
+                                       Monitor m2,Word priority2) {
+    if (priority1.LE(priority2)) {
+      m1.lockWithHandshake();
+      m2.lockWithHandshake();
+    } else {
+      m2.lockWithHandshake();
+      m1.lockWithHandshake();
+    }
   }
 }
 

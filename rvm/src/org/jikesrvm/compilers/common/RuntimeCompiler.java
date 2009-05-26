@@ -683,16 +683,16 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
                                         (OptimizationPlanElement[]) optimizationPlan,
                                         instrumentationPlan,
                                         (OptOptions) options);
-	    if (!method.optCompileOnly()) {
+            if (!method.optCompileOnly()) {
               cm = optCompileWithFallBack(method, compPlan);
             } else {
               compilationInProgress = true;
               try {
                 cm = optCompile(method, compPlan);
               } catch (OptimizingCompilerException e) {
-                String msg = "Optimizing compiler "
-                  + "(on method that can only be optimizing compiler compiled): "
-                  + "can't optimize \"" + method + "\"";
+                String msg = "Optimizing compiler " +
+                  "(on method that can only be optimizing compiler compiled): " +
+                  "can't optimize \"" + method + "\"";
                 throw new Error(msg, e);
               } finally {
                 compilationInProgress = false;
