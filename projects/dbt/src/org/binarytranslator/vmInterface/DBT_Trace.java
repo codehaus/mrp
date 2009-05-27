@@ -25,6 +25,7 @@ import org.jikesrvm.classloader.MemberReference;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.TypeReference;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.runtime.Statics;
 import org.jikesrvm.runtime.DynamicLink;
 import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
