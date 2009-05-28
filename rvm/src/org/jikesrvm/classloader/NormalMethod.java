@@ -22,11 +22,12 @@ import org.jikesrvm.compilers.opt.ir.HIRGenerator;
 import org.jikesrvm.runtime.DynamicLink;
 import org.jikesrvm.util.HashMapRVM;
 import org.vmmagic.pragma.Uninterruptible;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 
 /**
  * A method of a java class that has bytecodes.
  */
-public class NormalMethod extends RVMMethod implements BytecodeConstants {
+public class NormalMethod extends RVMMethod {
 
   /* As we read the bytecodes for the method, we compute
    * a simple summary of some interesting properties of the method.

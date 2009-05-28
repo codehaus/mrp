@@ -14,7 +14,7 @@ package org.jikesrvm.compilers.opt.runtimesupport;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.RVMArray;
-import org.jikesrvm.classloader.BytecodeConstants;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.TableBasedDynamicLinker;
@@ -30,7 +30,7 @@ import org.vmmagic.unboxed.Offset;
  * @see OptSaveVolatile (transitions from compiled code to resolveDynamicLink)
  * @see TableBasedDynamicLinker
  */
-public final class OptLinker implements BytecodeConstants {
+public final class OptLinker {
 
   /**
    * Given an opt compiler info and a machine code offset in that method's

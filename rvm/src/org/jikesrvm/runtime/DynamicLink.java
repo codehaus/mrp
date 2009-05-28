@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.runtime;
 
-import org.jikesrvm.classloader.BytecodeConstants;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.MethodReference;
 import org.vmmagic.pragma.Uninterruptible;
 
@@ -23,7 +23,7 @@ import org.vmmagic.pragma.Uninterruptible;
  * therefore the fields of this class are non-final).
  */
 @Uninterruptible
-public final class DynamicLink implements BytecodeConstants {
+public final class DynamicLink {
   /** method referenced at a call site */
   private MethodReference methodRef;
   /** how method was called at that site */

@@ -18,6 +18,7 @@ import java.lang.annotation.Annotation;
 import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.ArchitectureSpecific.LazyCompilationTrampoline;
 import org.jikesrvm.VM;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.runtime.Entrypoints;
@@ -38,7 +39,7 @@ import static org.jikesrvm.classloader.TypeReference.baseReflectionClass;
  * in the class file. A method is read from a class file using the
  * {@link #readMethod} method.
  */
-public abstract class RVMMethod extends RVMMember implements BytecodeConstants {
+public abstract class RVMMethod extends RVMMember {
 
   /**
    * current compiled method for this method
