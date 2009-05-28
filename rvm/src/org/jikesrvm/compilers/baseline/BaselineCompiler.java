@@ -17,6 +17,8 @@ import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.ArchitectureSpecific.BaselineCompilerImpl;
 import org.jikesrvm.ArchitectureSpecific.MachineCode;
 import org.jikesrvm.VM;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
+import org.jikesrvm.classloader.FieldReference;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
@@ -32,6 +34,11 @@ import org.vmmagic.unboxed.Offset;
  */
 public abstract class BaselineCompiler extends TemplateCompilerFramework {
 
+  /**
+   * Merge commonly adjacent bytecodes?
+   */
+  private static final boolean mergeBytecodes = true;
+
   private static long gcMapNanos;
   private static long osrSetupNanos;
   private static long codeGenNanos;
@@ -46,6 +53,11 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
    * Next edge counter entry to allocate
    */
   protected int edgeCounterIdx;
+
+  /**
+   * Reference maps for method being compiled
+   */
+  ReferenceMaps refMaps;
 
   protected final Offset getEdgeCounterOffset() {
     return Offset.fromIntZeroExtend(method.getId() << LOG_BYTES_IN_ADDRESS);
@@ -75,7 +87,7 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
          (options.PRINT_MACHINECODE) &&
          (!options.hasMETHOD_TO_PRINT() || options.fuzzyMatchMETHOD_TO_PRINT(method.toString())));
     if (!VM.runningTool && options.PRINT_METHOD) printMethodMessage();
-    if (shouldPrint && VM.runningVM && !fullyBootedVM) {
+    if (shouldPrint && VM.runningVM && !VM.fullyBooted) {
       shouldPrint = false;
       if (options.PRINT_METHOD) {
         VM.sysWriteln("\ttoo early in VM.boot() to print machine code");
@@ -110,7 +122,6 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
       VM.sysWrite(" compiler or in an adaptive system\n");
       VM.sysExit(VM.EXIT_STATUS_BOGUS_COMMAND_LINE_ARG);
     }
-    fullyBootedVM = true;
   }
 
   /**
@@ -187,7 +198,6 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
 
     // Phase 1: GC map computation
     long start = 0;
-    ReferenceMaps refMaps;
     try {
       if (VM.MeasureCompilationPhases) {
         start = Time.nanoTime();
@@ -313,5 +323,110 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
 
   protected String getCompilerName() {
     return "baseline";
+  }
+
+
+  /**
+   * Are we on the boundary of a basic block?
+   */
+  private boolean basicBlockBoundary() {
+    int index = biStart;
+    short currentBlock = refMaps.byteToBlockMap[index];
+    index--;
+    while(index >= 0) {
+      short prevBlock = refMaps.byteToBlockMap[index];
+      if (prevBlock == currentBlock) {
+        return false;
+      } else if (prevBlock != BasicBlock.NOTBLOCK) {
+        return true;
+      }
+      index--;
+    }
+    return true;
+  }
+
+  /**
+   * Emit code to load an int local variable
+   * @param index the local index to load
+   */
+  protected final void emit_iload(int index) {
+    if (!mergeBytecodes || basicBlockBoundary()) {
+      emit_regular_iload(index);
+    } else {
+      int nextBC = bcodes.peekNextOpcode();
+      switch (nextBC) {
+      case JBC_caload:
+        if (shouldPrint) asm.noteBytecode(biStart, "caload");
+        bytecodeMap[bcodes.index()] = asm.getMachineCodeIndex();
+        bcodes.nextInstruction(); // skip opcode
+        emit_iload_caload(index);
+        break;
+      default:
+        emit_regular_iload(index);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Emit code to load an int local variable
+   * @param index the local index to load
+   */
+  protected abstract void emit_regular_iload(int index);
+
+  /**
+   * Emit code to load an int local variable and then load from a character array
+   * @param index the local index to load
+   */
+  protected void emit_iload_caload(int index) {
+    emit_regular_iload(index);
+    emit_caload();
+  }
+
+  /**
+   * Emit code to load a reference local variable
+   * @param index the local index to load
+   */
+  protected final void emit_aload(int index) {
+    if (!mergeBytecodes || basicBlockBoundary()) {
+      emit_regular_aload(index);
+    } else {
+      int nextBC = JBC_nop; // bcodes.peekNextOpcode();
+      switch (nextBC) {
+      case JBC_getfield: {
+        int gfIndex = bcodes.index();
+        bcodes.nextInstruction(); // skip opcode
+        FieldReference fieldRef = bcodes.getFieldReference();
+        if (fieldRef.needsDynamicLink(method)) {
+          bcodes.reset(gfIndex);
+          emit_regular_aload(index);
+        } else {
+          bytecodeMap[gfIndex] = asm.getMachineCodeIndex();
+          if (shouldPrint) asm.noteBytecode(biStart, "getfield", fieldRef);
+          emit_aload_resolved_getfield(index, fieldRef);
+        }
+        break;
+      }
+      default:
+        emit_regular_aload(index);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Emit code to load a reference local variable
+   * @param index the local index to load
+   */
+  protected abstract void emit_regular_aload(int index);
+
+  /**
+   * Emit code to load a reference local variable and then perform a field load
+   * @param index the local index to load
+   * @param fieldRef the referenced field
+   */
+  protected void emit_aload_resolved_getfield(int index, FieldReference fieldRef) {
+    emit_regular_aload(index);
+    emit_resolved_getfield(fieldRef);
   }
 }

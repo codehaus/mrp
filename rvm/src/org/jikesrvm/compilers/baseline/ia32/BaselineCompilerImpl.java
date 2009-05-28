@@ -390,14 +390,8 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   @Override
   protected final void emit_ldc2(Offset offset, byte type) {
     if (VM.BuildFor32Addr) {
-      if (SSE2_BASE) {
-        adjustStack(-2*WORDSIZE, true);     // adjust stack
-        asm.emitMOVQ_Reg_Abs(XMM0, Magic.getTocPointer().plus(offset)); // XMM0 is constant value
-        asm.emitMOVQ_RegInd_Reg(SP, XMM0);  // place value on stack
-      } else {
-        asm.emitPUSH_Abs(Magic.getTocPointer().plus(offset).plus(WORDSIZE)); // high 32 bits
-        asm.emitPUSH_Abs(Magic.getTocPointer().plus(offset));   // low 32 bits
-      }
+      asm.emitPUSH_Abs(Magic.getTocPointer().plus(offset).plus(WORDSIZE)); // high 32 bits
+      asm.emitPUSH_Abs(Magic.getTocPointer().plus(offset));   // low 32 bits
     } else {
       adjustStack(-WORDSIZE, true);
       asm.emitPUSH_Abs(Magic.getTocPointer().plus(offset));
@@ -413,7 +407,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
    * @param index the local index to load
    */
   @Override
-  protected final void emit_iload(int index) {
+  protected final void emit_regular_iload(int index) {
     Offset offset = localOffset(index);
     if (offset.EQ(Offset.zero())) {
       asm.emitPUSH_RegInd(ESP);
@@ -429,7 +423,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   @Override
   protected final void emit_fload(int index) {
     // identical to iload
-    emit_iload(index);
+    emit_regular_iload(index);
   }
 
   /**
@@ -437,9 +431,9 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
    * @param index the local index to load
    */
   @Override
-  protected final void emit_aload(int index) {
+  protected final void emit_regular_aload(int index) {
     // identical to iload
-    emit_iload(index);
+    emit_regular_iload(index);
   }
 
   /**
@@ -450,14 +444,8 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   protected final void emit_lload(int index) {
     Offset offset = localOffset(index);
     if (VM.BuildFor32Addr) {
-      if (SSE2_BASE) {
-        asm.emitMOVQ_Reg_RegDisp(XMM0, SP, offset.minus(WORDSIZE)); // XMM0 is local value
-        adjustStack(-2*WORDSIZE, true);     // adjust stack
-        asm.emitMOVQ_RegInd_Reg(SP, XMM0);  // place value on stack
-      } else {
-        asm.emitPUSH_RegDisp(ESP, offset); // high part
-        asm.emitPUSH_RegDisp(ESP, offset); // low part (ESP has moved by 4!!)
-      }
+      asm.emitPUSH_RegDisp(ESP, offset); // high part
+      asm.emitPUSH_RegDisp(ESP, offset); // low part (ESP has moved by 4!!)
     } else {
       adjustStack(-WORDSIZE, true);
       asm.emitPUSH_RegDisp(ESP, offset);
@@ -519,17 +507,10 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   @Override
   protected final void emit_lstore(int index) {
     if (VM.BuildFor32Addr) {
-      if (SSE2_BASE) {
-        Offset offset = localOffset(index).minus(WORDSIZE);
-        asm.emitMOVQ_Reg_RegInd(XMM0, SP);  // XMM0 is stack value
-        asm.emitMOVQ_RegDisp_Reg(SP, offset, XMM0);  // place value in local
-        adjustStack(2*WORDSIZE, true);
-      } else {
-        // pop computes EA after ESP has moved by 4!
-        Offset offset = localOffset(index + 1).minus(WORDSIZE);
-        asm.emitPOP_RegDisp(ESP, offset); // high part
-        asm.emitPOP_RegDisp(ESP, offset); // low part (ESP has moved by 4!!)
-      }
+      // pop computes EA after ESP has moved by 4!
+      Offset offset = localOffset(index + 1).minus(WORDSIZE);
+      asm.emitPOP_RegDisp(ESP, offset); // high part
+      asm.emitPOP_RegDisp(ESP, offset); // low part (ESP has moved by 4!!)
     } else {
       Offset offset = localOffset(index + 1).minus(WORDSIZE);
       asm.emitPOP_RegDisp(ESP, offset);
@@ -558,6 +539,9 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   protected final void emit_iaload() {
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+    }
     genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
     // push [S0+T0<<2]
     asm.emitPUSH_RegIdx(S0, T0, Assembler.WORD, NO_SLOT);
@@ -579,6 +563,9 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   protected final void emit_aaload() {
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(T1); // T1 is array ref
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+    }
     genBoundsCheck(asm, T0, T1); // T0 is index, T1 is address of array
     if (MemoryManagerConstants.NEEDS_READ_BARRIER) {
       // rewind 2 args on stack
@@ -597,6 +584,33 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   protected final void emit_caload() {
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+    }
+    genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
+    // T1 = (int)[S0+T0<<1]
+    if (VM.BuildFor32Addr) {
+      asm.emitMOVZX_Reg_RegIdx_Word(T1, S0, T0, Assembler.SHORT, NO_SLOT);
+    } else {
+      asm.emitMOVZXQ_Reg_RegIdx_Word(T1, S0, T0, Assembler.SHORT, NO_SLOT);
+    }
+    asm.emitPUSH_Reg(T1);        // push short onto stack
+  }
+
+  /**
+   * Emit code to load an int local variable and then load from a character array
+   * @param index the local index to load
+   */
+  @Override
+  protected final void emit_iload_caload(int index) {
+    Offset offset = localOffset(index);
+    if (offset.EQ(Offset.zero())) {
+      asm.emitMOV_Reg_RegInd(T0, SP); // T0 is array index
+    } else {
+      asm.emitMOV_Reg_RegDisp(T0, SP, offset); // T0 is array index
+    }
+    // NB MSBs of T0 are already clear in 64bit
+    asm.emitPOP_Reg(S0); // S0 is array ref
     genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
     // T1 = (int)[S0+T0<<1]
     if (VM.BuildFor32Addr) {
@@ -614,6 +628,9 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   protected final void emit_saload() {
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+    }
     genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
     // T1 = (int)[S0+T0<<1]
     if (VM.BuildFor32Addr) {
@@ -631,6 +648,9 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   protected final void emit_baload() {
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+    }
     genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
     // T1 = (int)[S0+T0<<1]
     if (VM.BuildFor32Addr) {
@@ -648,18 +668,13 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   protected final void emit_laload() {
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(T1); // T1 is array ref
-    if (VM.BuildFor32Addr && SSE2_BASE) {
-      adjustStack(WORDSIZE*-2, true); // create space for result
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, T1); // T0 is index, T1 is address of array
     if (VM.BuildFor32Addr) {
-      if (SSE2_BASE) {
-        asm.emitMOVQ_Reg_RegIdx(XMM0, T1, T0, Assembler.LONG, NO_SLOT);
-        asm.emitMOVQ_RegInd_Reg(SP, XMM0);
-      } else {
-        asm.emitPUSH_RegIdx(T1, T0, Assembler.LONG, ONE_SLOT); // load high part of desired long array element
-        asm.emitPUSH_RegIdx(T1, T0, Assembler.LONG, NO_SLOT);  // load low part of desired long array element
-      }
+      asm.emitPUSH_RegIdx(T1, T0, Assembler.LONG, ONE_SLOT); // load high part of desired long array element
+      asm.emitPUSH_RegIdx(T1, T0, Assembler.LONG, NO_SLOT);  // load low part of desired long array element
     } else {
       adjustStack(-WORDSIZE, true);
       asm.emitPUSH_RegIdx(T1, T0, Assembler.LONG, NO_SLOT);  // load desired long array element
@@ -688,6 +703,9 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T1); // T1 is the value
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+    }
     genBoundsCheck(asm, T0, S0);                // T0 is index, S0 is address of array
     asm.emitMOV_RegIdx_Reg(S0, T0, Assembler.WORD, NO_SLOT, T1); // [S0 + T0<<2] <- T1
   }
@@ -726,6 +744,9 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T1); // T1 is the value
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+    }
     genBoundsCheck(asm, T0, S0);        // T0 is index, S0 is address of array
     // store halfword element into array i.e. [S0 +T0] <- T1 (halfword)
     asm.emitMOV_RegIdx_Reg_Word(S0, T0, Assembler.SHORT, NO_SLOT, T1);
@@ -749,6 +770,9 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T1); // T1 is the value
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
+    if (VM.BuildFor64Addr) {
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+    }
     genBoundsCheck(asm, T0, S0);         // T0 is index, S0 is address of array
     asm.emitMOV_RegIdx_Reg_Byte(S0, T0, Assembler.BYTE, NO_SLOT, T1); // [S0 + T0<<2] <- T1
   }
@@ -760,34 +784,21 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   protected final void emit_lastore() {
     Barriers.compileModifyCheck(asm, 3*WORDSIZE);
     if (VM.BuildFor32Addr) {
-      if (SSE2_BASE) {
-        asm.emitMOVQ_Reg_RegInd(XMM0,SP); // XMM0 is the value
-        adjustStack(WORDSIZE*2, true);    // remove value from the stack
-        asm.emitPOP_Reg(T0); // T0 is array index
-        asm.emitPOP_Reg(S0); // S0 is array ref
-      } else {
-        asm.emitMOV_Reg_RegDisp(T0, SP, TWO_SLOTS);    // T0 is the array index
-        asm.emitMOV_Reg_RegDisp(S0, SP, THREE_SLOTS);  // S0 is the array ref
-        asm.emitMOV_Reg_RegInd(T1, SP);              // low part of long value
-      }
+      asm.emitPOP_Reg(S1);         // S1 is the low value
+      asm.emitPOP_Reg(T1);         // T1 is the high value
+      asm.emitPOP_Reg(T0);         // T0 is array index
+      asm.emitPOP_Reg(S0);         // S0 is array ref
     } else {
       asm.emitPOP_Reg(T1);         // T1 is the value
       adjustStack(WORDSIZE, true); // throw away slot
       asm.emitPOP_Reg(T0);         // T0 is array index
       asm.emitPOP_Reg(S0);         // S0 is array ref
+      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0);                   // T0 is index, S0 is address of array
     if (VM.BuildFor32Addr) {
-      if (SSE2_BASE) {
-        asm.emitMOVQ_RegIdx_Reg(S0, T0, Assembler.LONG, NO_SLOT, XMM0); // [S0+T0<<<3] <- XMM0
-      } else {
-        // [S0 + T0<<3 + 0] <- T1 store low part into array
-        asm.emitMOV_RegIdx_Reg(S0, T0, Assembler.LONG, NO_SLOT, T1);
-        asm.emitMOV_Reg_RegDisp(T1, SP, ONE_SLOT); // high part of long value
-        // [S0 + T0<<3 + 4] <- T1 store high part into array
-        adjustStack(WORDSIZE*4, false); // remove index and ref from the stack
-        asm.emitMOV_RegIdx_Reg(S0, T0, Assembler.LONG, ONE_SLOT, T1);
-      }
+      asm.emitMOV_RegIdx_Reg(S0, T0, Assembler.LONG, NO_SLOT, S1);  // [S0+T0<<<3] <- S1
+      asm.emitMOV_RegIdx_Reg(S0, T0, Assembler.LONG, ONE_SLOT, T1); // [4+S0+T0<<<3] <- T1
     } else {
       asm.emitMOV_RegIdx_Reg_Quad(S0, T0, Assembler.LONG, NO_SLOT, T1); // [S0+T0<<<3] <- T1
     }
@@ -2703,16 +2714,8 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
       }
       asm.emitPOP_Reg(T1);           // T1 is object reference
       if (VM.BuildFor32Addr) {
-        // NB this is a 64bit copy from memory to the stack so implement
-        // as a slightly optimized Intel memory copy using the FPU
-        adjustStack(-2*WORDSIZE, true); // adjust stack down to hold 64bit value
-        if (SSE2_BASE) {
-          asm.emitMOVQ_Reg_RegIdx(XMM0, T1, T0, Assembler.BYTE, NO_SLOT); // XMM0 is field value
-          asm.emitMOVQ_RegInd_Reg(SP, XMM0); // place value on stack
-        } else {
-          asm.emitFLD_Reg_RegIdx_Quad(FP0, T1, T0, Assembler.BYTE, NO_SLOT); // FP0 is field value
-          asm.emitFSTP_RegInd_Reg_Quad(SP, FP0); // place value on stack
-        }
+        asm.emitPUSH_RegIdx(T1, T0, Assembler.BYTE, ONE_SLOT); // place high half on stack
+        asm.emitPUSH_RegIdx(T1, T0, Assembler.BYTE, NO_SLOT);  // place low half on stack
       } else {
         if (!fieldType.isWordType()) {
           adjustStack(-WORDSIZE, true); // add empty slot
@@ -2762,9 +2765,8 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     } else if (fieldType.isIntType() || fieldType.isFloatType() ||
                (VM.BuildFor32Addr && fieldType.isWordType())) {
       // 32bit load
-      asm.emitPOP_Reg(S0);                          // S0 is object reference
-      asm.emitMOV_Reg_RegDisp(T0, S0, fieldOffset); // T0 is field value
-      asm.emitPUSH_Reg(T0);                         // place value on stack
+      asm.emitPOP_Reg(S0);                   // S0 is object reference
+      asm.emitPUSH_RegDisp(S0, fieldOffset); // T0 is field value
     } else {
       // 64bit load
       if (VM.VerifyAssertions) {
@@ -2773,21 +2775,76 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
       }
       asm.emitPOP_Reg(T0); // T0 is object reference
       if (VM.BuildFor32Addr) {
-        // NB this is a 64bit copy from memory to the stack so implement
-        // as a slightly optimized Intel memory copy using the FPU
-        adjustStack(-2*WORDSIZE, true); // adjust stack down to hold 64bit value
-        if (SSE2_BASE) {
-          asm.emitMOVQ_Reg_RegDisp(XMM0, T0, fieldOffset); // XMM0 is field value
-          asm.emitMOVQ_RegInd_Reg(SP, XMM0); // replace reference with value on stack
-        } else {
-          asm.emitFLD_Reg_RegDisp_Quad(FP0, T0, fieldOffset); // FP0 is field value
-          asm.emitFSTP_RegInd_Reg_Quad(SP, FP0); // replace reference with value on stack
-        }
+        asm.emitPUSH_RegDisp(T0, fieldOffset.plus(ONE_SLOT)); // place high half on stack
+        asm.emitPUSH_RegDisp(T0, fieldOffset);                // place low half on stack
       } else {
         if (!fieldType.isWordType()) {
           adjustStack(-WORDSIZE, true); // add empty slot
         }
         asm.emitPUSH_RegDisp(T0, fieldOffset); // place value on stack
+      }
+    }
+  }
+
+  /**
+   * Emit code to load a reference local variable and then perform a field load
+   * @param index the local index to load
+   * @param fieldRef the referenced field
+   */
+  protected void emit_aload_resolved_getfield(int index, FieldReference fieldRef) {
+    Offset offset = localOffset(index);
+    TypeReference fieldType = fieldRef.getFieldContentsType();
+    RVMField field = fieldRef.peekResolvedField();
+    Offset fieldOffset = field.getOffset();
+    if (field.isReferenceType()) {
+      // 32/64bit reference load
+      if (MemoryManagerConstants.NEEDS_READ_BARRIER && !field.isUntraced()) {
+        emit_regular_aload(index);
+        Barriers.compileGetfieldBarrierImm(asm, fieldOffset, fieldRef.getId());
+      } else {
+        stackMoveHelper(S0, offset);  // S0 is object reference
+        asm.emitPUSH_RegDisp(S0, fieldOffset); // place field value on stack
+      }
+    } else if (fieldType.isBooleanType()) {
+      // 8bit unsigned load
+      stackMoveHelper(S0, offset);                         // S0 is object reference
+      asm.emitMOVZX_Reg_RegDisp_Byte(T0, S0, fieldOffset); // T0 is field value
+      asm.emitPUSH_Reg(T0);                                // place value on stack
+    } else if (fieldType.isByteType()) {
+      // 8bit signed load
+      stackMoveHelper(S0, offset);                         // S0 is object reference
+      asm.emitMOVSX_Reg_RegDisp_Byte(T0, S0, fieldOffset); // T0 is field value
+      asm.emitPUSH_Reg(T0);                                // place value on stack
+    } else if (fieldType.isShortType()) {
+      // 16bit signed load
+      stackMoveHelper(S0, offset);                         // S0 is object reference
+      asm.emitMOVSX_Reg_RegDisp_Word(T0, S0, fieldOffset); // T0 is field value
+      asm.emitPUSH_Reg(T0);                                // place value on stack
+    } else if (fieldType.isCharType()) {
+      // 16bit unsigned load
+      stackMoveHelper(S0, offset);                         // S0 is object reference
+      asm.emitMOVZX_Reg_RegDisp_Word(T0, S0, fieldOffset); // T0 is field value
+      asm.emitPUSH_Reg(T0);                                // place value on stack
+    } else if (fieldType.isIntType() || fieldType.isFloatType() ||
+               (VM.BuildFor32Addr && fieldType.isWordType())) {
+      // 32bit load
+      stackMoveHelper(S0, offset);                         // S0 is object reference
+      asm.emitPUSH_RegDisp(S0, fieldOffset);               // place value on stack
+    } else {
+      // 64bit load
+      if (VM.VerifyAssertions) {
+        VM._assert(fieldType.isLongType() || fieldType.isDoubleType() ||
+                   (VM.BuildFor64Addr && fieldType.isWordType()));
+      }
+      stackMoveHelper(S0, offset);                  // S0 is object reference
+      if (VM.BuildFor32Addr) {
+        asm.emitPUSH_RegDisp(S0, fieldOffset.plus(ONE_SLOT)); // place high half on stack
+        asm.emitPUSH_RegDisp(S0, fieldOffset);                // place low half on stack
+      } else {
+        if (!fieldType.isWordType()) {
+          adjustStack(-WORDSIZE, true); // add empty slot
+        }
+        asm.emitPUSH_RegDisp(S0, fieldOffset); // place value on stack
       }
     }
   }
@@ -3884,7 +3941,6 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     if (JavaHeaderConstants.ARRAY_LENGTH_BYTES == 4) {
       asm.emitCMP_RegDisp_Reg(arrayRefReg, ObjectModel.getArrayLengthOffset(), indexReg);
     } else {
-      asm.emitMOV_Reg_Reg(indexReg, indexReg); // clear MSBs
       asm.emitCMP_RegDisp_Reg_Quad(arrayRefReg, ObjectModel.getArrayLengthOffset(), indexReg);
     }
     // Jmp around trap if index is OK

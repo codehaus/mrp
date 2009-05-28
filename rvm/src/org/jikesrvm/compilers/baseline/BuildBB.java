@@ -13,7 +13,7 @@
 package org.jikesrvm.compilers.baseline;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.classloader.BytecodeConstants;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.ExceptionHandlerMap;
 import org.jikesrvm.classloader.NormalMethod;
@@ -23,7 +23,7 @@ import org.jikesrvm.classloader.NormalMethod;
  * basic blocks. Used for building the reference maps for a
  * method.
  */
-final class BuildBB implements BytecodeConstants, BBConstants {
+final class BuildBB implements BBConstants {
 
   // ---------------- Static Class Fields --------------------
 
@@ -44,23 +44,23 @@ final class BuildBB implements BytecodeConstants, BBConstants {
   /**
    * basic blocks of the byte code
    */
-  public BasicBlockFactory bbf;
-  public BasicBlock[] basicBlocks;
+  final BasicBlockFactory bbf;
+  BasicBlock[] basicBlocks;
 
   /**
    * identify which block a byte is part of
    */
-  public short[] byteToBlockMap;
+  short[] byteToBlockMap;
 
   /**
    * Number of unique jsr targets processed
    */
-  public int numJsrs;
+  int numJsrs;
 
   /**
    * Number of GC points found
    */
-  public int gcPointCount;
+  int gcPointCount;
 
   // This variable is used in multiple methods of this class, make it accessible
   int bytelength;
@@ -69,7 +69,7 @@ final class BuildBB implements BytecodeConstants, BBConstants {
    * Analyze the bytecodes and build the basic blocks with their predecessors.
    * The results will be used by BuildReferenceMaps
    */
-  public void determineTheBasicBlocks(NormalMethod method) {
+  BuildBB(NormalMethod method) {
     ExceptionHandlerMap exceptions;   // Used to get a hold of the try Start, End and Handler lists
     int[] retList;    // List of basic block numbers that end with a "ret" instruction.
     BytecodeStream bcodes;        // The bytecodes being analyzed.

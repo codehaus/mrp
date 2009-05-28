@@ -20,7 +20,7 @@ import java.util.NoSuchElementException;
 import org.jikesrvm.VM;
 import org.jikesrvm.ArchitectureSpecificOpt.RegisterPool;
 import org.jikesrvm.adaptive.controller.Controller;
-import org.jikesrvm.classloader.BytecodeConstants;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.ClassLoaderConstants;
 import org.jikesrvm.classloader.RVMClass;
@@ -150,7 +150,7 @@ import org.vmmagic.unboxed.Offset;
  * @see ConvertBCtoHIR
  */
 public final class BC2IR
-  implements IRGenOptions, Operators, BytecodeConstants, ClassLoaderConstants, OptConstants, OSRConstants, HIRGenerator {
+  implements IRGenOptions, Operators, ClassLoaderConstants, OptConstants, OSRConstants, HIRGenerator {
   /**
    * Dummy slot.
    * Used to deal with the fact the longs/doubles take
@@ -459,7 +459,7 @@ public final class BC2IR
            " : 0x" +
            Integer.toHexString(code) +
            " " +
-           ((code < JBC_name.length) ? JBC_name[code] : "unknown bytecode"));
+           JBC_name(code));
       }
       Instruction s = null;
 

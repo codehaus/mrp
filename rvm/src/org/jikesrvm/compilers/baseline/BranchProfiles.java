@@ -13,7 +13,7 @@
 package org.jikesrvm.compilers.baseline;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.classloader.BytecodeConstants;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.NormalMethod;
 
@@ -21,7 +21,7 @@ import org.jikesrvm.classloader.NormalMethod;
  * Profile data for all conditional branches (including switches)
  * of a single RVMMethod.
  */
-public final class BranchProfiles implements BytecodeConstants {
+public final class BranchProfiles {
   private final NormalMethod method;
   private final int numCounters;
   private final BranchProfile[] data;

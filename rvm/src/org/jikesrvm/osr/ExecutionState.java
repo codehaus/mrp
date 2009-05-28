@@ -14,7 +14,7 @@ package org.jikesrvm.osr;
 
 import java.util.LinkedList;
 import org.jikesrvm.VM;
-import org.jikesrvm.classloader.BytecodeConstants;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
@@ -40,7 +40,7 @@ import org.jikesrvm.osr.bytecodes.PseudoBytecode;
 import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.unboxed.Offset;
 
-public class ExecutionState implements OSRConstants, BytecodeConstants {
+public class ExecutionState implements OSRConstants {
 
   /** the caller's state if this method is an inlinee */
   public ExecutionState callerState = null;

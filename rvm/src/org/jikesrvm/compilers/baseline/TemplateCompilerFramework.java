@@ -20,7 +20,7 @@ import org.jikesrvm.Services;
 import org.jikesrvm.SizeConstants;
 import org.jikesrvm.classloader.ClassLoaderConstants;
 import org.jikesrvm.classloader.RVMArray;
-import org.jikesrvm.classloader.BytecodeConstants;
+import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.FieldReference;
@@ -45,12 +45,7 @@ import org.vmmagic.unboxed.Offset;
  * seen. It is the common base class of the base compiler.
  */
 public abstract class TemplateCompilerFramework
-    implements BytecodeConstants, ClassLoaderConstants, SizeConstants, StackframeLayoutConstants {
-
-  /**
-   * has fullyBootedVM been called by VM.boot?
-   */
-  protected static boolean fullyBootedVM = false;
+    implements ClassLoaderConstants, SizeConstants, StackframeLayoutConstants {
 
   /**
    * The method being compiled
