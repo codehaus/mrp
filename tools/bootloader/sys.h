@@ -261,7 +261,7 @@ EXTERNAL void readContextInformation(void *context, Address *instructionPtr,
                                      Address *instructionFollowingPtr,
                                      Address *threadPtr, Address *jtocPtr);
 EXTERNAL Address readContextFramePointer(void UNUSED *context, Address threadPtr);
-EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int signo, Address instructionPtr, int *trapInfo);
+EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int signo, Address instructionPtr, Word *trapInfo);
 EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
 					    int trapCode, int trapInfo,
 					    Address instructionPtr,

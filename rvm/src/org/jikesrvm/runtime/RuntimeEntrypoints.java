@@ -833,7 +833,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
    */
   @Entrypoint
   @UnpreemptibleNoWarn
-  static void deliverHardwareException(int trapCode, int trapInfo) {
+  static void deliverHardwareException(int trapCode, Word trapInfo) {
     if (false) VM.sysWriteln("delivering hardware exception");
     RVMThread myThread = RVMThread.getCurrentThread();
     if (false) VM.sysWriteln("we have a thread = ",Magic.objectAsAddress(myThread));
@@ -867,7 +867,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
 
     // Sanity checking.
     // Hardware traps in uninterruptible code should be considered hard failures.
-    if (!VM.sysFailInProgress()) {
+    if (VM.VerifyAssertions && !VM.sysFailInProgress()) {
       Address fp = exceptionRegisters.getInnermostFramePointer();
       int compiledMethodId = Magic.getCompiledMethodID(fp);
       if (compiledMethodId != INVISIBLE_METHOD_ID) {
@@ -880,7 +880,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
             VM.sysWriteln("\nFatal error: NullPointerException within uninterruptible region.");
             break;
           case TRAP_ARRAY_BOUNDS:
-            VM.sysWriteln("\nFatal error: ArrayIndexOutOfBoundsException within uninterruptible region (index was ", trapInfo, ").");
+            VM.sysWriteln("\nFatal error: ArrayIndexOutOfBoundsException within uninterruptible region (index was ", trapInfo.toInt(), ").");
             break;
           case TRAP_DIVIDE_BY_ZERO:
             VM.sysWriteln("\nFatal error: DivideByZero within uninterruptible region.");
@@ -902,6 +902,8 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
             VM.sysWriteln("\nFatal error: Unknown hardware trap within uninterruptible region.");
           break;
           }
+          VM.sysWrite("trapCode=", trapCode);
+          VM.sysWriteln(" trapInfo=", trapInfo.toAddress());
           VM.sysFail("Exiting virtual machine due to uninterruptibility violation.");
         }
       }
@@ -913,7 +915,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
         exceptionObject = new java.lang.NullPointerException();
         break;
       case TRAP_ARRAY_BOUNDS:
-        exceptionObject = new java.lang.ArrayIndexOutOfBoundsException(trapInfo);
+        exceptionObject = new java.lang.ArrayIndexOutOfBoundsException(trapInfo.toInt());
         break;
       case TRAP_DIVIDE_BY_ZERO:
         exceptionObject = new java.lang.ArithmeticException();

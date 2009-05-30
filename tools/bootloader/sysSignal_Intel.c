@@ -252,7 +252,7 @@ EXTERNAL Address readContextFramePointer(void UNUSED *context, Address threadPtr
  * @param trapInfo  [out] extra information about trap
  * @return trap code
  */
-EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int signo, Address instructionPtr, int *trapInfo)
+EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int signo, Address instructionPtr, Word *trapInfo)
 {
   SYS_START();
   switch(signo) {
@@ -264,7 +264,7 @@ EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int si
       case Constants_RVM_TRAP_BASE + Runtime_TRAP_NULL_POINTER:
         return Runtime_TRAP_NULL_POINTER;
       case Constants_RVM_TRAP_BASE + Runtime_TRAP_ARRAY_BOUNDS:
-        *trapInfo = *(int *) (threadPtr + Thread_arrayIndexTrapParam_offset);
+        *trapInfo = (Word)(*(int *) (threadPtr + Thread_arrayIndexTrapParam_offset));
         return Runtime_TRAP_ARRAY_BOUNDS;
       case Constants_RVM_TRAP_BASE + Runtime_TRAP_DIVIDE_BY_ZERO:
         return Runtime_TRAP_DIVIDE_BY_ZERO;

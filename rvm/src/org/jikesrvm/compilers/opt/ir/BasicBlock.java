@@ -1191,12 +1191,19 @@ public class BasicBlock extends SortedGraphNode {
       Instruction branch = e.next();
       BasicBlockEnumeration targets = branch.getBranchTargets();
       while (targets.hasMoreElements()) {
-        insertOut(targets.next());
+        BasicBlock targetBlock = targets.next();
+        if (targetBlock.isExceptionHandlerBasicBlock()) {
+          targetBlock.setExceptionHandlerWithNormalIn();
+        }
+        insertOut(targetBlock);
       }
     }
     // Check for fallthrough edge
     BasicBlock fallThrough = getFallThroughBlock();
     if (fallThrough != null) {
+      if (fallThrough.isExceptionHandlerBasicBlock()) {
+        fallThrough.setExceptionHandlerWithNormalIn();
+      }
       insertOut(fallThrough);
     }
 

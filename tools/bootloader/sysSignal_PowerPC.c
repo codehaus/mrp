@@ -87,7 +87,7 @@ EXTERNAL Address readContextFramePointer(void *context, Address UNUSED threadPtr
  * @param trapInfo  [out] extra information about trap
  * @return trap code
  */
-EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int signo, Address instructionPtr, int *trapInfo)
+EXTERNAL int readContextTrapCode(void UNUSED *context, Address threadPtr, int signo, Address instructionPtr, Word *trapInfo)
 {
   SYS_START();
   int instruction;
