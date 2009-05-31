@@ -437,6 +437,25 @@ class TestArithmetic {
     System.out.println(a >>> 65);
     System.out.print("Expected: 6879212661876153695 Actual: ");
     System.out.println(a >>> int65);
+
+    // lcmp
+    a = long0;
+    System.out.print("Expected: true Actual: ");
+    System.out.println(a == long0);
+    System.out.print("Expected: true Actual: ");
+    System.out.println(Long.MIN_VALUE < Long.MAX_VALUE);
+    System.out.print("Expected: true Actual: ");
+    System.out.println(a < Long.MAX_VALUE);
+    System.out.print("Expected: true Actual: ");
+    System.out.println(Long.MIN_VALUE < a);
+    System.out.print("Expected: false Actual: ");
+    System.out.println(a != long0);
+    System.out.print("Expected: false Actual: ");
+    System.out.println(Long.MIN_VALUE > Long.MAX_VALUE);
+    System.out.print("Expected: false Actual: ");
+    System.out.println(a > Long.MAX_VALUE);
+    System.out.print("Expected: false Actual: ");
+    System.out.println(Long.MIN_VALUE > a);
   }
 
   private static float float0 = 0.0f;

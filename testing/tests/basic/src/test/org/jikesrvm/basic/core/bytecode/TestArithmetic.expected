@@ -162,6 +162,14 @@ Expected: 1 Actual: 1
 Expected: -4688318749957244226 Actual: -4688318749957244226
 Expected: 6879212661876153695 Actual: 6879212661876153695
 Expected: 6879212661876153695 Actual: 6879212661876153695
+Expected: true Actual: true
+Expected: true Actual: true
+Expected: true Actual: true
+Expected: true Actual: true
+Expected: false Actual: false
+Expected: false Actual: false
+Expected: false Actual: false
+Expected: false Actual: false
 
 -- ftest --
 Expected: 0 Actual: 0
