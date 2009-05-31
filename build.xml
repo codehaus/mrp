@@ -1399,7 +1399,7 @@ Check to make sure all required properties are specified. This includes properti
     <echo message="MMTk properties = ${mmtk.properties}"/>
     <java classname="org.jikesrvm.tools.bootImageWriter.BootImageWriter"
           fork="yes"
-          maxmemory="500M"
+          maxmemory="1G"
           failonerror="false"
           resultproperty="bootimage-writer.result"
           dir="${basedir}/tools/bootImageWriter/src">
