@@ -117,10 +117,10 @@ public class BootImage extends BootImageWriterMessages
 
   /**
    * Use mapped byte buffers? We need to truncate the byte buffer
-   * before writing it to disk. This operation is support on UNIX but
+   * before writing it to disk. This operation is supported on UNIX but
    * not Windows.
    */
-  private static final boolean mapByteBuffers = false;
+  private static final boolean mapByteBuffers = !VM.BuildForWindows;
 
   /**
    * @param ltlEndian write words low-byte first?
