@@ -1973,20 +1973,20 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   @Override
   protected final void emit_lcmp() {
     if (VM.BuildFor32Addr) {
-      asm.emitPOP_Reg(T0);                // (S0:T0) = (high half value2: low half value2)
-      asm.emitPOP_Reg(S0);
-      asm.emitMOV_Reg_Imm(S1, -1);        // S1 = -1
+      asm.emitPOP_Reg(T0);                // (S1:T0) = (high half value2: low half value2)
+      asm.emitPOP_Reg(S1);
+      asm.emitMOV_Reg_Imm(S0, -1);        // S0 = -1
       asm.emitPOP_Reg(T1);                // (..:T1) = (.. : low half of value1)
       asm.emitSUB_Reg_Reg(T1, T0);        // T1 = T1 - T0
       asm.emitPOP_Reg(T0);                // (T0:..) = (high half of value1 : ..)
       // NB pop does not alter the carry register
-      asm.emitSBB_Reg_Reg(T0, S0);        // T0 = T0 - S0 - CF
+      asm.emitSBB_Reg_Reg(T0, S1);        // T0 = T0 - S1 - CF
       ForwardReference fr1 = asm.forwardJcc(Assembler.LT);
       asm.emitOR_Reg_Reg(T0, T1);         // T0 = T0 | T1
-      asm.emitSET_Cond_Reg_Byte(Assembler.NE, S1);
-      asm.emitMOVZX_Reg_Reg_Byte(S1, S1); // S1 = T1 | T0 != 0 ? 1 : 0
+      asm.emitSET_Cond_Reg_Byte(Assembler.NE, S0);
+      asm.emitMOVZX_Reg_Reg_Byte(S0, S0); // S0 = T1 | T0 != 0 ? 1 : 0
       fr1.resolve(asm);
-      asm.emitPUSH_Reg(S1);               // push result on stack
+      asm.emitPUSH_Reg(S0);               // push result on stack
     } else {
       // TODO: consider optimizing to z = ((x - y) >> 63) - ((y - x) >> 63)
       asm.emitPOP_Reg(T0);                // T0 is long value
@@ -1996,7 +1996,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
       adjustStack(WORDSIZE, true);        // throw away slot
       asm.emitCMP_Reg_Reg_Quad(T1, T0);   // if T1 < T0 goto fr1
       ForwardReference fr1 = asm.forwardJcc(Assembler.LT);
-      asm.emitSET_Cond_Reg_Byte(Assembler.LGT, S0);
+      asm.emitSET_Cond_Reg_Byte(Assembler.GT, S0);
       asm.emitMOVZX_Reg_Reg_Byte(S0, S0); // S0 = T1 > T0 ? 1 : 0
       fr1.resolve(asm);
       asm.emitPUSH_Reg(S0);               // push result on stack
