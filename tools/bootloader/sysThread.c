@@ -586,6 +586,22 @@ EXTERNAL Address sysThreadSelf()
 }
 
 /**
+ * Set priority of thread to
+ * @param thread [in] thread to change priority of
+ * @param priority [in] new priority (range of 0 to 10)
+ */
+EXTERNAL void sysThreadSetPriority(Address thread, int priority)
+{
+  SYS_START();
+  TRACE_PRINTF("%s: sysThreadSetPriority: thread %p %d\n", Me, thread, priority);
+#ifdef RVM_FOR_HARMONY
+  hythread_set_priority((hythread_t)thread, priority);
+#else
+  pthread_setschedprio((pthread_t)thread, priority - 5);
+#endif
+}
+
+/**
  * Yield execution of current thread back to o/s.
  */
 EXTERNAL void sysThreadYield()

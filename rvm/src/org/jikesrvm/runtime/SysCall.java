@@ -164,6 +164,10 @@ public abstract class SysCall {
   @SysCallTemplate
   public abstract void sysThreadBind(int cpuId);
 
+
+  @SysCallTemplate
+  public abstract void sysThreadSetPriority(Address thread, int priority);
+
   @SysCallTemplate
   public abstract void sysThreadYield();
 

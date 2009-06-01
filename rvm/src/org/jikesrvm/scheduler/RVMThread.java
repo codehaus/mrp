@@ -4101,8 +4101,10 @@ public class RVMThread extends ThreadContext {
    * @see java.lang.Thread#getPriority()
    */
   public final void setPriority(int priority) {
+    if (priority < 0) priority = 0;
+    else if (priority > 10) priority = 10;
     this.priority = priority;
-    // @TODO this should be calling a syscall
+    sysCall.sysThreadSetPriority(pthread_id, priority);
   }
 
   /**

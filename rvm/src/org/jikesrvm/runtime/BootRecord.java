@@ -250,6 +250,7 @@ public class BootRecord {
   public Address sysThreadBindSupportedIP;
   public Address sysThreadBindIP;
   public Address sysThreadCreateIP;
+  public Address sysThreadSetPriorityIP;
   public Address sysThreadYieldIP;
   public Address sysThreadSelfIP;
   public Address sysStashVMThreadIP;

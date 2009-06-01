@@ -280,6 +280,7 @@ EXTERNAL void sysThreadTerminate();
 EXTERNAL int sysThreadBindSupported();
 EXTERNAL void sysThreadBind(int UNUSED cpuId);
 EXTERNAL Address sysThreadSelf();
+EXTERNAL void sysThreadSetPriority(Address thread, int priority);
 EXTERNAL void sysThreadYield();
 EXTERNAL void sysNanoSleep(long long howLongNanos);
 EXTERNAL Address sysMonitorCreate();
