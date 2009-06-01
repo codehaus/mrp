@@ -78,11 +78,6 @@ EXTERNAL void sysInitialize()
   vmi = VMI_GetVMIFromJavaVM((JavaVM*)(&sysJavaVM));
   privatePortLibrary = (*vmi)->GetPortLibrary(vmi);
   DefaultPageSize = hyvmem_supported_page_sizes()[0];
-#else
-#ifdef __MACH__
-  // Initialize timer information on OS/X
-  (void) mach_timebase_info(&timebaseInfo);
-#endif // __MACH__
 #endif // RVM_FOR_HARMONY
   DeathLock = sysMonitorCreate();
 }

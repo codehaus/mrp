@@ -155,10 +155,6 @@ extern DLLSYMBOL JavaVMInitArgs *sysInitArgs;
 extern volatile int numEnableAlignCheckingCalls;
 #endif // RVM_WITH_ALIGNMENT_CHECKING
 
-#if !defined(RVM_FOR_HARMONY) && defined(__MACH__)
-extern mach_timebase_info_data_t timebaseInfo;
-#endif
-
 /** Trace execution of syscalls */
 #define TRACE verbose
 
