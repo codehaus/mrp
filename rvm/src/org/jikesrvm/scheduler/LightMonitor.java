@@ -15,10 +15,9 @@ package org.jikesrvm.scheduler;
 import org.jikesrvm.VM;
 import static org.jikesrvm.runtime.SysCall.sysCall;
 import org.jikesrvm.runtime.RuntimeEntrypoints;
-import org.vmmagic.pragma.Interruptible;
 import org.vmmagic.pragma.Uninterruptible;
+import org.vmmagic.pragma.Interruptible;
 import org.vmmagic.pragma.Unpreemptible;
-import org.vmmagic.pragma.UnpreemptibleNoWarn;
 import org.vmmagic.pragma.Untraced;
 
 /**
@@ -34,7 +33,7 @@ public final class LightMonitor {
   private final ThreadQueue entering;
   private final SpinLock mutex;
   // NB, this can only be Untraced as RVMThreads are unmoveable
-  @Untraced private RVMThread holder;
+  private @Untraced RVMThread holder;
   private int recCount;
 
   public LightMonitor() {
@@ -132,26 +131,22 @@ public final class LightMonitor {
       RuntimeEntrypoints.athrow(throwThis);
     }
     if (throwInterrupt) {
-      throwInterruptedException();
+      RuntimeEntrypoints.athrow(new InterruptedException("sleep interrupted"));
     }
   }
 
-  @UnpreemptibleNoWarn
-  private static void throwInterruptedException() {
-    RuntimeEntrypoints.athrow(new InterruptedException("sleep interrupted"));
-  }
-  @Unpreemptible
-  public void waitPreemptibly() {
+  @Interruptible
+  public void waitInterruptibly() {
     waitImpl(0);
   }
 
   @Interruptible
-  public void timedWaitAbsolutePreemptibly(long whenAwakeNanos) {
+  public void timedWaitAbsoluteInterruptibly(long whenAwakeNanos) {
     waitImpl(whenAwakeNanos);
   }
 
   @Interruptible
-  public void timedWaitRelativePreemptibly(long delayNanos) {
+  public void timedWaitRelativeInterruptibly(long delayNanos) {
     waitImpl(sysCall.sysNanoTime()+delayNanos);
   }
 

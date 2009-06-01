@@ -156,7 +156,6 @@ public class ReferenceQueue<T>
    * Remove a reference from the queue, if there is one.
    * @return the first element of the queue, or null if there isn't any.
    */
-  @Unpreemptible
   private Reference<? extends T> dequeue()
   {
     if (false) VM.sysWriteln("in dequeue, this = ",Magic.objectAsAddress(this));
@@ -176,7 +175,6 @@ public class ReferenceQueue<T>
    * <code>null</code> if timeout period expired.  
    * @exception InterruptedException if the wait was interrupted.
    */
-  @Unpreemptible
   public Reference<? extends T> remove(long timeout)
     throws InterruptedException
   {
@@ -184,9 +182,9 @@ public class ReferenceQueue<T>
     lock.lockWithHandshake();
     while (first==null && (timeout==0 || sysCall.sysNanoTime() < whenAwake)) {
       if (whenAwake==0) {
-        lock.waitPreemptibly();
+        lock.waitInterruptibly();
       } else {
-        lock.timedWaitAbsolutePreemptibly(whenAwake);
+        lock.timedWaitAbsoluteInterruptibly(whenAwake);
       }
     }
     Reference<? extends T> result=dequeue();
