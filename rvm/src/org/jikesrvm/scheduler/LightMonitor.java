@@ -15,6 +15,7 @@ package org.jikesrvm.scheduler;
 import org.jikesrvm.VM;
 import static org.jikesrvm.runtime.SysCall.sysCall;
 import org.jikesrvm.runtime.RuntimeEntrypoints;
+import org.vmmagic.pragma.Interruptible;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.pragma.Unpreemptible;
 import org.vmmagic.pragma.UnpreemptibleNoWarn;
@@ -27,11 +28,12 @@ import org.vmmagic.pragma.Untraced;
  * within GC (this lock never allocates in its methods, and never uses
  * read or write barriers, either).
  */
-@Uninterruptible("Untraced fields that could hold invalid values if preempted")
+@Uninterruptible
 public final class LightMonitor {
   private final ThreadQueue waiting;
   private final ThreadQueue entering;
   private final SpinLock mutex;
+  // NB, this can only be Untraced as RVMThreads are unmoveable
   @Untraced private RVMThread holder;
   private int recCount;
 
@@ -81,7 +83,7 @@ public final class LightMonitor {
     }
   }
 
-  @Unpreemptible
+  @Interruptible
   private void waitImpl(long whenAwake) {
     if (VM.VerifyAssertions) VM._assert(recCount>=1);
     if (VM.VerifyAssertions) VM._assert(holder==RVMThread.getCurrentThread());
@@ -143,12 +145,12 @@ public final class LightMonitor {
     waitImpl(0);
   }
 
-  @Unpreemptible
+  @Interruptible
   public void timedWaitAbsolutePreemptibly(long whenAwakeNanos) {
     waitImpl(whenAwakeNanos);
   }
 
-  @Unpreemptible
+  @Interruptible
   public void timedWaitRelativePreemptibly(long delayNanos) {
     waitImpl(sysCall.sysNanoTime()+delayNanos);
   }
