@@ -540,7 +540,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
     // push [S0+T0<<2]
@@ -564,7 +564,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(T1); // T1 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, T1); // T0 is index, T1 is address of array
     if (MemoryManagerConstants.NEEDS_READ_BARRIER) {
@@ -585,7 +585,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
     // T1 = (int)[S0+T0<<1]
@@ -629,7 +629,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
     // T1 = (int)[S0+T0<<1]
@@ -649,7 +649,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0); // T0 is index, S0 is address of array
     // T1 = (int)[S0+T0<<1]
@@ -669,7 +669,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(T1); // T1 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, T1); // T0 is index, T1 is address of array
     if (VM.BuildFor32Addr) {
@@ -704,7 +704,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0);                // T0 is index, S0 is address of array
     asm.emitMOV_RegIdx_Reg(S0, T0, Assembler.WORD, NO_SLOT, T1); // [S0 + T0<<2] <- T1
@@ -745,7 +745,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0);        // T0 is index, S0 is address of array
     // store halfword element into array i.e. [S0 +T0] <- T1 (halfword)
@@ -771,7 +771,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     asm.emitPOP_Reg(T0); // T0 is array index
     asm.emitPOP_Reg(S0); // S0 is array ref
     if (VM.BuildFor64Addr) {
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0);         // T0 is index, S0 is address of array
     asm.emitMOV_RegIdx_Reg_Byte(S0, T0, Assembler.BYTE, NO_SLOT, T1); // [S0 + T0<<2] <- T1
@@ -793,7 +793,7 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
       adjustStack(WORDSIZE, true); // throw away slot
       asm.emitPOP_Reg(T0);         // T0 is array index
       asm.emitPOP_Reg(S0);         // S0 is array ref
-      asm.emitMOV_Reg_Reg(T0, T0); // clear MSBs
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
     }
     genBoundsCheck(asm, T0, S0);                   // T0 is index, S0 is address of array
     if (VM.BuildFor32Addr) {
