@@ -68,6 +68,10 @@ import static org.jikesrvm.compilers.opt.ir.Operators.IA32_LOCK_CMPXCHG8B_opcode
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_LOCK_CMPXCHG_opcode;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOV;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOV_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVAPD_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVAPS_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSS;
+import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSD;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVZX__B;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_SET__B_opcode;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_SHL;
@@ -127,6 +131,20 @@ public class FinalMIRExpansion extends IRTools {
       p.scratchObject = null;
 
       switch (p.getOpcode()) {
+        case IA32_MOVAPS_opcode:
+          // a reg-reg move turned into a memory move where we can't guarantee alignment
+          if (MIR_Move.getResult(p).isMemory() || MIR_Move.getValue(p).isMemory()) {
+             MIR_Move.mutate(p, IA32_MOVSS, MIR_Move.getClearResult(p), MIR_Move.getClearValue(p));
+          }
+          break;
+
+        case IA32_MOVAPD_opcode:
+          // a reg-reg move turned into a memory move where we can't guarantee alignment
+          if (MIR_Move.getResult(p).isMemory() || MIR_Move.getValue(p).isMemory()) {
+             MIR_Move.mutate(p, IA32_MOVSD, MIR_Move.getClearResult(p), MIR_Move.getClearValue(p));
+          }
+          break;
+
         case IA32_TEST_opcode:
           // don't bother telling rest of compiler that memory operand
           // must be first; we can just commute it here.

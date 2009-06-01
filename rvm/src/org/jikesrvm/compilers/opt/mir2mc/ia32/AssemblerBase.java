@@ -769,6 +769,8 @@ abstract class AssemblerBase extends Assembler
         return size;
       }
       case IA32_MOVD_opcode:
+      case IA32_MOVAPD_opcode:
+      case IA32_MOVAPS_opcode:
       case IA32_MOVLPD_opcode:
       case IA32_MOVQ_opcode:
       case IA32_MOVSS_opcode:
