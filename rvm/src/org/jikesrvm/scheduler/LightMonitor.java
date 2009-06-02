@@ -33,7 +33,7 @@ public final class LightMonitor {
   private final ThreadQueue entering;
   private final SpinLock mutex;
   // NB, this can only be Untraced as RVMThreads are unmoveable
-  private @Untraced RVMThread holder;
+  @Untraced private RVMThread holder;
   private int recCount;
 
   public LightMonitor() {
