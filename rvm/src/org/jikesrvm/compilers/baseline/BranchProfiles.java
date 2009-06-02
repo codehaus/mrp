@@ -16,14 +16,18 @@ import org.jikesrvm.VM;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.NormalMethod;
+import org.vmmagic.pragma.Pure;
 
 /**
  * Profile data for all conditional branches (including switches)
- * of a single RVMMethod.
+ * of a single RVMMethod. {@see EdgeCounts}
  */
 public final class BranchProfiles {
+  /** Method containing counters */
   private final NormalMethod method;
+  /** Number of counters */
   private final int numCounters;
+  /** Branch profile for each profiled bytecode */
   private final BranchProfile[] data;
 
   /**
@@ -148,5 +152,145 @@ public final class BranchProfiles {
       data = newData;
     }
     this.data = data;
+  }
+
+  /**
+   * Profile data for a branch instruction.
+   */
+   abstract static class BranchProfile {
+    /** The bytecode index of the branch instruction */
+    private final int bci;
+
+    /** The number of times the branch was executed. */
+    private final float freq;
+
+    /**
+     * @param _bci the bytecode index of the source branch instruction
+     * @param _freq the number of times the branch was executed
+     */
+    BranchProfile(int _bci, float _freq) {
+      bci = _bci;
+      freq = _freq;
+    }
+
+    public final int getBytecodeIndex() { return bci; }
+
+    public final float getFrequency() { return freq; }
+
+    /** Convert count to float handling overflow */
+    @Pure
+    static float countToFloat(int count) {
+      if (count < 0) {
+        final float MAX_UNSIGNED_INT = 2147483648f;
+        return MAX_UNSIGNED_INT + (float)Math.abs(count);
+      } else {
+        return (float)count;
+      }
+    }
+  }
+
+  /**
+   * Profile data for a branch instruction.
+   */
+  public static final class ConditionalBranchProfile extends BranchProfile {
+    /** Probability of being taken */
+    private final float taken;
+    /** Backward branch */
+    private final boolean backwards;
+
+    /**
+     * @param _bci the bytecode index of the source branch instruction
+     * @param yea the number of times the branch was taken
+     * @param nea the number of times the branch was not taken
+     * @param bw is this a backwards branch?
+     */
+    ConditionalBranchProfile(int _bci, int yea, int nea, boolean bw) {
+      super(_bci, countToFloat(yea)+countToFloat(nea));
+      taken = countToFloat(yea);
+      backwards = bw;
+    }
+
+    public float getTakenProbability() {
+      float freq = getFrequency();
+      if (freq > 0) {
+        return taken / freq;
+      } else if (backwards) {
+        return 0.9f;
+      } else {
+        return 0.5f;
+      }
+    }
+
+    public String toString() {
+      float freq = getFrequency();
+      int bci = getBytecodeIndex();
+      String ans = bci + (backwards ? "\tbackbranch" : "\tforwbranch");
+      ans += " < " + (int) taken + ", " + (int) (freq - taken) + " > ";
+      if (freq > 0) {
+        ans += (100.0f * taken / freq) + "% taken";
+      } else {
+        ans += "Never Executed";
+      }
+      return ans;
+    }
+  }
+
+  /**
+   * Profile data for a branch instruction.
+   */
+  public static final class SwitchBranchProfile extends BranchProfile {
+    /**
+     * The number of times that the different arms of a switch were
+     * taken. By convention, the default case is the last entry.
+     */
+    private final float[] counts;
+
+    /**
+     * @param _bci the bytecode index of the source branch instruction
+     * @param cs counts
+     * @param start idx of first entry in cs
+     * @param numEntries number of entries in cs for this switch
+     */
+    SwitchBranchProfile(int _bci, int[] cs, int start, int numEntries) {
+      super(_bci, sumCounts(cs, start, numEntries));
+      counts = new float[numEntries];
+      for (int i = 0; i < numEntries; i++) {
+        counts[i] = countToFloat(cs[start + i]);
+      }
+    }
+
+    public float getDefaultProbability() {
+      return getProbability(counts.length - 1);
+    }
+
+    public float getCaseProbability(int n) {
+      return getProbability(n);
+    }
+
+    private float getProbability(int n) {
+      float freq = getFrequency();
+      if (freq > 0) {
+        return counts[n] / freq;
+      } else {
+        return 1.0f / counts.length;
+      }
+    }
+
+    public String toString() {
+      int bci = getBytecodeIndex();
+      String res = bci + "\tswitch     < " + (int) counts[0];
+      for (int i = 1; i < counts.length; i++) {
+        res += ", " + (int) counts[i];
+      }
+      return res + " >";
+    }
+
+    private static float sumCounts(int[] counts, int start, int numEntries) {
+      float sum = 0.0f;
+      for (int i = start; i < start + numEntries; i++) {
+        sum += countToFloat(counts[i]);
+      }
+      return sum;
+    }
   }
 }

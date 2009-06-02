@@ -22,11 +22,8 @@ import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.classloader.TypeReference;
-import org.jikesrvm.compilers.baseline.BranchProfile;
 import org.jikesrvm.compilers.baseline.BranchProfiles;
-import org.jikesrvm.compilers.baseline.ConditionalBranchProfile;
 import org.jikesrvm.compilers.baseline.EdgeCounts;
-import org.jikesrvm.compilers.baseline.SwitchBranchProfile;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.opt.ClassLoaderProxy;
 import org.jikesrvm.compilers.opt.OptOptions;
@@ -618,8 +615,9 @@ public final class GenerationContext implements org.jikesrvm.compilers.opt.drive
   public BranchProfileOperand getConditionalBranchProfileOperand(int bcIndex, boolean backwards) {
     float prob;
     if (branchProfiles != null) {
-      BranchProfile bp = branchProfiles.getEntry(bcIndex);
-      prob = ((ConditionalBranchProfile) bp).getTakenProbability();
+      BranchProfiles.ConditionalBranchProfile bp =
+       (BranchProfiles.ConditionalBranchProfile)branchProfiles.getEntry(bcIndex);
+      prob = bp.getTakenProbability();
     } else if (backwards) {
       prob = 0.9f;
     } else {
@@ -633,10 +631,9 @@ public final class GenerationContext implements org.jikesrvm.compilers.opt.drive
     return new BranchProfileOperand(prob);
   }
 
-  public SwitchBranchProfile getSwitchProfile(int bcIndex) {
+  public BranchProfiles.SwitchBranchProfile getSwitchProfile(int bcIndex) {
     if (branchProfiles != null) {
-      BranchProfile bp = branchProfiles.getEntry(bcIndex);
-      return (SwitchBranchProfile) bp;
+      return (BranchProfiles.SwitchBranchProfile)branchProfiles.getEntry(bcIndex);
     } else {
       return null;
     }

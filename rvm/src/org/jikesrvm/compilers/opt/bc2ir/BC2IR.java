@@ -31,7 +31,7 @@ import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.classloader.TypeReference;
-import org.jikesrvm.compilers.baseline.SwitchBranchProfile;
+import org.jikesrvm.compilers.baseline.BranchProfiles.SwitchBranchProfile;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.compilers.opt.ClassLoaderProxy;
