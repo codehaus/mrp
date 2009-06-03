@@ -63,7 +63,7 @@ EXTERNAL long long sysNanoTime()
   retVal*=1000;
 #else
   struct timespec tp;
-  int rc = clock_gettime(CLOCK_MONOTONIC, &tp);
+  int rc = clock_gettime(CLOCK_REALTIME, &tp);
   if (rc != 0) {
     retVal = rc;
     ERROR_PRINTF("%s: sysNanoTime: Non-zero return code %d from clock_gettime\n", Me, rc);
