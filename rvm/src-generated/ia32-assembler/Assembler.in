@@ -2252,6 +2252,19 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     if (lister != null) lister.R(miStart, "FFREE", reg);
   }
 
+  /**
+   * Declare we are no longer using FP register (and pop). This is an
+   * undocumented opcode but is frequently created by GCC and prefered by
+   * AMD to FSTP st0.
+   */
+  @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
+  public final void emitFFREEP_Reg(FPR reg) {
+    int miStart = mi;
+    setMachineCodes(mi++, (byte) 0xDF);
+    setMachineCodes(mi++, (byte) ( (byte)0xC0 + reg.value() ));
+    if (lister != null) lister.R(miStart, "FFREEP", reg);
+  }
+
   /** The dreaded FXCH (symbol of all that's wrong with x87 floating point) */
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
   public final void emitFXCH_Reg_Reg(FPR regOne, FPR regTwo) {
