@@ -1244,16 +1244,14 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
         asm.emitPOP_Reg(ECX);                  // shift amount (6 bits)
         asm.emitPOP_Reg(T0);                   // pop low half
         asm.emitPOP_Reg(T1);                   // pop high half
-        asm.emitTEST_Reg_Imm(ECX, 32);
-        ForwardReference fr1 = asm.forwardJcc(Assembler.NE);
-        asm.emitSHLD_Reg_Reg_Reg(T1, T0, ECX);  // shift high half
-        asm.emitSHL_Reg_Reg(T0, ECX);           // shift low half
-        ForwardReference fr2 = asm.forwardJMP();
+        asm.emitAND_Reg_Imm(ECX, 0x3F);
+        asm.emitCMP_Reg_Imm(ECX, 32);
+        ForwardReference fr1 = asm.forwardJcc(Assembler.LT);
+        asm.emitMOV_Reg_Reg(T1, T0);  // high half = low half
+        asm.emitXOR_Reg_Reg(T0, T0);  // low half = 0
         fr1.resolve(asm);
-        asm.emitMOV_Reg_Reg(T1, T0);  // shift high half
-        asm.emitSHL_Reg_Reg(T1, ECX);
-        asm.emitXOR_Reg_Reg(T0, T0);  // low half == 0
-        fr2.resolve(asm);
+        asm.emitSHLD_Reg_Reg_Reg(T1, T0, ECX);  // shift high half, filling from low
+        asm.emitSHL_Reg_Reg(T0, ECX);           // shift low half
         asm.emitPUSH_Reg(T1);                   // push high half
         asm.emitPUSH_Reg(T0);                   // push low half
       }
@@ -1274,16 +1272,14 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
       asm.emitPOP_Reg(ECX);                  // shift amount (6 bits)
       asm.emitPOP_Reg(T0);                   // pop low half
       asm.emitPOP_Reg(T1);                   // pop high half
-      asm.emitTEST_Reg_Imm(ECX, 32);
-      ForwardReference fr1 = asm.forwardJcc(Assembler.NE);
-      asm.emitSHRD_Reg_Reg_Reg(T0, T1, ECX);  // shift high half
-      asm.emitSAR_Reg_Reg(T1, ECX);           // shift low half
-      ForwardReference fr2 = asm.forwardJMP();
-      fr1.resolve(asm);
+      asm.emitAND_Reg_Imm(ECX, 0x3F);
+      asm.emitCMP_Reg_Imm(ECX, 32);
+      ForwardReference fr1 = asm.forwardJcc(Assembler.LT);
       asm.emitMOV_Reg_Reg(T0, T1);  // low half = high half
-      asm.emitSAR_Reg_Imm(T1, 31);  // high half = high half >> 31
-      asm.emitSAR_Reg_Reg(T0, ECX); // low half = high half >> ecx
-      fr2.resolve(asm);
+      asm.emitSAR_Reg_Imm(T1, 31);  // high half = sign extension of low half
+      fr1.resolve(asm);
+      asm.emitSHRD_Reg_Reg_Reg(T0, T1, ECX);  // shift low half, filling from high
+      asm.emitSAR_Reg_Reg(T1, ECX);           // shift high half
       asm.emitPUSH_Reg(T1);                   // push high half
       asm.emitPUSH_Reg(T0);                   // push low half
     } else {
@@ -1311,16 +1307,14 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
         asm.emitPOP_Reg(ECX);                  // shift amount (6 bits)
         asm.emitPOP_Reg(T0);                   // pop low half
         asm.emitPOP_Reg(T1);                   // pop high half
-        asm.emitTEST_Reg_Imm(ECX, 32);
-        ForwardReference fr1 = asm.forwardJcc(Assembler.NE);
-        asm.emitSHRD_Reg_Reg_Reg(T0, T1, ECX);  // shift high half
-        asm.emitSHR_Reg_Reg(T1, ECX);           // shift low half
-        ForwardReference fr2 = asm.forwardJMP();
-        fr1.resolve(asm);
+        asm.emitAND_Reg_Imm(ECX, 0x3F);
+        asm.emitCMP_Reg_Imm(ECX, 32);
+        ForwardReference fr1 = asm.forwardJcc(Assembler.LT);
         asm.emitMOV_Reg_Reg(T0, T1);  // low half = high half
         asm.emitXOR_Reg_Reg(T1, T1);  // high half = 0
-        asm.emitSHR_Reg_Reg(T0, ECX); // low half = high half >>> ecx
-        fr2.resolve(asm);
+        fr1.resolve(asm);
+        asm.emitSHRD_Reg_Reg_Reg(T0, T1, ECX);  // shift low half, filling from high
+        asm.emitSHR_Reg_Reg(T1, ECX);           // shift high half
         asm.emitPUSH_Reg(T1);                   // push high half
         asm.emitPUSH_Reg(T0);                   // push low half
       }
