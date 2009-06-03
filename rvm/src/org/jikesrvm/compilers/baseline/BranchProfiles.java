@@ -182,7 +182,7 @@ public final class BranchProfiles {
     static float countToFloat(int count) {
       if (count < 0) {
         final float MAX_UNSIGNED_INT = 2147483648f;
-        return MAX_UNSIGNED_INT + (float)Math.abs(count);
+        return MAX_UNSIGNED_INT + (float)(count & 0x7FFFFFFF);
       } else {
         return (float)count;
       }
