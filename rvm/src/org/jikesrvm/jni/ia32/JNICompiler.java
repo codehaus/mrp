@@ -237,7 +237,7 @@ public abstract class JNICompiler implements BaselineConstants {
 
     // (3.1) Count how many arguments could be passed in either FPRs or GPRs
     int numFprArgs=0;
-    int numGprArgs=method.isStatic() ? 0 : 1;
+    int numGprArgs=0;
     for (TypeReference arg : args) {
       if (arg.isFloatType() || arg.isDoubleType()) {
         numFprArgs++;
@@ -247,7 +247,28 @@ public abstract class JNICompiler implements BaselineConstants {
         numGprArgs++;
       }
     }
-    // (3.2) Walk over arguments backwards pushing either from memory or registers
+
+    // (3.2) add stack aligning padding
+    if (VM.BuildFor64Addr) {
+      int argsInRegisters = Math.min(numFprArgs, NATIVE_PARAMETER_FPRS.length) +
+                            Math.min(numGprArgs+2, NATIVE_PARAMETER_GPRS.length);
+      int argsOnStack = numGprArgs + numFprArgs + 2 - argsInRegisters;
+      if (VM.VerifyAssertions) VM._assert(argsOnStack >= 0);
+      if ((argsOnStack & 1) != 0) {
+        // need odd alignment prior to pushes
+        asm.emitAND_Reg_Imm_Quad(SP, -16);
+      } else {
+        // need even alignment prior to pushes
+        asm.emitAND_Reg_Imm_Quad(SP, -16);
+        asm.emitPUSH_Reg(T0);
+      }
+    }
+    // include this ptr now padding calculation is complete
+    if (!method.isStatic()) {
+      numGprArgs++;
+    }
+
+    // (3.3) Walk over arguments backwards pushing either from memory or registers
     Offset currentArg = lastParameterOffset;
     int argFpr=numFprArgs-1;
     int argGpr=numGprArgs-1;
@@ -319,7 +340,7 @@ public abstract class JNICompiler implements BaselineConstants {
       }
       currentArg = currentArg.plus(WORDSIZE);
     }
-    // (3.3) push class or object argument
+    // (3.4) push class or object argument
     if (method.isStatic()) {
       // push java.lang.Class object for klass
       Offset klassOffset = Offset.fromIntSignExtend(
@@ -431,19 +452,15 @@ public abstract class JNICompiler implements BaselineConstants {
     //     NB. Windows JNI routines use the stdcall convention that reclaims
     //     the parameters
     if (!VM.BuildForWindows) {
-      // TODO: optimize stack adjustment
       if (VM.BuildFor32Addr) {
         // throw away args, class/this ptr and env
         int argsToThrowAway = method.getParameterWords()+2-argsPassedInRegister;
         if (argsToThrowAway != 0) {
-          asm.emitADD_Reg_Imm(SP, argsToThrowAway << LG_WORDSIZE);
+          asm.emitLEA_Reg_RegDisp(SP, EBP, BP_ON_ENTRY_OFFSET);
         }
       } else {
-        // throw away args, class/this ptr and env
-        int argsToThrowAway = args.length+2-argsPassedInRegister;
-        if (argsToThrowAway != 0) {
-          asm.emitADD_Reg_Imm_Quad(SP, argsToThrowAway << LG_WORDSIZE);
-        }
+        // throw away args, class/this ptr and env (and padding)
+        asm.emitLEA_Reg_RegDisp(SP, EBP,  BP_ON_ENTRY_OFFSET);
       }
     }
 
@@ -542,7 +559,11 @@ public abstract class JNICompiler implements BaselineConstants {
     }
 
     asm.emitPOP_Reg(EBX); // saved previous native BP
-    asm.emitMOV_RegDisp_Reg(S0, Entrypoints.JNIEnvBasePointerOnEntryToNative.getOffset(), EBX);
+    if (VM.BuildFor32Addr) {
+      asm.emitMOV_RegDisp_Reg(S0, Entrypoints.JNIEnvBasePointerOnEntryToNative.getOffset(), EBX);
+    } else {
+      asm.emitMOV_RegDisp_Reg_Quad(S0, Entrypoints.JNIEnvBasePointerOnEntryToNative.getOffset(), EBX);
+    }
     asm.emitPOP_Reg(EBX); // throw away JNI env
     asm.emitPOP_Reg(EBP); // restore non-volatile EBP
     asm.emitPOP_Reg(EBX); // restore non-volatile EBX
@@ -953,7 +974,7 @@ public abstract class JNICompiler implements BaselineConstants {
       asm.emitADD_Reg_Imm_Quad(SP, 3*WORDSIZE); // discard current stack frame
     }
     int bytesToRelease;
-    if (!VM.BuildForWindows || method.hasDotDotVarArgsAnnotation()) {
+    if (!VM.BuildForWindows) {
       // return to caller using UNIX or Windows cdecl convention
       bytesToRelease = 0;
     } else {
