@@ -375,12 +375,4 @@ public abstract class AnnotatedElement implements java.lang.reflect.AnnotatedEle
   public final boolean hasNonMovingAllocationAnnotation() {
     return isAnnotationDeclared(TypeReference.NonMovingAllocation);
   }
-
-  /**
-   * Return true if this element has a JNIVarArgs annotation.
-   * @see org.jikesrvm.jni.JNIVarArgs
-   */
-  public final boolean hasDotDotVarArgsAnnotation() {
-    return isAnnotationPresent(org.jikesrvm.jni.DotDotVarArgs.class);
-  }
 }

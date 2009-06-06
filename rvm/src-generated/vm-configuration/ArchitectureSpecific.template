@@ -72,5 +72,4 @@ public class ArchitectureSpecific {
     public JNIGCMapIterator(WordArray registerLocations) {
       super(registerLocations);
     }}
-  public static final class JNIHelpers extends org.jikesrvm.jni.@_ARCH_@.JNIHelpers {}
 }

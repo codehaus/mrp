@@ -16,7 +16,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.Buffer;
-import org.jikesrvm.ArchitectureSpecific.JNIHelpers;
 import org.jikesrvm.VM;
 import org.jikesrvm.Properties;
 import org.jikesrvm.SizeConstants;
@@ -26,6 +25,7 @@ import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.RVMClassLoader;
 import org.jikesrvm.classloader.RVMField;
 import org.jikesrvm.classloader.MemberReference;
+import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.NativeMethod;
 import org.jikesrvm.classloader.RVMType;
@@ -483,47 +483,11 @@ public class JNIFunctions implements SizeConstants {
   }
 
   /**
-   * NewObject: create a new object instance
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the new object instance
-   * @exception InstantiationException if the class is abstract or is an interface
-   * @exception OutOfMemoryError if no more memory to allocate
-   */
-  @DotDotVarArgs
-  private static int NewObject(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: NewObject  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Class<?> cls = (Class<?>) env.getJNIRef(classJREF);
-      RVMClass vmcls = java.lang.JikesRVMSupport.getTypeForClass(cls).asClass();
-
-      if (vmcls.isAbstract() || vmcls.isInterface()) {
-        env.recordException(new InstantiationException());
-        return 0;
-      }
-
-      Object newobj = JNIHelpers.invokeInitializer(cls, methodID, Address.zero(), false, true);
-
-      return env.pushJNIRef(newobj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
    * NewObjectV: create a new object instance
    * @param env A JREF index for the JNI environment object
    * @param classJREF a JREF index for the class object
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or
-   *                   2-words of the appropriate type for the constructor invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the new object instance
    * @exception InstantiationException if the class is abstract or is an interface
    * @exception OutOfMemoryError if no more memory to allocate
@@ -540,9 +504,9 @@ public class JNIFunctions implements SizeConstants {
         env.recordException(new InstantiationException());
         return 0;
       }
-
-      Object newobj = JNIHelpers.invokeInitializer(cls, methodID, argAddress, false, false);
-
+      MethodReference mr = MemberReference.getMethodRef(methodID);
+      Object[] args = JNIHelpers.packageParametersFromVarArgs(mr, argAddress);
+      Object newobj = JNIHelpers.invokeInitializer(cls, mr, args);
       return env.pushJNIRef(newobj);
     } catch (Throwable unexpected) {
       if (traceJNI) unexpected.printStackTrace(System.err);
@@ -556,8 +520,7 @@ public class JNIFunctions implements SizeConstants {
    * @param env A JREF index for the JNI environment object
    * @param classJREF a JREF index for the class object
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and
-   *                   hold an argument of the appropriate type for the constructor invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @exception InstantiationException if the class is abstract or is an interface
    * @exception OutOfMemoryError if no more memory to allocate
    * @return the new object instance
@@ -570,14 +533,13 @@ public class JNIFunctions implements SizeConstants {
     try {
       Class<?> cls = (Class<?>) env.getJNIRef(classJREF);
       RVMClass vmcls = java.lang.JikesRVMSupport.getTypeForClass(cls).asClass();
-
       if (vmcls.isAbstract() || vmcls.isInterface()) {
         env.recordException(new InstantiationException());
         return 0;
       }
-
-      Object newobj = JNIHelpers.invokeInitializer(cls, methodID, argAddress, true, false);
-
+      MethodReference mr = MemberReference.getMethodRef(methodID);
+      Object[] args = JNIHelpers.packageParametersFromJValuePtr(mr, argAddress);
+      Object newobj = JNIHelpers.invokeInitializer(cls, mr, args);
       return env.pushJNIRef(newobj);
     } catch (Throwable unexpected) {
       if (traceJNI) unexpected.printStackTrace(System.err);
@@ -690,782 +652,18 @@ public class JNIFunctions implements SizeConstants {
   }
 
   /**
-   * CallObjectMethod:  invoke a virtual method that returns an object
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the JREF index for the object returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static int CallObjectMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallObjectMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, null, false);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
    * CallObjectMethodV:  invoke a virtual method that returns an object
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the JREF index for the object returned from the method invocation
    */
   private static int CallObjectMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallObjectMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, null, false);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallObjectMethodA:  invoke a virtual method that returns an object value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the JREF index for the object returned from the method invocation
-   */
-  private static int CallObjectMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallObjectMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, null, false);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallBooleanMethod:  invoke a virtual method that returns a boolean value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the boolean value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static boolean CallBooleanMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallBooleanMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Boolean, false);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
-  }
-
-  /**
-   * CallBooleanMethodV:  invoke a virtual method that returns a boolean value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   * @return the boolean value returned from the method invocation
-   */
-  private static boolean CallBooleanMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallBooleanMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Boolean, false);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
-  }
-
-  /**
-   * CallBooleanMethodA:  invoke a virtual method that returns a boolean value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the boolean value returned from the method invocation
-   */
-  private static boolean CallBooleanMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallBooleanMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Boolean, false);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
-  }
-
-  /**
-   * CallByteMethod:  invoke a virtual method that returns a byte value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the byte value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static byte CallByteMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallByteMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Byte, false);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallByteMethodV:  invoke a virtual method that returns a byte value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   * @return the byte value returned from the method invocation
-   */
-  private static byte CallByteMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallByteMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Byte, false);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallByteMethodA:  invoke a virtual method that returns a byte value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the byte value returned from the method invocation
-   */
-  private static byte CallByteMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallByteMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Byte, false);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallCharMethod:  invoke a virtual method that returns a char value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the char value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static char CallCharMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallCharMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Char, false);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallCharMethodV:  invoke a virtual method that returns a char value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   * @return the char value returned from the method invocation
-   */
-  private static char CallCharMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallCharMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Char, false);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallCharMethodA:  invoke a virtual method that returns a char value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the char value returned from the method invocation
-   */
-  private static char CallCharMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallCharMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Char, false);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallShortMethod:  invoke a virtual method that returns a short value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the short value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static short CallShortMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallShortMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Short, false);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for a short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallShortMethodV:  invoke a virtual method that returns a short value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   * @return the short value returned from the method invocation
-   */
-  private static short CallShortMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallShortMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Short, false);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for a short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallShortMethodA:  invoke a virtual method that returns a short value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the short value returned from the method invocation
-   */
-  private static short CallShortMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallShortMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Short, false);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for a short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallIntMethod:  invoke a virtual method that returns a int value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the int value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static int CallIntMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallIntMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Int, false);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallIntMethodV:  invoke a virtual method that returns an int value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   * @return the int value returned from the method invocation
-   */
-  private static int CallIntMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallIntMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Int, false);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallIntMethodA:  invoke a virtual method that returns an integer value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the integer value returned from the method invocation
-   */
-  private static int CallIntMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallIntMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Int, false);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallLongMethod:  invoke a virtual method that returns a long value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the long value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static long CallLongMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallLongMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Long, false);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallLongMethodV:  invoke a virtual method that returns a long value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   * @return the long value returned from the method invocation
-   */
-  private static long CallLongMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallLongMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Long, false);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallLongMethodA:  invoke a virtual method that returns a long value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the long value returned from the method invocation
-   */
-  private static long CallLongMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallLongMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Long, false);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallFloatMethod:  invoke a virtual method that returns a float value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the float value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static float CallFloatMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallFloatMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Float, false);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallFloatMethodV:  invoke a virtual method that returns a float value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   * @return the float value returned from the method invocation
-   */
-  private static float CallFloatMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallFloatMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Float, false);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallFloatMethodA:  invoke a virtual method that returns a float value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the float value returned from the method invocation
-   */
-  private static float CallFloatMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallFloatMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Float, false);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallDoubleMethod:  invoke a virtual method that returns a double value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @return the double value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static double CallDoubleMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallDoubleMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Double, false);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallDoubleMethodV:  invoke a virtual method that returns a double value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   * @return the double value returned from the method invocation
-   */
-  private static double CallDoubleMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallDoubleMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Double, false);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallDoubleMethodA:  invoke a virtual method that returns a double value
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   * @return the double value returned from the method invocation
-   */
-  private static double CallDoubleMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallDoubleMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Double, false);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallVoidMethod:  invoke a virtual method that returns a void value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   */
-  @DotDotVarArgs
-  private static void CallVoidMethod(JNIEnvironment env, int objJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallVoidMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Void, false);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-    }
-  }
-
-  /**
-   * CallVoidMethodV:  invoke a virtual method that returns void
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
-   */
-  private static void CallVoidMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallVoidMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Void, false);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-    }
-  }
-
-  /**
-   * CallVoidMethodA:  invoke a virtual method that returns void
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
-   */
-  private static void CallVoidMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallVoidMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Void, false);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-    }
-  }
-
-  /**
-   * CallNonvirtualObjectMethod:  invoke a virtual method that returns an object
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
-   * @param methodID id of a MethodReference
-   * @return the JREF index for the object returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static int CallNonvirtualObjectMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualObjectMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, null, true);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, null /* return type */, false);
+    return env.pushJNIRef(returnObj);
   }
 
   /**
@@ -1474,24 +672,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the JREF index for the object returned from the method invocation
    */
   private static int CallNonvirtualObjectMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                  Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualObjectMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, null /* return type */, true);
+    return env.pushJNIRef(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, null, true);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+  /**
+   * CallStaticObjectMethodV:  invoke a static method that returns an object
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the JREF index for the object returned from the method invocation
+   */
+  private static int CallStaticObjectMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticObjectMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, null /* return type */, true);
+    return env.pushJNIRef(returnObj);
+  }
+
+  /**
+   * CallObjectMethodA:  invoke a virtual method that returns an object value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the JREF index for the object returned from the method invocation
+   */
+  private static int CallObjectMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallObjectMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, null /* return type */, false);
+    return env.pushJNIRef(returnObj);
   }
 
   /**
@@ -1500,52 +718,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the JREF index for the object returned from the method invocation
    */
   private static int CallNonvirtualObjectMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                  Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualObjectMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, null, true);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, null /* return type */, true);
+    return env.pushJNIRef(returnObj);
   }
 
   /**
-   * CallNonvirtualBooleanMethod:  invoke a virtual method that returns a boolean value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticObjectMethodA:  invoke a static method that returns an object
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the JREF index for the object returned from the method invocation
+   */
+  private static int CallStaticObjectMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticObjectMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, null /* return type */, true);
+    return env.pushJNIRef(returnObj);
+  }
+
+  /**
+   * CallBooleanMethodV:  invoke a virtual method that returns a boolean value
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    * @return the boolean value returned from the method invocation
    */
-  @DotDotVarArgs
-  private static boolean CallNonvirtualBooleanMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static boolean CallBooleanMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualBooleanMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Boolean, true);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallBooleanMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Boolean, false);
+    return Reflection.unwrapBoolean(returnObj);
   }
 
   /**
@@ -1554,24 +764,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the boolean value returned from the method invocation
    */
   private static boolean CallNonvirtualBooleanMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                       Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualBooleanMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Boolean, true);
+    return Reflection.unwrapBoolean(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Boolean, true);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
+  /**
+   * CallStaticBooleanMethodV:  invoke a static method that returns a boolean value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the boolean value returned from the method invocation
+   */
+  private static boolean CallStaticBooleanMethodV(JNIEnvironment env, int classJREF, int methodID,
+                                                  Address argAddress) throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticBooleanMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Boolean, true);
+    return Reflection.unwrapBoolean(returnObj);
+  }
+
+  /**
+   * CallBooleanMethodA:  invoke a virtual method that returns a boolean value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the boolean value returned from the method invocation
+   */
+  private static boolean CallBooleanMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallBooleanMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Boolean, false);
+    return Reflection.unwrapBoolean(returnObj);
   }
 
   /**
@@ -1580,52 +810,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the boolean value returned from the method invocation
    */
   private static boolean CallNonvirtualBooleanMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                       Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualBooleanMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Boolean, true);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Boolean, true);
+    return Reflection.unwrapBoolean(returnObj);
   }
 
   /**
-   * CallNonvirtualByteMethod:  invoke a virtual method that returns a byte value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticBooleanMethodA:  invoke a static method that returns a boolean value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the boolean value returned from the method invocation
+   */
+  private static boolean CallStaticBooleanMethodA(JNIEnvironment env, int classJREF, int methodID,
+                                                  Address argAddress) throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticBooleanMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Boolean, true);
+    return Reflection.unwrapBoolean(returnObj);
+  }
+
+  /**
+   * CallByteMethodV:  invoke a virtual method that returns a byte value
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    * @return the byte value returned from the method invocation
    */
-  @DotDotVarArgs
-  private static byte CallNonvirtualByteMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static byte CallByteMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualByteMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Byte, true);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallByteMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Byte, false);
+    return Reflection.unwrapByte(returnObj);
   }
 
   /**
@@ -1634,24 +856,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param methodID id of a MethodReference
    * @param classJREF a JREF index for the class object that declares this method
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the byte value returned from the method invocation
    */
   private static byte CallNonvirtualByteMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                 Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualByteMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Byte, true);
+    return Reflection.unwrapByte(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Byte, true);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+  /**
+   * CallStaticByteMethodV:  invoke a static method that returns a byte value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the byte value returned from the method invocation
+   */
+  private static byte CallStaticByteMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticByteMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Byte, true);
+    return Reflection.unwrapByte(returnObj);
+  }
+
+  /**
+   * CallByteMethodA:  invoke a virtual method that returns a byte value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the byte value returned from the method invocation
+   */
+  private static byte CallByteMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallByteMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Byte, false);
+    return Reflection.unwrapByte(returnObj);
   }
 
   /**
@@ -1660,52 +902,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param methodID id of a MethodReference
    * @param classJREF a JREF index for the class object that declares this method
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the byte value returned from the method invocation
    */
   private static byte CallNonvirtualByteMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                 Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualByteMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Byte, true);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Byte, true);
+    return Reflection.unwrapByte(returnObj);
   }
 
   /**
-   * CallNonvirtualCharMethod:  invoke a virtual method that returns a char value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticByteMethodA:  invoke a static method that returns a byte value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the byte value returned from the method invocation
+   */
+  private static byte CallStaticByteMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticByteMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Byte, true);
+    return Reflection.unwrapByte(returnObj);
+  }
+
+  /**
+   * CallCharMethodV:  invoke a virtual method that returns a char value
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    * @return the char value returned from the method invocation
    */
-  @DotDotVarArgs
-  private static char CallNonvirtualCharMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static char CallCharMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualCharMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Char, true);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallCharMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Char, false);
+    return Reflection.unwrapChar(returnObj);
   }
 
   /**
@@ -1714,24 +948,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the char value returned from the method invocation
    */
   private static char CallNonvirtualCharMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                 Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualCharMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Char, true);
+    return Reflection.unwrapChar(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Char, true);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+  /**
+   * CallStaticCharMethodV:  invoke a static method that returns a char value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the char value returned from the method invocation
+   */
+  private static char CallStaticCharMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticCharMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Char, true);
+    return Reflection.unwrapChar(returnObj);
+  }
+
+  /**
+   * CallCharMethodA:  invoke a virtual method that returns a char value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the char value returned from the method invocation
+   */
+  private static char CallCharMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallCharMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Char, false);
+    return Reflection.unwrapChar(returnObj);
   }
 
   /**
@@ -1740,52 +994,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the char value returned from the method invocation
    */
   private static char CallNonvirtualCharMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                 Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualCharMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Char, true);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Char, true);
+    return Reflection.unwrapChar(returnObj);
   }
 
   /**
-   * CallNonvirtualShortMethod:  invoke a virtual method that returns a short value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticCharMethodA:  invoke a static method that returns a char value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the char value returned from the method invocation
+   */
+  private static char CallStaticCharMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticCharMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Char, true);
+    return Reflection.unwrapChar(returnObj);
+  }
+
+  /**
+   * CallShortMethodV:  invoke a virtual method that returns a short value
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    * @return the short value returned from the method invocation
    */
-  @DotDotVarArgs
-  private static short CallNonvirtualShortMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static short CallShortMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualShortMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Short, true);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for a short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallShortMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Short, false);
+    return Reflection.unwrapShort(returnObj);
   }
 
   /**
@@ -1794,24 +1040,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the short value returned from the method invocation
    */
   private static short CallNonvirtualShortMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                   Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualShortMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Short, true);
+    return Reflection.unwrapShort(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Short, true);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for a short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+  /**
+   * CallStaticShortMethodV:  invoke a static method that returns a short value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the short value returned from the method invocation
+   */
+  private static short CallStaticShortMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticShortMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Short, true);
+    return Reflection.unwrapShort(returnObj);
+  }
+
+  /**
+   * CallShortMethodA:  invoke a virtual method that returns a short value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the short value returned from the method invocation
+   */
+  private static short CallShortMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallShortMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Short, false);
+    return Reflection.unwrapShort(returnObj);
   }
 
   /**
@@ -1820,52 +1086,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the short value returned from the method invocation
    */
   private static short CallNonvirtualShortMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                   Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualShortMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Short, true);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for a short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Short, true);
+    return Reflection.unwrapShort(returnObj);
   }
 
   /**
-   * CallNonvirtualIntMethod:  invoke a virtual method that returns a int value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticShortMethodA:  invoke a static method that returns a short value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the short value returned from the method invocation
+   */
+  private static short CallStaticShortMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticShortMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Short, true);
+    return Reflection.unwrapShort(returnObj);
+  }
+
+  /**
+   * CallIntMethodV:  invoke a virtual method that returns an int value
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    * @return the int value returned from the method invocation
    */
-  @DotDotVarArgs
-  private static int CallNonvirtualIntMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static int CallIntMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualIntMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Int, true);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallIntMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Int, false);
+    return Reflection.unwrapInt(returnObj);
   }
 
   /**
@@ -1874,24 +1132,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the int value returned from the method invocation
    */
   private static int CallNonvirtualIntMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                               Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualIntMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Int, true);
+    return Reflection.unwrapInt(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Int, true);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+  /**
+   * CallStaticIntMethodV:  invoke a static method that returns an integer value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the integer value returned from the method invocation
+   */
+  private static int CallStaticIntMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticIntMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Int, true);
+    return Reflection.unwrapInt(returnObj);
+  }
+
+  /**
+   * CallIntMethodA:  invoke a virtual method that returns an integer value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the integer value returned from the method invocation
+   */
+  private static int CallIntMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallIntMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Int, false);
+    return Reflection.unwrapInt(returnObj);
   }
 
   /**
@@ -1900,52 +1178,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the integer value returned from the method invocation
    */
   private static int CallNonvirtualIntMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                               Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualIntMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Int, true);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Int, true);
+    return Reflection.unwrapInt(returnObj);
   }
 
   /**
-   * CallNonvirtualLongMethod:  invoke a virtual method that returns a long value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticIntMethodA:  invoke a static method that returns an integer value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the integer value returned from the method invocation
+   */
+  private static int CallStaticIntMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticIntMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Int, true);
+    return Reflection.unwrapInt(returnObj);
+  }
+
+  /**
+   * CallLongMethodV:  invoke a virtual method that returns a long value
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    * @return the long value returned from the method invocation
    */
-  @DotDotVarArgs
-  private static long CallNonvirtualLongMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static long CallLongMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualLongMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Long, true);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallLongMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Long, false);
+    return Reflection.unwrapLong(returnObj);
   }
 
   /**
@@ -1954,24 +1224,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the long value returned from the method invocation
    */
   private static long CallNonvirtualLongMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                 Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualLongMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Long, true);
+    return Reflection.unwrapLong(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Long, true);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+  /**
+   * CallStaticLongMethodV:  invoke a static method that returns a long value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the long value returned from the method invocation
+   */
+  private static long CallStaticLongMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticLongMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Long, true);
+    return Reflection.unwrapLong(returnObj);
+  }
+
+  /**
+   * CallLongMethodA:  invoke a virtual method that returns a long value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the long value returned from the method invocation
+   */
+  private static long CallLongMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallLongMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Long, false);
+    return Reflection.unwrapLong(returnObj);
   }
 
   /**
@@ -1980,52 +1270,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the long value returned from the method invocation
    */
   private static long CallNonvirtualLongMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                 Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualLongMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Long, true);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Long, true);
+    return Reflection.unwrapLong(returnObj);
   }
 
   /**
-   * CallNonvirtualFloatMethod:  invoke a virtual method that returns a float value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticLongMethodA:  invoke a static method that returns a long value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the long value returned from the method invocation
+   */
+  private static long CallStaticLongMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticLongMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Long, true);
+    return Reflection.unwrapLong(returnObj);
+  }
+
+  /**
+   * CallFloatMethodV:  invoke a virtual method that returns a float value
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    * @return the float value returned from the method invocation
    */
-  @DotDotVarArgs
-  private static float CallNonvirtualFloatMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static float CallFloatMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualFloatMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Float, true);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallFloatMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Float, false);
+    return Reflection.unwrapFloat(returnObj);
   }
 
   /**
@@ -2034,24 +1316,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the float value returned from the method invocation
    */
   private static float CallNonvirtualFloatMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                   Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualFloatMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Float, true);
+    return Reflection.unwrapFloat(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Float, true);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+  /**
+   * CallStaticFloatMethodV:  invoke a static method that returns a float value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the float value returned from the method invocation
+   */
+  private static float CallStaticFloatMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticFloatMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Float, true);
+    return Reflection.unwrapFloat(returnObj);
+  }
+
+  /**
+   * CallFloatMethodA:  invoke a virtual method that returns a float value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the float value returned from the method invocation
+   */
+  private static float CallFloatMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallFloatMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Float, false);
+    return Reflection.unwrapFloat(returnObj);
   }
 
   /**
@@ -2060,52 +1362,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the float value returned from the method invocation
    */
   private static float CallNonvirtualFloatMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                   Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualFloatMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Float, true);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Float, true);
+    return Reflection.unwrapFloat(returnObj);
   }
 
   /**
-   * CallNonvirtualDoubleMethod:  invoke a virtual method that returns a double value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticFloatMethodA:  invoke a static method that returns a float value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the float value returned from the method invocation
+   */
+  private static float CallStaticFloatMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticFloatMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Float, true);
+    return Reflection.unwrapFloat(returnObj);
+  }
+
+  /**
+   * CallDoubleMethodV:  invoke a virtual method that returns a double value
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    * @return the double value returned from the method invocation
    */
-  @DotDotVarArgs
-  private static double CallNonvirtualDoubleMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static double CallDoubleMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualDoubleMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Double, true);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallDoubleMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Double, false);
+    return Reflection.unwrapDouble(returnObj);
   }
 
   /**
@@ -2114,24 +1408,44 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    * @return the double value returned from the method invocation
    */
   private static double CallNonvirtualDoubleMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                     Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualDoubleMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Double, true);
+    return Reflection.unwrapDouble(returnObj);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Double, true);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+  /**
+   * CallStaticDoubleMethodV:  invoke a static method that returns a double value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID an id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   * @return the double value returned from the method invocation
+   */
+  private static double CallStaticDoubleMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticDoubleMethodV  \n");
+    Object returnObj = JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Double, true);
+    return Reflection.unwrapDouble(returnObj);
+  }
+
+  /**
+   * CallDoubleMethodA:  invoke a virtual method that returns a double value
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the double value returned from the method invocation
+   */
+  private static double CallDoubleMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallDoubleMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Double, false);
+    return Reflection.unwrapDouble(returnObj);
   }
 
   /**
@@ -2140,49 +1454,42 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    * @return the double value returned from the method invocation
    */
   private static double CallNonvirtualDoubleMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                     Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualDoubleMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      Object returnObj = JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Double, true);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Double, true);
+    return Reflection.unwrapDouble(returnObj);
   }
 
   /**
-   * CallNonvirtualVoidMethod:  invoke a virtual method that returns a void value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here;
-   *        they are saved in the caller frame and the glue frame
+   * CallStaticDoubleMethodA:  invoke a static method that returns a double value
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   * @return the double value returned from the method invocation
+   */
+  private static double CallStaticDoubleMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticDoubleMethodA  \n");
+    Object returnObj = JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Double, true);
+    return Reflection.unwrapDouble(returnObj);
+  }
+
+  /**
+   * CallVoidMethodV:  invoke a virtual method that returns void
    * @param env A JREF index for the JNI environment object
    * @param objJREF a JREF index for the object instance
-   * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
    */
-  @DotDotVarArgs
-  private static void CallNonvirtualVoidMethod(JNIEnvironment env, int objJREF, int classJREF, int methodID)
+  private static void CallVoidMethodV(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
       throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualVoidMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      JNIHelpers.invokeWithDotDotVarArg(obj, methodID, TypeReference.Void, true);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-    }
+    if (traceJNI) VM.sysWrite("JNI called: CallVoidMethodV  \n");
+    JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Void, false);
   }
 
   /**
@@ -2191,21 +1498,38 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is
-   *              1-word or 2-words of the appropriate type for the method invocation
+   * @param argAddress address of a variable argument list (va_list)
    */
   private static void CallNonvirtualVoidMethodV(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                 Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualVoidMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    JNIHelpers.callMethodVarArgs(env, objJREF, methodID, argAddress, TypeReference.Void, true);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      JNIHelpers.invokeWithVarArg(obj, methodID, argAddress, TypeReference.Void, true);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-    }
+  /**
+   * CallStaticVoidMethodV:  invoke a static method that returns void
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of a variable argument list (va_list)
+   */
+  private static void CallStaticVoidMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticVoidMethodV  \n");
+    JNIHelpers.callMethodVarArgs(env, 0, methodID, argAddress, TypeReference.Void, true);
+  }
+
+  /**
+   * CallVoidMethodA:  invoke a virtual method that returns void
+   * @param env A JREF index for the JNI environment object
+   * @param objJREF a JREF index for the object instance
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   */
+  private static void CallVoidMethodA(JNIEnvironment env, int objJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallVoidMethodA  \n");
+    JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Void, false);
   }
 
   /**
@@ -2214,21 +1538,25 @@ public class JNIFunctions implements SizeConstants {
    * @param objJREF a JREF index for the object instance
    * @param classJREF a JREF index for the class object that declares this method
    * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word
-   *        and hold an argument of the appropriate type for the method invocation
+   * @param argAddress address of an array of jvalues (jvalue*)
    */
   private static void CallNonvirtualVoidMethodA(JNIEnvironment env, int objJREF, int classJREF, int methodID,
                                                 Address argAddress) throws Exception {
     if (traceJNI) VM.sysWrite("JNI called: CallNonvirtualVoidMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
+    JNIHelpers.callMethodJValuePtr(env, objJREF, methodID, argAddress, TypeReference.Void, true);
+  }
 
-    try {
-      Object obj = env.getJNIRef(objJREF);
-      JNIHelpers.invokeWithJValue(obj, methodID, argAddress, TypeReference.Void, true);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-    }
+  /**
+   * CallStaticVoidMethodA:  invoke a static method that returns void
+   * @param env A JREF index for the JNI environment object
+   * @param classJREF a JREF index for the class object
+   * @param methodID id of a MethodReference
+   * @param argAddress address of an array of jvalues (jvalue*)
+   */
+  private static void CallStaticVoidMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
+      throws Exception {
+    if (traceJNI) VM.sysWrite("JNI called: CallStaticVoidMethodA  \n");
+    JNIHelpers.callMethodJValuePtr(env, 0, methodID, argAddress, TypeReference.Void, true);
   }
 
   /**
@@ -2716,727 +2044,6 @@ public class JNIFunctions implements SizeConstants {
       if (traceJNI) unexpected.printStackTrace(System.err);
       env.recordException(unexpected);
       return 0;
-    }
-  }
-
-  /**
-   * CallStaticObjectMethod:  invoke a static method that returns an object value
-   *                          arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the JREF index for the object returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static int CallStaticObjectMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticObjectMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, null);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticObjectMethodV:  invoke a static method that returns an object
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the JREF index for the object returned from the method invocation
-   */
-  private static int CallStaticObjectMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticObjectMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, null);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticObjectMethodA:  invoke a static method that returns an object
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the JREF index for the object returned from the method invocation
-   */
-  private static int CallStaticObjectMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticObjectMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, null);
-      return env.pushJNIRef(returnObj);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticBooleanMethod:  invoke a static method that returns a boolean value
-   *                           arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the boolean value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static boolean CallStaticBooleanMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticBooleanMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Boolean);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
-  }
-
-  /**
-   * CallStaticBooleanMethodV:  invoke a static method that returns a boolean value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the boolean value returned from the method invocation
-   */
-  private static boolean CallStaticBooleanMethodV(JNIEnvironment env, int classJREF, int methodID,
-                                                  Address argAddress) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticBooleanMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Boolean);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
-  }
-
-  /**
-   * CallStaticBooleanMethodA:  invoke a static method that returns a boolean value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the boolean value returned from the method invocation
-   */
-  private static boolean CallStaticBooleanMethodA(JNIEnvironment env, int classJREF, int methodID,
-                                                  Address argAddress) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticBooleanMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Boolean);
-      return Reflection.unwrapBoolean(returnObj);     // should be a wrapper for a boolean value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return false;
-    }
-  }
-
-  /**
-   * CallStaticByteMethod:  invoke a static method that returns a byte value
-   *                        arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the byte value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static byte CallStaticByteMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticByteMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Byte);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticByteMethodV:  invoke a static method that returns a byte value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the byte value returned from the method invocation
-   */
-  private static byte CallStaticByteMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticByteMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Byte);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticByteMethodA:  invoke a static method that returns a byte value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the byte value returned from the method invocation
-   */
-  private static byte CallStaticByteMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticByteMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Byte);
-      return Reflection.unwrapByte(returnObj);     // should be a wrapper for a byte value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticCharMethod:  invoke a static method that returns a char value
-   *                        arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the char value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static char CallStaticCharMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticCharMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Char);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticCharMethodV:  invoke a static method that returns a char value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the char value returned from the method invocation
-   */
-  private static char CallStaticCharMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticCharMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Char);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticCharMethodA:  invoke a static method that returns a char value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the char value returned from the method invocation
-   */
-  private static char CallStaticCharMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticCharMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Char);
-      return Reflection.unwrapChar(returnObj);     // should be a wrapper for a char value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticShortMethod:  invoke a static method that returns a short value
-   *                         arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the short value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static short CallStaticShortMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticShortMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Short);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for an short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticShortMethodV:  invoke a static method that returns a short value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the short value returned from the method invocation
-   */
-  private static short CallStaticShortMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticShortMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Short);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for a short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticShortMethodA:  invoke a static method that returns a short value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the short value returned from the method invocation
-   */
-  private static short CallStaticShortMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticShortMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Short);
-      return Reflection.unwrapShort(returnObj);     // should be a wrapper for a short value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticIntMethod:  invoke a static method that returns an integer value
-   *                       arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the integer value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static int CallStaticIntMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticIntMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Int);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticIntMethodV:  invoke a static method that returns an integer value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the integer value returned from the method invocation
-   */
-  private static int CallStaticIntMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticIntMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Int);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticIntMethodA:  invoke a static method that returns an integer value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the integer value returned from the method invocation
-   */
-  private static int CallStaticIntMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticIntMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Int);
-      return Reflection.unwrapInt(returnObj);     // should be a wrapper for an integer value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticLongMethod:  invoke a static method that returns a long value
-   *                        arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the long value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static long CallStaticLongMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticLongMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Long);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0L;
-    }
-  }
-
-  /**
-   * CallStaticLongMethodV:  invoke a static method that returns a long value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the long value returned from the method invocation
-   */
-  private static long CallStaticLongMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticLongMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Long);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0L;
-    }
-  }
-
-  /**
-   * CallStaticLongMethodA:  invoke a static method that returns a long value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the long value returned from the method invocation
-   */
-  private static long CallStaticLongMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticLongMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Long);
-      return Reflection.unwrapLong(returnObj);     // should be a wrapper for a long value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0L;
-    }
-  }
-
-  /**
-   * CallStaticFloagMethod:  invoke a static method that returns a float value
-   *                         arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @return the float value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static float CallStaticFloatMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticFloatMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Float);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0f;
-    }
-  }
-
-  /**
-   * CallStaticFloatMethodV:  invoke a static method that returns a float value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to a variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the float value returned from the method invocation
-   */
-  private static float CallStaticFloatMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticFloatMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Float);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0f;
-    }
-  }
-
-  /**
-   * CallStaticFloatMethodA:  invoke a static method that returns a float value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the float value returned from the method invocation
-   */
-  private static float CallStaticFloatMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticFloatMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Float);
-      return Reflection.unwrapFloat(returnObj);     // should be a wrapper for a float value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0f;
-    }
-  }
-
-  /**
-   * CallStaticDoubleMethod:  invoke a static method that returns a double value
-   *                          arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID an id of a MethodReference
-   * @return the double value returned from the method invocation
-   */
-  @DotDotVarArgs
-  private static double CallStaticDoubleMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticDoubleMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Double);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticDoubleMethodV:  invoke a static method that returns a double value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID an id of a MethodReference
-   * @param argAddress a raw address to a  variable argument list, each element is 1-word or 2-words
-   *                   of the appropriate type for the method invocation
-   * @return the double value returned from the method invocation
-   */
-  private static double CallStaticDoubleMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticDoubleMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Double);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticDoubleMethodA:  invoke a static method that returns a double value
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   * @return the double value returned from the method invocation
-   */
-  private static double CallStaticDoubleMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticDoubleMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      Object returnObj = JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Double);
-      return Reflection.unwrapDouble(returnObj);     // should be a wrapper for a double value
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-      return 0;
-    }
-  }
-
-  /**
-   * CallStaticVoidMethod:  invoke a static method that returns void
-   *                       arguments passed using the vararg ... style
-   * NOTE:  the vararg's are not visible in the method signature here; they are saved
-   *        in the caller frame and the glue frame
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   */
-  @DotDotVarArgs
-  private static void CallStaticVoidMethod(JNIEnvironment env, int classJREF, int methodID) throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticVoidMethod  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      JNIHelpers.invokeWithDotDotVarArg(methodID, TypeReference.Void);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-    }
-  }
-
-  /**
-   * CallStaticVoidMethodA:  invoke a static method that returns void
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   */
-  private static void CallStaticVoidMethodV(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticVoidMethodV  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      JNIHelpers.invokeWithVarArg(methodID, argAddress, TypeReference.Void);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
-    }
-  }
-
-  /**
-   * CallStaticVoidMethodA:  invoke a static method that returns void
-   * @param env A JREF index for the JNI environment object
-   * @param classJREF a JREF index for the class object
-   * @param methodID id of a MethodReference
-   * @param argAddress a raw address to an array of unions in C, each element is 2-word and hold an argument
-   *                   of the appropriate type for the method invocation
-   */
-  private static void CallStaticVoidMethodA(JNIEnvironment env, int classJREF, int methodID, Address argAddress)
-      throws Exception {
-    if (traceJNI) VM.sysWrite("JNI called: CallStaticVoidMethodA  \n");
-    RuntimeEntrypoints.checkJNICountDownToGC();
-
-    try {
-      JNIHelpers.invokeWithJValue(methodID, argAddress, TypeReference.Void);
-    } catch (Throwable unexpected) {
-      if (traceJNI) unexpected.printStackTrace(System.err);
-      env.recordException(unexpected);
     }
   }
 
@@ -3930,7 +2537,7 @@ public class JNIFunctions implements SizeConstants {
 
       /* Set caller's isCopy boolean to true, if we got a valid (non-null)
          address */
-      JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+      JNIHelpers.setBoolStar(isCopyAddress, true);
 
       return copyBuffer;
     } catch (Throwable unexpected) {
@@ -4031,7 +2638,7 @@ public class JNIFunctions implements SizeConstants {
     }
     try {
       JNIHelpers.createUTFForCFromString(str, copyBuffer, len);
-      JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+      JNIHelpers.setBoolStar(isCopyAddress, true);
       return copyBuffer;
     } catch (Throwable unexpected) {
       if (traceJNI) unexpected.printStackTrace(System.err);
@@ -4381,7 +2988,7 @@ public class JNIFunctions implements SizeConstants {
 
       /* Set caller's isCopy boolean to true, if we got a valid (non-null)
          address */
-      JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+      JNIHelpers.setBoolStar(isCopyAddress, true);
 
       return copyBuffer;
     } catch (Throwable unexpected) {
@@ -4410,7 +3017,7 @@ public class JNIFunctions implements SizeConstants {
 
       if (MemoryManager.willNeverMove(sourceArray)) {
         /* return a direct pointer */
-        JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+        JNIHelpers.setBoolStar(isCopyAddress, false);
         return Magic.objectAsAddress(sourceArray);
       } else {
         // alloc non moving buffer in C heap for a copy of string contents
@@ -4425,7 +3032,7 @@ public class JNIFunctions implements SizeConstants {
 
         /* Set caller's isCopy boolean to true, if we got a valid (non-null)
            address */
-        JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+        JNIHelpers.setBoolStar(isCopyAddress, true);
 
         return copyBuffer;
       }
@@ -4454,7 +3061,7 @@ public class JNIFunctions implements SizeConstants {
       int size = sourceArray.length;
 
       if (MemoryManager.willNeverMove(sourceArray)) {
-        JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+        JNIHelpers.setBoolStar(isCopyAddress, false);
         return Magic.objectAsAddress(sourceArray);
       } else {
         // alloc non moving buffer in C heap for a copy of string contents
@@ -4468,7 +3075,7 @@ public class JNIFunctions implements SizeConstants {
 
         /* Set caller's isCopy boolean to true, if we got a valid (non-null)
          address */
-        JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+        JNIHelpers.setBoolStar(isCopyAddress, true);
 
         return copyBuffer;
       }
@@ -4497,7 +3104,7 @@ public class JNIFunctions implements SizeConstants {
       int size = sourceArray.length;
 
       if (MemoryManager.willNeverMove(sourceArray)) {
-        JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+        JNIHelpers.setBoolStar(isCopyAddress, false);
         return Magic.objectAsAddress(sourceArray);
       } else {
         // alloc non moving buffer in C heap for a copy of string contents
@@ -4511,7 +3118,7 @@ public class JNIFunctions implements SizeConstants {
 
         /* Set caller's isCopy boolean to true, if we got a valid (non-null)
          address */
-        JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+        JNIHelpers.setBoolStar(isCopyAddress, true);
 
         return copyBuffer;
       }
@@ -4540,7 +3147,7 @@ public class JNIFunctions implements SizeConstants {
       int size = sourceArray.length;
 
       if (MemoryManager.willNeverMove(sourceArray)) {
-        JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+        JNIHelpers.setBoolStar(isCopyAddress, false);
         return Magic.objectAsAddress(sourceArray);
       } else {
         // alloc non moving buffer in C heap for a copy of array contents
@@ -4553,7 +3160,7 @@ public class JNIFunctions implements SizeConstants {
 
         /* Set caller's isCopy boolean to true, if we got a valid (non-null)
          address */
-        JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+        JNIHelpers.setBoolStar(isCopyAddress, true);
 
         return copyBuffer;
       }
@@ -4582,7 +3189,7 @@ public class JNIFunctions implements SizeConstants {
       int size = sourceArray.length;
 
       if (MemoryManager.willNeverMove(sourceArray)) {
-        JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+        JNIHelpers.setBoolStar(isCopyAddress, false);
         return Magic.objectAsAddress(sourceArray);
       } else {
         // alloc non moving buffer in C heap for a copy of string contents
@@ -4595,7 +3202,7 @@ public class JNIFunctions implements SizeConstants {
 
         /* Set caller's isCopy boolean to true, if we got a valid (non-null)
          address */
-        JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+        JNIHelpers.setBoolStar(isCopyAddress, true);
 
         return copyBuffer;
       }
@@ -4624,7 +3231,7 @@ public class JNIFunctions implements SizeConstants {
       int size = sourceArray.length;
 
       if (MemoryManager.willNeverMove(sourceArray)) {
-        JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+        JNIHelpers.setBoolStar(isCopyAddress, false);
         return Magic.objectAsAddress(sourceArray);
       } else {
         // alloc non moving buffer in C heap for a copy of string contents
@@ -4638,7 +3245,7 @@ public class JNIFunctions implements SizeConstants {
 
         /* Set caller's isCopy boolean to true, if we got a valid (non-null)
          address */
-        JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+        JNIHelpers.setBoolStar(isCopyAddress, true);
 
         return copyBuffer;
       }
@@ -4667,7 +3274,7 @@ public class JNIFunctions implements SizeConstants {
       int size = sourceArray.length;
 
       if (MemoryManager.willNeverMove(sourceArray)) {
-        JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+        JNIHelpers.setBoolStar(isCopyAddress, false);
         return Magic.objectAsAddress(sourceArray);
       } else {
         // alloc non moving buffer in C heap for a copy of string contents
@@ -4680,7 +3287,7 @@ public class JNIFunctions implements SizeConstants {
 
         /* Set caller's isCopy boolean to true, if we got a valid (non-null)
          address */
-        JNIGenericHelpers.setBoolStar(isCopyAddress, true);
+        JNIHelpers.setBoolStar(isCopyAddress, true);
 
         return copyBuffer;
       }
@@ -5901,7 +4508,7 @@ public class JNIFunctions implements SizeConstants {
 
       /* Set caller's isCopy boolean to false, if we got a valid (non-null)
          address */
-      JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+      JNIHelpers.setBoolStar(isCopyAddress, false);
 
       // For array of primitive, return the object address, which is the array itself
       VM.disableGC(true);
@@ -5958,7 +4565,7 @@ public class JNIFunctions implements SizeConstants {
 
     /* Set caller's isCopy boolean to false, if we got a valid (non-null)
        address */
-    JNIGenericHelpers.setBoolStar(isCopyAddress, false);
+    JNIHelpers.setBoolStar(isCopyAddress, false);
 
     VM.disableGC(true);
     Address strBase = Magic.objectAsAddress(strChars);
