@@ -295,7 +295,7 @@ public class GenerateInterfaceDeclarations {
         p("   unsigned int * " + name + ";\n");
         current = current.plus(addrSize);
       } else if (t.isReferenceType()) {
-        p("   JavaObject_t " + name + ";\n");
+        p("   Address " + name + ";\n");
         current = current.plus(addrSize);
       } else {
         System.err.println("Unexpected field " + name + " with type " + t);
