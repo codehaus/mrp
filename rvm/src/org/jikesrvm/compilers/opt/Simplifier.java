@@ -2619,61 +2619,13 @@ public abstract class Simplifier extends IRTools {
           return DefUseEffect.MOVE_FOLDED;
         }
         if (val2 == 0.0f) {
-          // x + 0.0 is x (even is x is a Nan).
+          // x + 0.0 is x (even is x is a NaN).
           Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), Binary.getClearVal1(s));
           return DefUseEffect.MOVE_REDUCED;
         }
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect floatCmpg(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_INTEGER_OPS) {
-      Operand op2 = Binary.getVal2(s);
-      if (op2.isFloatConstant()) {
-        Operand op1 = Binary.getVal1(s);
-        if (op1.isFloatConstant()) {
-          // BOTH CONSTANTS: FOLD
-          float val1 = op1.asFloatConstant().value;
-          float val2 = op2.asFloatConstant().value;
-          int result = (val1 < val2) ? -1 : ((val1 == val2) ? 0 : 1);
-          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(result));
-          return DefUseEffect.MOVE_FOLDED;
-        }
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect floatCmpl(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_INTEGER_OPS) {
-      Operand op2 = Binary.getVal2(s);
-      if (op2.isFloatConstant()) {
-        Operand op1 = Binary.getVal1(s);
-        if (op1.isFloatConstant()) {
-          // BOTH CONSTANTS: FOLD
-          float val1 = op1.asFloatConstant().value;
-          float val2 = op2.asFloatConstant().value;
-          int result = (val1 > val2) ? 1 : ((val1 == val2) ? 0 : -1);
-          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(result));
-          return DefUseEffect.MOVE_FOLDED;
-        }
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect floatDiv(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_FLOAT_OPS) {
-      Operand op2 = Binary.getVal2(s);
-      if (op2.isFloatConstant()) {
-        Operand op1 = Binary.getVal1(s);
-        if (op1.isFloatConstant()) {
-          // BOTH CONSTANTS: FOLD
-          float val1 = op1.asFloatConstant().value;
-          float val2 = op2.asFloatConstant().value;
-          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(val1 / val2));
+        if (Float.isNaN(val2)) {
+          // x + NaN is NaN
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(Float.NaN));
           return DefUseEffect.MOVE_FOLDED;
         }
       }
@@ -2699,34 +2651,9 @@ public abstract class Simplifier extends IRTools {
           Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), Binary.getClearVal1(s));
           return DefUseEffect.MOVE_REDUCED;
         }
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect floatNeg(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_FLOAT_OPS) {
-      Operand op = Unary.getVal(s);
-      if (op.isFloatConstant()) {
-        // CONSTANT: FOLD
-        float val = op.asFloatConstant().value;
-        Move.mutate(s, FLOAT_MOVE, Unary.getClearResult(s), FC(-val));
-        return DefUseEffect.MOVE_FOLDED;
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect floatRem(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_FLOAT_OPS) {
-      Operand op2 = Binary.getVal2(s);
-      if (op2.isFloatConstant()) {
-        Operand op1 = Binary.getVal1(s);
-        if (op1.isFloatConstant()) {
-          // BOTH CONSTANTS: FOLD
-          float val1 = op1.asFloatConstant().value;
-          float val2 = op2.asFloatConstant().value;
-          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(val1 % val2));
+        if (Float.isNaN(val2)) {
+          // x * NaN is NaN
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(Float.NaN));
           return DefUseEffect.MOVE_FOLDED;
         }
       }
@@ -2751,9 +2678,97 @@ public abstract class Simplifier extends IRTools {
           Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), Binary.getClearVal1(s));
           return DefUseEffect.MOVE_REDUCED;
         }
-      } else if (op1.isFloatConstant() && (op1.asFloatConstant().value == 0.0f)) {
-        Unary.mutate(s, FLOAT_NEG, Binary.getClearResult(s), Binary.getClearVal2(s));
-        return DefUseEffect.REDUCED;
+        if (Float.isNaN(val2)) {
+          // x - NaN is NaN
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(Float.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isFloatConstant()) {
+        float val1 = op1.asFloatConstant().value;
+        if (val1 == 0.0f) {
+          // 0.0 - x is -x
+          Unary.mutate(s, FLOAT_NEG, Binary.getClearResult(s), Binary.getClearVal2(s));
+          return DefUseEffect.REDUCED;
+        }
+        if (Float.isNaN(val1)) {
+          // x - NaN is NaN
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(Float.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect floatDiv(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_FLOAT_OPS) {
+      Operand op1 = Binary.getVal1(s);
+      Operand op2 = Binary.getVal2(s);
+      if (op2.isFloatConstant()) {
+        float val2 = op2.asFloatConstant().value;
+        if (op1.isFloatConstant()) {
+          // BOTH CONSTANTS: FOLD
+          float val1 = op1.asFloatConstant().value;
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(val1 / val2));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+        if (Float.isNaN(val2)) {
+          // x / NaN is NaN
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(Float.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isFloatConstant()) {
+        float val1 = op1.asFloatConstant().value;
+        if (Float.isNaN(val1)) {
+          // NaN / x is NaN
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(Float.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect floatRem(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_FLOAT_OPS) {
+      Operand op1 = Binary.getVal1(s);
+      Operand op2 = Binary.getVal2(s);
+      if (op2.isFloatConstant()) {
+        float val2 = op2.asFloatConstant().value;
+        if (op1.isFloatConstant()) {
+          // BOTH CONSTANTS: FOLD
+          float val1 = op1.asFloatConstant().value;
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(val1 % val2));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+        if (Float.isNaN(val2)) {
+          // x % NaN is NaN
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(Float.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isFloatConstant()) {
+        float val1 = op1.asFloatConstant().value;
+        if (Float.isNaN(val1)) {
+          // NaN % x is NaN
+          Move.mutate(s, FLOAT_MOVE, Binary.getClearResult(s), FC(Float.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect floatNeg(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_FLOAT_OPS) {
+      Operand op = Unary.getVal(s);
+      if (op.isFloatConstant()) {
+        // CONSTANT: FOLD
+        float val = op.asFloatConstant().value;
+        Move.mutate(s, FLOAT_MOVE, Unary.getClearResult(s), FC(-val));
+        return DefUseEffect.MOVE_FOLDED;
       }
     }
     return DefUseEffect.UNCHANGED;
@@ -2767,6 +2782,68 @@ public abstract class Simplifier extends IRTools {
         float val = op.asFloatConstant().value;
         Move.mutate(s, FLOAT_MOVE, Unary.getClearResult(s), FC((float)Math.sqrt(val)));
         return DefUseEffect.MOVE_FOLDED;
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect floatCmpg(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_FLOAT_OPS) {
+      Operand op1 = Binary.getVal1(s);
+      Operand op2 = Binary.getVal2(s);
+      if (op2.isFloatConstant()) {
+        float val2 = op2.asFloatConstant().value;
+        if (op1.isFloatConstant()) {
+          // BOTH CONSTANTS: FOLD
+          float val1 = op1.asFloatConstant().value;
+          int result = (val1 < val2) ? -1 : ((val1 == val2) ? 0 : 1);
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(result));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+        if (Float.isNaN(val2)) {
+          // result is unordered => 1
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(1));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isFloatConstant()) {
+        float val1 = op1.asFloatConstant().value;
+        if (Float.isNaN(val1)) {
+          // result is unordered => 1
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(1));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect floatCmpl(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_FLOAT_OPS) {
+      Operand op1 = Binary.getVal1(s);
+      Operand op2 = Binary.getVal2(s);
+      if (op2.isFloatConstant()) {
+        float val2 = op2.asFloatConstant().value;
+        if (op1.isFloatConstant()) {
+          // BOTH CONSTANTS: FOLD
+          float val1 = op1.asFloatConstant().value;
+          int result = (val1 > val2) ? 1 : ((val1 == val2) ? 0 : -1);
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(result));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+        if (Float.isNaN(val2)) {
+          // result is unordered => -1
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(1));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isFloatConstant()) {
+        float val1 = op1.asFloatConstant().value;
+        if (Float.isNaN(val1)) {
+          // result is unordered => -1
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(-1));
+          return DefUseEffect.MOVE_FOLDED;
+        }
       }
     }
     return DefUseEffect.UNCHANGED;
@@ -2790,57 +2867,9 @@ public abstract class Simplifier extends IRTools {
           Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), Binary.getClearVal1(s));
           return DefUseEffect.MOVE_REDUCED;
         }
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect doubleCmpg(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_INTEGER_OPS) {
-      Operand op2 = Binary.getVal2(s);
-      if (op2.isDoubleConstant()) {
-        Operand op1 = Binary.getVal1(s);
-        if (op1.isDoubleConstant()) {
-          // BOTH CONSTANTS: FOLD
-          double val1 = op1.asDoubleConstant().value;
-          double val2 = op2.asDoubleConstant().value;
-          int result = (val1 < val2) ? -1 : ((val1 == val2) ? 0 : 1);
-          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(result));
-          return DefUseEffect.MOVE_FOLDED;
-        }
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect doubleCmpl(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_INTEGER_OPS) {
-      Operand op2 = Binary.getVal2(s);
-      if (op2.isDoubleConstant()) {
-        Operand op1 = Binary.getVal1(s);
-        if (op1.isDoubleConstant()) {
-          // BOTH CONSTANTS: FOLD
-          double val1 = op1.asDoubleConstant().value;
-          double val2 = op2.asDoubleConstant().value;
-          int result = (val1 > val2) ? 1 : ((val1 == val2) ? 0 : -1);
-          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), IC(result));
-          return DefUseEffect.MOVE_FOLDED;
-        }
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect doubleDiv(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_DOUBLE_OPS) {
-      Operand op2 = Binary.getVal2(s);
-      if (op2.isDoubleConstant()) {
-        Operand op1 = Binary.getVal1(s);
-        if (op1.isDoubleConstant()) {
-          // BOTH CONSTANTS: FOLD
-          double val1 = op1.asDoubleConstant().value;
-          double val2 = op2.asDoubleConstant().value;
-          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(val1 / val2));
+        if (Double.isNaN(val2)) {
+          // x + NaN is NaN
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(Double.NaN));
           return DefUseEffect.MOVE_FOLDED;
         }
       }
@@ -2866,34 +2895,9 @@ public abstract class Simplifier extends IRTools {
           Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), Binary.getClearVal1(s));
           return DefUseEffect.MOVE_REDUCED;
         }
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect doubleNeg(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_DOUBLE_OPS) {
-      Operand op = Unary.getVal(s);
-      if (op.isDoubleConstant()) {
-        // CONSTANT: FOLD
-        double val = op.asDoubleConstant().value;
-        Move.mutate(s, DOUBLE_MOVE, Unary.getClearResult(s), DC(-val));
-        return DefUseEffect.MOVE_FOLDED;
-      }
-    }
-    return DefUseEffect.UNCHANGED;
-  }
-
-  private static DefUseEffect doubleRem(Instruction s, OptOptions opts) {
-    if (opts.SIMPLIFY_DOUBLE_OPS) {
-      Operand op2 = Binary.getVal2(s);
-      if (op2.isDoubleConstant()) {
-        Operand op1 = Binary.getVal1(s);
-        if (op1.isDoubleConstant()) {
-          // BOTH CONSTANTS: FOLD
-          double val1 = op1.asDoubleConstant().value;
-          double val2 = op2.asDoubleConstant().value;
-          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(val1 % val2));
+        if (Double.isNaN(val2)) {
+          // x * NaN is NaN
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(Double.NaN));
           return DefUseEffect.MOVE_FOLDED;
         }
       }
@@ -2918,9 +2922,97 @@ public abstract class Simplifier extends IRTools {
           Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), Binary.getClearVal1(s));
           return DefUseEffect.MOVE_REDUCED;
         }
-      } else if (op1.isDoubleConstant() && (op1.asDoubleConstant().value == 0.0)) {
-        Unary.mutate(s, DOUBLE_NEG, Binary.getClearResult(s), Binary.getClearVal2(s));
-        return DefUseEffect.REDUCED;
+        if (Double.isNaN(val2)) {
+          // x - NaN is NaN
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(Double.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isDoubleConstant()) {
+        double val1 = op1.asDoubleConstant().value;
+        if (val1 == 0.0) {
+          // 0.0 - x is -x
+          Unary.mutate(s, DOUBLE_NEG, Binary.getClearResult(s), Binary.getClearVal2(s));
+          return DefUseEffect.REDUCED;
+        }
+        if (Double.isNaN(val1)) {
+          // x - NaN is NaN
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(Double.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect doubleDiv(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_DOUBLE_OPS) {
+      Operand op1 = Binary.getVal1(s);
+      Operand op2 = Binary.getVal2(s);
+      if (op2.isDoubleConstant()) {
+        double val2 = op2.asDoubleConstant().value;
+        if (op1.isDoubleConstant()) {
+          // BOTH CONSTANTS: FOLD
+          double val1 = op1.asDoubleConstant().value;
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(val1 / val2));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+        if (Double.isNaN(val2)) {
+          // x / NaN is NaN
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(Double.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isDoubleConstant()) {
+        double val1 = op1.asDoubleConstant().value;
+        if (Double.isNaN(val1)) {
+          // x / NaN is NaN
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(Double.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect doubleRem(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_DOUBLE_OPS) {
+      Operand op1 = Binary.getVal1(s);
+      Operand op2 = Binary.getVal2(s);
+      if (op2.isDoubleConstant()) {
+        double val2 = op2.asDoubleConstant().value;
+        if (op1.isDoubleConstant()) {
+          // BOTH CONSTANTS: FOLD
+          double val1 = op1.asDoubleConstant().value;
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(val1 % val2));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+        if (Double.isNaN(val2)) {
+          // x % NaN is NaN
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(Double.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isDoubleConstant()) {
+        double val1 = op1.asDoubleConstant().value;
+        if (Double.isNaN(val1)) {
+          // x % NaN is NaN
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), DC(Double.NaN));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect doubleNeg(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_DOUBLE_OPS) {
+      Operand op = Unary.getVal(s);
+      if (op.isDoubleConstant()) {
+        // CONSTANT: FOLD
+        double val = op.asDoubleConstant().value;
+        Move.mutate(s, DOUBLE_MOVE, Unary.getClearResult(s), DC(-val));
+        return DefUseEffect.MOVE_FOLDED;
       }
     }
     return DefUseEffect.UNCHANGED;
@@ -2934,6 +3026,68 @@ public abstract class Simplifier extends IRTools {
         double val = op.asDoubleConstant().value;
         Move.mutate(s, DOUBLE_MOVE, Unary.getClearResult(s), DC(Math.sqrt(val)));
         return DefUseEffect.MOVE_FOLDED;
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect doubleCmpg(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_DOUBLE_OPS) {
+      Operand op1 = Binary.getVal1(s);
+      Operand op2 = Binary.getVal2(s);
+      if (op2.isDoubleConstant()) {
+        double val2 = op2.asDoubleConstant().value;
+        if (op1.isDoubleConstant()) {
+          // BOTH CONSTANTS: FOLD
+          double val1 = op1.asDoubleConstant().value;
+          int result = (val1 < val2) ? -1 : ((val1 == val2) ? 0 : 1);
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(result));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+        if (Double.isNaN(val2)) {
+          // result is unordered => 1
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(1));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isDoubleConstant()) {
+        double val1 = op1.asDoubleConstant().value;
+        if (Double.isNaN(val1)) {
+          // result is unordered => 1
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(1));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+    }
+    return DefUseEffect.UNCHANGED;
+  }
+
+  private static DefUseEffect doubleCmpl(Instruction s, OptOptions opts) {
+    if (opts.SIMPLIFY_DOUBLE_OPS) {
+      Operand op1 = Binary.getVal1(s);
+      Operand op2 = Binary.getVal2(s);
+      if (op2.isDoubleConstant()) {
+        double val2 = op2.asDoubleConstant().value;
+        if (op1.isDoubleConstant()) {
+          // BOTH CONSTANTS: FOLD
+          double val1 = op1.asDoubleConstant().value;
+          int result = (val1 > val2) ? 1 : ((val1 == val2) ? 0 : -1);
+          Move.mutate(s, DOUBLE_MOVE, Binary.getClearResult(s), IC(result));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+        if (Double.isNaN(val2)) {
+          // result is unordered => -1
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(-1));
+          return DefUseEffect.MOVE_FOLDED;
+        }
+      }
+      if (op1.isDoubleConstant()) {
+        double val1 = op1.asDoubleConstant().value;
+        if (Double.isNaN(val1)) {
+          // result is unordered => -1
+          Move.mutate(s, INT_MOVE, Binary.getClearResult(s), IC(-1));
+          return DefUseEffect.MOVE_FOLDED;
+        }
       }
     }
     return DefUseEffect.UNCHANGED;
