@@ -18,6 +18,7 @@
  */
 
 #include "sys.h"
+#include <stdarg.h>
 
 #ifndef RVM_FOR_HARMONY
 #include <sys/mman.h>
@@ -73,6 +74,43 @@ static jint JNICALL AttachCurrentThread(JavaVM UNUSED * vm, /* JNIEnv */ void **
 static jint JNICALL DetachCurrentThread(JavaVM UNUSED *vm);
 static jint JNICALL GetEnv(JavaVM UNUSED *vm, void **penv, jint version);
 static jint JNICALL AttachCurrentThreadAsDaemon(JavaVM UNUSED * vm, /* JNIEnv */ void UNUSED ** penv, /* JavaVMAttachArgs */ void UNUSED *args);
+
+static void  sysSetJNILinkage();
+
+static jobject JNICALL NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+
+static jobject JNICALL CallObjectMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static jboolean JNICALL CallBooleanMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static jbyte JNICALL CallByteMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static jchar JNICALL CallCharMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static jshort JNICALL CallShortMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static jint JNICALL CallIntMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static jlong JNICALL CallLongMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static jfloat JNICALL CallFloatMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static jdouble JNICALL CallDoubleMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+static void JNICALL CallVoidMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...);
+
+static jobject JNICALL CallNonvirtualObjectMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static jboolean JNICALL CallNonvirtualBooleanMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static jbyte JNICALL CallNonvirtualByteMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static jchar JNICALL CallNonvirtualCharMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static jshort JNICALL CallNonvirtualShortMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static jint JNICALL CallNonvirtualIntMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static jlong JNICALL CallNonvirtualLongMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static jfloat JNICALL CallNonvirtualFloatMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static jdouble JNICALL CallNonvirtualDoubleMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+static void JNICALL CallNonvirtualVoidMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...);
+
+static jobject JNICALL CallStaticObjectMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static jboolean JNICALL CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static jbyte JNICALL CallStaticByteMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static jchar JNICALL CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static jshort JNICALL CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static jint JNICALL CallStaticIntMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static jlong JNICALL CallStaticLongMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static jfloat JNICALL CallStaticFloatMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static jdouble JNICALL CallStaticDoubleMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
+static void JNICALL CallStaticVoidMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...);
 
 /** JNI invoke interface implementation */
 static const struct JNIInvokeInterface_ externalJNIFunctions = {
@@ -342,27 +380,27 @@ static int createVM(int vmInSeparateThread)
   SYS_START();
 
   bootDataRegion = mapImageFile(bootDataFilename,
-				(void*)bootImageDataAddress,
-				JNI_FALSE,
+										  (void*)bootImageDataAddress,
+										  JNI_FALSE,
                                 JNI_TRUE,
-				&roundedDataRegionSize);
+										  &roundedDataRegionSize);
   if (bootDataRegion != (void*)bootImageDataAddress)
     return 1;
-
+  
 
   bootCodeRegion = mapImageFile(bootCodeFilename,
-	                        (void*)bootImageCodeAddress,
-				JNI_TRUE,
+										  (void*)bootImageCodeAddress,
+										  JNI_TRUE,
                                 JNI_FALSE,
-				&roundedCodeRegionSize);
+										  &roundedCodeRegionSize);
   if (bootCodeRegion != (void*)bootImageCodeAddress)
     return 1;
 
   bootRMapRegion = mapImageFile(bootRMapFilename,
-	                        (void*)bootImageRMapAddress,
-				JNI_FALSE,
+										  (void*)bootImageRMapAddress,
+										  JNI_FALSE,
                                 JNI_FALSE,
-				&roundedRMapRegionSize);
+										  &roundedRMapRegionSize);
   if (bootRMapRegion != (void*)bootImageRMapAddress)
     return 1;
 
@@ -372,37 +410,37 @@ static int createVM(int vmInSeparateThread)
 
   if (bootRecord->bootImageDataStart != (Address) bootDataRegion) {
     ERROR_PRINTF("%s: image load error: built for %p but loaded at %p\n",
-	    Me, bootRecord->bootImageDataStart, bootDataRegion);
+					  Me, bootRecord->bootImageDataStart, bootDataRegion);
     return 1;
   }
 
   if (bootRecord->bootImageCodeStart != (Address) bootCodeRegion) {
     ERROR_PRINTF("%s: image load error: built for %p but loaded at %p\n",
-	    Me, bootRecord->bootImageCodeStart, bootCodeRegion);
+					  Me, bootRecord->bootImageCodeStart, bootCodeRegion);
     return 1;
   }
 
   if (bootRecord->bootImageRMapStart != (Address) bootRMapRegion) {
     ERROR_PRINTF("%s: image load error: built for %p but loaded at %p\n",
-	    Me, bootRecord->bootImageRMapStart, bootRMapRegion);
+					  Me, bootRecord->bootImageRMapStart, bootRMapRegion);
     return 1;
   }
 
   if ((bootRecord->spRegister % __SIZEOF_POINTER__) != 0) {
     ERROR_PRINTF("%s: image format error: sp (%p) is not word aligned\n",
-	    Me, bootRecord->spRegister);
+					  Me, bootRecord->spRegister);
     return 1;
   }
 
   if ((bootRecord->ipRegister % __SIZEOF_POINTER__) != 0) {
     ERROR_PRINTF("%s: image format error: ip (%p) is not word aligned\n",
-	    Me, bootRecord->ipRegister);
+					  Me, bootRecord->ipRegister);
     return 1;
   }
 
   if (((uint32_t *) bootRecord->spRegister)[-1] != 0xdeadbabe) {
     ERROR_PRINTF("%s: image format error: missing stack sanity check marker (%p)\n",
-		 Me, ((int *) bootRecord->spRegister)[-1]);
+					  Me, ((int *) bootRecord->spRegister)[-1]);
     return 1;
   }
 
@@ -417,8 +455,11 @@ static int createVM(int vmInSeparateThread)
   bootRecord->bootImageRMapEnd     = (Address) bootRMapRegion + roundedRMapRegionSize;
   bootRecord->verboseBoot      = verboseBoot;
 
-  /* write sys.C linkage information into boot record */
+  /* write syscall linkage information into boot record */
   sysSetLinkage();
+
+  /* add C defined JNI functions into the JNI function table */
+  sysSetJNILinkage();
 
   if (verbose) {
     TRACE_PRINTF("%s: boot record contents:\n", Me);
@@ -475,4 +516,412 @@ JNIEXPORT jint JNICALL JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize buflen, jsize
   SYS_START();
   ERROR_PRINTF("UNIMPLEMENTED JNI call JNI_GetCreatedJavaVMs\n");
   return JNI_ERR;
+}
+
+/**
+ * Insert missing ... JNI methods into JNI function table
+ */
+static void  sysSetJNILinkage()
+{
+  struct JNINativeInterface_ *jniFunctions = (struct JNINativeInterface_ *)(bootRecord->JNIFunctions);
+
+  jniFunctions->NewObject = NewObject;
+  jniFunctions->CallObjectMethod  = CallObjectMethod;
+  jniFunctions->CallBooleanMethod = CallBooleanMethod;
+  jniFunctions->CallByteMethod    = CallByteMethod;
+  jniFunctions->CallCharMethod    = CallCharMethod;
+  jniFunctions->CallShortMethod   = CallShortMethod;
+  jniFunctions->CallIntMethod     = CallIntMethod;
+  jniFunctions->CallLongMethod    = CallLongMethod;
+  jniFunctions->CallFloatMethod   = CallFloatMethod;
+  jniFunctions->CallDoubleMethod  = CallDoubleMethod;
+  jniFunctions->CallVoidMethod  = CallVoidMethod;
+  jniFunctions->CallNonvirtualObjectMethod  = CallNonvirtualObjectMethod;
+  jniFunctions->CallNonvirtualBooleanMethod = CallNonvirtualBooleanMethod;
+  jniFunctions->CallNonvirtualByteMethod    = CallNonvirtualByteMethod;
+  jniFunctions->CallNonvirtualCharMethod    = CallNonvirtualCharMethod;
+  jniFunctions->CallNonvirtualShortMethod   = CallNonvirtualShortMethod;
+  jniFunctions->CallNonvirtualIntMethod     = CallNonvirtualIntMethod;
+  jniFunctions->CallNonvirtualLongMethod    = CallNonvirtualLongMethod;
+  jniFunctions->CallNonvirtualFloatMethod   = CallNonvirtualFloatMethod;
+  jniFunctions->CallNonvirtualDoubleMethod  = CallNonvirtualDoubleMethod;
+  jniFunctions->CallNonvirtualVoidMethod    = CallNonvirtualVoidMethod;
+  jniFunctions->CallStaticObjectMethod  = CallStaticObjectMethod;
+  jniFunctions->CallStaticBooleanMethod = CallStaticBooleanMethod;
+  jniFunctions->CallStaticByteMethod    = CallStaticByteMethod;
+  jniFunctions->CallStaticCharMethod    = CallStaticCharMethod;
+  jniFunctions->CallStaticShortMethod   = CallStaticShortMethod;
+  jniFunctions->CallStaticIntMethod     = CallStaticIntMethod;
+  jniFunctions->CallStaticLongMethod    = CallStaticLongMethod;
+  jniFunctions->CallStaticFloatMethod   = CallStaticFloatMethod;
+  jniFunctions->CallStaticDoubleMethod  = CallStaticDoubleMethod;
+  jniFunctions->CallStaticVoidMethod  = CallStaticVoidMethod;
+}
+
+/* Methods to box ... into a va_list */
+
+static jobject JNICALL NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jobject result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: NewObject %p %p\n", Me, clazz, methodID);
+  result = (*env)->NewObjectV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jobject JNICALL CallObjectMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jobject result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallObjectMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallObjectMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jboolean JNICALL CallBooleanMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jboolean result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallBooleanMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallBooleanMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jbyte JNICALL CallByteMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jbyte result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallByteMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallByteMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jchar JNICALL CallCharMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jchar result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallCharMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallCharMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jshort JNICALL CallShortMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jshort result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallShortMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallShortMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jint JNICALL CallIntMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jint result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallIntMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallIntMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jlong JNICALL CallLongMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jlong result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallLongMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallLongMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jfloat JNICALL CallFloatMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jfloat result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallFloatMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallFloatMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jdouble JNICALL CallDoubleMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jdouble result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallDoubleMethod %p %p\n", Me, obj, methodID);
+  result = (*env)->CallDoubleMethodV(env, obj, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static void JNICALL CallVoidMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallVoidMethod %p %p\n", Me, obj, methodID);
+  (*env)->CallVoidMethodV(env, obj, methodID, ap);
+  va_end(ap);
+}
+
+static jobject JNICALL CallNonvirtualObjectMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jobject result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualObjectMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualObjectMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jboolean JNICALL CallNonvirtualBooleanMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jboolean result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualBooleanMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualBooleanMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jbyte JNICALL CallNonvirtualByteMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jbyte result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualByteMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualByteMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jchar JNICALL CallNonvirtualCharMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jchar result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualCharMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualCharMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jshort JNICALL CallNonvirtualShortMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jshort result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualShortMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualShortMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jint JNICALL CallNonvirtualIntMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jint result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualIntMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualIntMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jlong JNICALL CallNonvirtualLongMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jlong result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualLongMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualLongMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jfloat JNICALL CallNonvirtualFloatMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jfloat result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualFloatMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualFloatMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jdouble JNICALL CallNonvirtualDoubleMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jdouble result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualDoubleMethod %p %p %p\n", Me, obj, clazz, methodID);
+  result = (*env)->CallNonvirtualDoubleMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static void JNICALL CallNonvirtualVoidMethod(JNIEnv *env, jobject obj, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallNonvirtualVoidMethod %p %p %p\n", Me, obj, clazz, methodID);
+  (*env)->CallNonvirtualVoidMethodV(env, obj, clazz, methodID, ap);
+  va_end(ap);
+}
+
+static jobject JNICALL CallStaticObjectMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jobject result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticObjectMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticObjectMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jboolean JNICALL CallStaticBooleanMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jboolean result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticBooleanMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticBooleanMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jbyte JNICALL CallStaticByteMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jbyte result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticByteMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticByteMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jchar JNICALL CallStaticCharMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jchar result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticCharMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticCharMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jshort JNICALL CallStaticShortMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jshort result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticShortMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticShortMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jint JNICALL CallStaticIntMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jint result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticIntMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticIntMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jlong JNICALL CallStaticLongMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jlong result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticLongMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticLongMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jfloat JNICALL CallStaticFloatMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jfloat result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticFloatMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticFloatMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static jdouble JNICALL CallStaticDoubleMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  jdouble result;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticDoubleMethod %p %p\n", Me, clazz, methodID);
+  result = (*env)->CallStaticDoubleMethodV(env, clazz, methodID, ap);
+  va_end(ap);
+  return result;
+}
+
+static void JNICALL CallStaticVoidMethod(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+  SYS_START();
+  va_list ap;
+  va_start(ap, methodID);
+  TRACE_PRINTF("%s: CallStaticVoidMethod %p %p\n", Me, clazz, methodID);
+  (*env)->CallStaticVoidMethodV(env, clazz, methodID, ap);
+  va_end(ap);
 }

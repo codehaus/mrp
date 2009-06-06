@@ -24,7 +24,7 @@
  * @param addr [in] address to check
  * @return 1 if in address space, else 0
  */
-static int inRVMAddressSpace(Address addr)
+EXTERNAL int inRVMAddressSpace(Address addr)
 {
   int which;
   /* get the heap ranges */

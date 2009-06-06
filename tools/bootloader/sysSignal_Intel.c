@@ -192,22 +192,39 @@ static int decodeModRMLength(unsigned char modrm)
  */
 static Address getInstructionFollowing(Address faultingInstructionAddress) {
   SYS_START();
-  unsigned char opcode = *((char*)faultingInstructionAddress);
+  unsigned char opcode;
   unsigned char modrm;
+  int size = 0;
+  if (!inRVMAddressSpace(faultingInstructionAddress)) {
+    return -1;
+  }
+  opcode = *((char*)faultingInstructionAddress);
+  size++;
+#ifdef __x86_64__
+  if (opcode >= 0x40 && opcode <= 0x4F) {
+    /* rex prefix */
+    size++;
+    faultingInstructionAddress++;
+    opcode = *((char*)faultingInstructionAddress);
+  }
+#endif __x86_64__
   switch (opcode) {
   case 0xCD: // int imm8
-    return faultingInstructionAddress+2;
+    size++;
+    break;
   case 0x39: // cmp r/m,r
   case 0x8B: // mov r,r/m
   case 0xF7: // idiv r/m
   case 0xFF: // push r/m
     modrm = *((unsigned char*)faultingInstructionAddress+1);
-    return faultingInstructionAddress+decodeModRMLength(modrm)+1;
+    size += decodeModRMLength(modrm);
+    break;
   default:
     ERROR_PRINTF(Me, "%s: Unexpected opcode 0x%x treating as opcode followed by modrm\n", Me, opcode);
     modrm = *((unsigned char*)faultingInstructionAddress+1);
-    return faultingInstructionAddress+decodeModRMLength(modrm)+1;
+    size += decodeModRMLength(modrm);
   }
+  return faultingInstructionAddress+size;
 }
 
 /**

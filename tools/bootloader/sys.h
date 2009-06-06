@@ -17,6 +17,7 @@
 #define RVM_SYSCALL_DEFINITIONS
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <jni.h>
 #include "cAttributePortability.h"
 #ifdef __MACH__
@@ -253,6 +254,7 @@ EXTERNAL void sysEndThreadSignals(void *stackBuf);
 
 /* Signal architecture specific declarations */
 
+EXTERNAL int inRVMAddressSpace(Address addr);
 EXTERNAL void readContextInformation(void *context, Address *instructionPtr,
                                      Address *instructionFollowingPtr,
                                      Address *threadPtr, Address *jtocPtr);
@@ -311,6 +313,19 @@ EXTERNAL unsigned int parse_memory_size(const char *sizeName, const char *sizeFl
 EXTERNAL jlong sysParseMemorySize(const char *sizeName, const char *sizeFlag,
                                   const char *defaultFactor, int roundTo, 
                                   const char *token, const char *subtoken);
+
+/* Var arg declaration */
+EXTERNAL va_list* sysVaCopy(va_list ap);
+EXTERNAL void sysVaEnd(va_list *ap);
+EXTERNAL jboolean sysVaArgJboolean(va_list *ap);
+EXTERNAL jbyte sysVaArgJbyte(va_list *ap);
+EXTERNAL jchar sysVaArgJchar(va_list *ap);
+EXTERNAL jshort sysVaArgJshort(va_list *ap);
+EXTERNAL jint sysVaArgJint(va_list *ap);
+EXTERNAL jlong sysVaArgJlong(va_list *ap);
+EXTERNAL jfloat sysVaArgJfloat(va_list *ap);
+EXTERNAL jdouble sysVaArgJdouble(va_list *ap);
+EXTERNAL jobject sysVaArgJobject(va_list *ap);
 
 /* PerfCtr declarations */
 
