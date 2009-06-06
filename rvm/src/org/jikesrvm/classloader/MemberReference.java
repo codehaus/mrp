@@ -166,6 +166,10 @@ public abstract class MemberReference {
     return members[id >> LOG_ROW_SIZE][id & ROW_MASK];
   }
 
+  public static MethodReference getMethodRef(int id) {
+    return getMemberRef(id).asMethodReference();
+  }
+
   /**
    * @param tRef the type reference
    * @param mn the field or method name
