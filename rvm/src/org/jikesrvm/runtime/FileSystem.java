@@ -127,6 +127,7 @@ public class FileSystem {
           System.out.flush();
         } catch (Throwable e) {
           VM.sysWriteln("vm: error flushing stdout, stderr");
+          e.printStackTrace();
         }
       }
     });
