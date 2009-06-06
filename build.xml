@@ -1601,8 +1601,8 @@ const char *rvm_target_configuration = "${target.file}";
     </condition>
 
     <condition property="rvm.syscall.src"
-               value="${bl.dir}/sysGCSpy.c ${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${rvm.arch.src}"
-               else="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c"> <!--  ${bl.dir}/sysSignal.c ${rvm.arch.src}"> -->
+               value="${bl.dir}/sysGCSpy.c ${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${bl.dir}/sysVarArgs.c ${rvm.arch.src}"
+               else="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${bl.dir}/sysVarArgs.c ${rvm.arch.src}">
       <equals arg1="include.gcspy" arg2="true"/>
     </condition>
 
@@ -1613,6 +1613,7 @@ const char *rvm_target_configuration = "${target.file}";
   <macrodef name="CompileCtoObj">
     <attribute name="cfile"/>
     <attribute name="objfile"/>
+    <attribute name="cargs"/>
     <sequential>
     <if>
       <conditions>
@@ -1620,7 +1621,7 @@ const char *rvm_target_configuration = "${target.file}";
       </conditions>
       <sequential>
         <exec executable="${c.exe}" failonerror="true">
-          <arg line="${rvm.c.args} /c /Fo@{objfile} @{cfile}"/>
+          <arg line="@{cargs} /c /Fo@{objfile} @{cfile}"/>
         </exec>
       </sequential>
     </if>
@@ -1632,7 +1633,7 @@ const char *rvm_target_configuration = "${target.file}";
       </conditions>
       <sequential>
         <exec executable="${c.exe}" failonerror="true">
-          <arg line="${rvm.c.args} -c -o @{objfile} @{cfile}"/>
+          <arg line="@{cargs} -c -o @{objfile} @{cfile}"/>
         </exec>
       </sequential>
     </if>
@@ -1772,7 +1773,8 @@ const char *rvm_target_configuration = "${target.file}";
 
   <target name="build-gcspy-stub" depends="check-bootloader-properties" if="include.gcspy-stub">
     <CompileCtoObj cfile="${jikesrvm.dir}/tools/gcspy-stub/src/gcspy_main_server.c"
-                   objfile="${build.base}/${target.obj-prefix}gcspy${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}gcspy${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CreateDLL outdir="${build.base}" dllname="gcspy" srcdir="${jikesrvm.dir}/tools/gcspy-stub/src">
       <ObjectFiles>
         <arg value="${build.base}/${target.obj-prefix}gcspy${target.obj-ext}"/>
@@ -1784,34 +1786,50 @@ const char *rvm_target_configuration = "${target.file}";
     <!-- create JVM library -->
     <echo message="Creating jvm${target.lib-ext}"/>
     <CompileCtoObj cfile="${bl.dir}/jvm.c"
-                   objfile="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysAlignmentCheck.c"
-                   objfile="${build.base}/${target.obj-prefix}sysAlignmentCheck${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysAlignmentCheck${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysConsole.c"
-                   objfile="${build.base}/${target.obj-prefix}sysConsole${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysConsole${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysIO.c"
-                   objfile="${build.base}/${target.obj-prefix}sysIO${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysIO${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysLibrary.c"
-                   objfile="${build.base}/${target.obj-prefix}sysLibrary${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysLibrary${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysMath.c"
-                   objfile="${build.base}/${target.obj-prefix}sysMath${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysMath${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysMemory.c"
-                   objfile="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysMisc.c"
-                   objfile="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
+    <CompileCtoObj cfile="${bl.dir}/sysVarArgs.c"
+                   objfile="${build.base}/${target.obj-prefix}sysVarArgs${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysPerfCtr.c"
-                   objfile="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysSignal.c"
-                   objfile="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysSignal_Intel.c"
-                   objfile="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysThread.c"
-                   objfile="${build.base}/${target.obj-prefix}sysThread${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysThread${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysThread_Intel.c"
-                   objfile="${build.base}/${target.obj-prefix}sysThread_Intel${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}sysThread_Intel${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysTime.c"
-                   objfile="${build.base}/${target.obj-prefix}sysTime${target.obj-ext}"/>
-
+                   objfile="${build.base}/${target.obj-prefix}sysTime${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CreateLibrary outdir="${build.base}" dllname="jvm" srcdir="${bl.dir}">
       <ObjectFiles>
         <arg value="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"/>
@@ -1822,6 +1840,7 @@ const char *rvm_target_configuration = "${target.file}";
         <arg value="${build.base}/${target.obj-prefix}sysMath${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysVarArgs${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
@@ -1839,9 +1858,11 @@ const char *rvm_target_configuration = "${target.file}";
       <sequential>
         <echo message="Creating vmi${target.lib-ext} and vmi${target.dll-ext}"/>
         <CompileCtoObj cfile="${bl.dir}/harmony.c"
-                       objfile="${build.base}/${target.obj-prefix}harmony${target.obj-ext}"/>
+                       objfile="${build.base}/${target.obj-prefix}harmony${target.obj-ext}"
+                       cargs="${rvm.c.args}" />
         <CompileCtoObj cfile="libraryInterface/Harmony/ASF/native/vmls.c"
-                       objfile="${build.base}/${target.obj-prefix}vmls${target.obj-ext}"/>
+                       objfile="${build.base}/${target.obj-prefix}vmls${target.obj-ext}"
+                       cargs="${rvm.c.args}" />
         <CreateLibrary outdir="${build.base}" dllname="vmi" srcdir="${bl.dir}">
           <ObjectFiles>
             <arg value="${build.base}/${target.obj-prefix}harmony${target.obj-ext}"/>
@@ -1872,6 +1893,7 @@ const char *rvm_target_configuration = "${target.file}";
         <arg value="${build.base}/${target.obj-prefix}sysMath${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysVarArgs${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
@@ -1884,7 +1906,8 @@ const char *rvm_target_configuration = "${target.file}";
     <!-- create jvm_jni shared library -->
     <echo message="Creating jvm_jni${target.dll-ext}"/>
     <CompileCtoObj cfile="${bl.dir}/jni/org_jikesrvm_runtime_DynamicLibrary.c"
-                   objfile="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CreateDLL outdir="${build.base}" dllname="jvm_jni" srcdir="${bl.dir}/jni" lib="${lib.specifier}jvm${target.lib-ext}">
       <ObjectFiles>
         <arg value="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"/>
@@ -1894,7 +1917,8 @@ const char *rvm_target_configuration = "${target.file}";
     <!-- create JikesRVM executable -->
     <echo message="Creating JikesRVM"/>
     <CompileCtoObj cfile="${bl.dir}/main.c"
-                   objfile="${build.base}/${target.obj-prefix}main${target.obj-ext}"/>
+                   objfile="${build.base}/${target.obj-prefix}main${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CreateEXE outdir="${build.base}" exename="JikesRVM" srcdir="${bl.dir}" lib="${lib.specifier}jvm${target.lib-ext} ${jvm.vmi.lib.filter}">
       <ObjectFiles>
         <arg value="${build.base}/${target.obj-prefix}main${target.obj-ext}"/>
