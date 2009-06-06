@@ -16,7 +16,6 @@ import org.mmtk.plan.TraceLocal;
 import org.mmtk.plan.TransitiveClosure;
 import org.mmtk.utility.Constants;
 
-import org.jikesrvm.jni.JNIEnvironment;
 import org.jikesrvm.jni.JNIGlobalRefTable;
 import org.jikesrvm.mm.mminterface.Selected;
 import org.jikesrvm.mm.mminterface.CollectorThread;
@@ -257,32 +256,15 @@ public final class Scanning extends org.mmtk.vm.Scanning implements Constants {
    * @param trace The trace to use for computing roots.
    */
   public void computeGlobalRoots(TraceLocal trace) {
-    /* scan jni functions */
     CollectorThread ct = Magic.threadAsCollectorThread(RVMThread.getCurrentThread());
-    Address jniFunctions = Magic.objectAsAddress(JNIEnvironment.JNIFunctions);
     int threads = CollectorThread.numCollectors();
-    int size = JNIEnvironment.JNIFunctions.length();
-    int chunkSize = size / threads;
-    int start = (ct.getGCOrdinal() - 1) * chunkSize;
-    int end = (ct.getGCOrdinal() == threads) ? size : ct.getGCOrdinal() * chunkSize;
-
-    for(int i=start; i < end; i++) {
-      trace.processRootEdge(jniFunctions.plus(i << LOG_BYTES_IN_ADDRESS), true);
-    }
-
-    Address linkageTriplets = Magic.objectAsAddress(JNIEnvironment.LinkageTriplets);
-    if (linkageTriplets != null) {
-      for(int i=start; i < end; i++) {
-        trace.processRootEdge(linkageTriplets.plus(i << LOG_BYTES_IN_ADDRESS), true);
-      }
-    }
 
     /* scan jni global refs */
     Address jniGlobalRefs = Magic.objectAsAddress(JNIGlobalRefTable.JNIGlobalRefs);
-    size = JNIGlobalRefTable.JNIGlobalRefs.length();
-    chunkSize = size / threads;
-    start = (ct.getGCOrdinal() - 1) * chunkSize;
-    end = (ct.getGCOrdinal() == threads) ? size : ct.getGCOrdinal() * chunkSize;
+    int size = JNIGlobalRefTable.JNIGlobalRefs.length();
+    int chunkSize = size / threads;
+    int start = (ct.getGCOrdinal() - 1) * chunkSize;
+    int end = (ct.getGCOrdinal() == threads) ? size : ct.getGCOrdinal() * chunkSize;
 
     for(int i=start; i < end; i++) {
       trace.processRootEdge(jniGlobalRefs.plus(i << LOG_BYTES_IN_ADDRESS), true);
