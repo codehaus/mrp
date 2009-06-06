@@ -57,8 +57,7 @@ public class Reflection implements Constants {
    * @param method method to be called
    * @param thisArg "this" argument (ignored if method is static)
    * @param otherArgs remaining arguments
-   *
-   * isNonvirtual flag is false if the method of the real class of this
+   * @param isNonvirtual flag is false if the method of the real class of this
    * object is to be invoked; true if a method of a superclass may be invoked
    * @return return value (wrapped if primitive)
    * See also: java/lang/reflect/Method.invoke()
