@@ -17,6 +17,7 @@ import org.jikesrvm.SizeConstants;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
+import org.jikesrvm.runtime.BootRecord;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.RuntimeEntrypoints;
 import org.jikesrvm.scheduler.RVMThread;
@@ -54,6 +55,7 @@ public final class JNIEnvironment implements SizeConstants {
    * This is the shared JNI function table used by native code
    * to invoke methods in @link{JNIFunctions}.
    */
+  @Untraced
   public static FunctionTable JNIFunctions;
 
   /**
@@ -314,7 +316,7 @@ public final class JNIEnvironment implements SizeConstants {
       // we count all slots so that releasing them is straight forward
       JNIRefsTop += BYTES_IN_ADDRESS;
       // ensure null is always seen as slot zero
-      JNIRefs.set(JNIRefsTop >> LOG_BYTES_IN_ADDRESS, Magic.objectAsAddress(ref));
+      JNIRefs.set(JNIRefsTop >> LOG_BYTES_IN_ADDRESS, ref);
       return JNIRefsTop;
     }
   }
@@ -417,18 +419,20 @@ public final class JNIEnvironment implements SizeConstants {
    * @return reference at that offset
    */
   public Object getJNIRef(int offset) {
-    if (offset > JNIRefsTop) {
-      VM.sysWrite("JNI ERROR: getJNIRef for illegal offset > TOP, ");
-      VM.sysWrite(offset);
-      VM.sysWrite("(top is ");
-      VM.sysWrite(JNIRefsTop);
-      VM.sysWrite(")\n");
-      RVMThread.dumpStack();
+    if (offset == 0) {
       return null;
-    }
-    if (offset < 0) {
+    } else if (offset < 0) {
       return JNIGlobalRefTable.ref(offset);
     } else {
+      if (VM.VerifyAssertions && offset > JNIRefsTop) {
+        VM.sysWrite("JNI ERROR: getJNIRef for illegal offset > TOP, ");
+        VM.sysWrite(offset);
+        VM.sysWrite("(top is ");
+        VM.sysWrite(JNIRefsTop);
+        VM.sysWrite(")\n");
+        RVMThread.dumpStack();
+        return null;
+      }
       return Magic.addressAsObject(JNIRefs.get(offset >> LOG_BYTES_IN_ADDRESS));
     }
   }
@@ -501,6 +505,7 @@ public final class JNIEnvironment implements SizeConstants {
    */
   public static void initFunctionTable(FunctionTable functions) {
     JNIFunctions = functions;
+    BootRecord.the_boot_record.JNIFunctions = functions;
     if (VM.BuildForPowerOpenABI) {
       // Allocate the linkage triplets in the bootimage too (so they won't move)
       LinkageTriplets = LinkageTripletTable.allocate(functions.length());
