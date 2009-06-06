@@ -16,14 +16,19 @@
 #include "sys.h"
 #include <stdarg.h>
 
+#ifdef RVM_FOR_WINDOWS
+#define va_copy(aq, ap) (aq = ap);
+#endif // RVM_FOR_WINDOWS
+
 /**
  * Create copy of va_list that can be updated and worked upon
  */
 EXTERNAL va_list* sysVaCopy(va_list ap)
 {
   SYS_START();
+  va_list *ap_;
   TRACE_PRINTF("%s: sysVaCopy\n", Me);
-  va_list *ap_ = (va_list*)sysMalloc(sizeof(va_list));
+  ap_ = (va_list*)sysMalloc(sizeof(va_list));
   va_copy (*ap_, ap);
   return ap_;
 }
