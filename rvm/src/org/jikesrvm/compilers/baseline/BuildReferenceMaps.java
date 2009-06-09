@@ -92,7 +92,7 @@ final class BuildReferenceMaps implements ClassLoaderConstants, BBConstants {
     byte[] currBBMap;           // The current map, used during processing thru a block
     int currBBStkTop;          // Stack top for the current map
 
-    int currBBStkEmpty;        // Level when stack is empty - value depends on number of locals
+    final int currBBStkEmpty;  // Level when stack is empty - value depends on number of locals
     int paramCount;            // Number of parameters to the method being processed
 
     // Variables for processing JSR instructions, RET instructions and JSR subroutines
@@ -363,6 +363,7 @@ final class BuildReferenceMaps implements ClassLoaderConstants, BBConstants {
         int biStart = bcodes.index();
         int opcode = bcodes.nextInstruction();
         if (stackHeights != null) {
+          if(VM.VerifyAssertions) VM._assert(currBBStkTop >= currBBStkEmpty);
           stackHeights[biStart] = currBBStkTop;
         }
 
