@@ -92,6 +92,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
   public static final int TRAP_MUST_IMPLEMENT = 7;
   public static final int TRAP_STORE_CHECK = 8; // opt-compiler
   public static final int TRAP_STACK_OVERFLOW_FATAL = 9; // assertion checking
+  public static final int TRAP_UNREACHABLE_BYTECODE = 10; // baseline compiler assertion
 
   /**
    * Perform signed division implementing the ldiv bytecode
