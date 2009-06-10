@@ -3460,6 +3460,14 @@ public abstract class Simplifier extends IRTools {
       if (methOp == null) {
         return DefUseEffect.UNCHANGED;
       }
+      if (methOp.isSpecial()) {
+        RVMMethod target = methOp.getTarget();
+        // check for calls to empty object initializers
+        if ((target != null) && (target.isVanillaObjectInitializer())) {
+          Empty.mutate(s, NOP);
+          return DefUseEffect.REDUCED;
+        }
+      }
       if (methOp.isVirtual() && !methOp.hasPreciseTarget()) {
         Operand calleeThis = Call.getParam(s, 0);
         if (calleeThis.isNullConstant()) {

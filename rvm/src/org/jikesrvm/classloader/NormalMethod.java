@@ -21,6 +21,7 @@ import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
 import org.jikesrvm.compilers.opt.ir.HIRGenerator;
 import org.jikesrvm.runtime.DynamicLink;
 import org.jikesrvm.util.HashMapRVM;
+import org.vmmagic.pragma.Pure;
 import org.vmmagic.pragma.Uninterruptible;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
 
@@ -827,5 +828,63 @@ public class NormalMethod extends RVMMethod {
    */
   public boolean optCompileOnly() {
     return false;
+  }
+
+  /**
+   * Is this method empty? ie does nothing but a (void) return
+   */
+  @Override
+  @Pure
+  public boolean isEmpty() {
+    return (bytecodes.length == 1) &&
+      (bytecodes[0] == BytecodeConstants.JBC_return);
+  }
+
+  /**
+   * Is this method a vanilla object initializer? ie performs no operations
+   */
+  @Override
+  @Pure
+  public boolean isVanillaObjectInitializer() {
+    if (!isObjectInitializer()) {
+      return false;
+    }
+    if (isEmpty() || getDeclaringClass().getSuperClass() == null) {
+      return true;
+    }
+    // check that we first see a call to either an empty method or
+    // another vanilla object initializer
+    BytecodeStream bcodes = getBytecodes();
+    if ((bytecodes.length < 4) ||
+        (bcodes.nextInstruction() != BytecodeConstants.JBC_aload_0) ||
+        (bcodes.nextInstruction() != BytecodeConstants.JBC_invokespecial)) {
+      return false;
+    }
+    RVMMethod superInit = bcodes.getMethodReference().peekResolvedMethod();
+    if ((superInit == null) ||
+        (!superInit.isVanillaObjectInitializer())) {
+      return false;
+    }
+    // check all other bytecodes either return or just assign 0 to fields
+    int bcode = 0;
+    search:
+    while (bcodes.hasMoreBytecodes()) {
+      bcode = bcodes.nextInstruction();
+      if (bcode != BytecodeConstants.JBC_aload_0) break;
+      bcode = bcodes.nextInstruction();
+      switch(bcode) {
+      case BytecodeConstants.JBC_iconst_0:
+      case BytecodeConstants.JBC_lconst_0:
+      case BytecodeConstants.JBC_fconst_0:
+      case BytecodeConstants.JBC_dconst_0:
+      case BytecodeConstants.JBC_aconst_null:
+        break;
+      default:
+        break search;
+      }
+      bcode = bcodes.nextInstruction();
+      if (bcode != BytecodeConstants.JBC_putfield) break;
+    }
+    return bcode == BytecodeConstants.JBC_return;
   }
 }

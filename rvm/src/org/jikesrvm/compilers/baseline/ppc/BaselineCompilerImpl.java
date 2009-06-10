@@ -1108,16 +1108,8 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler
    * Emit code to implement the pop bytecode
    */
   @Override
-  protected final void emit_pop() {
-    discardSlot();
-  }
-
-  /**
-   * Emit code to implement the pop2 bytecode
-   */
-  @Override
-  protected final void emit_pop2() {
-    discardSlots(2);
+  protected final void emit_pop(int count) {
+    discardSlots(count);
   }
 
   /**

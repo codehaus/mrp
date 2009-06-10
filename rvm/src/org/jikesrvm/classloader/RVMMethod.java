@@ -894,7 +894,9 @@ public abstract class RVMMethod extends RVMMember {
   }
 
   /**
-   * Create a method to act as a default constructor (just return)
+   * Create a method to act as a default constructor (just return). NB this
+   * should be picked up by isEmpty or isVanillaObjectInitializer and avoid
+   * compilation.
    * @param klass class for method
    * @param memRef reference for default constructor
    * @return method normal (bytecode containing) method that just returns
@@ -1101,5 +1103,21 @@ public abstract class RVMMethod extends RVMMember {
                                null,
                                null,
                                null);
+  }
+
+  /**
+   * Is this method empty? ie does nothing but a (void) return
+   */
+  public boolean isEmpty() {
+    // sub-class decides
+    return false;
+  }
+
+  /**
+   * Is this method a vanilla object initializer? ie performs no operations
+   */
+  public boolean isVanillaObjectInitializer() {
+    // sub-class decides
+    return false;
   }
 }

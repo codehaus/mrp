@@ -769,13 +769,13 @@ public abstract class TemplateCompilerFramework
 
         case JBC_pop: {
           if (shouldPrint) asm.noteBytecode(biStart, "pop");
-          emit_pop();
+          emit_pop(1);
           break;
         }
 
         case JBC_pop2: {
           if (shouldPrint) asm.noteBytecode(biStart, "pop2");
-          emit_pop2();
+          emit_pop(2);
           break;
         }
 
@@ -1496,7 +1496,11 @@ public abstract class TemplateCompilerFramework
           RVMMethod target = methodRef.resolveInvokeSpecial();
           if (target != null) {
             if (VM.VerifyUnint && !isInterruptible) checkTarget(target, bcodes.index());
-            emit_resolved_invokespecial(methodRef, target);
+            if (!target.isVanillaObjectInitializer()) {
+              emit_resolved_invokespecial(methodRef, target);
+            } else {
+             emit_pop(methodRef.getParameterWords()+1);
+           }
           } else {
             emit_unresolved_invokespecial(methodRef);
           }
@@ -2362,12 +2366,7 @@ public abstract class TemplateCompilerFramework
   /**
    * Emit code to implement the pop bytecode
    */
-  protected abstract void emit_pop();
-
-  /**
-   * Emit code to implement the pop2 bytecode
-   */
-  protected abstract void emit_pop2();
+  protected abstract void emit_pop(int count);
 
   /**
    * Emit code to implement the dup bytecode

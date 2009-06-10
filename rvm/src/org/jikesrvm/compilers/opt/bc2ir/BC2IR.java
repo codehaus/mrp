@@ -2806,7 +2806,12 @@ public final class BC2IR
 
     TypeReference rtype = meth.getReturnType();
     if (rtype.isVoidType()) {
-      return s;
+      Simplifier.DefUseEffect simp = Simplifier.simplify(true, gc.temps, gc.options, s);
+      if (simp == Simplifier.DefUseEffect.REDUCED) {
+        return null;
+      } else {
+        return s;
+      }
     } else {
       RegisterOperand t = gc.temps.makeTemp(rtype);
       Call.setResult(s, t);

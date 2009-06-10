@@ -845,23 +845,11 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
    */
 
   /**
-   * Emit code to implement the pop bytecode
+   * Emit code to pop the stack
    */
   @Override
-  protected final void emit_pop() {
-    adjustStack(WORDSIZE, true);
-  }
-
-  /**
-   * Emit code to implement the pop2 bytecode
-   */
-  @Override
-  protected final void emit_pop2() {
-    // This could be encoded as the single 3 byte instruction
-    // asm.emitADD_Reg_Imm(SP, 8);
-    // or as the following 2 1 byte instructions. There doesn't appear to be any
-    // performance difference.
-    adjustStack(WORDSIZE*2, true);
+  protected final void emit_pop(int count) {
+    adjustStack(count * WORDSIZE, true);
   }
 
   /**
