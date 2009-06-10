@@ -849,8 +849,12 @@ public class NormalMethod extends RVMMethod {
     if (!isObjectInitializer()) {
       return false;
     }
-    if (isEmpty() || getDeclaringClass().getSuperClass() == null) {
+    RVMClass superClass = getDeclaringClass().getSuperClass();
+    if (isEmpty() || superClass == null) {
       return true;
+    }
+    if (superClass.hasVanillaObjectInitializer() == false) {
+      return false;
     }
     // check that we first see a call to either an empty method or
     // another vanilla object initializer

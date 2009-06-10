@@ -112,6 +112,11 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
    */
   private byte state;
 
+  /**
+   * Does the class have an object initializer that performs no operations?
+   */
+  private boolean hasVanillaObjectInitializer;
+
   //
   // The following are valid only when "state >= CLASS_RESOLVED".
   //
@@ -737,6 +742,12 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
   }
 
   /**
+   * Does the class have a vanilla object initializer?
+   */
+  public boolean hasVanillaObjectInitializer() {
+    return hasVanillaObjectInitializer;
+  }
+  /**
    * Virtually dispatched methods of this class
    * (composed with supertypes, if any).
    */
@@ -1125,6 +1136,9 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
         if (method.isObjectInitializer()) {
           Callbacks.notifyMethodOverride(method, null);
           constructorMethods.addElement(method);
+          if (hasVanillaObjectInitializer == false) {
+            hasVanillaObjectInitializer = method.isVanillaObjectInitializer();
+          }
         } else if (method.isStatic()) {
           if (!method.isClassInitializer()) {
             Callbacks.notifyMethodOverride(method, null);
@@ -1963,6 +1977,7 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
             emptyVMField, reflectionMethods,
             null, null, null, null, null, null, null, null);
       reflectionClass.setType(klass);
+      klass.hasVanillaObjectInitializer = true;
       RuntimeEntrypoints.initializeClassForDynamicLink(klass.asClass());
     }
     return klass.getClassForType();

@@ -1496,11 +1496,12 @@ public abstract class TemplateCompilerFramework
           RVMMethod target = methodRef.resolveInvokeSpecial();
           if (target != null) {
             if (VM.VerifyUnint && !isInterruptible) checkTarget(target, bcodes.index());
-            if (!target.isVanillaObjectInitializer()) {
-              emit_resolved_invokespecial(methodRef, target);
+            if (target.getDeclaringClass().hasVanillaObjectInitializer() &&
+                target.isVanillaObjectInitializer()) {
+              emit_pop(methodRef.getParameterWords()+1);
             } else {
-             emit_pop(methodRef.getParameterWords()+1);
-           }
+              emit_resolved_invokespecial(methodRef, target);
+            }
           } else {
             emit_unresolved_invokespecial(methodRef);
           }

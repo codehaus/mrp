@@ -3463,7 +3463,9 @@ public abstract class Simplifier extends IRTools {
       if (methOp.isSpecial()) {
         RVMMethod target = methOp.getTarget();
         // check for calls to empty object initializers
-        if ((target != null) && (target.isVanillaObjectInitializer())) {
+        if ((target != null) &&
+            target.getDeclaringClass().hasVanillaObjectInitializer() &&
+            target.isVanillaObjectInitializer()) {
           Empty.mutate(s, NOP);
           return DefUseEffect.REDUCED;
         }
