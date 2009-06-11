@@ -98,7 +98,6 @@ class VMMath {
       double trunc = -((double)((long)(-a)));
       return (a < 0.0 || trunc == a) ? trunc : trunc + 1.0;
     }
-    return -floor(-a);
   }
   @Pure
   public static double floor(double a) {
