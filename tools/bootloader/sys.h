@@ -157,7 +157,7 @@ extern volatile int numEnableAlignCheckingCalls;
 #endif // RVM_WITH_ALIGNMENT_CHECKING
 
 /** Trace execution of syscalls */
-#define TRACE verbose
+#define TRACE  (!PRODUCTION && verbose)
 
 #ifdef RVM_FOR_HARMONY
 #  define TRACE_PRINTF(...) if(TRACE) hytty_err_printf(PORTLIB, __VA_ARGS__)

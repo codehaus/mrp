@@ -72,7 +72,7 @@ import org.vmmagic.pragma.*;
    */
   public EventCounter(String name, boolean start, boolean mergephases) {
     super(name, start, mergephases);
-    count = new long[Stats.MAX_PHASES];
+    count = VM.config.PRODUCTION ? null : new long[Stats.MAX_PHASES];
   }
 
   /****************************************************************************
@@ -127,7 +127,7 @@ import org.vmmagic.pragma.*;
    * @param oldPhase The last phase
    */
   void phaseChange(int oldPhase) {
-    if (running) {
+    if (running && !VM.config.PRODUCTION) {
       count[oldPhase] = totalCount;
       totalCount = 0;
     }
@@ -140,6 +140,7 @@ import org.vmmagic.pragma.*;
    * @param phase The phase to be printed
    */
   protected final void printCount(int phase) {
+    if (VM.config.PRODUCTION) return;
     if (VM.VERIFY_ASSERTIONS && mergePhases())
       if (VM.VERIFY_ASSERTIONS) VM.assertions._assert((phase | 1) == (phase + 1));
     if (mergePhases())
@@ -159,6 +160,7 @@ import org.vmmagic.pragma.*;
    * Print the current total for this counter
    */
   public final void printTotal() {
+    if (VM.config.PRODUCTION) return;
     long total = 0;
     for (int p = 0; p <= Stats.phase; p++) {
       total += count[p];
@@ -173,6 +175,7 @@ import org.vmmagic.pragma.*;
    * printed (otherwise the total for the GC phases will be printed).
    */
   protected final void printTotal(boolean mutator) {
+    if (VM.config.PRODUCTION) return;
     long total = 0;
     for (int p = (mutator) ? 0 : 1; p <= Stats.phase; p += 2) {
       total += count[p];
@@ -188,6 +191,7 @@ import org.vmmagic.pragma.*;
    * printed (otherwise the minimum for the GC phase will be printed).
    */
   protected final void printMin(boolean mutator) {
+    if (VM.config.PRODUCTION) return;
     int p = (mutator) ? 0 : 1;
     long min = count[p];
     for (; p < Stats.phase; p += 2) {
@@ -204,6 +208,7 @@ import org.vmmagic.pragma.*;
    * printed (otherwise the maximum for the GC phase will be printed).
    */
   protected final void printMax(boolean mutator) {
+    if (VM.config.PRODUCTION) return;
     int p = (mutator) ? 0 : 1;
     long max = count[p];
     for (; p < Stats.phase; p += 2) {

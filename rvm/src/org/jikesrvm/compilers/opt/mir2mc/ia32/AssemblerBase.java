@@ -935,7 +935,7 @@ abstract class AssemblerBase extends Assembler
         forwardRefs = ForwardReference.enqueue(forwardRefs, r);
         setMachineCodes(mi++, (byte) (0x70 + cond));
         mi += 1; // leave space for displacement
-        if (lister != null) lister.I(miStart, "J" + CONDITION[cond], 0);
+        if (!VM.Production && (lister != null)) lister.I(miStart, "J" + CONDITION[cond], 0);
       } else {
         emitJCC_Cond_Label(cond, targetLabel);
       }
@@ -963,7 +963,7 @@ abstract class AssemblerBase extends Assembler
         forwardRefs = ForwardReference.enqueue(forwardRefs, r);
         setMachineCodes(mi++, (byte) 0xEB);
         mi += 1; // leave space for displacement
-        if (lister != null) lister.I(miStart, "JMP", 0);
+        if (!VM.Production && (lister != null)) lister.I(miStart, "JMP", 0);
       } else {
         emitJMP_Label(getLabel(MIR_Branch.getTarget(inst)));
       }

@@ -67,7 +67,7 @@ function emitBinaryReg() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitRegIndirectRegOperands(dstBase, srcReg);
-    if (lister != null) lister.RNR(miStart, "${acronym}", dstBase, srcReg);
+    if (!Production && (lister != null)) lister.RNR(miStart, "${acronym}", dstBase, srcReg);
   }
 
   /**
@@ -89,7 +89,7 @@ function emitBinaryReg() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitRegOffRegOperands(dstIndex, dstScale, dstDisp, srcReg);
-    if (lister != null) lister.RFDR(miStart, "${acronym}", dstIndex, dstScale, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RFDR(miStart, "${acronym}", dstIndex, dstScale, dstDisp, srcReg);
   }
 
   /**
@@ -109,7 +109,7 @@ function emitBinaryReg() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitAbsRegOperands(dstDisp, srcReg);
-    if (lister != null) lister.RAR(miStart, "${acronym}", dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RAR(miStart, "${acronym}", dstDisp, srcReg);
   }
 
   /**
@@ -132,7 +132,7 @@ function emitBinaryReg() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitSIBRegOperands(dstBase, dstIndex, dstScale, dstDisp, srcReg);
-    if (lister != null) lister.RXDR(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RXDR(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, srcReg);
   }
 
   /**
@@ -153,7 +153,7 @@ function emitBinaryReg() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitRegDispRegOperands(dstBase, dstDisp, srcReg);
-    if (lister != null) lister.RDR(miStart, "${acronym}", dstBase, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RDR(miStart, "${acronym}", dstBase, dstDisp, srcReg);
   }
 
   /**
@@ -173,7 +173,7 @@ function emitBinaryReg() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitRegRegOperands(dstReg, srcReg);
-    if (lister != null) lister.RR(miStart, "${acronym}", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "${acronym}", dstReg, srcReg);
   }
 
 EOF
@@ -197,7 +197,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "${acronym}", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "${acronym}", dstReg, srcBase, srcDisp);
   }
 
   /**
@@ -219,7 +219,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "${acronym}", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "${acronym}", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -239,7 +239,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "${acronym}", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "${acronym}", dstReg, srcDisp);
   }
 
   /**
@@ -262,7 +262,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "${acronym}", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "${acronym}", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -282,7 +282,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "${acronym}", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "${acronym}", dstReg, srcBase);
   }
 
 EOF
@@ -343,7 +343,7 @@ function emitBinaryRegByte() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitRegIndirectRegOperands(dstBase, srcReg);
-    if (lister != null) lister.RNR(miStart, "${acronym}", dstBase, srcReg);
+    if (!Production && (lister != null)) lister.RNR(miStart, "${acronym}", dstBase, srcReg);
   }
 
   /**
@@ -366,7 +366,7 @@ function emitBinaryRegByte() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitRegOffRegOperands(dstIndex, dstScale, dstDisp, srcReg);
-    if (lister != null) lister.RFDR(miStart, "${acronym}", dstIndex, dstScale, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RFDR(miStart, "${acronym}", dstIndex, dstScale, dstDisp, srcReg);
   }
 
   /**
@@ -387,7 +387,7 @@ function emitBinaryRegByte() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitAbsRegOperands(dstDisp, srcReg);
-    if (lister != null) lister.RAR(miStart, "${acronym}", dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RAR(miStart, "${acronym}", dstDisp, srcReg);
   }
 
   /**
@@ -411,7 +411,7 @@ function emitBinaryRegByte() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitSIBRegOperands(dstBase, dstIndex, dstScale, dstDisp, srcReg);
-    if (lister != null) lister.RXDR(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RXDR(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, srcReg);
   }
 
   /**
@@ -433,7 +433,7 @@ function emitBinaryRegByte() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitRegDispRegOperands(dstBase, dstDisp, srcReg);
-    if (lister != null) lister.RDR(miStart, "${acronym}", dstBase, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RDR(miStart, "${acronym}", dstBase, dstDisp, srcReg);
   }
 
   /**
@@ -455,7 +455,7 @@ function emitBinaryRegByte() {
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rmrCode});
     emitRegRegOperands(dstReg, srcReg);
-    if (lister != null) lister.RR(miStart, "${acronym}", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "${acronym}", dstReg, srcReg);
   }
 
 EOF
@@ -480,7 +480,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "${acronym}", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "${acronym}", dstReg, srcBase, srcDisp);
   }
 
   /**
@@ -503,7 +503,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "${acronym}", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "${acronym}", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -524,7 +524,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "${acronym}", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "${acronym}", dstReg, srcDisp);
   }
 
   /**
@@ -548,7 +548,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "${acronym}", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "${acronym}", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -569,7 +569,7 @@ EOF
     ${twobyteop}
     setMachineCodes(mi++, (byte) ${rrmCode});
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "${acronym}", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "${acronym}", dstReg, srcBase);
   }
 
 EOF
@@ -659,7 +659,7 @@ EOF
 EOF
   fi
   cat >> $FILENAME <<EOF
-    if (lister != null) lister.RI(miStart, "${acronym}", dstReg, imm);
+    if (!Production && (lister != null)) lister.RI(miStart, "${acronym}", dstReg, imm);
   }
 
   /**
@@ -709,7 +709,7 @@ EOF
 EOF
   fi
   cat >> $FILENAME <<EOF
-    if (lister != null) lister.RDI(miStart, "${acronym}", dstBase, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RDI(miStart, "${acronym}", dstBase, dstDisp, imm);
   }
 
   /**
@@ -760,7 +760,7 @@ EOF
 EOF
   fi
   cat >> $FILENAME <<EOF
-    if (lister != null) lister.RFDI(miStart, "${acronym}", dstIndex, dstScale, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RFDI(miStart, "${acronym}", dstIndex, dstScale, dstDisp, imm);
   }
 
   /**
@@ -808,7 +808,7 @@ EOF
 EOF
   fi
   cat >> $FILENAME <<EOF
-    if (lister != null) lister.RAI(miStart, "${acronym}", dstDisp, imm);
+    if (!Production && (lister != null)) lister.RAI(miStart, "${acronym}", dstDisp, imm);
   }
 
   /**
@@ -860,7 +860,7 @@ EOF
 EOF
   fi
   cat >> $FILENAME <<EOF
-    if (lister != null) lister.RXDI(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RXDI(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, imm);
   }
 
   /**
@@ -909,7 +909,7 @@ EOF
 EOF
   fi
   cat >> $FILENAME <<EOF
-    if (lister != null) lister.RNI(miStart, "${acronym}", dstBase, imm);
+    if (!Production && (lister != null)) lister.RNI(miStart, "${acronym}", dstBase, imm);
   }
 
 EOF
@@ -949,7 +949,7 @@ function emitBinaryImmByte() {
       emitRegRegOperands(dstReg, GPR.getForOpcode(${immExtOp}));
       emitImm8(imm);
     }
-    if (lister != null) lister.RI(miStart, "${acronym}", dstReg, imm);
+    if (!Production && (lister != null)) lister.RI(miStart, "${acronym}", dstReg, imm);
   }
 
   /**
@@ -970,7 +970,7 @@ function emitBinaryImmByte() {
     // "register ${immExtOp}" is really part of the opcode
     emitRegDispRegOperands(dstBase, dstDisp, GPR.getForOpcode(${immExtOp}));
     emitImm8(imm);
-    if (lister != null) lister.RDI(miStart, "${acronym}", dstBase, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RDI(miStart, "${acronym}", dstBase, dstDisp, imm);
   }
 
   /**
@@ -993,7 +993,7 @@ function emitBinaryImmByte() {
     // "register ${immExtOp}" is really part of the opcode
     emitSIBRegOperands(dstBase, dstIndex, dstScale, dstDisp, GPR.getForOpcode(${immExtOp}));
     emitImm8(imm);
-    if (lister != null) lister.RXDI(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RXDI(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, imm);
   }
 
   /**
@@ -1015,7 +1015,7 @@ function emitBinaryImmByte() {
     // "register ${immExtOp}" is really part of the opcode
     emitRegOffRegOperands(dstIndex, dstScale, dstDisp, GPR.getForOpcode(${immExtOp}));
     emitImm8(imm);
-    if (lister != null) lister.RFDI(miStart, "${acronym}", dstIndex, dstScale, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RFDI(miStart, "${acronym}", dstIndex, dstScale, dstDisp, imm);
   }
 
   /**
@@ -1034,7 +1034,7 @@ function emitBinaryImmByte() {
     // "register ${immExtOp}" is really part of the opcode
     emitAbsRegOperands(dstDisp, GPR.getForOpcode(${immExtOp}));
     emitImm8(imm);
-    if (lister != null) lister.RAI(miStart, "${acronym}", dstDisp, imm);
+    if (!Production && (lister != null)) lister.RAI(miStart, "${acronym}", dstDisp, imm);
   }
 
   /**
@@ -1054,7 +1054,7 @@ function emitBinaryImmByte() {
     // "register ${immExtOp}" is really part of the opcode
     emitRegIndirectRegOperands(dstBase, GPR.getForOpcode(${immExtOp}));
     emitImm8(imm);
-    if (lister != null) lister.RNI(miStart, "${acronym}", dstBase, imm);
+    if (!Production && (lister != null)) lister.RNI(miStart, "${acronym}", dstBase, imm);
   }
 
 EOF
@@ -1164,7 +1164,7 @@ function emitCall() {
       forwardRefs = ForwardReference.enqueue(forwardRefs, r);
       setMachineCodes(mi++, (byte) ${rel32Code});
       mi += 4; // leave space for displacement
-      if (lister != null) lister.I(miStart, "${acronym}", label);
+      if (!Production && (lister != null)) lister.I(miStart, "${acronym}", label);
   }
 
   /**
@@ -1206,7 +1206,7 @@ EOF
 EOF
   fi
   cat >> $FILENAME <<EOF
-    if (lister != null) lister.I(miStart, "${acronym}", imm);
+    if (!Production && (lister != null)) lister.I(miStart, "${acronym}", imm);
   }
 
   /**
@@ -1224,7 +1224,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmCode);
     // "register $rmExtCode" is really part of the $acronym opcode
     emitRegRegOperands(dstReg, GPR.getForOpcode($rmExtCode));
-    if (lister != null) lister.R(miStart, "${acronym}", dstReg);
+    if (!Production && (lister != null)) lister.R(miStart, "${acronym}", dstReg);
   }
 
   /**
@@ -1243,7 +1243,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmCode);
     // "register $rmExtCode" is really part of the $acronym opcode
     emitRegDispRegOperands(dstBase, dstDisp, GPR.getForOpcode($rmExtCode));
-    if (lister != null) lister.RD(miStart, "${acronym}", dstBase, dstDisp);
+    if (!Production && (lister != null)) lister.RD(miStart, "${acronym}", dstBase, dstDisp);
   }
 
   /**
@@ -1261,7 +1261,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmCode);
     // "register $rmExtCode" is really part of the $acronym opcode
     emitRegIndirectRegOperands(dstBase, GPR.getForOpcode($rmExtCode));
-    if (lister != null) lister.RN(miStart, "${acronym}", dstBase);
+    if (!Production && (lister != null)) lister.RN(miStart, "${acronym}", dstBase);
   }
 
   /**
@@ -1281,7 +1281,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmCode);
     // "register $rmExtCode" is really part of the $acronym opcode
     emitRegOffRegOperands(dstIndex, dstScale, dstDisp, GPR.getForOpcode($rmExtCode));
-    if (lister != null) lister.RFD(miStart, "${acronym}", dstIndex, dstScale, dstDisp);
+    if (!Production && (lister != null)) lister.RFD(miStart, "${acronym}", dstIndex, dstScale, dstDisp);
   }
 
   /**
@@ -1297,7 +1297,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmCode);
     // "register $rmExtCode" is really part of the $acronym opcode
     emitAbsRegOperands(dstDisp, GPR.getForOpcode($rmExtCode));
-    if (lister != null) lister.RA(miStart, "${acronym}", dstDisp);
+    if (!Production && (lister != null)) lister.RA(miStart, "${acronym}", dstDisp);
   }
 
   /**
@@ -1318,7 +1318,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmCode);
     // "register $rmExtCode" is really part of the $acronym opcode
     emitSIBRegOperands(dstBase, dstIndex, dstScale, dstDisp, GPR.getForOpcode($rmExtCode));
-    if (lister != null) lister.RXD(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp);
+    if (!Production && (lister != null)) lister.RXD(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp);
   }
 
 EOF
@@ -1379,7 +1379,7 @@ EOF
     } else {
       setMachineCodes(mi++, (byte) ($rOpCode | (reg.value() & 7)));
     }
-    if (lister != null) lister.R(miStart, "$acronym", reg);
+    if (!Production && (lister != null)) lister.R(miStart, "$acronym", reg);
   }
 EOF
     else
@@ -1399,7 +1399,7 @@ EOF
     generateREXprefix(${rex_w}, null, null, reg);
     setMachineCodes(mi++, (byte) $rmOpCode);
     emitRegRegOperands(reg, GPR.getForOpcode($rmOpExt));
-    if (lister != null) lister.R(miStart, "$acronym", reg);
+    if (!Production && (lister != null)) lister.R(miStart, "$acronym", reg);
   }
 EOF
     fi
@@ -1421,7 +1421,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmOpCode);
     // "register $rmOpExt" is really part of the opcode
     emitRegDispRegOperands(base, disp, GPR.getForOpcode($rmOpExt));
-    if (lister != null) lister.RD(miStart, "$acronym", base, disp);
+    if (!Production && (lister != null)) lister.RD(miStart, "$acronym", base, disp);
   }
 
   /**
@@ -1440,7 +1440,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmOpCode);
     // "register $rmOpExt" is really part of the opcode
     emitRegIndirectRegOperands(base, GPR.getForOpcode($rmOpExt));
-    if (lister != null) lister.RN(miStart, "$acronym", base);
+    if (!Production && (lister != null)) lister.RN(miStart, "$acronym", base);
   }
 
   /**
@@ -1461,7 +1461,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmOpCode);
     // "register $rmOpExt" is really part of the opcode
     emitRegOffRegOperands(index, scale, disp, GPR.getForOpcode($rmOpExt));
-    if (lister != null) lister.RFD(miStart, "$acronym", index, scale, disp);
+    if (!Production && (lister != null)) lister.RFD(miStart, "$acronym", index, scale, disp);
   }
 
   /**
@@ -1479,7 +1479,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmOpCode);
     // "register $rmOpExt" is really part of the opcode
     emitAbsRegOperands(disp, GPR.getForOpcode($rmOpExt));
-    if (lister != null) lister.RA(miStart, "$acronym", disp);
+    if (!Production && (lister != null)) lister.RA(miStart, "$acronym", disp);
   }
 
   /**
@@ -1501,7 +1501,7 @@ EOF
     setMachineCodes(mi++, (byte) $rmOpCode);
     // "register $rmOpExt" is really part of the opcode
     emitSIBRegOperands(base, index, scale, disp, GPR.getForOpcode($rmOpExt));
-    if (lister != null) lister.RXD(miStart, "$acronym", base, index, scale, disp);
+    if (!Production && (lister != null)) lister.RXD(miStart, "$acronym", base, index, scale, disp);
   }
 
 EOF
@@ -1555,7 +1555,7 @@ cat >> $FILENAME<<EOF
     generateREXprefix(${rex_w}, null, null, srcReg);
     setMachineCodes(mi++, (byte) 0xF7);
     emitRegRegOperands(srcReg, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RR(miStart, "$acronym", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "$acronym", dstReg, srcReg);
   }
 
   /**
@@ -1575,7 +1575,7 @@ cat >> $FILENAME<<EOF
     generateREXprefix(${rex_w}, null, null, srcBase);
     setMachineCodes(mi++, (byte) 0xF7);
     emitRegDispRegOperands(srcBase, srcDisp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RRD(miStart, "$acronym", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "$acronym", dstReg, srcBase, srcDisp);
   }
 
   /**
@@ -1594,7 +1594,7 @@ cat >> $FILENAME<<EOF
     generateREXprefix(${rex_w}, null, null, srcBase);
     setMachineCodes(mi++, (byte) 0xF7);
     emitRegIndirectRegOperands(srcBase, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RRN(miStart, "$acronym", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "$acronym", dstReg, srcBase);
   }
 
   /**
@@ -1616,7 +1616,7 @@ cat >> $FILENAME<<EOF
     generateREXprefix(${rex_w}, null, srcIndex, srcBase);
     setMachineCodes(mi++, (byte) 0xF7);
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RRXD(miStart, "$acronym", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "$acronym", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -1637,7 +1637,7 @@ cat >> $FILENAME<<EOF
     generateREXprefix(${rex_w}, null, srcIndex, null);
     setMachineCodes(mi++, (byte) 0xF7);
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RRFD(miStart, "$acronym", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "$acronym", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -1656,7 +1656,7 @@ cat >> $FILENAME<<EOF
     generateREXprefix(${rex_w}, null, null, null);
     setMachineCodes(mi++, (byte) 0xF7);
     emitAbsRegOperands(srcDisp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RRA(miStart, "$acronym", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "$acronym", dstReg, srcDisp);
   }
 
 EOF
@@ -1708,7 +1708,7 @@ emitMoveImms() {
     setMachineCodes(mi++, (byte) $opcode);
     emitRegIndirectRegOperands(dstBase, GPR.getForOpcode(0x0));
     ${immWrite}(imm);
-    if (lister != null) lister.RNI(miStart, "MOV", dstBase, imm);
+    if (!Production && (lister != null)) lister.RNI(miStart, "MOV", dstBase, imm);
   }
 
   /**
@@ -1729,7 +1729,7 @@ emitMoveImms() {
     setMachineCodes(mi++, (byte) $opcode);
     emitRegDispRegOperands(dstBase, dstDisp, GPR.getForOpcode(0x0));
     ${immWrite}(imm);
-    if (lister != null) lister.RDI(miStart, "MOV", dstBase, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RDI(miStart, "MOV", dstBase, dstDisp, imm);
   }
 
   /**
@@ -1752,7 +1752,7 @@ emitMoveImms() {
     setMachineCodes(mi++, (byte) $opcode);
     emitSIBRegOperands(dstBase, dstIndex, dstScale, dstDisp, GPR.getForOpcode(0x0));
     ${immWrite}(imm);
-    if (lister != null) lister.RXDI(miStart, "MOV", dstBase, dstIndex, dstScale, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RXDI(miStart, "MOV", dstBase, dstIndex, dstScale, dstDisp, imm);
   }
 
   /**
@@ -1774,7 +1774,7 @@ emitMoveImms() {
     setMachineCodes(mi++, (byte) $opcode);
     emitRegOffRegOperands(dstIndex, dstScale, dstDisp, GPR.getForOpcode(0x0));
     ${immWrite}(imm);
-    if (lister != null) lister.RFDI(miStart, "MOV", dstIndex, dstScale, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RFDI(miStart, "MOV", dstIndex, dstScale, dstDisp, imm);
   }
 
   /**
@@ -1793,7 +1793,7 @@ emitMoveImms() {
     setMachineCodes(mi++, (byte) $opcode);
     emitAbsRegOperands(dstDisp, GPR.getForOpcode(0x0));
     ${immWrite}(imm);
-    if (lister != null) lister.RAI(miStart, "MOV", dstDisp, imm);
+    if (!Production && (lister != null)) lister.RAI(miStart, "MOV", dstDisp, imm);
   }
 
 EOF
@@ -1838,7 +1838,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm8code);
     emitRegRegOperands(srcReg, dstReg);
-    if (lister != null) lister.RR(miStart, "$acronym", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "$acronym", dstReg, srcReg);
   }
 
   /**
@@ -1858,7 +1858,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm8code);
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "$acronym", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "$acronym", dstReg, srcBase, srcDisp);
   }
 
   /**
@@ -1877,7 +1877,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm8code);
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "$acronym", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "$acronym", dstReg, srcBase);
   }
 
   /**
@@ -1898,7 +1898,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm8code);
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "$acronym", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "$acronym", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -1917,7 +1917,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm8code);
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "$acronym", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "$acronym", dstReg, srcDisp);
   }
 
   /**
@@ -1939,7 +1939,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm8code);
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "$acronym", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "$acronym", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -1958,7 +1958,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm16code);
     emitRegRegOperands(srcReg, dstReg);
-    if (lister != null) lister.RR(miStart, "$acronym", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "$acronym", dstReg, srcReg);
   }
 
   /**
@@ -1978,7 +1978,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm16code);
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "$acronym", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "$acronym", dstReg, srcBase, srcDisp);
   }
 
   /**
@@ -1997,7 +1997,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm16code);
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "$acronym", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "$acronym", dstReg, srcBase);
   }
 
   /**
@@ -2018,7 +2018,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm16code);
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "$acronym", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "$acronym", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -2037,7 +2037,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm16code);
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "$acronym", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "$acronym", dstReg, srcDisp);
   }
 
   /**
@@ -2059,7 +2059,7 @@ cat >> $FILENAME <<EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) $rm16code);
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "$acronym", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "$acronym", dstReg, srcBase, srcIndex, srcScale, srcDisp);
     }
 
 EOF
@@ -2121,7 +2121,7 @@ cat >> $FILENAME <<EOF
       emitRegRegOperands(dstReg, GPR.getForOpcode($opExt));
       emitImm8((byte)imm);
     }
-    if (lister != null) lister.RI(miStart, "$acronym", dstReg, imm);
+    if (!Production && (lister != null)) lister.RI(miStart, "$acronym", dstReg, imm);
   }
 
   /**
@@ -2147,7 +2147,7 @@ cat >> $FILENAME <<EOF
       emitRegIndirectRegOperands(dstBase, GPR.getForOpcode($opExt));
       emitImm8((byte)imm);
     }
-    if (lister != null) lister.RNI(miStart, "$acronym", dstBase, imm);
+    if (!Production && (lister != null)) lister.RNI(miStart, "$acronym", dstBase, imm);
   }
 
   /**
@@ -2174,7 +2174,7 @@ cat >> $FILENAME <<EOF
       emitRegDispRegOperands(dstBase, dstDisp, GPR.getForOpcode($opExt));
       emitImm8((byte)imm);
     }
-    if (lister != null) lister.RDI(miStart, "$acronym", dstBase, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RDI(miStart, "$acronym", dstBase, dstDisp, imm);
   }
 
   /**
@@ -2202,7 +2202,7 @@ cat >> $FILENAME <<EOF
       emitRegOffRegOperands(dstIndex, dstScale, dstDisp, GPR.getForOpcode($opExt));
       emitImm8((byte)imm);
     }
-    if (lister != null) lister.RFDI(miStart, "$acronym", dstIndex, dstScale, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RFDI(miStart, "$acronym", dstIndex, dstScale, dstDisp, imm);
   }
 
   /**
@@ -2227,7 +2227,7 @@ cat >> $FILENAME <<EOF
       emitAbsRegOperands(dstDisp, GPR.getForOpcode($opExt));
       emitImm8((byte)imm);
     }
-    if (lister != null) lister.RAI(miStart, "$acronym", dstDisp, imm);
+    if (!Production && (lister != null)) lister.RAI(miStart, "$acronym", dstDisp, imm);
   }
 
   /**
@@ -2256,7 +2256,7 @@ cat >> $FILENAME <<EOF
       emitSIBRegOperands(dstBase, dstIndex, dstScale, dstDisp, GPR.getForOpcode($opExt));
       emitImm8((byte)imm);
     }
-    if (lister != null) lister.RXDI(miStart, "$acronym", dstBase, dstIndex, dstScale, dstDisp, imm);
+    if (!Production && (lister != null)) lister.RXDI(miStart, "$acronym", dstBase, dstIndex, dstScale, dstDisp, imm);
   }
 
   /**
@@ -2283,7 +2283,7 @@ EOF
     generateREXprefix(${rex_w}, null, null, dstReg);
     setMachineCodes(mi++, (byte) $regOp);
     emitRegRegOperands(dstReg, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RR(miStart, "$acronym", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "$acronym", dstReg, srcReg);
   }
 
   /**
@@ -2303,7 +2303,7 @@ EOF
     generateREXprefix(${rex_w}, null, null, dstBase);
     setMachineCodes(mi++, (byte) $regOp);
     emitRegIndirectRegOperands(dstBase, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RNR(miStart, "$acronym", dstBase, srcReg);
+    if (!Production && (lister != null)) lister.RNR(miStart, "$acronym", dstBase, srcReg);
   }
 
   /**
@@ -2324,7 +2324,7 @@ EOF
     generateREXprefix(${rex_w}, null, null, dstBase);
     setMachineCodes(mi++, (byte) $regOp);
     emitRegDispRegOperands(dstBase, dstDisp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RDR(miStart, "$acronym", dstBase, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RDR(miStart, "$acronym", dstBase, dstDisp, srcReg);
   }
 
   /**
@@ -2346,7 +2346,7 @@ EOF
     generateREXprefix(${rex_w}, null, dstIndex, null);
     setMachineCodes(mi++, (byte) $regOp);
     emitRegOffRegOperands(dstIndex, dstScale, dstDisp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RFDR(miStart, "$acronym", dstIndex, dstScale, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RFDR(miStart, "$acronym", dstIndex, dstScale, dstDisp, srcReg);
   }
 
   /**
@@ -2366,7 +2366,7 @@ EOF
     generateREXprefix(${rex_w}, null, null, null);
     setMachineCodes(mi++, (byte) $regOp);
     emitAbsRegOperands(dstDisp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RAR(miStart, "$acronym", dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RAR(miStart, "$acronym", dstDisp, srcReg);
   }
 
   /**
@@ -2389,7 +2389,7 @@ EOF
     generateREXprefix(${rex_w}, null, dstIndex, dstBase);
     setMachineCodes(mi++, (byte) $regOp);
     emitSIBRegOperands(dstBase, dstIndex, dstScale, dstDisp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RXDR(miStart, "$acronym", dstBase, dstIndex, dstScale, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RXDR(miStart, "$acronym", dstBase, dstIndex, dstScale, dstDisp, srcReg);
   }
 
 EOF
@@ -2466,7 +2466,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) ${immOp});
     emitRegRegOperands(left, right);
     emitImm8((byte)shiftBy);
-    if (lister != null) lister.RRI(miStart, "$acronym", left, right, shiftBy);
+    if (!Production && (lister != null)) lister.RRI(miStart, "$acronym", left, right, shiftBy);
   }
 
   /**
@@ -2487,7 +2487,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) ${immOp});
     emitRegIndirectRegOperands(left, right);
     emitImm8((byte)shiftBy);
-    if (lister != null) lister.RNRI(miStart, "$acronym", left, right, shiftBy);
+    if (!Production && (lister != null)) lister.RNRI(miStart, "$acronym", left, right, shiftBy);
   }
 
   /**
@@ -2509,7 +2509,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) ${immOp});
     emitRegDispRegOperands(left, disp, right);
     emitImm8((byte)shiftBy);
-    if (lister != null) lister.RDRI(miStart, "$acronym", left, disp, right, shiftBy);
+    if (!Production && (lister != null)) lister.RDRI(miStart, "$acronym", left, disp, right, shiftBy);
   }
 
   /**
@@ -2533,7 +2533,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) ${immOp});
     emitSIBRegOperands(leftBase, leftIndex, scale, disp, right);
     emitImm8((byte)shiftBy);
-    if (lister != null) lister.RXDRI(miStart, "$acronym", leftBase, leftIndex, scale, disp, right, shiftBy);
+    if (!Production && (lister != null)) lister.RXDRI(miStart, "$acronym", leftBase, leftIndex, scale, disp, right, shiftBy);
   }
 
   /**
@@ -2556,7 +2556,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) ${immOp});
     emitRegOffRegOperands(leftIndex, scale, disp, right);
     emitImm8((byte)shiftBy);
-    if (lister != null) lister.RFDRI(miStart, "$acronym", leftIndex, scale, disp, right, shiftBy);
+    if (!Production && (lister != null)) lister.RFDRI(miStart, "$acronym", leftIndex, scale, disp, right, shiftBy);
   }
 
   /**
@@ -2577,7 +2577,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) ${immOp});
     emitAbsRegOperands(disp, right);
     emitImm8((byte)shiftBy);
-    if (lister != null) lister.RARI(miStart, "$acronym", disp, right, shiftBy);
+    if (!Production && (lister != null)) lister.RARI(miStart, "$acronym", disp, right, shiftBy);
   }
 
   /**
@@ -2598,7 +2598,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${regOp});
     emitRegRegOperands(left, right);
-    if (lister != null) lister.RRR(miStart, "$acronym", left, right, shiftBy);
+    if (!Production && (lister != null)) lister.RRR(miStart, "$acronym", left, right, shiftBy);
   }
 
   /**
@@ -2619,7 +2619,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${regOp});
     emitRegIndirectRegOperands(left, right);
-    if (lister != null) lister.RNRR(miStart, "$acronym", left, right, shiftBy);
+    if (!Production && (lister != null)) lister.RNRR(miStart, "$acronym", left, right, shiftBy);
   }
 
   /**
@@ -2641,7 +2641,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${regOp});
     emitRegDispRegOperands(left, disp, right);
-    if (lister != null) lister.RDRR(miStart, "$acronym", left, disp, right, shiftBy);
+    if (!Production && (lister != null)) lister.RDRR(miStart, "$acronym", left, disp, right, shiftBy);
   }
 
   /**
@@ -2665,7 +2665,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${regOp});
     emitSIBRegOperands(leftBase, leftIndex, scale, disp, right);
-    if (lister != null) lister.RXDRR(miStart, "$acronym", leftBase, leftIndex, scale, disp, right, shiftBy);
+    if (!Production && (lister != null)) lister.RXDRR(miStart, "$acronym", leftBase, leftIndex, scale, disp, right, shiftBy);
   }
 
   /**
@@ -2688,7 +2688,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${regOp});
     emitRegOffRegOperands(leftIndex, scale, disp, right);
-    if (lister != null) lister.RFDRR(miStart, "$acronym", leftIndex, scale, disp, right, shiftBy);
+    if (!Production && (lister != null)) lister.RFDRR(miStart, "$acronym", leftIndex, scale, disp, right, shiftBy);
   }
 
   /**
@@ -2709,7 +2709,7 @@ emitShiftDouble() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${regOp});
     emitAbsRegOperands(disp, right);
-    if (lister != null) lister.RARR(miStart, "$acronym", disp, right, shiftBy);
+    if (!Production && (lister != null)) lister.RARR(miStart, "$acronym", disp, right, shiftBy);
   }
 
 EOF
@@ -2743,7 +2743,7 @@ emitStackOp() {
     int miStart = mi;
     generateREXprefix(false, null, null, reg);
     setMachineCodes(mi++, (byte) ($regCode + reg.valueForOpcode()));
-    if (lister != null) lister.R(miStart, "${acronym}", reg);
+    if (!Production && (lister != null)) lister.R(miStart, "${acronym}", reg);
   }
 
   /**
@@ -2761,7 +2761,7 @@ emitStackOp() {
     generateREXprefix(false, null, null, base);
     setMachineCodes(mi++, (byte) ${memCode});
     emitRegDispRegOperands(base, disp, GPR.getForOpcode(${memExt}));
-    if (lister != null) lister.RD(miStart, "${acronym}", base, disp);
+    if (!Production && (lister != null)) lister.RD(miStart, "${acronym}", base, disp);
   }
 
   /**
@@ -2778,7 +2778,7 @@ emitStackOp() {
     generateREXprefix(false, null, null, base);
     setMachineCodes(mi++, (byte) ${memCode});
     emitRegIndirectRegOperands(base, GPR.getForOpcode(${memExt}));
-    if (lister != null) lister.RN(miStart, "${acronym}", base);
+    if (!Production && (lister != null)) lister.RN(miStart, "${acronym}", base);
   }
 
   /**
@@ -2798,7 +2798,7 @@ emitStackOp() {
     generateREXprefix(false, null, index, base);
     setMachineCodes(mi++, (byte) ${memCode});
     emitSIBRegOperands(base, index, scale, disp, GPR.getForOpcode(${memExt}));
-    if (lister != null) lister.RXD(miStart, "${acronym}", base, index, scale, disp);
+    if (!Production && (lister != null)) lister.RXD(miStart, "${acronym}", base, index, scale, disp);
   }
 
   /**
@@ -2817,7 +2817,7 @@ emitStackOp() {
     generateREXprefix(false, null, index, null);
     setMachineCodes(mi++, (byte) ${memCode});
     emitRegOffRegOperands(index, scale, disp, GPR.getForOpcode(${memExt}));
-    if (lister != null) lister.RFD(miStart, "${acronym}", index, scale, disp);
+    if (!Production && (lister != null)) lister.RFD(miStart, "${acronym}", index, scale, disp);
   }
 
   /**
@@ -2832,7 +2832,7 @@ emitStackOp() {
     int miStart = mi;
     setMachineCodes(mi++, (byte) ${memCode});
     emitAbsRegOperands(disp, GPR.getForOpcode(${memExt}));
-    if (lister != null) lister.RA(miStart, "${acronym}", disp);
+    if (!Production && (lister != null)) lister.RA(miStart, "${acronym}", disp);
   }
 
 EOF
@@ -2855,7 +2855,7 @@ EOF
       setMachineCodes(mi++, (byte) ${imm32Code});
       emitImm32(imm);
     }
-    if (lister != null) lister.I(miStart, "${acronym}", imm);
+    if (!Production && (lister != null)) lister.I(miStart, "${acronym}", imm);
   }
 
 EOF
@@ -2941,7 +2941,7 @@ emitSSE2Op() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode});
     emitRegRegOperands(srcReg, dstReg);$condLine
-    if (lister != null) lister.RR(miStart, "${acronym}", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "${acronym}", dstReg, srcReg);
   }
 
   /**
@@ -2961,7 +2961,7 @@ emitSSE2Op() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode});
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);$condLine
-    if (lister != null) lister.RRD(miStart, "${acronym}", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "${acronym}", dstReg, srcBase, srcDisp);
   }
 
   /**
@@ -2982,7 +2982,7 @@ emitSSE2Op() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode});
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);$condLine
-    if (lister != null) lister.RRFD(miStart, "${acronym}", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "${acronym}", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -3001,7 +3001,7 @@ emitSSE2Op() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode});
     emitAbsRegOperands(srcDisp, dstReg);$condLine
-    if (lister != null) lister.RRA(miStart, "${acronym}", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "${acronym}", dstReg, srcDisp);
   }
 
   /**
@@ -3024,7 +3024,7 @@ emitSSE2Op() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode});
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);$condLine
-    if (lister != null) lister.RRXD(miStart, "${acronym}", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "${acronym}", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -3043,7 +3043,7 @@ emitSSE2Op() {
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode});
     emitRegIndirectRegOperands(srcBase, dstReg);$condLine
-    if (lister != null) lister.RRN(miStart, "${acronym}", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "${acronym}", dstReg, srcBase);
   }
 
 EOF
@@ -3068,7 +3068,7 @@ EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode2});
     emitRegRegOperands(dstReg, srcReg);$condLine
-    if (lister != null) lister.RR(miStart, "${acronym}", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "${acronym}", dstReg, srcReg);
   }
 EOF
   fi
@@ -3092,7 +3092,7 @@ EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode2});
     emitRegIndirectRegOperands(dstBase, srcReg);
-    if (lister != null) lister.RNR(miStart, "${acronym}", dstBase, srcReg);
+    if (!Production && (lister != null)) lister.RNR(miStart, "${acronym}", dstBase, srcReg);
   }
 
   /**
@@ -3113,7 +3113,7 @@ EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode2});
     emitRegOffRegOperands(dstIndex, dstScale, dstDisp, srcReg);
-    if (lister != null) lister.RFDR(miStart, "${acronym}", dstIndex, dstScale, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RFDR(miStart, "${acronym}", dstIndex, dstScale, dstDisp, srcReg);
   }
 
   /**
@@ -3132,7 +3132,7 @@ EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode2});
     emitAbsRegOperands(dstDisp, srcReg);
-    if (lister != null) lister.RAR(miStart, "${acronym}", dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RAR(miStart, "${acronym}", dstDisp, srcReg);
   }
 
   /**
@@ -3154,7 +3154,7 @@ EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode2});
     emitSIBRegOperands(dstBase, dstIndex, dstScale, dstDisp, srcReg);
-    if (lister != null) lister.RXDR(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RXDR(miStart, "${acronym}", dstBase, dstIndex, dstScale, dstDisp, srcReg);
   }
 
   /**
@@ -3174,7 +3174,7 @@ EOF
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) ${opCode2});
     emitRegDispRegOperands(dstBase, dstDisp, srcReg);
-    if (lister != null) lister.RDR(miStart, "${acronym}", dstBase, dstDisp, srcReg);
+    if (!Production && (lister != null)) lister.RDR(miStart, "${acronym}", dstBase, dstDisp, srcReg);
   }
 
 EOF
@@ -3293,7 +3293,7 @@ emitFloatMemAcc() {
     setMachineCodes(mi++, (byte) ${opcode});
     // The ``register'' ${mOpExt} is really part of the opcode
     emitRegDispRegOperands(srcBase, srcDisp, GPR.getForOpcode(${mOpExt}));
-    if (lister != null) lister.RRD(miStart, "${acronym}", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "${acronym}", dstReg, srcBase, srcDisp);
   }
 
   /**
@@ -3313,7 +3313,7 @@ emitFloatMemAcc() {
     setMachineCodes(mi++, (byte) ${opcode});
     // The ``register'' ${mOpExt} is really part of the opcode
     emitRegIndirectRegOperands(srcBase, GPR.getForOpcode(${mOpExt}));
-    if (lister != null) lister.RRN(miStart, "${acronym}", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "${acronym}", dstReg, srcBase);
   }
 
   /**
@@ -3336,7 +3336,7 @@ emitFloatMemAcc() {
     setMachineCodes(mi++, (byte) ${opcode});
     // The ``register'' ${mOpExt} is really part of the opcode
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, GPR.getForOpcode(${mOpExt}));
-    if (lister != null) lister.RRXD(miStart, "${acronym}", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "${acronym}", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -3358,7 +3358,7 @@ emitFloatMemAcc() {
     setMachineCodes(mi++, (byte) ${opcode});
     // The ``register'' ${mOpExt} is really part of the opcode
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, GPR.getForOpcode(${mOpExt}));
-    if (lister != null) lister.RRFD(miStart, "${acronym}", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "${acronym}", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -3378,7 +3378,7 @@ emitFloatMemAcc() {
     setMachineCodes(mi++, (byte) ${opcode});
     // The ``register'' ${mOpExt} is really part of the opcode
     emitAbsRegOperands(srcDisp, GPR.getForOpcode(${mOpExt}));
-    if (lister != null) lister.RRA(miStart, "${acronym}", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "${acronym}", dstReg, srcDisp);
   }
 
 EOF
@@ -3419,7 +3419,7 @@ emitFloatBinAcc() {
       setMachineCodes(mi++, (byte) 0xDC);
       setMachineCodes(mi++, (byte) (${toIop} | dstReg.value()));
     }
-    if (lister != null) lister.RR(miStart, "${acronym}", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "${acronym}", dstReg, srcReg);
   }
 
   /**
@@ -3437,7 +3437,7 @@ emitFloatBinAcc() {
     if (VM.VerifyAssertions) VM._assert(srcReg == FP0);
     setMachineCodes(mi++, (byte) 0xDE);
     setMachineCodes(mi++, (byte) (${toIop} | dstReg.value()));
-    if (lister != null) lister.R(miStart, "${popAcronym}", dstReg);
+    if (!Production && (lister != null)) lister.R(miStart, "${popAcronym}", dstReg);
   }
 
 EOF
@@ -3481,7 +3481,7 @@ emitFloatMem() {
     if (VM.VerifyAssertions) VM._assert(dummy == FP0);
     setMachineCodes(mi++, (byte) ${opcode});
     emitRegDispRegOperands(reg, disp, GPR.getForOpcode(${extCode}));
-    if (lister != null) lister.RD(miStart, "${acronym}", reg, disp);
+    if (!Production && (lister != null)) lister.RD(miStart, "${acronym}", reg, disp);
   }
 
   /** top of stack ${op} (${size:-double word}) [reg] */
@@ -3491,7 +3491,7 @@ emitFloatMem() {
     if (VM.VerifyAssertions) VM._assert(dummy == FP0);
     setMachineCodes(mi++, (byte) ${opcode});
     emitRegIndirectRegOperands(reg, GPR.getForOpcode(${extCode}));
-    if (lister != null) lister.RN(miStart, "${acronym}", reg);
+    if (!Production && (lister != null)) lister.RN(miStart, "${acronym}", reg);
   }
 
   /** top of stack ${op} (${size:-double word}) [baseReg + idxReg<<scale + disp] */
@@ -3501,7 +3501,7 @@ emitFloatMem() {
     if (VM.VerifyAssertions) VM._assert(dummy == FP0);
     setMachineCodes(mi++, (byte) ${opcode});
     emitSIBRegOperands(baseReg, idxReg, scale, disp, GPR.getForOpcode(${extCode}));
-    if (lister != null) lister.RXD(miStart, "${acronym}", baseReg, idxReg, scale, disp);
+    if (!Production && (lister != null)) lister.RXD(miStart, "${acronym}", baseReg, idxReg, scale, disp);
   }
 
   /** top of stack ${op} (${size:-double word}) [idxReg<<scale + disp] */
@@ -3511,7 +3511,7 @@ emitFloatMem() {
     if (VM.VerifyAssertions) VM._assert(dummy == FP0);
     setMachineCodes(mi++, (byte) ${opcode});
     emitRegOffRegOperands(idxReg, scale, disp, GPR.getForOpcode(${extCode}));
-    if (lister != null) lister.RFD(miStart, "${acronym}", idxReg, scale, disp);
+    if (!Production && (lister != null)) lister.RFD(miStart, "${acronym}", idxReg, scale, disp);
   }
 
   /** top of stack ${op} (${size:-double word}) [disp] */
@@ -3520,7 +3520,7 @@ emitFloatMem() {
     if (VM.VerifyAssertions) VM._assert(dummy == FP0);
     setMachineCodes(mi++, (byte) ${opcode});
     emitAbsRegOperands(disp, GPR.getForOpcode(${extCode}));
-    if (lister != null) lister.RA(miStart, "${acronym}", disp);
+    if (!Production && (lister != null)) lister.RA(miStart, "${acronym}", disp);
   }
 
 EOF
@@ -3558,7 +3558,7 @@ emitFloatCmp() {
     if (VM.VerifyAssertions) VM._assert(reg1 == FP0);
     setMachineCodes(mi++, (byte) ${opcode1});
     setMachineCodes(mi++, (byte)  (${opcode2} | reg2.value()));
-    if (lister != null) lister.RR(miStart, "${acronym}", reg1, reg2);
+    if (!Production && (lister != null)) lister.RR(miStart, "${acronym}", reg1, reg2);
   }
 
 EOF
@@ -3596,7 +3596,7 @@ cat >> $FILENAME <<EOF
     $prefix
     setMachineCodes(mi++, (byte) ${axOpcode1});
     setMachineCodes(mi++, (byte) ${axOpcode2});
-    if (lister != null) lister.R(miStart, "${acronym}", dstReg);
+    if (!Production && (lister != null)) lister.R(miStart, "${acronym}", dstReg);
   }
 
 EOF
@@ -3614,7 +3614,7 @@ cat >> $FILENAME <<EOF
     $prefix
     setMachineCodes(mi++, (byte) ${opcode});
     emitRegDispRegOperands(baseReg, disp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RD(miStart, "${acronym}", baseReg, disp);
+    if (!Production && (lister != null)) lister.RD(miStart, "${acronym}", baseReg, disp);
   }
 
   /**
@@ -3628,7 +3628,7 @@ cat >> $FILENAME <<EOF
     $prefix
     setMachineCodes(mi++, (byte) ${opcode});
     emitRegIndirectRegOperands(baseReg, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RN(miStart, "${acronym}", baseReg);
+    if (!Production && (lister != null)) lister.RN(miStart, "${acronym}", baseReg);
   }
 
   /**
@@ -3645,7 +3645,7 @@ cat >> $FILENAME <<EOF
     $prefix
     setMachineCodes(mi++, (byte) ${opcode});
     emitSIBRegOperands(baseReg, indexReg, scale, disp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RXD(miStart, "${acronym}", baseReg, indexReg, scale, disp);
+    if (!Production && (lister != null)) lister.RXD(miStart, "${acronym}", baseReg, indexReg, scale, disp);
   }
 
   /**
@@ -3661,7 +3661,7 @@ cat >> $FILENAME <<EOF
     $prefix
     setMachineCodes(mi++, (byte) ${opcode});
     emitRegOffRegOperands(indexReg, scale, disp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RFD(miStart, "${acronym}", indexReg, scale, disp);
+    if (!Production && (lister != null)) lister.RFD(miStart, "${acronym}", indexReg, scale, disp);
   }
 
   /**
@@ -3674,7 +3674,7 @@ cat >> $FILENAME <<EOF
     $prefix
     setMachineCodes(mi++, (byte) ${opcode});
     emitAbsRegOperands(disp, GPR.getForOpcode(${opExt}));
-    if (lister != null) lister.RA(miStart, "${acronym}", disp);
+    if (!Production && (lister != null)) lister.RA(miStart, "${acronym}", disp);
   }
 
 EOF
@@ -3706,7 +3706,7 @@ cat >> $FILENAME <<EOF
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xD9);
     setMachineCodes(mi++, (byte) ${opExt});
-    if (lister != null) lister.R(miStart, "${opcode}", dstReg);
+    if (!Production && (lister != null)) lister.R(miStart, "${opcode}", dstReg);
   }
 
 EOF

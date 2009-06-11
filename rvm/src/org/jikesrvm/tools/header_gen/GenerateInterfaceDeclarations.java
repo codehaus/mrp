@@ -188,6 +188,9 @@ public class GenerateInterfaceDeclarations {
     p("org.jikesrvm.tools.header_gen.GenerateInterfaceDeclarations.java: DO NOT EDIT");
     p("------*/\n\n");
 
+    pln("#define PRODUCTION " + (VM.Production ? "1" : "0"));
+    pln();
+
     if (VM.PortableNativeSync) {
       pln("#define PORTABLE_NATIVE_SYNC 1");
       pln();

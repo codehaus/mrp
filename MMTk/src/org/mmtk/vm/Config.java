@@ -22,9 +22,13 @@ public class Config {
   /** Mark bit in the header or on the side ? */
   public final boolean HEADER_MARK_BITS;
 
+  /** <code>true</code> if this is a production build */
+  public final boolean PRODUCTION;
+
   Config(BuildTimeConfig config) {
     ACTIVE_PLAN            = config.getPlanName();
-    HEADER_MARK_BITS        = config.getBooleanProperty("mmtk.headerMarkBit",true);
+    HEADER_MARK_BITS       = config.getBooleanProperty("mmtk.headerMarkBit",true);
+    PRODUCTION             = config.getBooleanProperty("mmtk.production", false);
   }
 
   public void printConfig() {

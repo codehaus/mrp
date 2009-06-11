@@ -82,10 +82,8 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
    */
   protected BaselineCompiler(BaselineCompiledMethod cm) {
     super(cm);
-    shouldPrint =
-        (!VM.runningTool &&
-         (options.PRINT_MACHINECODE) &&
-         (!options.hasMETHOD_TO_PRINT() || options.fuzzyMatchMETHOD_TO_PRINT(method.toString())));
+    shouldPrint =!VM.Production && !VM.runningTool && options.PRINT_MACHINECODE &&
+                 (!options.hasMETHOD_TO_PRINT() || options.fuzzyMatchMETHOD_TO_PRINT(method.toString()));
     if (!VM.runningTool && options.PRINT_METHOD) printMethodMessage();
     if (shouldPrint && VM.runningVM && !VM.fullyBooted) {
       shouldPrint = false;

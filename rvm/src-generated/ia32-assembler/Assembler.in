@@ -20,6 +20,7 @@ import org.jikesrvm.ia32.RegisterConstants;
 import org.jikesrvm.compilers.common.assembler.ForwardReference;
 import org.jikesrvm.compilers.common.assembler.AbstractAssembler;
 import static org.jikesrvm.ia32.RegisterConstants.GPR;
+import static org.jikesrvm.VM.Production;
 
 import org.vmmagic.pragma.*;
 import org.vmmagic.unboxed.*;
@@ -330,7 +331,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
    * @param bc a message descriptive of the current bytecode.
    */
   public final void noteBytecode (int bytecodeNumber, String bc) {
-    if (lister != null) lister.noteBytecode(bytecodeNumber, bc);
+    if (!Production && (lister != null)) lister.noteBytecode(bytecodeNumber, bc);
   }
 
   @NoInline
@@ -376,7 +377,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
    * @param comment a comment string
    */
   public final void comment (String comment) {
-    if (lister != null) lister.comment(mi, comment);
+    if (!Production && (lister != null)) lister.comment(mi, comment);
   }
 
   /**
@@ -884,7 +885,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
   @Inline
   public final void emitLockNextInstruction() {
     setMachineCodes(mi++, (byte) 0xF0);
-    if (lister != null) lister.lockPrefix();
+    if (!Production && (lister != null)) lister.lockPrefix();
   }
 
   /**
@@ -893,7 +894,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
   @Inline
   public final void emitBranchLikelyNextInstruction() {
     setMachineCodes(mi++, (byte) 0x3E);
-    if (lister != null) lister.branchLikelyPrefix();
+    if (!Production && (lister != null)) lister.branchLikelyPrefix();
   }
 
   /**
@@ -902,7 +903,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
   @Inline
   public final void emitBranchUnlikelyNextInstruction() {
     setMachineCodes(mi++, (byte) 0x2E);
-    if (lister != null) lister.branchUnlikelyPrefix();
+    if (!Production && (lister != null)) lister.branchUnlikelyPrefix();
   }
 
   /**
@@ -997,7 +998,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     ForwardReference r =  new ForwardReference.ShortBranch(mi);
     setMachineCodes(mi++, (byte) 0xEB);
     mi += 1; // leave space for displacement
-    if (lister != null) lister.I(miStart, "JMP", 0);
+    if (!Production && (lister != null)) lister.I(miStart, "JMP", 0);
     return r;
   }
 
@@ -1018,7 +1019,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     ForwardReference r =  new ForwardReference.ShortBranch(mi);
     setMachineCodes(mi++, (byte) (0x70 + cond));
     mi += 1; // leave space for displacement
-    if (lister != null) lister.I(miStart, "J" + CONDITION[cond], 0);
+    if (!Production && (lister != null)) lister.I(miStart, "J" + CONDITION[cond], 0);
     return r;
   }
 
@@ -1037,7 +1038,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     ForwardReference r =  new ForwardReference.ShortBranch(mi);
     setMachineCodes(mi++, (byte)0xE3);
     mi += 1; // leave space for displacement
-    if (lister != null) lister.I(miStart, "JECXZ", 0);
+    if (!Production && (lister != null)) lister.I(miStart, "JECXZ", 0);
     return r;
   }
 
@@ -1140,7 +1141,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     ForwardReference r = new ForwardReference.UnconditionalBranch(mi, btarget);
     setMachineCodes(mi++, (byte) 0xE9);
     mi += 4; // leave space for displacement
-    if (lister != null) lister.I(miStart, "JMP", 0);
+    if (!Production && (lister != null)) lister.I(miStart, "JMP", 0);
     return r;
   }
   // END OSR SUPPORT //
@@ -1159,7 +1160,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       // force 4byte alignment here
       emitNOP((4 - mi) & 3);
     }
-    if (lister != null) lister.comefrom(mi, sourceIndex);
+    if (!Production && (lister != null)) lister.comefrom(mi, sourceIndex);
     int relOffset = mi - (sourceIndex+5);
     sourceIndex++; // skip the op code
     emitImm32(relOffset, sourceIndex);
@@ -1179,7 +1180,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       // force 4byte alignment here
       emitNOP((4 - mi) & 3);
     }
-    if (lister != null) lister.comefrom(mi, sourceIndex);
+    if (!Production && (lister != null)) lister.comefrom(mi, sourceIndex);
     int relOffset = mi - (sourceIndex+6);
     sourceIndex += 2; // skip the (two byte) op code
     emitImm32(relOffset, sourceIndex);
@@ -1200,7 +1201,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       // force 4byte alignment here
       emitNOP((4 - mi) & 3);
     }
-    if (lister != null) lister.comefrom(mi, sourceIndex);
+    if (!Production && (lister != null)) lister.comefrom(mi, sourceIndex);
     int relOffset = mi - (sourceIndex+2);
     if (VM.VerifyAssertions) VM._assert(fits(relOffset, 8), "offset too large: "+relOffset);
     sourceIndex++; // skip the op code
@@ -1248,12 +1249,12 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     if (0 < mTarget) { // resolved (backward) reference
       emitImm32(mTarget);
-      if (lister != null) lister.I(miStart, "DATA", mTarget);
+      if (!Production && (lister != null)) lister.I(miStart, "DATA", mTarget);
     } else {        // unresolved forward reference
       ForwardReference r =  new ForwardReference.SwitchCase(mi, bTarget);
       forwardRefs = ForwardReference.enqueue(forwardRefs, r);
       emitImm32(c);
-      if (lister != null) lister.I(miStart, "DATA", c);
+      if (!Production && (lister != null)) lister.I(miStart, "DATA", c);
     }
   }
 
@@ -1271,7 +1272,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       // force 4byte alignment here
       emitNOP((4 - mi) & 3);
     }
-    if (lister != null) lister.comefrom(mi, sourceIndex);
+    if (!Production && (lister != null)) lister.comefrom(mi, sourceIndex);
     int c = 0;
     c |= (machineCodes[sourceIndex+0] & 0xFF) <<  0;
     c |= (machineCodes[sourceIndex+1] & 0xFF) <<  8;
@@ -1316,7 +1317,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(false, null, null, reg);
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) (0xC8 | (reg.value() & 7)));
-    if (lister != null) lister.R(miStart, "bswap", reg);
+    if (!Production && (lister != null)) lister.R(miStart, "bswap", reg);
   }
 
   /**
@@ -1333,7 +1334,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, null, null, reg);
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) (0xC8 | (reg.value() & 7)));
-    if (lister != null) lister.R(miStart, "bswap", reg);
+    if (!Production && (lister != null)) lister.R(miStart, "bswap", reg);
   }
 
   /**
@@ -1349,7 +1350,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x40, cond);
     emitRegRegOperands(src, dst);
-    if (lister != null) lister.RR(miStart, "CMOV" + CONDITION[cond], dst, src);
+    if (!Production && (lister != null)) lister.RR(miStart, "CMOV" + CONDITION[cond], dst, src);
   }
 
   /**
@@ -1365,7 +1366,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x40, cond);
     emitRegDispRegOperands(src, disp, dst);
-    if (lister != null) lister.RRD(miStart, "CMOV" + CONDITION[cond], dst, src, disp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "CMOV" + CONDITION[cond], dst, src, disp);
   }
 
   /**
@@ -1381,7 +1382,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x40, cond);
     emitRegIndirectRegOperands(src, dst);
-    if (lister != null) lister.RRN(miStart, "CMOV" + CONDITION[cond], dst, src);
+    if (!Production && (lister != null)) lister.RRN(miStart, "CMOV" + CONDITION[cond], dst, src);
   }
 
   /**
@@ -1397,7 +1398,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x40, cond);
     emitRegOffRegOperands(index2, scale2, disp2, dst);
-    if (lister != null) lister.RRFD(miStart, "CMOV" + CONDITION[cond], dst, index2, scale2, disp2);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "CMOV" + CONDITION[cond], dst, index2, scale2, disp2);
   }
 
   /**
@@ -1413,7 +1414,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x40, cond);
     emitAbsRegOperands(disp2, dst);
-    if (lister != null) lister.RRA(miStart, "CMOV" + CONDITION[cond], dst, disp2);
+    if (!Production && (lister != null)) lister.RRA(miStart, "CMOV" + CONDITION[cond], dst, disp2);
   }
 
   /**
@@ -1429,7 +1430,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x40, cond);
     emitSIBRegOperands(base2, index2, scale2, disp2, dst);
-    if (lister != null) lister.RRXD(miStart, "CMOV" + CONDITION[cond], dst, base2, index2, scale2, disp2);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "CMOV" + CONDITION[cond], dst, base2, index2, scale2, disp2);
   }
 
   /**
@@ -1450,7 +1451,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x90, cond);
     emitRegRegOperands(dst, EAX /* UNUSED */);
-    if (lister != null) lister.R(miStart, "SET" + CONDITION[cond], dst);
+    if (!Production && (lister != null)) lister.R(miStart, "SET" + CONDITION[cond], dst);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={2})
@@ -1460,7 +1461,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x90, cond);
     emitRegDispRegOperands(dst, disp, EAX /* UNUSED */);
-    if (lister != null) lister.RD(miStart, "SET" + CONDITION[cond], dst, disp);
+    if (!Production && (lister != null)) lister.RD(miStart, "SET" + CONDITION[cond], dst, disp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={2})
@@ -1470,7 +1471,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x90, cond);
     emitRegIndirectRegOperands(dst, EAX /* UNUSED */);
-    if (lister != null) lister.RN(miStart, "SET" + CONDITION[cond], dst);
+    if (!Production && (lister != null)) lister.RN(miStart, "SET" + CONDITION[cond], dst);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={2,3})
@@ -1480,7 +1481,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x90, cond);
     emitSIBRegOperands(base, index, scale, disp, EAX /* UNUSED */);
-    if (lister != null) lister.RXD(miStart, "SET" + CONDITION[cond], base, index, scale, disp);
+    if (!Production && (lister != null)) lister.RXD(miStart, "SET" + CONDITION[cond], base, index, scale, disp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={2})
@@ -1490,7 +1491,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x90, cond);
     emitRegOffRegOperands(index, scale, disp, EAX /* UNUSED */);
-    if (lister != null) lister.RFD(miStart, "SET" + CONDITION[cond], index, scale, disp);
+    if (!Production && (lister != null)) lister.RFD(miStart, "SET" + CONDITION[cond], index, scale, disp);
   }
 
   @Inline
@@ -1500,7 +1501,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     emitCondOpByte((byte)0x90, cond);
     emitAbsRegOperands(disp, EAX /* UNUSED */);
-    if (lister != null) lister.RA(miStart, "SET" + CONDITION[cond], disp);
+    if (!Production && (lister != null)) lister.RA(miStart, "SET" + CONDITION[cond], disp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1510,7 +1511,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitRegRegOperands(srcReg, dstReg);
-    if (lister != null) lister.RR(miStart, "IMUL", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "IMUL", dstReg, srcReg);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1520,7 +1521,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "IMUL", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "IMUL", dstReg, srcBase);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1530,7 +1531,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "IMUL", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "IMUL", dstReg, srcBase, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1540,7 +1541,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "IMUL", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "IMUL", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
@@ -1550,7 +1551,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "IMUL", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "IMUL", dstReg, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1560,7 +1561,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "IMUL", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "IMUL", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
@@ -1576,7 +1577,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       emitRegRegOperands(dstReg, dstReg);
       emitImm32(imm);
     }
-    if (lister != null) lister.RI(miStart, "IMUL", dstReg, imm);
+    if (!Production && (lister != null)) lister.RI(miStart, "IMUL", dstReg, imm);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1586,7 +1587,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitRegRegOperands(srcReg, dstReg);
-    if (lister != null) lister.RR(miStart, "IMUL", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "IMUL", dstReg, srcReg);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1596,7 +1597,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "IMUL", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "IMUL", dstReg, srcBase);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1606,7 +1607,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "IMUL", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "IMUL", dstReg, srcBase, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1616,7 +1617,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "IMUL", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "IMUL", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
@@ -1626,7 +1627,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "IMUL", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "IMUL", dstReg, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1636,7 +1637,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xAF);
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "IMUL", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "IMUL", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
@@ -1652,7 +1653,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       emitRegRegOperands(dstReg, dstReg);
       emitImm32(imm);
     }
-    if (lister != null) lister.RI(miStart, "IMUL", dstReg, imm);
+    if (!Production && (lister != null)) lister.RI(miStart, "IMUL", dstReg, imm);
   }
 
   // trap
@@ -1665,7 +1666,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       setMachineCodes(mi++, (byte) 0xCD);
       setMachineCodes(mi++, (byte) v);
     }
-    if (lister != null) lister.I(miStart, "INT", v);
+    if (!Production && (lister != null)) lister.I(miStart, "INT", v);
   }
 
   /**
@@ -1700,7 +1701,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) (0x80 + cond));
     mi += 4; // leave space for displacement    TODO!! handle short branches
-    if (lister != null) lister.I(miStart, "J" + CONDITION[cond], label);
+    if (!Production && (lister != null)) lister.I(miStart, "J" + CONDITION[cond], label);
   }
 
   /**
@@ -1729,7 +1730,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     relOffset = mTarget - (mi + 4); // address relative to next instruction
     emitImm32(relOffset);
     }
-    if (lister != null) lister.I(miStart, "J" + CONDITION[cond], relOffset);
+    if (!Production && (lister != null)) lister.I(miStart, "J" + CONDITION[cond], relOffset);
   }
 
   /**
@@ -1763,7 +1764,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(false, dstReg, null, srcBase);
     setMachineCodes(mi++, (byte) 0x8D);
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "LEA", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "LEA", dstReg, srcBase, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1772,7 +1773,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(false, dstReg, null, srcBase);
     setMachineCodes(mi++, (byte) 0x8D);
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "LEA", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "LEA", dstReg, srcBase);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1781,7 +1782,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(false, dstReg, srcIndex, null);
     setMachineCodes(mi++, (byte) 0x8D);
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "LEA", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "LEA", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1790,7 +1791,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(false, dstReg, null, null);
     setMachineCodes(mi++, (byte) 0x8D);
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "LEA", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "LEA", dstReg, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1799,7 +1800,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(false, dstReg, srcIndex, srcBase);
     setMachineCodes(mi++, (byte) 0x8D);
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "LEA", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "LEA", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1808,7 +1809,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, null, srcBase);
     setMachineCodes(mi++, (byte) 0x8D);
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "LEA", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "LEA", dstReg, srcBase, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1817,7 +1818,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, null, srcBase);
     setMachineCodes(mi++, (byte) 0x8D);
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "LEA", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "LEA", dstReg, srcBase);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1826,7 +1827,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, srcIndex, null);
     setMachineCodes(mi++, (byte) 0x8D);
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "LEA", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "LEA", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1835,7 +1836,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, null, null);
     setMachineCodes(mi++, (byte) 0x8D);
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "LEA", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "LEA", dstReg, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
@@ -1844,7 +1845,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, srcIndex, srcBase);
     setMachineCodes(mi++, (byte) 0x8D);
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "LEA", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "LEA", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
@@ -1853,7 +1854,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(false, null, null, dstReg);
     setMachineCodes(mi++, (byte) (0xB8 | dstReg.value()));
     emitImm32(imm);
-    if (lister != null) lister.RI(miStart, "MOV", dstReg, imm);
+    if (!Production && (lister != null)) lister.RI(miStart, "MOV", dstReg, imm);
   }
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
@@ -1862,14 +1863,14 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, null, null, dstReg);
     setMachineCodes(mi++, (byte) (0xB8 | dstReg.value()));
     emitImm64(imm);
-    if (lister != null) lister.RI(miStart, "MOV", dstReg, imm);
+    if (!Production && (lister != null)) lister.RI(miStart, "MOV", dstReg, imm);
   }
 
   /** pop address and goto it */
   public final void emitRET () {
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xC3);
-    if (lister != null) lister.OP(miStart, "RET");
+    if (!Production && (lister != null)) lister.OP(miStart, "RET");
   }
 
   /** pop address and goto it, pop parameterBytes additional bytes */
@@ -1877,12 +1878,12 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     if (parameterBytes == 0) {
       setMachineCodes(mi++, (byte) 0xC3);
-      if (lister != null) lister.OP(miStart, "RET");
+      if (!Production && (lister != null)) lister.OP(miStart, "RET");
     } else {
       setMachineCodes(mi++, (byte) 0xC2);
       emitImm16(parameterBytes);
       if (VM.VerifyAssertions) VM._assert ((parameterBytes & 0xffff0000) == 0);
-      if (lister != null) lister.I(miStart, "RET", parameterBytes);
+      if (!Production && (lister != null)) lister.I(miStart, "RET", parameterBytes);
     }
   }
 
@@ -1892,14 +1893,14 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0xC8);
     emitImm16(frameSize);
     setMachineCodes(mi++, (byte) 0x0);
-    if (lister != null) lister.I(miStart, "ENTER", frameSize);
+    if (!Production && (lister != null)) lister.I(miStart, "ENTER", frameSize);
   }
 
   /** sign extends EAX into EDX */
   public final void emitCDQ () {
     int miStart = mi;
     setMachineCodes(mi++, (byte)0x99);
-    if (lister != null) lister.OP(miStart, "CDQ");
+    if (!Production && (lister != null)) lister.OP(miStart, "CDQ");
   }
 
   /** sign extends RAX into RDX */
@@ -1907,7 +1908,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     generateREXprefix(true, null, null, null);
     setMachineCodes(mi++, (byte)0x99);
-    if (lister != null) lister.OP(miStart, "CDO");
+    if (!Production && (lister != null)) lister.OP(miStart, "CDO");
   }
 
   /** sign extends EAX into RDX */
@@ -1915,7 +1916,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     generateREXprefix(true, null, null, null);
     setMachineCodes(mi++, (byte)0x98);
-    if (lister != null) lister.OP(miStart, "CDQE");
+    if (!Production && (lister != null)) lister.OP(miStart, "CDQE");
   }
 
   /**
@@ -1928,7 +1929,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0x31);
-    if (lister != null) lister.OP(miStart, "RDTSC");
+    if (!Production && (lister != null)) lister.OP(miStart, "RDTSC");
   }
 
   /** software prefetch of value in EDI */
@@ -1939,7 +1940,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++,(byte) 0x18);
     emitRegRegOperands(GPR.getForOpcode(0), GPR.getForOpcode(0));
-    if (lister != null) lister.R(miStart, "PREFETCHNTA", srcReg);
+    if (!Production && (lister != null)) lister.R(miStart, "PREFETCHNTA", srcReg);
   }
 
   /** Suggest to process that a a compare for a spin lock has just failed */
@@ -1947,7 +1948,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xF3);
     setMachineCodes(mi++,(byte) 0x90);
-    if (lister != null) lister.OP(miStart, "PAUSE");
+    if (!Production && (lister != null)) lister.OP(miStart, "PAUSE");
   }
 
   /**
@@ -1963,7 +1964,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xC7);
     emitRegDispRegOperands(base, disp, GPR.getForOpcode(1));
-    if (lister != null) lister.RD(miStart, "CMPXCHG8B" , base, disp);
+    if (!Production && (lister != null)) lister.RD(miStart, "CMPXCHG8B" , base, disp);
   }
 
   /**
@@ -1979,7 +1980,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xC7);
     emitRegIndirectRegOperands(base, GPR.getForOpcode(1));
-    if (lister != null) lister.R(miStart, "CMPXCHG8B" , base);
+    if (!Production && (lister != null)) lister.R(miStart, "CMPXCHG8B" , base);
   }
 
   /**
@@ -1995,7 +1996,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xC7);
     emitRegOffRegOperands(index2, scale2, disp2, GPR.getForOpcode(1));
-    if (lister != null) lister.RFD(miStart, "CMPXCHG8B", index2, scale2, disp2);
+    if (!Production && (lister != null)) lister.RFD(miStart, "CMPXCHG8B", index2, scale2, disp2);
   }
 
   /**
@@ -2011,14 +2012,14 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x0F);
     setMachineCodes(mi++, (byte) 0xC7);
     emitSIBRegOperands(base2, index2, scale2, disp2, GPR.getForOpcode(1));
-    if (lister != null) lister.RXD(miStart, "CMPXCHG8B", base2, index2, scale2, disp2);
+    if (!Production && (lister != null)) lister.RXD(miStart, "CMPXCHG8B", base2, index2, scale2, disp2);
   }
 
   /** Store AH into Flags */
   public final void emitSAHF () {
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0x9E);
-    if (lister != null) lister.OP(miStart, "SAHF");
+    if (!Production && (lister != null)) lister.OP(miStart, "SAHF");
   }
 
   /**
@@ -2036,7 +2037,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, null, srcReg);
     setMachineCodes(mi++, (byte) 0x63);
     emitRegRegOperands(srcReg, dstReg);
-    if (lister != null) lister.RR(miStart, "MOVSXDQ", dstReg, srcReg);
+    if (!Production && (lister != null)) lister.RR(miStart, "MOVSXDQ", dstReg, srcReg);
   }
 
   /**
@@ -2055,7 +2056,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, null, srcBase);
     setMachineCodes(mi++, (byte) 0x63);
     emitRegDispRegOperands(srcBase, srcDisp, dstReg);
-    if (lister != null) lister.RRD(miStart, "MOVSXDQ", dstReg, srcBase, srcDisp);
+    if (!Production && (lister != null)) lister.RRD(miStart, "MOVSXDQ", dstReg, srcBase, srcDisp);
   }
 
   /**
@@ -2073,7 +2074,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, null, srcBase);
     setMachineCodes(mi++, (byte) 0x63);
     emitRegIndirectRegOperands(srcBase, dstReg);
-    if (lister != null) lister.RRN(miStart, "MOVSXDQ", dstReg, srcBase);
+    if (!Production && (lister != null)) lister.RRN(miStart, "MOVSXDQ", dstReg, srcBase);
   }
 
   /**
@@ -2093,7 +2094,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, srcIndex, null);
     setMachineCodes(mi++, (byte) 0x63);
     emitRegOffRegOperands(srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRFD(miStart, "MOVSXDQ", dstReg, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRFD(miStart, "MOVSXDQ", dstReg, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -2111,7 +2112,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, null, null);
     setMachineCodes(mi++, (byte) 0x63);
     emitAbsRegOperands(srcDisp, dstReg);
-    if (lister != null) lister.RRA(miStart, "MOVSXDQ", dstReg, srcDisp);
+    if (!Production && (lister != null)) lister.RRA(miStart, "MOVSXDQ", dstReg, srcDisp);
   }
 
   /**
@@ -2132,7 +2133,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     generateREXprefix(true, dstReg, srcIndex, srcBase);
     setMachineCodes(mi++, (byte) 0x63);
     emitSIBRegOperands(srcBase, srcIndex, srcScale, srcDisp, dstReg);
-    if (lister != null) lister.RRXD(miStart, "MOVSXDQ", dstReg, srcBase, srcIndex, srcScale, srcDisp);
+    if (!Production && (lister != null)) lister.RRXD(miStart, "MOVSXDQ", dstReg, srcBase, srcIndex, srcScale, srcDisp);
   }
 
   /**
@@ -2211,7 +2212,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     default:
       throw new Error("Unexpected NOP length "+length);
     }
-    if (lister != null) lister.OP(miStart, "NOP");
+    if (!Production && (lister != null)) lister.OP(miStart, "NOP");
   }
 
   ////////////////////////////////////////////
@@ -2228,7 +2229,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       int miStart = mi;
       setMachineCodes(mi++, (byte) 0x0F);
       setMachineCodes(mi++, (byte) 0x77);
-      if (lister != null) lister.OP(miStart, "EMMS");
+      if (!Production && (lister != null)) lister.OP(miStart, "EMMS");
   }
 
   /** x87 floating point conditional moves */
@@ -2272,7 +2273,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       default:
         if (VM.VerifyAssertions) VM._assert(VM.NOT_REACHED);
     }
-    if (lister != null) lister.RR(miStart, "FCMOV" + CONDITION[cond], reg1, reg2);
+    if (!Production && (lister != null)) lister.RR(miStart, "FCMOV" + CONDITION[cond], reg1, reg2);
   }
 
   /** x87 floating point push of ST(i) into ST(0) */
@@ -2282,7 +2283,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     if (VM.VerifyAssertions) VM._assert(destReg == FP0);
     setMachineCodes(mi++, (byte) 0xD9);
     setMachineCodes(mi++, (byte) (0xC0 + srcReg.value()));
-    if (lister != null) lister.R(miStart, "FLD", srcReg);
+    if (!Production && (lister != null)) lister.R(miStart, "FLD", srcReg);
   }
 
   // floating point copy of ST(0) into ST(I)
@@ -2292,7 +2293,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     if (VM.VerifyAssertions) VM._assert(srcReg == FP0);
     setMachineCodes(mi++, (byte) 0xDD);
     setMachineCodes(mi++, (byte) (0xD0 + destReg.value()));
-    if (lister != null) lister.R(miStart, "FST", destReg);
+    if (!Production && (lister != null)) lister.R(miStart, "FST", destReg);
   }
 
   // floating point pop of ST(0) into ST(I)
@@ -2302,7 +2303,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     if (VM.VerifyAssertions) VM._assert(srcReg == FP0);
     setMachineCodes(mi++, (byte) 0xDD);
     setMachineCodes(mi++, (byte) (0xD8 + destReg.value()));
-    if (lister != null) lister.R(miStart, "FST", destReg);
+    if (!Production && (lister != null)) lister.R(miStart, "FST", destReg);
   }
 
   // Change Sign: Top of FPU register stack -= Top og FPU register stack
@@ -2310,14 +2311,14 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xD9);
     setMachineCodes(mi++, (byte) 0xE0);
-    if (lister != null) lister.OP(miStart, "FADD32");
+    if (!Production && (lister != null)) lister.OP(miStart, "FADD32");
   }
 
   public final void emitFUCOMPP () {
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xDA);
     setMachineCodes(mi++, (byte) 0xE9);
-    if (lister != null) lister.OP(miStart, "FUCOMPP");
+    if (!Production && (lister != null)) lister.OP(miStart, "FUCOMPP");
   }
 
   // Store Status Word into AX register/noexecptions
@@ -2325,7 +2326,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xDF);
     setMachineCodes(mi++, (byte) 0xE0);
-    if (lister != null) lister.OP(miStart, "FNSTSW");
+    if (!Production && (lister != null)) lister.OP(miStart, "FNSTSW");
   }
 
   // Real Remainder:
@@ -2336,7 +2337,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xD9);
     setMachineCodes(mi++, (byte) 0xF8);
-    if (lister != null) lister.OP(miStart, "FPREM");
+    if (!Production && (lister != null)) lister.OP(miStart, "FPREM");
   }
 
   // Blow away floating point state
@@ -2345,7 +2346,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     setMachineCodes(mi++, (byte) 0x9B);
     setMachineCodes(mi++, (byte) 0xDB);
     setMachineCodes(mi++, (byte) 0xE3);
-    if (lister != null) lister.OP(miStart, "FINIT");
+    if (!Production && (lister != null)) lister.OP(miStart, "FINIT");
   }
 
   // Blow away floating point state
@@ -2354,7 +2355,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xDB);
     setMachineCodes(mi++, (byte) 0xE3);
-    if (lister != null) lister.OP(miStart, "FNINIT");
+    if (!Production && (lister != null)) lister.OP(miStart, "FNINIT");
   }
 
   /** Declare we are no longer using FP register */
@@ -2363,7 +2364,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xDD);
     setMachineCodes(mi++, (byte) ( (byte)0xC0 + reg.value() ));
-    if (lister != null) lister.R(miStart, "FFREE", reg);
+    if (!Production && (lister != null)) lister.R(miStart, "FFREE", reg);
   }
 
   /**
@@ -2376,7 +2377,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
     int miStart = mi;
     setMachineCodes(mi++, (byte) 0xDF);
     setMachineCodes(mi++, (byte) ( (byte)0xC0 + reg.value() ));
-    if (lister != null) lister.R(miStart, "FFREEP", reg);
+    if (!Production && (lister != null)) lister.R(miStart, "FFREEP", reg);
   }
 
   /** The dreaded FXCH (symbol of all that's wrong with x87 floating point) */
@@ -2406,7 +2407,7 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
       setMachineCodes(mi++, (byte) (0xC8 | nonZeroReg.value()));
 
     // list it
-    if (lister != null) lister.R(miStart, "FXCH", nonZeroReg);
+    if (!Production && (lister != null)) lister.R(miStart, "FXCH", nonZeroReg);
   }
 
   /*
