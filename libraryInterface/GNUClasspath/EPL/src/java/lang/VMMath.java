@@ -92,11 +92,22 @@ class VMMath {
   }
   @Pure
   public static double ceil(double a) {
-    return mathMagic(BootRecord.the_boot_record.sysVMMathCeilIP, a);
+    if (a == 0.0 || Double.isInfinite(a) || Double.isNaN(a)) {
+      return a;
+    } else {
+      double trunc = -((double)((long)(-a)));
+      return (a < 0.0 || trunc == a) ? trunc : trunc + 1.0;
+    }
+    return -floor(-a);
   }
   @Pure
   public static double floor(double a) {
-    return mathMagic(BootRecord.the_boot_record.sysVMMathFloorIP, a);
+    if (a == 0.0 || Double.isInfinite(a) || Double.isNaN(a)) {
+      return a;
+    } else {
+      double trunc = (double)((long)a);
+      return (a > 0.0 || trunc == a) ? trunc : trunc - 1.0;
+    }
   }
   @Pure
   public static double rint(double a) {

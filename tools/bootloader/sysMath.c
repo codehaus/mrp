@@ -280,18 +280,6 @@ EXTERNAL double sysVMMathIEEEremainder(double a, double b) {
 #endif
 }
 
-EXTERNAL double sysVMMathCeil(double a) {
-  SYS_START();
-  TRACE_PRINTF("%s: sysVMMathCeil %f\n", Me, a);
-  return ceil(a);
-}
-
-EXTERNAL double sysVMMathFloor(double a) {
-  SYS_START();
-  TRACE_PRINTF("%s: sysVMMathFloor %f\n", Me, a);
-  return floor(a);
-}
-
 EXTERNAL double sysVMMathRint(double a) {
   SYS_START();
   TRACE_PRINTF("%s: sysVMMathRint %f\n", Me, a);

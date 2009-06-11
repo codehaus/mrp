@@ -329,8 +329,6 @@ public class BootRecord {
   public Address sysVMMathSqrtIP;
   public Address sysVMMathPowIP;
   public Address sysVMMathIEEEremainderIP;
-  public Address sysVMMathCeilIP;
-  public Address sysVMMathFloorIP;
   public Address sysVMMathRintIP;
   public Address sysVMMathCbrtIP;
   public Address sysVMMathExpm1IP;
