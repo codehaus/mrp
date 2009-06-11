@@ -1977,7 +1977,7 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
             emptyVMField, reflectionMethods,
             null, null, null, null, null, null, null, null);
       reflectionClass.setType(klass);
-      klass.hasVanillaObjectInitializer = true;
+      ((RVMClass)klass).hasVanillaObjectInitializer = true;
       RuntimeEntrypoints.initializeClassForDynamicLink(klass.asClass());
     }
     return klass.getClassForType();
