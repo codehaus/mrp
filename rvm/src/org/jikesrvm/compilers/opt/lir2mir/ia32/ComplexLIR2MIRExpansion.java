@@ -108,24 +108,34 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     for (Instruction s = ir.firstInstructionInCodeOrder(); s != null; s = nextInstr) {
       switch (s.getOpcode()) {
         case LONG_MUL_opcode:
-          nextInstr = long_mul(s, ir);
+	  if (VM.BuildFor32Addr) {
+            nextInstr = long_mul(s, ir);
+          }
           break;
         case LONG_SHL_opcode:
-          nextInstr = long_shl(s, ir);
+	  if (VM.BuildFor32Addr) {
+            nextInstr = long_shl(s, ir);
+	  }
           break;
         case LONG_SHR_opcode:
-          nextInstr = long_shr(s, ir);
+	  if (VM.BuildFor32Addr) {
+            nextInstr = long_shr(s, ir);
+	  }
           break;
         case LONG_USHR_opcode:
-          nextInstr = long_ushr(s, ir);
+	  if (VM.BuildFor32Addr) {
+            nextInstr = long_ushr(s, ir);
+	  }
           break;
         case LONG_IFCMP_opcode: {
-          Operand val2 = IfCmp.getVal2(s);
-          if (val2 instanceof RegisterOperand) {
-            nextInstr = long_ifcmp(s, ir);
-          } else {
-            nextInstr = long_ifcmp_imm(s, ir);
-          }
+	  if (VM.BuildFor32Addr) {
+            Operand val2 = IfCmp.getVal2(s);
+            if (val2 instanceof RegisterOperand) {
+              nextInstr = long_ifcmp(s, ir);
+            } else {
+              nextInstr = long_ifcmp_imm(s, ir);
+            }
+	  }
           break;
         }
         case FLOAT_IFCMP_opcode:

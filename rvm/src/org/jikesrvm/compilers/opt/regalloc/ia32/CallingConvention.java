@@ -17,6 +17,7 @@ import static org.jikesrvm.SizeConstants.BYTES_IN_ADDRESS;
 import java.util.Enumeration;
 import org.jikesrvm.ArchitectureSpecificOpt.PhysicalRegisterSet;
 import org.jikesrvm.VM;
+import static org.jikesrvm.SizeConstants.*;
 import org.jikesrvm.classloader.InterfaceMethodSignature;
 import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.DefUse;
@@ -285,8 +286,14 @@ public abstract class CallingConvention extends IRTools
       TypeReference paramType = param.getType();
       if (paramType.isFloatType() || paramType.isDoubleType()) {
         nFPRParams++;
-        int size = paramType.isFloatType() ? 4 : 8;
-        parameterBytes -= size;
+        int size;
+        if (paramType.isFloatType()) {
+          size = BYTES_IN_FLOAT;
+          parameterBytes -= WORDSIZE;
+        } else {
+	  size = BYTES_IN_DOUBLE;
+          parameterBytes -= 2*WORDSIZE;
+        }
         if (nFPRParams > PhysicalRegisterSet.getNumberOfFPRParams()) {
           // pass the FP parameter on the stack
           Operand M = new StackLocationOperand(false, parameterBytes, size);
@@ -321,11 +328,11 @@ public abstract class CallingConvention extends IRTools
         }
       } else {
         nGPRParams++;
-        parameterBytes -= 4;
+        parameterBytes -= WORDSIZE;
         if (nGPRParams > PhysicalRegisterSet.getNumberOfGPRParams()) {
           // Too many parameters to pass in registers.  Write the
           // parameter into the appropriate stack frame location.
-          call.insertBefore(MIR_UnaryNoRes.create(REQUIRE_ESP, IC(parameterBytes + 4)));
+          call.insertBefore(MIR_UnaryNoRes.create(REQUIRE_ESP, IC(parameterBytes + WORDSIZE)));
           call.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, param));
         } else {
           // Pass the parameter in a register.
@@ -450,8 +457,14 @@ public abstract class CallingConvention extends IRTools
       TypeReference paramType = param.getType();
       if (paramType.isFloatType() || paramType.isDoubleType()) {
         nFPRParams++;
-        int size = paramType.isFloatType() ? 4 : 8;
-        parameterBytes -= size;
+        int size;
+        if (paramType.isFloatType()) {
+	  size = BYTES_IN_FLOAT;
+	  parameterBytes -= WORDSIZE;
+	} else {
+	  size = BYTES_IN_DOUBLE;
+	  parameterBytes -= 2*WORDSIZE;
+	}
         Operand M = new StackLocationOperand(false, parameterBytes, size);
         if (ArchConstants.SSE2_FULL) {
           if (paramType.isFloatType()) {
@@ -464,8 +477,8 @@ public abstract class CallingConvention extends IRTools
         }
       } else {
         nGPRParams++;
-        parameterBytes -= 4;
-        call.insertBefore(MIR_UnaryNoRes.create(REQUIRE_ESP, IC(parameterBytes + 4)));
+        parameterBytes -= WORDSIZE;
+        call.insertBefore(MIR_UnaryNoRes.create(REQUIRE_ESP, IC(parameterBytes + WORDSIZE)));
         call.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, param));
       }
     }
@@ -571,7 +584,7 @@ public abstract class CallingConvention extends IRTools
 
     int gprIndex = 0;
     int fprIndex = 0;
-    int paramByteOffset = ir.incomingParameterBytes() + 8;
+    int paramByteOffset = ir.incomingParameterBytes() + 2*WORDSIZE;
 
     // count the number of FPR params in a pre-pass
     int FPRRegisterParams = countFPRParamsInPrologue(p);
@@ -583,8 +596,14 @@ public abstract class CallingConvention extends IRTools
       RegisterOperand symbOp = (RegisterOperand) e.nextElement();
       TypeReference rType = symbOp.getType();
       if (rType.isFloatType() || rType.isDoubleType()) {
-        int size = rType.isFloatType() ? 4 : 8;
-        paramByteOffset -= size;
+        int size;
+	if (rType.isFloatType()) {
+	  size = BYTES_IN_FLOAT;
+	  paramByteOffset -= WORDSIZE;
+	} else {
+	  size = BYTES_IN_DOUBLE;
+	  paramByteOffset -= 2*WORDSIZE;
+	}
         // if optimizing, only define the register if it has uses
         if (!useDU || symbOp.getRegister().useList != null) {
           if (fprIndex < PhysicalRegisterSet.getNumberOfFPRParams()) {
@@ -619,7 +638,7 @@ public abstract class CallingConvention extends IRTools
         fprIndex++;
       } else {
         // if optimizing, only define the register if it has uses
-        paramByteOffset -= 4;
+        paramByteOffset -= WORDSIZE;
         if (!useDU || symbOp.getRegister().useList != null) {
           // t is object, 1/2 of a long, int, short, char, byte, or boolean
           if (gprIndex < PhysicalRegisterSet.getNumberOfGPRParams()) {
@@ -636,7 +655,7 @@ public abstract class CallingConvention extends IRTools
             start.insertBefore(m2);
             start = m2;
           } else {
-            Operand M = new StackLocationOperand(true, paramByteOffset, 4);
+            Operand M = new StackLocationOperand(true, paramByteOffset, WORDSIZE);
             start.insertBefore(MIR_Move.create(IA32_MOV, symbOp.copyRO(), M));
           }
         }
@@ -644,8 +663,8 @@ public abstract class CallingConvention extends IRTools
       }
     }
 
-    if (VM.VerifyAssertions && paramByteOffset != 8) {
-      VM._assert(false, "pb = " + paramByteOffset + "; expected 8");
+    if (VM.VerifyAssertions && paramByteOffset != (2*WORDSIZE)) {
+      VM._assert(false, "pb = " + paramByteOffset + "; expected "+(2*WORDSIZE));
     }
 
     // Now that we've made the calling convention explicit in the prologue,

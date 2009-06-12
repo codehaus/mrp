@@ -12,13 +12,16 @@
  */
 package org.jikesrvm.compilers.opt.lir2mir.ia32;
 
+import org.jikesrvm.VM;
 import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.Binary;
 import org.jikesrvm.compilers.opt.ir.Load;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
+import org.jikesrvm.compilers.opt.ir.Operator;
 import org.jikesrvm.compilers.opt.ir.Operators;
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
 import org.jikesrvm.compilers.opt.ir.operand.AddressConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ClassConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.CodeConstantOperand;
@@ -36,11 +39,12 @@ import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Statics;
 import org.vmmagic.unboxed.Offset;
 
+
 /**
  * Normalize the use of constants in the LIR
  * to match the patterns supported in LIR2MIR.rules
  */
-public abstract class NormalizeConstants implements Operators {
+public abstract class NormalizeConstants {
 
   /**
    * Only thing we do for IA32 is to restrict the usage of
@@ -50,6 +54,7 @@ public abstract class NormalizeConstants implements Operators {
    * @param ir IR to normalize
    */
   public static void perform(IR ir) {
+    final Operator refLoad = VM.BuildFor32Addr ? INT_LOAD : LONG_LOAD;
     for (Instruction s = ir.firstInstructionInCodeOrder(); s != null; s = s.nextInstructionInCodeOrder()) {
 
       // Get 'large' constants into a form the the BURS rules are
@@ -77,7 +82,7 @@ public abstract class NormalizeConstants implements Operators {
                   offset = Offset.fromIntSignExtend(Statics.findOrCreateObjectLiteral(oc.value));
                 }
                 LocationOperand loc = new LocationOperand(offset);
-                s.insertBefore(Load.create(INT_LOAD, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
+                s.insertBefore(Load.create(refLoad, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
                 s.putOperand(idx, rop.copyD2U());
               } else {
                 // Ensure object is in JTOC to keep it alive
@@ -114,14 +119,14 @@ public abstract class NormalizeConstants implements Operators {
               Operand jtoc = ir.regpool.makeJTOCOp(ir, s);
               Offset offset = ((TIBConstantOperand) use).value.getTibOffset();
               LocationOperand loc = new LocationOperand(offset);
-              s.insertBefore(Load.create(INT_LOAD, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
+              s.insertBefore(Load.create(refLoad, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
               s.putOperand(idx, rop.copyD2U());
             } else if (use instanceof CodeConstantOperand) {
               RegisterOperand rop = ir.regpool.makeTemp(TypeReference.CodeArray);
               Operand jtoc = ir.regpool.makeJTOCOp(ir, s);
               Offset offset = ((CodeConstantOperand) use).value.findOrCreateJtocOffset();
               LocationOperand loc = new LocationOperand(offset);
-              s.insertBefore(Load.create(INT_LOAD, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
+              s.insertBefore(Load.create(refLoad, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
               s.putOperand(idx, rop.copyD2U());
             }
           }

@@ -14,6 +14,7 @@ package org.jikesrvm.compilers.opt.lir2mir.ia32;
 
 import java.util.Enumeration;
 
+import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.Simplifier;
 import org.jikesrvm.compilers.opt.driver.CompilerPhase;
@@ -60,43 +61,79 @@ public class ConvertALUOperators extends CompilerPhase implements Operators, Arc
       Instruction s = e.nextElement();
 
       switch (s.getOpcode()) {
+      // BURS doesn't really care, so consolidate to reduce rule space
       case REF_ADD_opcode:
-        s.operator = INT_ADD;
+        s.operator = VM.BuildFor32Addr ? INT_ADD : LONG_ADD;
         break;
       case REF_SUB_opcode:
-        s.operator = INT_SUB;
+        s.operator = VM.BuildFor32Addr ? INT_SUB : LONG_SUB;
         break;
       case REF_NEG_opcode:
-        s.operator = INT_NEG;
+        s.operator = VM.BuildFor32Addr ? INT_NEG : LONG_NEG;
         break;
       case REF_NOT_opcode:
-        s.operator = INT_NOT;
+        s.operator = VM.BuildFor32Addr ? INT_NOT : LONG_NOT;
         break;
       case REF_AND_opcode:
-        s.operator = INT_AND;
+        s.operator = VM.BuildFor32Addr ? INT_AND : LONG_AND;
         break;
       case REF_OR_opcode:
-        s.operator = INT_OR;
+        s.operator = VM.BuildFor32Addr ? INT_OR  : LONG_OR;
         break;
       case REF_XOR_opcode:
-        s.operator = INT_XOR;
+        s.operator = VM.BuildFor32Addr ? INT_XOR : LONG_XOR;
         break;
       case REF_SHL_opcode:
-        s.operator = INT_SHL;
+        s.operator = VM.BuildFor32Addr ? INT_SHL : LONG_SHL;
         break;
       case REF_SHR_opcode:
-        s.operator = INT_SHR;
+        s.operator = VM.BuildFor32Addr ? INT_SHR : LONG_SHR;
         break;
       case REF_USHR_opcode:
-        s.operator = INT_USHR;
+        s.operator = VM.BuildFor32Addr ? INT_USHR : LONG_USHR;
         break;
-
-      // BURS doesn't really care, so consolidate to reduce rule space
       case BOOLEAN_CMP_ADDR_opcode:
-        s.operator = BOOLEAN_CMP_INT;
+        s.operator = VM.BuildFor32Addr ? BOOLEAN_CMP_INT : BOOLEAN_CMP_LONG;
+        break;
+      case REF_LOAD_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_LOAD : LONG_LOAD;
+        break;
+      case REF_STORE_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_STORE : LONG_STORE;
+        break;
+      case REF_ALOAD_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_ALOAD : LONG_ALOAD;
+        break;
+      case REF_ASTORE_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_ASTORE : LONG_ASTORE;
+        break;
+      case REF_MOVE_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_MOVE : LONG_MOVE;
+        break;
+      case REF_IFCMP_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_IFCMP : LONG_IFCMP;
+        break;
+      case ATTEMPT_ADDR_opcode:
+        s.operator = VM.BuildFor32Addr ? ATTEMPT_INT : ATTEMPT_LONG;
+        break;
+      case PREPARE_ADDR_opcode:
+        s.operator = VM.BuildFor32Addr ? PREPARE_INT : PREPARE_LONG;
+        break;
+      case INT_2ADDRSigExt_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_MOVE : INT_2LONG;
+        break;
+      case INT_2ADDRZerExt_opcode:
+        if (VM.BuildFor32Addr) {
+	  s.operator = INT_MOVE;
+	}
+        break;
+      case ADDR_2INT_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_MOVE : LONG_2INT;
+        break;
+      case LONG_2ADDR_opcode:
+        s.operator = VM.BuildFor32Addr ? LONG_2INT : LONG_MOVE;
         break;
 
-      // BURS doesn't really care, so consolidate to reduce rule space
       case FLOAT_ADD_opcode:
         if (!SSE2_FULL)
           s.operator = FP_ADD;
@@ -146,7 +183,6 @@ public class ConvertALUOperators extends CompilerPhase implements Operators, Arc
           s.operator = FP_NEG;
         break;
 
-      // BURS doesn't really care, so consolidate to reduce rule space
       case INT_COND_MOVE_opcode:
       case REF_COND_MOVE_opcode:
         s.operator = CondMove.getCond(s).isFLOATINGPOINT() ? FCMP_CMOV : (CondMove.getVal1(s).isLong() ? LCMP_CMOV : CMP_CMOV);
@@ -161,7 +197,6 @@ public class ConvertALUOperators extends CompilerPhase implements Operators, Arc
         OptimizingCompilerException.TODO("Unimplemented conversion" + s);
         break;
 
-      // BURS doesn't really care, so consolidate to reduce rule space
       case INT_2FLOAT_opcode:
         if (!SSE2_FULL)
           s.operator = INT_2FP;
@@ -177,44 +212,6 @@ public class ConvertALUOperators extends CompilerPhase implements Operators, Arc
       case LONG_2DOUBLE_opcode:
         if (!SSE2_FULL)
           s.operator = LONG_2FP;
-        break;
-
-      // BURS doesn't really care, so consolidate to reduce rule space
-      case REF_LOAD_opcode:
-        s.operator = INT_LOAD;
-        break;
-      case REF_STORE_opcode:
-        s.operator = INT_STORE;
-        break;
-      case REF_ALOAD_opcode:
-        s.operator = INT_ALOAD;
-        break;
-      case REF_ASTORE_opcode:
-        s.operator = INT_ASTORE;
-        break;
-      case REF_MOVE_opcode:
-        s.operator = INT_MOVE;
-        break;
-      case REF_IFCMP_opcode:
-        s.operator = INT_IFCMP;
-        break;
-      case ATTEMPT_ADDR_opcode:
-        s.operator = ATTEMPT_INT;
-        break;
-      case PREPARE_ADDR_opcode:
-        s.operator = PREPARE_INT;
-        break;
-      case INT_2ADDRSigExt_opcode:
-        s.operator = INT_MOVE;
-        break;
-      case INT_2ADDRZerExt_opcode:
-        s.operator = INT_MOVE;
-        break;
-      case ADDR_2INT_opcode:
-        s.operator = INT_MOVE;
-        break;
-      case LONG_2ADDR_opcode:
-        s.operator = LONG_2INT;
         break;
       }
     }

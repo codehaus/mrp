@@ -2831,8 +2831,8 @@ Operand value, boolean signExtend) {
       EMIT(CPOS(s, MIR_Compare.create(IA32_FCOMI, new RegisterOperand(FP0, TypeReference.Int), two)));
       // res = (value1 > value2) ? 1 : 0
       // temp = ((value1 < value2) || unordered) ? -1 : 0
-      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, res, IA32ConditionOperand
-          .LGT())));
+      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, res, IA32ConditionOperand.LGT())));
+      EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, res.copyRO(), res.copyRO()));
       EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SBB, temp.copyRO(), temp.copyRO())));
     } else {
       RegisterOperand temp2 = burs.ir.regpool.makeTempInt();
@@ -2843,17 +2843,16 @@ Operand value, boolean signExtend) {
       // temp2 = (value1 unordered value2) ? 1 : 0
       // temp = ((value1 unordered value2) ? 1 : 0) - 0 - CF
       // (i.e. temp = (value1 < value2) ? -1 : 0)
-      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, temp, IA32ConditionOperand
-          .PO())));
-      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, res, IA32ConditionOperand
-          .LGT())));
+      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, temp, IA32ConditionOperand.PO())));
+      EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, temp.copyRO(), temp.copyRO()));
+      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, res, IA32ConditionOperand.LGT())));
+      EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, res.copyRO(), res.copyRO()));
       EMIT(CPOS(s, MIR_Move.create(IA32_MOV, temp2, temp.copyRO())));
       EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SBB, temp.copyRO(), IC(0))));
       // Put result from temp2 in res
       EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_OR, res.copyRO(), temp2.copyRO())));
     }
     EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_OR, res.copyRO(), temp.copyRO())));
-    EMIT(MIR_Unary.mutate(s, IA32_MOVSX__B, res.copyRO(), res.copyRO()));
   }
 
   /**

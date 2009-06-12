@@ -14,6 +14,8 @@ package org.jikesrvm.compilers.opt.regalloc.ia32;
 
 import java.util.Enumeration;
 import java.util.Iterator;
+import org.jikesrvm.VM;
+import static org.jikesrvm.SizeConstants.*;
 import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.Empty;
@@ -90,6 +92,12 @@ import org.vmmagic.unboxed.Offset;
 public abstract class StackManager extends GenericStackManager {
 
   /**
+   * Type reference of word size
+   */
+  private static final TypeReference wordTR =
+    VM.BuildFor32Addr ? TypeReference.Int : TypeReference.Long;
+
+  /**
    * A frame offset for 108 bytes of stack space to store the
    * floating point state in the SaveVolatile protocol.
    */
@@ -130,9 +138,9 @@ public abstract class StackManager extends GenericStackManager {
       case INT_VALUE:
         return (byte) (WORDSIZE);
       case FLOAT_VALUE:
-        if (ArchConstants.SSE2_FULL) return (byte) WORDSIZE;
+        if (ArchConstants.SSE2_FULL) return (byte) BYTES_IN_FLOAT;
       case DOUBLE_VALUE:
-        return (byte) (2 * WORDSIZE);
+        return (byte) BYTES_IN_DOUBLE;
       default:
         OptimizingCompilerException.TODO("getSizeOfValue: unsupported");
         return 0;
@@ -200,7 +208,7 @@ public abstract class StackManager extends GenericStackManager {
         rOp = D(r);
         break;
       default:
-        rOp = new RegisterOperand(r, TypeReference.Int);
+        rOp = new RegisterOperand(r, wordTR);
         break;
     }
     StackLocationOperand spill = new StackLocationOperand(true, -location, size);
@@ -229,7 +237,7 @@ public abstract class StackManager extends GenericStackManager {
         rOp = D(r);
         break;
       default:
-        rOp = new RegisterOperand(r, TypeReference.Int);
+        rOp = new RegisterOperand(r, wordTR);
         break;
     }
     StackLocationOperand spill = new StackLocationOperand(true, -location, size);
@@ -398,7 +406,7 @@ public abstract class StackManager extends GenericStackManager {
     MIR_TrapIf.mutate(plg,
                       IA32_TRAPIF,
                       null,
-                      new RegisterOperand(ESP, TypeReference.Int),
+                      new RegisterOperand(ESP, wordTR),
                       M,
                       IA32ConditionOperand.LE(),
                       TrapCodeOperand.StackOverflow());
@@ -433,17 +441,17 @@ public abstract class StackManager extends GenericStackManager {
                              (byte) WORDSIZE,
                              null,
                              null);
-    plg.insertBefore(MIR_Move.create(IA32_MOV, new RegisterOperand((ECX), TypeReference.Int), M));
+    plg.insertBefore(MIR_Move.create(IA32_MOV, new RegisterOperand((ECX), wordTR), M));
 
     //    ECX += frame Size
     int frameSize = getFrameFixedSize();
-    plg.insertBefore(MIR_BinaryAcc.create(IA32_ADD, new RegisterOperand(ECX, TypeReference.Int), IC(frameSize)));
+    plg.insertBefore(MIR_BinaryAcc.create(IA32_ADD, new RegisterOperand(ECX, wordTR), IC(frameSize)));
     //    Trap if ESP <= ECX
     MIR_TrapIf.mutate(plg,
                       IA32_TRAPIF,
                       null,
-                      new RegisterOperand(ESP, TypeReference.Int),
-                      new RegisterOperand(ECX, TypeReference.Int),
+                      new RegisterOperand(ESP, wordTR),
+                      new RegisterOperand(ECX, wordTR),
                       IA32ConditionOperand.LE(),
                       TrapCodeOperand.StackOverflow());
   }
@@ -497,7 +505,7 @@ public abstract class StackManager extends GenericStackManager {
       inst.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, fpHome));
 
       // 3. Set my frame pointer to current value of stackpointer
-      inst.insertBefore(MIR_Move.create(IA32_MOV, fpHome.copy(), new RegisterOperand(ESP, TypeReference.Int)));
+      inst.insertBefore(MIR_Move.create(IA32_MOV, fpHome.copy(), new RegisterOperand(ESP, wordTR)));
 
       // 4. Store my compiled method id
       int cmid = ir.compiledMethod.getId();
@@ -507,7 +515,7 @@ public abstract class StackManager extends GenericStackManager {
       inst.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, fpHome));
 
       // 2. Set my frame pointer to current value of stackpointer
-      inst.insertBefore(MIR_Move.create(IA32_MOV, fpHome.copy(), new RegisterOperand(ESP, TypeReference.Int)));
+      inst.insertBefore(MIR_Move.create(IA32_MOV, fpHome.copy(), new RegisterOperand(ESP, wordTR)));
 
       // 3. Store my compiled method id
       int cmid = ir.compiledMethod.getId();
@@ -540,8 +548,8 @@ public abstract class StackManager extends GenericStackManager {
     for (Enumeration<Register> e = phys.enumerateNonvolatileGPRsBackwards(); e.hasMoreElements() && n >= 0; n--) {
       Register nv = e.nextElement();
       int offset = getNonvolatileGPROffset(n);
-      Operand M = new StackLocationOperand(true, -offset, 4);
-      inst.insertBefore(MIR_Move.create(IA32_MOV, M, new RegisterOperand(nv, TypeReference.Int)));
+      Operand M = new StackLocationOperand(true, -offset, WORDSIZE);
+      inst.insertBefore(MIR_Move.create(IA32_MOV, M, new RegisterOperand(nv, wordTR)));
     }
   }
 
@@ -559,8 +567,8 @@ public abstract class StackManager extends GenericStackManager {
     for (Enumeration<Register> e = phys.enumerateNonvolatileGPRsBackwards(); e.hasMoreElements() && n >= 0; n--) {
       Register nv = e.nextElement();
       int offset = getNonvolatileGPROffset(n);
-      Operand M = new StackLocationOperand(true, -offset, 4);
-      inst.insertBefore(MIR_Move.create(IA32_MOV, new RegisterOperand(nv, TypeReference.Int), M));
+      Operand M = new StackLocationOperand(true, -offset, WORDSIZE);
+      inst.insertBefore(MIR_Move.create(IA32_MOV, new RegisterOperand(nv, wordTR), M));
     }
   }
 
@@ -575,7 +583,7 @@ public abstract class StackManager extends GenericStackManager {
       PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
       for (int i=0; i < 8; i++) {
         inst.insertBefore(MIR_Move.create(IA32_MOVQ,
-            new StackLocationOperand(true, -fsaveLocation + (i * 8), 8),
+            new StackLocationOperand(true, -fsaveLocation + (i * BYTES_IN_DOUBLE), BYTES_IN_DOUBLE),
             new RegisterOperand(phys.getFPR(i), TypeReference.Double)));
       }
     } else {
@@ -595,7 +603,7 @@ public abstract class StackManager extends GenericStackManager {
       for (int i=0; i < 8; i++) {
         inst.insertBefore(MIR_Move.create(IA32_MOVQ,
             new RegisterOperand(phys.getFPR(i), TypeReference.Double),
-            new StackLocationOperand(true, -fsaveLocation + (i * 8), 8)));
+            new StackLocationOperand(true, -fsaveLocation + (i * BYTES_IN_DOUBLE), BYTES_IN_DOUBLE)));
       }
     } else {
       Operand M = new StackLocationOperand(true, -fsaveLocation, 4);
@@ -617,8 +625,8 @@ public abstract class StackManager extends GenericStackManager {
     for (Enumeration<Register> e = phys.enumerateVolatileGPRs(); e.hasMoreElements(); i++) {
       Register r = e.nextElement();
       int location = saveVolatileGPRLocation[i];
-      Operand M = new StackLocationOperand(true, -location, 4);
-      inst.insertBefore(MIR_Move.create(IA32_MOV, M, new RegisterOperand(r, TypeReference.Int)));
+      Operand M = new StackLocationOperand(true, -location, WORDSIZE);
+      inst.insertBefore(MIR_Move.create(IA32_MOV, M, new RegisterOperand(r, wordTR)));
     }
   }
 
@@ -636,8 +644,8 @@ public abstract class StackManager extends GenericStackManager {
     for (Enumeration<Register> e = phys.enumerateVolatileGPRs(); e.hasMoreElements(); i++) {
       Register r = e.nextElement();
       int location = saveVolatileGPRLocation[i];
-      Operand M = new StackLocationOperand(true, -location, 4);
-      inst.insertBefore(MIR_Move.create(IA32_MOV, new RegisterOperand(r, TypeReference.Int), M));
+      Operand M = new StackLocationOperand(true, -location, WORDSIZE);
+      inst.insertBefore(MIR_Move.create(IA32_MOV, new RegisterOperand(r, wordTR), M));
     }
   }
 
@@ -682,13 +690,17 @@ public abstract class StackManager extends GenericStackManager {
 
     // Create a memory operand M representing the spill location.
     int size;
-    if (ArchConstants.SSE2_FULL) {
-      size = symb.getType().getMemoryBytes();
-      if (size < 4)
-        size = 4;
+    if (VM.BuildFor32Addr) {
+      if (ArchConstants.SSE2_FULL) {
+        size = symb.getType().getMemoryBytes();
+        if (size < WORDSIZE)
+          size = WORDSIZE;
+      } else {
+        int type = PhysicalRegisterSet.getPhysicalRegisterType(symb.getRegister());
+        size = PhysicalRegisterSet.getSpillSize(type);
+      }
     } else {
-      int type = PhysicalRegisterSet.getPhysicalRegisterType(symb.getRegister());
-      size = PhysicalRegisterSet.getSpillSize(type);
+      size = WORDSIZE;
     }
     StackLocationOperand M = new StackLocationOperand(true, -location, (byte) size);
 
@@ -727,21 +739,21 @@ public abstract class StackManager extends GenericStackManager {
       MemoryOperand M = result.asMemory();
       if (hasSymbolicRegister(M)) return false;
       // We will perform this transformation by changing the MOV to a PUSH
-      // or POP.  Note that IA32 cannot PUSH/POP 8-bit quantities, so
+      // or POP.  Note that IA32 cannot PUSH/POP >WORDSIZE quantities, so
       // disable the transformation for that case.  Also, (TODO), our
       // assembler does not emit the prefix to allow 16-bit push/pops, so
-      // disable these too.  What's left?  32-bit only.
-      if (M.size != 4) return false;
+      // disable these too.  What's left?  WORDSIZE only.
+      if (M.size != WORDSIZE) return false;
     }
     if (value.isMemory()) {
       MemoryOperand M = value.asMemory();
       if (hasSymbolicRegister(M)) return false;
       // We will perform this transformation by changing the MOV to a PUSH
-      // or POP.  Note that IA32 cannot PUSH/POP 8-bit quantities, so
+      // or POP.  Note that IA32 cannot PUSH/POP >WORDSIZE quantities, so
       // disable the transformation for that case.  Also, (TODO), our
       // assembler does not emit the prefix to allow 16-bit push/pops, so
-      // disable these too.  What's left?  32-bit only.
-      if (M.size != 4) return false;
+      // disable these too.  What's left?  WORDSIZE only.
+      if (M.size != WORDSIZE) return false;
     }
     // If we get here, all is kosher.
     return true;
@@ -783,15 +795,15 @@ public abstract class StackManager extends GenericStackManager {
     int delta = desiredOffset - ESPOffset;
     if (delta != 0) {
       if (canModifyEFLAGS(s)) {
-        s.insertBefore(MIR_BinaryAcc.create(IA32_ADD, new RegisterOperand(ESP, TypeReference.Int), IC(delta)));
+        s.insertBefore(MIR_BinaryAcc.create(IA32_ADD, new RegisterOperand(ESP, wordTR), IC(delta)));
       } else {
         MemoryOperand M =
-            MemoryOperand.BD(new RegisterOperand(ESP, TypeReference.Int),
+            MemoryOperand.BD(new RegisterOperand(ESP, wordTR),
                                  Offset.fromIntSignExtend(delta),
-                                 (byte) 4,
+                                 (byte) WORDSIZE,
                                  null,
                                  null);
-        s.insertBefore(MIR_Lea.create(IA32_LEA, new RegisterOperand(ESP, TypeReference.Int), M));
+        s.insertBefore(MIR_Lea.create(IA32_LEA, new RegisterOperand(ESP, wordTR), M));
       }
       ESPOffset = desiredOffset;
     }
@@ -861,8 +873,8 @@ public abstract class StackManager extends GenericStackManager {
    * operand with the appropriate MemoryOperand.
    */
   private void rewriteStackLocations() {
-    // ESP is initially 4 bytes above where the framepointer is going to be.
-    ESPOffset = getFrameFixedSize() + 4;
+    // ESP is initially WORDSIZE above where the framepointer is going to be.
+    ESPOffset = getFrameFixedSize() + WORDSIZE;
     Register ESP = ir.regpool.getPhysicalRegisterSet().getESP();
 
     boolean seenReturn = false;
@@ -931,7 +943,7 @@ public abstract class StackManager extends GenericStackManager {
           offset -= ESPOffset;
           byte size = sop.getSize();
           MemoryOperand M =
-              MemoryOperand.BD(new RegisterOperand(ESP, TypeReference.Int),
+              MemoryOperand.BD(new RegisterOperand(ESP, wordTR),
                                    Offset.fromIntSignExtend(offset),
                                    size,
                                    null,
@@ -949,7 +961,7 @@ public abstract class StackManager extends GenericStackManager {
       // is decremented.  Therefore update ESPOffset after rewriting
       // stacklocation and memory operands.
       if (s.operator() == IA32_PUSH) {
-        ESPOffset -= 4;
+        ESPOffset -= WORDSIZE;
       }
     }
   }

@@ -25,13 +25,13 @@ public interface OptGCMapIteratorConstants extends PhysicalRegisterConstants {
   //       sure that all such registers are included in the range defined
   //       below these contants.
 
-  /*
+  /**
    * The index of the first nonvolatile register that may hold a reference,
    */
   int FIRST_GCMAP_REG = 0;
 
-  /*
+  /**
    * the index of last register that may hold a reference
-   */ int LAST_GCMAP_REG = 7;
-
+   */
+  int LAST_GCMAP_REG = 7;
 }
