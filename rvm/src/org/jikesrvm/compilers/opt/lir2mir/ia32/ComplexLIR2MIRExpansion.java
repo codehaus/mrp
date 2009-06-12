@@ -107,37 +107,6 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     Instruction nextInstr;
     for (Instruction s = ir.firstInstructionInCodeOrder(); s != null; s = nextInstr) {
       switch (s.getOpcode()) {
-        case LONG_MUL_opcode:
-          if (VM.BuildFor32Addr) {
-            nextInstr = long_mul(s, ir);
-          }
-          break;
-        case LONG_SHL_opcode:
-          if (VM.BuildFor32Addr) {
-            nextInstr = long_shl(s, ir);
-          }
-          break;
-        case LONG_SHR_opcode:
-          if (VM.BuildFor32Addr) {
-            nextInstr = long_shr(s, ir);
-          }
-          break;
-        case LONG_USHR_opcode:
-          if (VM.BuildFor32Addr) {
-            nextInstr = long_ushr(s, ir);
-          }
-          break;
-        case LONG_IFCMP_opcode: {
-          if (VM.BuildFor32Addr) {
-            Operand val2 = IfCmp.getVal2(s);
-            if (val2 instanceof RegisterOperand) {
-              nextInstr = long_ifcmp(s, ir);
-            } else {
-              nextInstr = long_ifcmp_imm(s, ir);
-            }
-          }
-          break;
-        }
         case FLOAT_IFCMP_opcode:
         case DOUBLE_IFCMP_opcode:
           nextInstr = fp_ifcmp(s);
@@ -154,6 +123,43 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
         case DOUBLE_2LONG_opcode:
           nextInstr = double_2long(s, ir);
           break;
+
+        case LONG_MUL_opcode:
+          if (VM.BuildFor32Addr) {
+            nextInstr = long_mul(s, ir);
+            break;
+          }
+          // Fall through
+        case LONG_SHL_opcode:
+          if (VM.BuildFor32Addr) {
+            nextInstr = long_shl(s, ir);
+            break;
+          }
+          // Fall through
+        case LONG_SHR_opcode:
+          if (VM.BuildFor32Addr) {
+            nextInstr = long_shr(s, ir);
+            break;
+          }
+          // Fall through
+        case LONG_USHR_opcode:
+          if (VM.BuildFor32Addr) {
+            nextInstr = long_ushr(s, ir);
+            break;
+          }
+          // Fall through
+        case LONG_IFCMP_opcode: {
+          if (VM.BuildFor32Addr) {
+            Operand val2 = IfCmp.getVal2(s);
+            if (val2 instanceof RegisterOperand) {
+              nextInstr = long_ifcmp(s, ir);
+            } else {
+              nextInstr = long_ifcmp_imm(s, ir);
+            }
+            break;
+          }
+          // Fall through
+        }
         default:
           nextInstr = s.nextInstructionInCodeOrder();
           break;
