@@ -124,8 +124,8 @@ public class ConvertALUOperators extends CompilerPhase implements Operators, Arc
         break;
       case INT_2ADDRZerExt_opcode:
         if (VM.BuildFor32Addr) {
-	  s.operator = INT_MOVE;
-	}
+          s.operator = INT_MOVE;
+        }
         break;
       case ADDR_2INT_opcode:
         s.operator = VM.BuildFor32Addr ? INT_MOVE : LONG_2INT;

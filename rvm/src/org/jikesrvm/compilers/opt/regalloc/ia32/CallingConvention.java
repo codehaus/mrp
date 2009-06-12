@@ -291,7 +291,7 @@ public abstract class CallingConvention extends IRTools
           size = BYTES_IN_FLOAT;
           parameterBytes -= WORDSIZE;
         } else {
-	  size = BYTES_IN_DOUBLE;
+          size = BYTES_IN_DOUBLE;
           parameterBytes -= 2*WORDSIZE;
         }
         if (nFPRParams > PhysicalRegisterSet.getNumberOfFPRParams()) {
@@ -459,12 +459,12 @@ public abstract class CallingConvention extends IRTools
         nFPRParams++;
         int size;
         if (paramType.isFloatType()) {
-	  size = BYTES_IN_FLOAT;
-	  parameterBytes -= WORDSIZE;
-	} else {
-	  size = BYTES_IN_DOUBLE;
-	  parameterBytes -= 2*WORDSIZE;
-	}
+          size = BYTES_IN_FLOAT;
+          parameterBytes -= WORDSIZE;
+        } else {
+          size = BYTES_IN_DOUBLE;
+          parameterBytes -= 2*WORDSIZE;
+        }
         Operand M = new StackLocationOperand(false, parameterBytes, size);
         if (ArchConstants.SSE2_FULL) {
           if (paramType.isFloatType()) {
@@ -597,13 +597,13 @@ public abstract class CallingConvention extends IRTools
       TypeReference rType = symbOp.getType();
       if (rType.isFloatType() || rType.isDoubleType()) {
         int size;
-	if (rType.isFloatType()) {
-	  size = BYTES_IN_FLOAT;
-	  paramByteOffset -= WORDSIZE;
-	} else {
-	  size = BYTES_IN_DOUBLE;
-	  paramByteOffset -= 2*WORDSIZE;
-	}
+        if (rType.isFloatType()) {
+          size = BYTES_IN_FLOAT;
+          paramByteOffset -= WORDSIZE;
+        } else {
+          size = BYTES_IN_DOUBLE;
+          paramByteOffset -= 2*WORDSIZE;
+        }
         // if optimizing, only define the register if it has uses
         if (!useDU || symbOp.getRegister().useList != null) {
           if (fprIndex < PhysicalRegisterSet.getNumberOfFPRParams()) {
