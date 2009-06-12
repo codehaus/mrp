@@ -62,10 +62,10 @@ public class CompilerDNA implements Constants {
       compilationRates = new double[]{667.32,             // base
                                       26.36, 13.41, 12.73}; // opt 0...2
     } else if (VM.BuildForIA32) {
-		compilationRates = new double[]{1245.52,
-												  45.02,
-												  23.94,
-												  22.95};
+      compilationRates = new double[]{1245.52,
+	                              45.02,
+				      23.94,
+				      22.95};
     } else {
       if (VM.VerifyAssertions) VM._assert(NOT_REACHED);
       compilationRates = null;
@@ -82,10 +82,10 @@ public class CompilerDNA implements Constants {
       speedupRates = new double[]{1.00,               // base
                                   7.87, 12.23, 12.29};  // opt 0...2
     } else if (VM.BuildForIA32) {
-		speedUpRates = new double[]{1,
-											 (284.40/45.57),
-											 (340.89/45.57),
-											 (341.13/45.57) };
+      speedupRates = new double[]{1,
+				  (284.40/45.57),
+                                  (340.89/45.57),
+				  (341.13/45.57) };
     } else {
       if (VM.VerifyAssertions) VM._assert(NOT_REACHED);
       speedupRates = null;

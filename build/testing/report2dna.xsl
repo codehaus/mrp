@@ -30,7 +30,7 @@
                                     <xsl:value-of select="$opt0CompilationRate"/>,
                                     <xsl:value-of select="$opt1CompilationRate"/>,
                                     <xsl:value-of select="$opt2CompilationRate"/>};
-    speedUpRates = new double[]{1,
+    speedupRates = new double[]{1,
                                 (<xsl:value-of select="$opt0AggregateBestScore"/>/<xsl:value-of select="$baselineAggregateBestScore"/>),
                                 (<xsl:value-of select="$opt1AggregateBestScore"/>/<xsl:value-of select="$baselineAggregateBestScore"/>),
                                 (<xsl:value-of select="$opt2AggregateBestScore"/>/<xsl:value-of select="$baselineAggregateBestScore"/>) };
