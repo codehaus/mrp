@@ -1994,31 +1994,29 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     if (VM.BuildFor32Addr) {
       asm.emitPOP_Reg(T0);                // (S1:T0) = (high half value2: low half value2)
       asm.emitPOP_Reg(S1);
-      asm.emitMOV_Reg_Imm(S0, -1);        // S0 = -1
       asm.emitPOP_Reg(T1);                // (..:T1) = (.. : low half of value1)
       asm.emitSUB_Reg_Reg(T1, T0);        // T1 = T1 - T0
       asm.emitPOP_Reg(T0);                // (T0:..) = (high half of value1 : ..)
       // NB pop does not alter the carry register
       asm.emitSBB_Reg_Reg(T0, S1);        // T0 = T0 - S1 - CF
-      ForwardReference fr1 = asm.forwardJcc(Assembler.LT);
-      asm.emitOR_Reg_Reg(T0, T1);         // T0 = T0 | T1
-      asm.emitSET_Cond_Reg_Byte(Assembler.NE, S0);
-      asm.emitMOVZX_Reg_Reg_Byte(S0, S0); // S0 = T1 | T0 != 0 ? 1 : 0
-      fr1.resolve(asm);
-      asm.emitPUSH_Reg(S0);               // push result on stack
+      asm.emitOR_Reg_Reg(T1, T0);         // T1 = T1 | T0 updating ZF
+      asm.emitSET_Cond_Reg_Byte(Assembler.NE, T1);
+      asm.emitMOVZX_Reg_Reg_Byte(T1, T1); // T1 = (value1 != value2) ? 1 : 0
+      asm.emitSAR_Reg_Imm(T0, 31);        // T0 = (value1 < value2) ? -1 : 0
+      asm.emitOR_Reg_Reg(T1, T0);         // T1 = T1 | T0
+      asm.emitPUSH_Reg(T1);               // push result on stack
     } else {
-      // TODO: consider optimizing to z = ((x - y) >> 63) - ((y - x) >> 63)
-      asm.emitPOP_Reg(T0);                // T0 is long value
+      // using a shift in 64bits costs an extra byte in the opcode
+      asm.emitPOP_Reg(T0);                // T0 is long value2
       adjustStack(WORDSIZE, true);        // throw away slot
-      asm.emitMOV_Reg_Imm(S0, -1);        // S0 = -1
-      asm.emitPOP_Reg(T1);                // T1 is long value
+      asm.emitPOP_Reg(T1);                // T1 is long value1
       adjustStack(WORDSIZE, true);        // throw away slot
-      asm.emitCMP_Reg_Reg_Quad(T1, T0);   // if T1 < T0 goto fr1
-      ForwardReference fr1 = asm.forwardJcc(Assembler.LT);
-      asm.emitSET_Cond_Reg_Byte(Assembler.GT, S0);
-      asm.emitMOVZX_Reg_Reg_Byte(S0, S0); // S0 = T1 > T0 ? 1 : 0
-      fr1.resolve(asm);
-      asm.emitPUSH_Reg(S0);               // push result on stack
+      asm.emitCMP_Reg_Reg_Quad(T1, T0);   // 64bit compare
+      asm.emitSET_Cond_Reg_Byte(Assembler.LT, T0); // T0 = value1 < value2 ? 1 : 0
+      asm.emitSET_Cond_Reg_Byte(Assembler.GT, T1); // T1 = value1 > value2 ? 1 : 0
+      asm.emitSUB_Reg_Reg_Byte(T1, T0);   // T1 = (value1 > value2 ? 1 : 0) - (value1 < value2 ? 1 : 0)
+      asm.emitMOVSX_Reg_Reg_Byte(T1, T1); // Fix sign extension
+      asm.emitPUSH_Reg(T1);               // push result on stack
     }
   }
 
