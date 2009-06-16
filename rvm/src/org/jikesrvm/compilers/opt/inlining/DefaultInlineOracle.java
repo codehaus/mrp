@@ -118,7 +118,7 @@ public final class DefaultInlineOracle extends InlineTools implements InlineOrac
       return InlineDecision.NO("Only do trivial inlines at O0");
     }
 
-    if (rootMethod.inlinedSizeEstimate() > opts.INLINE_MASSIVE_METHOD_SIZE) {
+    if (VM.runningVM && rootMethod.inlinedSizeEstimate() > opts.INLINE_MASSIVE_METHOD_SIZE) {
       // In massive methods, we do not do any additional inlining to
       // avoid completely blowing out compile time by making a bad situation worse
       if (verbose) VM.sysWriteln("\tNO: only do trivial inlines into massive methods\n");
