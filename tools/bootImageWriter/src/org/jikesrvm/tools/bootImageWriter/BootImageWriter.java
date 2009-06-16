@@ -734,6 +734,12 @@ public class BootImageWriter extends BootImageWriterMessages
         say("compiler arg: ", bootImageCompilerArgs[nbca.length-1]);
         continue;
       }
+      // AOS argument
+      if (args[i].startsWith("-X:aos:")) {
+        org.jikesrvm.adaptive.controller.Controller.processCommandLineArg(args[i].substring(7));
+        continue;
+      }
+
       // places where rvm components live, at build time
       if (args[i].equals("-classpath")) {
         if (++i >= args.length)
@@ -1422,6 +1428,9 @@ public class BootImageWriter extends BootImageWriterMessages
         stopTime = System.currentTimeMillis();
         System.out.println("PROF: \tinstantiating types "+(stopTime-startTime)+" ms");
       }
+
+      // Inform compiler advice of progress
+      org.jikesrvm.adaptive.util.CompilerAdvice.preBootImageWrite();
 
       // Free up unnecessary Statics data structures
       staticsJunk = Statics.bootImageInstantiationFinished();

@@ -2496,6 +2496,7 @@ public class VM extends Properties implements Constants, ExitStatus {
     if (writingBootImage) {
       // initialize compiler that builds boot image
       BootImageCompiler.init(bootCompilerArgs);
+      CompilerAdvice.preBootImageCompile();
     }
     RuntimeEntrypoints.init();
     RVMThread.init();

@@ -32,10 +32,32 @@ import org.jikesrvm.adaptive.controller.Controller;
 public class CompilerAdvice {
 
   /**
-   *  Read a list of compiler advice annotations from a file
+   * Called before boot image compilation
+   */
+  public static void preBootImageCompile() {
+    readAdviceFiles();
+  }
+
+  /**
+   * Called post boot image compilation, before writing the boot image
+   */
+  public static void preBootImageWrite() {
+    // don't copy advice file names into boot image
+    Controller.options.COMPILER_ADVICE_FILE_INPUT = null;
+    Controller.options.DYNAMIC_CALL_FILE_INPUT = null;
+  }
+
+  /**
+   * Called after VM boot up
    */
   public static void postBoot() {
-    CompilerAdviceAttribute.postBoot();
+    readAdviceFiles();
+  }
+
+  /**
+   *  Read a list of compiler advice annotations from a file
+   */
+  private static void readAdviceFiles() {
     String compilerAdviceFileName = Controller.options.COMPILER_ADVICE_FILE_INPUT;
     if (compilerAdviceFileName != null) {
       VM.sysWrite("Compiler advice file name ");
@@ -50,7 +72,6 @@ public class CompilerAdvice {
     if (dynamicCallFileName != null) {
       VM.sysWrite("Dynamic call file name ");
       VM.sysWriteln(dynamicCallFileName);
-      //List dynamicCallInfoList =
       DynamicCallFileInfoReader.readDynamicCallFile(dynamicCallFileName, false);
       // register these sites so that when a compilation is done,
       // these sites use compiler advice

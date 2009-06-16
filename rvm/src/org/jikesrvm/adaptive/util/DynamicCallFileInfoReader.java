@@ -19,7 +19,6 @@ import java.io.InputStreamReader;
 import java.util.StringTokenizer;
 import org.jikesrvm.VM;
 import org.jikesrvm.adaptive.controller.Controller;
-import org.jikesrvm.adaptive.database.callgraph.PartialCallGraph;
 import org.jikesrvm.classloader.RVMClassLoader;
 import org.jikesrvm.classloader.MemberReference;
 import org.jikesrvm.classloader.RVMMethod;
@@ -55,9 +54,7 @@ public class DynamicCallFileInfoReader {
 
     if (file == null) return;// null;
 
-    if ((!VM.runningVM) && (Controller.dcg == null)) {
-      Controller.dcg = new PartialCallGraph(300);
-    } else if (Controller.dcg == null) {
+    if (Controller.dcg == null) {
       System.out.println("dcg is null ");
       return;
     }

@@ -122,9 +122,12 @@ public class Controller implements Callbacks.ExitMonitor,
    */
   public static MethodCountData methodSamples;
   /**
-   * The dynamic call graph
+   * The dynamic call graph. Give it an initial seed weight that approximates
+   * the old step function for edge hotness.  The intent is that early on
+   * (until decay decreases this initial weight), we are conservative in
+   * marking an edge as hot.
    */
-  public static PartialCallGraph dcg;
+  public static final PartialCallGraph dcg = new PartialCallGraph(300);
 
   /**
    * Used to shut down threads

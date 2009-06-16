@@ -2217,7 +2217,8 @@ target.jni-suffix=${target.jni-suffix}
 	  <property name="config.bootimage.compiler.args" value="-X:bc:profile_edge_counters=true"/>
 	</ant>
   	<ant inheritAll="false" target="runtime">
-	  <property name="config.bootimage.compiler.args" value="-X:bc:profile_edge_count_input_file=${build.profiles}/profile.ec ${config.bootimage.compiler.args}"/>
+	  <property name="config.bootimage.compiler.args"
+                    value="-X:aos:dcfo=${build.profiles}/aosadvice.dc -X:bc:profile_edge_count_input_file=${build.profiles}/profile.ec ${config.bootimage.compiler.args}"/>
 	</ant>
   </target>
 
@@ -2230,6 +2231,7 @@ target.jni-suffix=${target.jni-suffix}
     <arg value="-X:base:profile_edge_counters=true"/>
 	  <arg value="-X:base:profile_edge_counter_file=${build.profiles}/profile.ec"/>
 	  <arg value="-X:aos:final_report_level=2"/>
+          <arg value="-X:aos:dcfo=${build.profiles}/aosadvice.dc"/>
 	  <arg line="-jar ${dacapo.jar} -n 3 fop"/>
 	</exec>
   </target>

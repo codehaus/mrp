@@ -17,8 +17,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.TreeSet;
+import java.util.Iterator;
 import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.VM;
 import org.jikesrvm.adaptive.controller.Controller;
@@ -28,6 +28,7 @@ import org.jikesrvm.adaptive.util.UnResolvedCallSite;
 import org.jikesrvm.adaptive.util.UnResolvedWeightedCallTargets;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.MethodReference;
+import org.jikesrvm.util.HashMapRVM;
 
 /**
  * A partial call graph (PCG) is a partial mapping from callsites
@@ -39,10 +40,10 @@ public final class PartialCallGraph implements Decayable, Reportable {
    * The dynamic call graph, which is a mapping from
    * CallSites to WeightedCallTargets.
    */
-  private final HashMap<CallSite, WeightedCallTargets> callGraph =
-      new HashMap<CallSite, WeightedCallTargets>();
-  private final HashMap<UnResolvedCallSite, UnResolvedWeightedCallTargets> unresolvedCallGraph =
-      new HashMap<UnResolvedCallSite, UnResolvedWeightedCallTargets>();
+  private HashMapRVM<CallSite, WeightedCallTargets> callGraph =
+      new HashMapRVM<CallSite, WeightedCallTargets>();
+  private final HashMapRVM<UnResolvedCallSite, UnResolvedWeightedCallTargets> unresolvedCallGraph =
+      new HashMapRVM<UnResolvedCallSite, UnResolvedWeightedCallTargets>();
 
   /**
    * sum of all edge weights in the call graph
@@ -52,7 +53,7 @@ public final class PartialCallGraph implements Decayable, Reportable {
   /**
    * Initial seed weight; saved for use in the reset method
    */
-  private final double seedWeight;
+  private double seedWeight;
 
   /**
    * Create a partial call graph.
@@ -68,10 +69,18 @@ public final class PartialCallGraph implements Decayable, Reportable {
   }
 
   /**
+   * Reinitialize
+   */
+  public void reinitialize(double initialWeight) {
+    seedWeight = initialWeight;
+    totalEdgeWeights = initialWeight;
+  }
+
+  /**
    * Reset data
    */
   public synchronized void reset() {
-    callGraph.clear();
+    callGraph = new HashMapRVM<CallSite, WeightedCallTargets>();
     totalEdgeWeights = seedWeight;
   }
 
@@ -217,7 +226,10 @@ public final class PartialCallGraph implements Decayable, Reportable {
     System.out.println();
 
     TreeSet<CallSite> tmp = new TreeSet<CallSite>(new OrderByTotalWeight());
-    tmp.addAll(callGraph.keySet());
+    Iterator<CallSite> keys = callGraph.keys().iterator();
+    while (keys.hasNext()) {
+      tmp.add(keys.next());
+    }
 
     for (final CallSite cs : tmp) {
       WeightedCallTargets ct = callGraph.get(cs);
@@ -250,7 +262,10 @@ public final class PartialCallGraph implements Decayable, Reportable {
       return;
     }
     TreeSet<CallSite> tmp = new TreeSet<CallSite>(new OrderByTotalWeight());
-    tmp.addAll(callGraph.keySet());
+    Iterator<CallSite> keys = callGraph.keys().iterator();
+    while (keys.hasNext()) {
+      tmp.add(keys.next());
+    }
 
     for (final CallSite cs : tmp) {
       WeightedCallTargets ct = callGraph.get(cs);

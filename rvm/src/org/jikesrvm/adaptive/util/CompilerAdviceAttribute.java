@@ -12,13 +12,13 @@
  */
 package org.jikesrvm.adaptive.util;
 
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+import org.jikesrvm.VM;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.CompiledMethod;
+import org.jikesrvm.util.HashMapRVM;
 
 /**
  * Defines an attribute for compiler advice, and maintains a map
@@ -42,30 +42,20 @@ import org.jikesrvm.compilers.common.CompiledMethod;
  */
 public class CompilerAdviceAttribute {
 
-  private static HashMap<CompilerAdviceAttribute, CompilerAdviceAttribute> attribMap = null;
-  private static CompilerAdviceAttribute defaultAttr = null;
-  private static CompilerAdviceAttribute tempAttr = null;
+  private static final HashMapRVM<CompilerAdviceAttribute, CompilerAdviceAttribute> attribMap =
+    new HashMapRVM<CompilerAdviceAttribute, CompilerAdviceAttribute>();
+  private static final CompilerAdviceAttribute defaultAttr;
+  static {
+    Atom emptyStringAtom = Atom.findOrCreateAsciiAtom("");
+    defaultAttr = new CompilerAdviceAttribute(emptyStringAtom, emptyStringAtom, emptyStringAtom, CompiledMethod.BASELINE);
+  }
   private static boolean hasAdvice = false;
 
-  private Atom className;  // The name of the class for the compiler site
-  private Atom methodName; // The name of the method for the compiler site
-  private Atom methodSig;  // The signature of the method
-  private int compiler;   // The compiler to use for the method
-  private int optLevel;   // The optimization level
-
-  /**
-   * Initialization of key compiler advice data structure.
-   */
-  public static void postBoot() {
-    attribMap = new HashMap<CompilerAdviceAttribute, CompilerAdviceAttribute>();
-
-    // With defaultAttr set up this way, methods will be BASELINE compiled
-    // *unless* they appear in the advice file. If defaultAttr is set to
-    // null, then methods will be compiled in the default way for the
-    // current build configuration *unless* they appear in the advice file.
-    defaultAttr = new CompilerAdviceAttribute(null, null, null, CompiledMethod.BASELINE);
-    tempAttr = new CompilerAdviceAttribute(null, null, null, CompiledMethod.BASELINE);
-  }
+  private final Atom className;  // The name of the class for the compiler site
+  private final Atom methodName; // The name of the method for the compiler site
+  private final Atom methodSig;  // The signature of the method
+  private final int compiler;   // The compiler to use for the method
+  private final int optLevel;   // The optimization level
 
   /**
    * Getter method for class name
@@ -113,6 +103,7 @@ public class CompilerAdviceAttribute {
    * @see CompilerAdviceInfoReader
    */
   public CompilerAdviceAttribute(Atom className, Atom methodName, Atom methodSig, int compiler) {
+    if(VM.VerifyAssertions) VM._assert(className != null && methodName != null && methodSig != null);
     this.className = className;
     this.methodName = methodName;
     this.methodSig = methodSig;
@@ -133,6 +124,7 @@ public class CompilerAdviceAttribute {
    */
   public CompilerAdviceAttribute(Atom className, Atom methodName, Atom methodSig, int compiler,
                                     int optLevel) {
+    if(VM.VerifyAssertions) VM._assert(className != null && methodName != null && methodSig != null);
     this.className = className;
     this.methodName = methodName;
     this.methodSig = methodSig;
@@ -191,9 +183,11 @@ public class CompilerAdviceAttribute {
    * @return Attribute advice for that site or null if none is found.
    */
   public static CompilerAdviceAttribute getCompilerAdviceInfo(RVMMethod method) {
-    tempAttr.className = method.getDeclaringClass().getDescriptor();
-    tempAttr.methodName = method.getName();
-    tempAttr.methodSig = method.getDescriptor();
+    CompilerAdviceAttribute tempAttr =
+      new CompilerAdviceAttribute(method.getDeclaringClass().getDescriptor(),
+                                  method.getName(),
+                                  method.getDescriptor(),
+                                  CompiledMethod.BASELINE);
     CompilerAdviceAttribute value = attribMap.get(tempAttr);
 
     if (value == null) {
@@ -203,7 +197,7 @@ public class CompilerAdviceAttribute {
     }
   }
 
-  public static Collection<CompilerAdviceAttribute> values() {
+  public static Iterable<CompilerAdviceAttribute> values() {
     return attribMap.values();
   }
 
