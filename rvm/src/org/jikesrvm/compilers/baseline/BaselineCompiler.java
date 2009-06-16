@@ -24,6 +24,7 @@ import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.osr.BytecodeTraverser;
 import org.jikesrvm.runtime.Time;
+import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.unboxed.Offset;
 
 /**
@@ -192,6 +193,7 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
    * Top level driver for baseline compilation of a method.
    */
   protected void compile() {
+    final boolean shouldPrint = !VM.Production && this.shouldPrint;
     if (shouldPrint) printStartHeader(method);
 
     // Phase 1: GC map computation
@@ -354,6 +356,7 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
       int nextBC = bcodes.peekNextOpcode();
       switch (nextBC) {
       case JBC_caload:
+        final boolean shouldPrint = !VM.Production && this.shouldPrint;
         if (shouldPrint) asm.noteBytecode(biStart, "caload");
         bytecodeMap[bcodes.index()] = asm.getMachineCodeIndex();
         bcodes.nextInstruction(); // skip opcode
@@ -392,6 +395,7 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
       int nextBC = JBC_nop; // bcodes.peekNextOpcode();
       switch (nextBC) {
       case JBC_getfield: {
+        final boolean shouldPrint = !VM.Production && this.shouldPrint;
         int gfIndex = bcodes.index();
         bcodes.nextInstruction(); // skip opcode
         FieldReference fieldRef = bcodes.getFieldReference();
@@ -426,5 +430,146 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
   protected void emit_aload_resolved_getfield(int index, FieldReference fieldRef) {
     emit_regular_aload(index);
     emit_resolved_getfield(fieldRef);
+  }
+
+  /**
+   * Emit code to implement the lcmp bytecode
+   */
+  protected final void emit_lcmp() {
+    if (!mergeBytecodes || basicBlockBoundary()) {
+      emit_regular_lcmp();
+    } else {
+      int nextBC = bcodes.peekNextOpcode();
+      switch (nextBC) {
+      case JBC_ifeq:
+        do_lcmp_if(BranchCondition.EQ);
+        break;
+      case JBC_ifne:
+        do_lcmp_if(BranchCondition.NE);
+        break;
+      case JBC_iflt:
+        do_lcmp_if(BranchCondition.LT);
+        break;
+      case JBC_ifge:
+        do_lcmp_if(BranchCondition.GE);
+        break;
+      case JBC_ifgt:
+        do_lcmp_if(BranchCondition.GT);
+        break;
+      case JBC_ifle:
+        do_lcmp_if(BranchCondition.LE);
+        break;
+      default:
+        emit_regular_lcmp();
+        break;
+      }
+    }
+  }
+
+  /**
+   * Handle lcmp; if.. bytecodes
+   * @param biStart offset of bytecode
+   * @param bc branch condition
+   */
+  private void do_lcmp_if(BranchCondition bc) {
+    final boolean shouldPrint = !VM.Production && this.shouldPrint;
+    int biStart = bcodes.index();
+    bytecodeMap[biStart] = asm.getMachineCodeIndex();
+    bcodes.nextInstruction(); // skip opcode
+    int offset = bcodes.getBranchOffset();
+    int bTarget = biStart + offset;
+    if (shouldPrint) asm.noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
+    if (offset <= 0) emit_threadSwitchTest(RVMThread.BACKEDGE);
+    bytecodeMap[biStart] = asm.getMachineCodeIndex();
+    emit_lcmp_if(bTarget, bc);
+  }
+
+  /**
+   * Emit code to implement the lcmp bytecode
+   */
+  protected abstract void emit_regular_lcmp();
+
+  /**
+   * Emit code to perform an lcmp followed by ifeq
+   * @param bTarget target bytecode of the branch
+   * @param bc branch condition
+   */
+  protected void emit_lcmp_if(int bTarget, BranchCondition bc) {
+    emit_regular_lcmp();
+    emit_if(bTarget, bc);
+  }
+
+  /**
+   * Handle all [df]cmp[gl] cases
+   * @param single true if single precision
+   * @param unorderedGT is the result greater-than if unordered
+   */
+  @Override
+  protected final void emit_DFcmpGL(boolean single, boolean unorderedGT) {
+    if (!mergeBytecodes || basicBlockBoundary()) {
+      emit_regular_DFcmpGL(single, unorderedGT);
+    } else {
+      int nextBC = bcodes.peekNextOpcode();
+      switch (nextBC) {
+      case JBC_ifeq:
+        do_DFcmpGL_if(single, unorderedGT, BranchCondition.EQ);
+        break;
+      case JBC_ifne:
+        do_DFcmpGL_if(single, unorderedGT, BranchCondition.NE);
+        break;
+      case JBC_iflt:
+        do_DFcmpGL_if(single, unorderedGT, BranchCondition.LT);
+        break;
+      case JBC_ifge:
+        do_DFcmpGL_if(single, unorderedGT, BranchCondition.GE);
+        break;
+      case JBC_ifgt:
+        do_DFcmpGL_if(single, unorderedGT, BranchCondition.GT);
+        break;
+      case JBC_ifle:
+        do_DFcmpGL_if(single, unorderedGT, BranchCondition.LE);
+        break;
+      default:
+        emit_regular_DFcmpGL(single, unorderedGT);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Handle DFcmpGL; if.. bytecodes
+   * @param biStart offset of bytecode
+   * @param bc branch condition
+   */
+  private void do_DFcmpGL_if(boolean single, boolean unorderedGT, BranchCondition bc) {
+    final boolean shouldPrint = !VM.Production && this.shouldPrint;
+    int biStart = bcodes.index();
+    bytecodeMap[biStart] = asm.getMachineCodeIndex();
+    bcodes.nextInstruction(); // skip opcode
+    int offset = bcodes.getBranchOffset();
+    int bTarget = biStart + offset;
+    if (shouldPrint) asm.noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
+    if (offset <= 0) emit_threadSwitchTest(RVMThread.BACKEDGE);
+    bytecodeMap[biStart] = asm.getMachineCodeIndex();
+    emit_DFcmpGL_if(single, unorderedGT, bTarget, bc);
+  }
+
+  /**
+   * Emit code to implement the DFcmpGL bytecode
+   * @param single true if single precision
+   * @param unorderedGT is the result greater-than if unordered
+   */
+  protected abstract void emit_regular_DFcmpGL(boolean single, boolean unorderedGT);
+
+  /**
+   * Emit code to perform an DFcmpGL followed by ifeq
+   * @param single true if single precision
+   * @param unorderedGT is the result greater-than if unordered
+   * @param bTarget target bytecode of the branch
+   * @param bc branch condition
+   */
+  protected void emit_DFcmpGL_if(boolean single, boolean unorderedGT, int bTarget, BranchCondition bc) {
+    emit_regular_DFcmpGL(single, unorderedGT);
+    emit_if(bTarget, bc);
   }
 }

@@ -52,6 +52,7 @@ import org.jikesrvm.runtime.RuntimeEntrypoints;
 import org.jikesrvm.runtime.Statics;
 import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.pragma.Inline;
+import org.vmmagic.pragma.Pure;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Offset;
 
@@ -1965,15 +1966,15 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
    * Emit code to implement the lcmp bytecode
    */
   @Override
-  protected final void emit_lcmp() {
+  protected final void emit_regular_lcmp() {
     if (VM.BuildFor32Addr) {
-      asm.emitPOP_Reg(T0);                // (S1:T0) = (high half value2: low half value2)
-      asm.emitPOP_Reg(S1);
+      asm.emitPOP_Reg(T0);                // (S0:T0) = (high half value2: low half value2)
+      asm.emitPOP_Reg(S0);
       asm.emitPOP_Reg(T1);                // (..:T1) = (.. : low half of value1)
       asm.emitSUB_Reg_Reg(T1, T0);        // T1 = T1 - T0
       asm.emitPOP_Reg(T0);                // (T0:..) = (high half of value1 : ..)
       // NB pop does not alter the carry register
-      asm.emitSBB_Reg_Reg(T0, S1);        // T0 = T0 - S1 - CF
+      asm.emitSBB_Reg_Reg(T0, S0);        // T0 = T0 - S0 - CF
       asm.emitOR_Reg_Reg(T1, T0);         // T1 = T1 | T0 updating ZF
       asm.emitSET_Cond_Reg_Byte(Assembler.NE, T1);
       asm.emitMOVZX_Reg_Reg_Byte(T1, T1); // T1 = (value1 != value2) ? 1 : 0
@@ -1997,8 +1998,11 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
 
   /**
    * Handle all [df]cmp[gl] cases
+   * @param single true if single precision
+   * @param unorderedGT is the result greater-than if unordered
    */
-  private void emit_DFcmpGL(boolean single, boolean unorderedGT) {
+  @Override
+  protected final void emit_regular_DFcmpGL(boolean single, boolean unorderedGT) {
     if (SSE2_BASE) {
       if(single) {
         asm.emitMOVSS_Reg_RegInd(XMM0, SP);               // XMM0 = value2
@@ -2049,178 +2053,197 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
     }
   }
 
-  /**
-   * Emit code to implement the fcmpl bytecode
-   */
-  @Override
-  protected final void emit_fcmpl() {
-    emit_DFcmpGL(true, false);
-  }
-
-  /**
-   * Emit code to implement the fcmpg bytecode
-   */
-  @Override
-  protected final void emit_fcmpg() {
-    emit_DFcmpGL(true, true);
-  }
-
-  /**
-   * Emit code to implement the dcmpl bytecode
-   */
-  @Override
-  protected final void emit_dcmpl() {
-    emit_DFcmpGL(false, false);
-  }
-
-  /**
-   * Emit code to implement the dcmpg bytecode
-   */
-  @Override
-  protected final void emit_dcmpg() {
-    emit_DFcmpGL(false, true);
-  }
-
   /*
    * branching
    */
 
+  /** Convert a branch condition to the assembler constant equivalent */
+  @Pure
+  private byte mapCondition(BranchCondition bc) {
+    switch(bc) {
+    case EQ: return Assembler.EQ;
+    case NE: return Assembler.NE;
+    case LT: return Assembler.LT;
+    case GE: return Assembler.GE;
+    case GT: return Assembler.GT;
+    case LE: return Assembler.LE;
+    default: VM._assert(VM.NOT_REACHED); return -1;
+    }
+  }
+
   /**
-   * Emit code to implement the ifeg bytecode
+   * Emit code to implement the if.. bytecode
    * @param bTarget target bytecode of the branch
+   * @param bc branch condition
    */
   @Override
-  protected final void emit_ifeq(int bTarget) {
+  @Inline(value=Inline.When.ArgumentsAreConstant, arguments={2})
+  protected final void emit_if(int bTarget, BranchCondition bc) {
     asm.emitPOP_Reg(T0);
     asm.emitTEST_Reg_Reg(T0, T0);
-    genCondBranch(Assembler.EQ, bTarget);
+    genCondBranch(mapCondition(bc), bTarget);
   }
 
   /**
-   * Emit code to implement the ifne bytecode
+   * Emit code to perform an lcmp followed by if
    * @param bTarget target bytecode of the branch
+   * @param bc branch condition
    */
   @Override
-  protected final void emit_ifne(int bTarget) {
-    asm.emitPOP_Reg(T0);
-    asm.emitTEST_Reg_Reg(T0, T0);
-    genCondBranch(Assembler.NE, bTarget);
+  @Inline(value=Inline.When.ArgumentsAreConstant, arguments={2})
+  protected final void emit_lcmp_if(int bTarget, BranchCondition bc) {
+    if (bc == BranchCondition.LE || bc == BranchCondition.GT) {
+      // flip operands in these cases
+      if (bc == BranchCondition.LE) {
+        bc = BranchCondition.GE;
+      } else {
+        bc = BranchCondition.LT;
+      }
+      asm.emitPOP_Reg(T1);                // (T0:T1) = (high half value2: low half value2)
+      asm.emitPOP_Reg(T0);
+      asm.emitPOP_Reg(S0);                // (..:S0) = (.. : low half of value1)
+      asm.emitSUB_Reg_Reg(T1, S0);        // T1 = T1 - S0
+      asm.emitPOP_Reg(S0);                // (S0:..) = (high half of value1 : ..)
+      // NB pop does not alter the carry register
+      asm.emitSBB_Reg_Reg(T0, S0);        // T0 = T0 - S0 - CF
+    } else {
+      asm.emitPOP_Reg(T0);                // (S0:T0) = (high half value2: low half value2)
+      asm.emitPOP_Reg(S0);
+      asm.emitPOP_Reg(T1);                // (..:T1) = (.. : low half of value1)
+      asm.emitSUB_Reg_Reg(T1, T0);        // T1 = T1 - T0
+      asm.emitPOP_Reg(T0);                // (T0:..) = (high half of value1 : ..)
+      // NB pop does not alter the carry register
+      asm.emitSBB_Reg_Reg(T0, S0);        // T0 = T0 - S0 - CF
+      if (bc == BranchCondition.EQ || bc == BranchCondition.NE) {
+        asm.emitOR_Reg_Reg(T1, T0);       // T1 = T1 | T0 updating ZF
+      }
+    }
+    genCondBranch(mapCondition(bc), bTarget);
   }
 
   /**
-   * Emit code to implement the iflt bytecode
+   * Emit code to perform an DFcmpGL followed by ifeq
+   * @param single true if single precision
+   * @param unorderedGT is the result greater-than if unordered
    * @param bTarget target bytecode of the branch
+   * @param bc branch condition
    */
-  @Override
-  protected final void emit_iflt(int bTarget) {
-    asm.emitPOP_Reg(T0);
-    asm.emitTEST_Reg_Reg(T0, T0);
-    genCondBranch(Assembler.LT, bTarget);
+  protected void emit_DFcmpGL_if(boolean single, boolean unorderedGT, int bTarget, BranchCondition bc) {
+    if (SSE2_BASE) {
+      if(single) {
+        asm.emitMOVSS_Reg_RegInd(XMM0, SP);               // XMM0 = value2
+        asm.emitMOVSS_Reg_RegDisp(XMM1, SP, ONE_SLOT);    // XMM1 = value1
+        adjustStack(WORDSIZE*2, true);                    // throw away slots
+      } else {
+        asm.emitMOVSD_Reg_RegInd(XMM0, SP);              // XMM0 = value2
+        asm.emitMOVSD_Reg_RegDisp(XMM1, SP, TWO_SLOTS);  // XMM1 = value1
+        adjustStack(WORDSIZE*4, true);                    // throw away slots
+      }
+    } else {
+      if(single) {
+        asm.emitFLD_Reg_RegInd(FP0, SP);                  // Setup value2 into FP1,
+        asm.emitFLD_Reg_RegDisp(FP0, SP, ONE_SLOT);       // value1 into FP0
+        adjustStack(WORDSIZE*2, true);                    // throw away slots
+      } else {
+        asm.emitFLD_Reg_RegInd_Quad(FP0, SP);             // Setup value2 into FP1,
+        asm.emitFLD_Reg_RegDisp_Quad(FP0, SP, TWO_SLOTS); // value1 into FP0
+        adjustStack(WORDSIZE*4, true);                    // throw away slots
+      }
+    }
+    if (SSE2_BASE) {
+      if (single) {
+        asm.emitUCOMISS_Reg_Reg(XMM1, XMM0);              // compare value1 and value2
+      } else {
+        asm.emitUCOMISD_Reg_Reg(XMM1, XMM0);              // compare value1 and value2
+      }
+    } else {
+      asm.emitFUCOMIP_Reg_Reg(FP0, FP1);                  // compare and pop FPU *1
+      asm.emitFSTP_Reg_Reg(FP0, FP0);                     // pop FPU*1
+    }
+    byte asm_bc = -1;
+    boolean unordered_taken = false;
+    switch(bc) {
+    case EQ:
+      asm_bc = Assembler.EQ;
+      unordered_taken = false;
+      break;
+    case NE:
+      asm_bc = Assembler.NE;
+      unordered_taken = true;
+      break;
+    case LT:
+      asm_bc = Assembler.LLT;
+      unordered_taken = !unorderedGT;
+      break;
+    case GE:
+      asm_bc = Assembler.LGE;
+      unordered_taken = unorderedGT;
+      break;
+    case GT:
+      asm_bc = Assembler.LGT;
+      unordered_taken = unorderedGT;
+      break;
+    case LE:
+      asm_bc = Assembler.LLE;
+      unordered_taken = !unorderedGT;
+      break;
+    default:
+      VM._assert(VM.NOT_REACHED);
+    }
+    int mTarget = bytecodeMap[bTarget];
+    if (!VM.runningTool && ((BaselineCompiledMethod) compiledMethod).hasCounterArray()) {
+      // Allocate two counters: taken and not taken
+      int entry = edgeCounterIdx;
+      edgeCounterIdx += 2;
+
+      if (!unordered_taken) {
+        ForwardReference notTaken1 = asm.forwardJcc(Assembler.PE);
+        ForwardReference notTaken2 = asm.forwardJcc(asm.flipCode(asm_bc));
+        // Increment taken counter & jump to target
+        incEdgeCounter(T1, null, entry + EdgeCounts.TAKEN);
+        asm.emitJMP_ImmOrLabel(mTarget, bTarget);
+        // Increment not taken counter
+        notTaken1.resolve(asm);
+        notTaken2.resolve(asm);
+        incEdgeCounter(T1, null, entry + EdgeCounts.NOT_TAKEN);
+      } else {
+        ForwardReference taken1 = asm.forwardJcc(Assembler.PE);
+        ForwardReference taken2 = asm.forwardJcc(asm_bc);
+        // Increment taken counter & jump to target
+        incEdgeCounter(T1, null, entry + EdgeCounts.NOT_TAKEN);
+        ForwardReference notTaken = asm.forwardJMP();
+        // Increment taken counter
+        taken1.resolve(asm);
+        taken2.resolve(asm);
+        incEdgeCounter(T1, null, entry + EdgeCounts.TAKEN);
+        asm.emitJMP_ImmOrLabel(mTarget, bTarget);
+        notTaken.resolve(asm);
+      }
+    } else {
+      if (unordered_taken) {
+        asm.emitJCC_Cond_ImmOrLabel(Assembler.PE, mTarget, bTarget);
+        asm.emitJCC_Cond_ImmOrLabel(asm_bc, mTarget, bTarget);
+      } else {
+        ForwardReference notTaken = asm.forwardJcc(Assembler.PE);
+        asm.emitJCC_Cond_ImmOrLabel(asm_bc, mTarget, bTarget);
+        notTaken.resolve(asm);
+      }
+    }
+
   }
 
   /**
-   * Emit code to implement the ifge bytecode
+   * Emit code to implement the if_icmp.. bytecode
    * @param bTarget target bytecode of the branch
+   * @param bc branch condition
    */
   @Override
-  protected final void emit_ifge(int bTarget) {
+  @Inline(value=Inline.When.ArgumentsAreConstant, arguments={2})
+  protected final void emit_if_icmp(int bTarget, BranchCondition bc) {
+    asm.emitPOP_Reg(T1);
     asm.emitPOP_Reg(T0);
-    asm.emitTEST_Reg_Reg(T0, T0);
-    genCondBranch(Assembler.GE, bTarget);
-  }
-
-  /**
-   * Emit code to implement the ifgt bytecode
-   * @param bTarget target bytecode of the branch
-   */
-  @Override
-  protected final void emit_ifgt(int bTarget) {
-    asm.emitPOP_Reg(T0);
-    asm.emitTEST_Reg_Reg(T0, T0);
-    genCondBranch(Assembler.GT, bTarget);
-  }
-
-  /**
-   * Emit code to implement the ifle bytecode
-   * @param bTarget target bytecode of the branch
-   */
-  @Override
-  protected final void emit_ifle(int bTarget) {
-    asm.emitPOP_Reg(T0);
-    asm.emitTEST_Reg_Reg(T0, T0);
-    genCondBranch(Assembler.LE, bTarget);
-  }
-
-  /**
-   * Emit code to implement the if_icmpeq bytecode
-   * @param bTarget target bytecode of the branch
-   */
-  @Override
-  protected final void emit_if_icmpeq(int bTarget) {
-    asm.emitPOP_Reg(S0);
-    asm.emitPOP_Reg(T0);
-    asm.emitCMP_Reg_Reg(T0, S0);
-    genCondBranch(Assembler.EQ, bTarget);
-  }
-
-  /**
-   * Emit code to implement the if_icmpne bytecode
-   * @param bTarget target bytecode of the branch
-   */
-  @Override
-  protected final void emit_if_icmpne(int bTarget) {
-    asm.emitPOP_Reg(S0);
-    asm.emitPOP_Reg(T0);
-    asm.emitCMP_Reg_Reg(T0, S0);
-    genCondBranch(Assembler.NE, bTarget);
-  }
-
-  /**
-   * Emit code to implement the if_icmplt bytecode
-   * @param bTarget target bytecode of the branch
-   */
-  @Override
-  protected final void emit_if_icmplt(int bTarget) {
-    asm.emitPOP_Reg(S0);
-    asm.emitPOP_Reg(T0);
-    asm.emitCMP_Reg_Reg(T0, S0);
-    genCondBranch(Assembler.LT, bTarget);
-  }
-
-  /**
-   * Emit code to implement the if_icmpge bytecode
-   * @param bTarget target bytecode of the branch
-   */
-  @Override
-  protected final void emit_if_icmpge(int bTarget) {
-    asm.emitPOP_Reg(S0);
-    asm.emitPOP_Reg(T0);
-    asm.emitCMP_Reg_Reg(T0, S0);
-    genCondBranch(Assembler.GE, bTarget);
-  }
-
-  /**
-   * Emit code to implement the if_icmpgt bytecode
-   * @param bTarget target bytecode of the branch
-   */
-  @Override
-  protected final void emit_if_icmpgt(int bTarget) {
-    asm.emitPOP_Reg(S0);
-    asm.emitPOP_Reg(T0);
-    asm.emitCMP_Reg_Reg(T0, S0);
-    genCondBranch(Assembler.GT, bTarget);
-  }
-
-  /**
-   * Emit code to implement the if_icmple bytecode
-   * @param bTarget target bytecode of the branch
-   */
-  @Override
-  protected final void emit_if_icmple(int bTarget) {
-    asm.emitPOP_Reg(S0);
-    asm.emitPOP_Reg(T0);
-    asm.emitCMP_Reg_Reg(T0, S0);
-    genCondBranch(Assembler.LE, bTarget);
+    asm.emitCMP_Reg_Reg(T0, T1);
+    genCondBranch(mapCondition(bc), bTarget);
   }
 
   /**
