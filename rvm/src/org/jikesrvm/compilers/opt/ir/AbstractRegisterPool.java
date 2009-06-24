@@ -260,6 +260,13 @@ public abstract class AbstractRegisterPool {
   }
 
   /**
+   * MIR: have any 2nd register pairings been made?
+   */
+  public boolean hasSecondRegs() {
+    return !_regPairs.isEmpty();
+  }
+
+  /**
    * Make a temporary register operand to hold values of the specified type
    * (a new register is allocated).
    *
