@@ -15,9 +15,9 @@
   <import file="base.xml"/>
   <property file="${components.file}"/>
 
-  <property name="harmony.version" value="5.0M9"/>
+  <property name="harmony.version" value="5.0M10"/>
   <property name="harmony.description" value="Apache Harmony class libraries"/>
-  <property name="harmony.svn.revision" value="765173"/>
+  <property name="harmony.svn.revision" value="782693"/>
   <property name="harmony.patchlevel" value="0"/>
   <property name="harmony.component.dir" location="${components.dir}/harmony"/>
   <property name="harmony.package.dir" value="${harmony.component.dir}/${harmony.version}p${harmony.patchlevel}"/>
