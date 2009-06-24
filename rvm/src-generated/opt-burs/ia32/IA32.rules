@@ -1413,9 +1413,35 @@ LONG_SUB(P(p), Binary.getResult(P(p)), Binary.getVal1(P(p)), Binary.getVal2(P(p)
 # LONG_MUL
 #####
 r:	LONG_MUL(rlv, rlv)
-23
+(5*13)
 EMIT_INSTRUCTION
 LONG_MUL(P(p), Binary.getResult(P(p)), Binary.getVal1(P(p)), Binary.getVal2(P(p)));
+
+r:      LONG_MUL(LONG_AND(r, LONG_CONSTANT), LONG_AND(r, LONG_CONSTANT))
+(Binary.getVal2(PL(p)).asLongConstant().upper32() == 0) && \
+(Binary.getVal2(PL(p)).asLongConstant().lower32() == -1)&& \
+(Binary.getVal2(PR(p)).asLongConstant().upper32() == 0) && \
+(Binary.getVal2(PR(p)).asLongConstant().lower32() == -1) ? (4*11) : INFINITE
+EMIT_INSTRUCTION
+Register lhsReg = Binary.getVal1(PL(p)).asRegister().getRegister(); \\
+Register lowlhsReg = regpool.getSecondReg(lhsReg); \\
+Register rhsReg = Binary.getVal1(PR(p)).asRegister().getRegister(); \\
+Register lowrhsReg = regpool.getSecondReg(rhsReg); \\
+Register resultReg = Binary.getResult(P(p)).getRegister(); \\
+Register lowresultReg = regpool.getSecondReg(resultReg); \\
+EMIT(CPOS(P(p), MIR_Move.create(IA32_MOV, \\
+                 new RegisterOperand(getEAX(), TypeReference.Int), \\
+                 new RegisterOperand(lowlhsReg, TypeReference.Int)))); \\
+EMIT(MIR_Multiply.mutate(P(p), IA32_MUL, \\
+                 new RegisterOperand(getEDX(), TypeReference.Int), \\
+                 new RegisterOperand(getEAX(), TypeReference.Int), \\
+                 new RegisterOperand(lowrhsReg, TypeReference.Int))); \\
+EMIT(CPOS(P(p), MIR_Move.create(IA32_MOV, \\
+                 new RegisterOperand(lowresultReg, TypeReference.Int), \\
+                 new RegisterOperand(getEAX(), TypeReference.Int)))); \\
+EMIT(CPOS(P(p), MIR_Move.create(IA32_MOV, \\
+                 new RegisterOperand(resultReg, TypeReference.Int), \\
+                 new RegisterOperand(getEDX(), TypeReference.Int))));
 
 #####
 # LONG_NEG
