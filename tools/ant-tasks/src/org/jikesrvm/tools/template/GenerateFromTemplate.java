@@ -200,6 +200,7 @@ public class GenerateFromTemplate {
   static final int MAX_DATA_SIZE = 65536;
 
   LineNumberReader in;
+  String inFileName;
   PrintWriter out;
 
   String[] vars;
@@ -260,7 +261,7 @@ public class GenerateFromTemplate {
          if (DEBUG) System.out.println(vars[i-2]+" = "+vals[i-2]);
       }
 
-      GenerateFromTemplate gft = new GenerateFromTemplate(inStream, outStream);
+      GenerateFromTemplate gft = new GenerateFromTemplate(inStream, args[0], outStream);
       gft.setSubst(vars, vals);
       gft.generateOutputFromTemplate();
     // } catch (IOException e) {
@@ -273,9 +274,10 @@ public class GenerateFromTemplate {
     }
   }
 
-  GenerateFromTemplate(InputStream inStream, OutputStream outStream) {
+  GenerateFromTemplate(InputStream inStream, String _inFileName, OutputStream outStream) {
     // setup i/o
     in = new LineNumberReader(new InputStreamReader(inStream));
+    inFileName = _inFileName;
     out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(outStream)));
   }
 
@@ -338,7 +340,7 @@ public class GenerateFromTemplate {
   void buildLoopRegion(Vector<Object> region) throws IOException {
     for (;;) {
       String inLine = readLine();
-      if (inLine == null) throw new IOException("Unexpected end of file");
+      if (inLine == null) throwIOException("Unexpected end of file");
       if (isTemplateLine(inLine)) {
         Command command = getTemplateCommand(inLine);
         if (command == Command.END) break;
@@ -354,7 +356,7 @@ public class GenerateFromTemplate {
     Vector<Object> intern = new Vector<Object>();
     for (;;) {
       String inLine = readLine();
-      if (inLine == null) throw new IOException("Unexpected end of file");
+      if (inLine == null) throwIOException("Unexpected end of file");
       if (isTemplateLine(inLine)) {
         Command command = getTemplateCommand(inLine);
         if (command == Command.END) {
@@ -376,9 +378,10 @@ public class GenerateFromTemplate {
   void buildIncludeRegion(Vector<Object> region) throws IOException {
     QuotedStringTokenizer pst = new QuotedStringTokenizer(params);
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing filename in INCLUDE");
+       throwIOException("Missing filename in INCLUDE");
     String file_name = pst.nextToken();
     LineNumberReader old_in = in;
+    String old_inFileName = inFileName;
     try {
         in = new LineNumberReader(new FileReader(file_name));
     } catch (java.io.FileNotFoundException e) {
@@ -395,6 +398,7 @@ public class GenerateFromTemplate {
       }
     }
     in = old_in;
+    inFileName = old_inFileName;
   }
 
   Command getTemplateCommand(String line) throws IOException {
@@ -404,13 +408,11 @@ public class GenerateFromTemplate {
       endMatch = line.length();
     }
     if (DEBUG) System.out.println("getting template command :"+line.substring(startMatch));
-    Command i;
+    Command i=null;
     try {
       i = Enum.valueOf(Command.class, line.substring(startMatch, endMatch));
     } catch (IllegalArgumentException e) {
-      IOException newE = new IOException("Invalid command");
-      newE.initCause(e);
-      throw newE;
+      throwIOException("Invalid command", e);
     }
     params = line.substring(endMatch);
     if (DEBUG) System.out.println("command is " + i + ". params ="+params);
@@ -454,10 +456,10 @@ public class GenerateFromTemplate {
     // get var name and data file name
     QuotedStringTokenizer pst = new QuotedStringTokenizer(params);
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing variable in FOREACH");
+       throwIOException("Missing variable in FOREACH");
     String var_name = pst.nextToken();
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing filename in FOREACH");
+       throwIOException("Missing filename in FOREACH");
     String file_name = pst.nextToken();
     String select = null;
     String start = null;
@@ -466,7 +468,7 @@ public class GenerateFromTemplate {
     if (pst.hasMoreTokens()) {
        select = pst.nextToken();
        if (!pst.hasMoreTokens())
-          throw new IOException("Missing field value in FOREACH");
+          throwIOException("Missing field value in FOREACH");
        String fval = pst.nextToken();
        int dotdot = fval.indexOf("..");
        if (dotdot != -1 && dotdot == fval.lastIndexOf("..")) {
@@ -486,95 +488,98 @@ public class GenerateFromTemplate {
     }
 
     // open data file
-    BufferedReader data;
+    LineNumberReader data;
     try {
-        data = new BufferedReader(new FileReader(file_name));
+      data = new LineNumberReader(new BufferedReader(new FileReader(file_name)));
     } catch (java.io.FileNotFoundException e) {
-        data = new BufferedReader(new FileReader(inDir + file_name));
+      data = new LineNumberReader(new BufferedReader(new FileReader(inDir + file_name)));
     }
-
-    // read field information
-    Vector<String> fields_v = new Vector<String>();
-    Vector<Integer> fpl_v = new Vector<Integer>();
-    for (String inLine = getNextLine(data);
-         (inLine != null && inLine.length() != 0);
-         inLine = getNextLine(data)) {
-      StringTokenizer st = new StringTokenizer(inLine);
-      fpl_v.addElement(st.countTokens());
-      while (st.hasMoreTokens()) {
-        String tok = st.nextToken();
-        if (DEBUG) System.out.println("read field "+fields_v.size()+" :"+tok);
-        fields_v.addElement(tok);
+    try {
+      // read field information
+      Vector<String> fields_v = new Vector<String>();
+      Vector<Integer> fpl_v = new Vector<Integer>();
+      for (String inLine = getNextLine(data);
+	   (inLine != null && inLine.length() != 0);
+	   inLine = getNextLine(data)) {
+	StringTokenizer st = new StringTokenizer(inLine);
+	fpl_v.addElement(st.countTokens());
+	while (st.hasMoreTokens()) {
+	  String tok = st.nextToken();
+	  if (DEBUG) System.out.println("read field "+fields_v.size()+" :"+tok);
+	  fields_v.addElement(tok);
+	}
       }
+      fields_v.addElement(indexField);
+      // convert to arrays for faster access
+      int[] fieldsPerLine = new int[fpl_v.size()];
+      for (int i = 0; i < fieldsPerLine.length; i++)
+	fieldsPerLine[i] = fpl_v.elementAt(i);
+      String[] fields = fields_v.toArray(new String[0]);
+
+      // Count through data file.
+      dataFileLoop:
+      for (int curField = 0; ; curField++) {
+	// Read in all fields
+	int i = 0;
+	String[] fieldData = new String[fields.length];
+	for (int aFieldsPerLine : fieldsPerLine) {
+	  String line = getNextLine(data);
+	  if (line == null) break dataFileLoop;
+	  if (aFieldsPerLine == 1) {
+	    if (DEBUG) System.out.println("read field " + fields[i] + " :" + line);
+	    fieldData[i++] = line;
+	  } else {
+	    if (DEBUG) System.out.println("reading " + aFieldsPerLine + " fields");
+	    StringTokenizer st = new StringTokenizer(line);
+	    try {
+	      for (int k = 0; k < aFieldsPerLine; k++) {
+		String tok = st.nextToken();
+		if (DEBUG) System.out.println("read field " + fields[i] + ": " + tok);
+		fieldData[i++] = tok;
+	      }
+	    } catch (NoSuchElementException x) {
+	      throwIOException("Missing field " + fields[i]);
+	    }
+	  }
+	}
+	if (fieldsPerLine.length != 1) getNextLine(data); // skip empty line.
+	fieldData[i++] = Integer.toString(curField);
+
+	if (select != null) {
+	  for (int j = 0; j < fields.length; j++) {
+	    if (DEBUG) System.out.println("checking if select is field "+fields[j]);
+	    if (select.equals(fields[j])) {
+	      String value = fieldData[j];
+	      if (value.equals(start)) inRange = true;
+	      else if (end == null) inRange = false;
+	      else if (value.equals(end)) end = null;
+
+	      if (DEBUG) System.out.println("record in range; including");
+	      break;
+	    }
+	  }
+
+	  if (!inRange) break;
+	}
+
+	// Count through each line in region.
+	for (int j = 1; j < region.size(); j++) {
+	  try {
+	    String currentLine = (String) region.elementAt(j);
+	    String result = substitute(currentLine, var_name, fields, fieldData);
+	    out.print(result+"\n");
+	  } catch (ClassCastException e) {
+	    @SuppressWarnings("unchecked") // Suppress complaints that we are casting to an erased type
+	      Vector<Object> oldRegion = (Vector<Object>)region.elementAt(j);
+	    Vector<Object> newRegion = substituteInRegion(oldRegion, var_name, fields,
+							  fieldData);
+	    processTemplateRegion(newRegion);
+	  }
+	} // for j
+      } // for curField
+    } catch (Exception e) {
+      throwIOException("Error processing file "+file_name+" on line "+data.getLineNumber(), e);
     }
-    fields_v.addElement(indexField);
-    // convert to arrays for faster access
-    int[] fieldsPerLine = new int[fpl_v.size()];
-    for (int i = 0; i < fieldsPerLine.length; i++)
-       fieldsPerLine[i] = fpl_v.elementAt(i);
-    String[] fields = fields_v.toArray(new String[0]);
-
-    // Count through data file.
-  dataFileLoop:
-    for (int curField = 0; ; curField++) {
-      // Read in all fields
-      int i = 0;
-      String[] fieldData = new String[fields.length];
-      for (int aFieldsPerLine : fieldsPerLine) {
-        String line = getNextLine(data);
-        if (line == null) break dataFileLoop;
-        if (aFieldsPerLine == 1) {
-          if (DEBUG) System.out.println("read field " + fields[i] + " :" + line);
-          fieldData[i++] = line;
-        } else {
-          if (DEBUG) System.out.println("reading " + aFieldsPerLine + " fields");
-          StringTokenizer st = new StringTokenizer(line);
-          try {
-            for (int k = 0; k < aFieldsPerLine; k++) {
-              String tok = st.nextToken();
-              if (DEBUG) System.out.println("read field " + fields[i] + ": " + tok);
-              fieldData[i++] = tok;
-            }
-          } catch (NoSuchElementException x) {
-            throw new IOException("Missing field " + fields[i]);
-          }
-        }
-      }
-      if (fieldsPerLine.length != 1) getNextLine(data); // skip empty line.
-      fieldData[i++] = Integer.toString(curField);
-
-      if (select != null) {
-        for (int j = 0; j < fields.length; j++) {
-          if (DEBUG) System.out.println("checking if select is field "+fields[j]);
-          if (select.equals(fields[j])) {
-            String value = fieldData[j];
-            if (value.equals(start)) inRange = true;
-            else if (end == null) inRange = false;
-            else if (value.equals(end)) end = null;
-
-            if (DEBUG) System.out.println("record in range; including");
-            break;
-          }
-        }
-
-        if (!inRange) break;
-      }
-
-      // Count through each line in region.
-      for (int j = 1; j < region.size(); j++) {
-        try {
-          String currentLine = (String) region.elementAt(j);
-          String result = substitute(currentLine, var_name, fields, fieldData);
-          out.print(result+"\n");
-        } catch (ClassCastException e) {
-          @SuppressWarnings("unchecked") // Suppress complaints that we are casting to an erased type
-          Vector<Object> oldRegion = (Vector<Object>)region.elementAt(j);
-          Vector<Object> newRegion = substituteInRegion(oldRegion, var_name, fields,
-                                                fieldData);
-          processTemplateRegion(newRegion);
-        }
-      } // for j
-    } // for curField
     data.close();
   }
 
@@ -583,7 +588,7 @@ public class GenerateFromTemplate {
     if (DEBUG) System.out.println("params=\""+params+"\"");
     QuotedStringTokenizer pst = new QuotedStringTokenizer(params);
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing var name in LOOP");
+       throwIOException("Missing var name in LOOP");
     String var_name = pst.nextToken();
     Vector<String> valvec = new Vector<String>();
     while (pst.hasMoreTokens()) {
@@ -637,7 +642,7 @@ public class GenerateFromTemplate {
     if (DEBUG) System.out.println("params=\""+params+"\"");
     QuotedStringTokenizer pst = new QuotedStringTokenizer(params);
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing var name in COUNT");
+       throwIOException("Missing var name in COUNT");
     String var_name = pst.nextToken();
     int count = 0;
     while (pst.hasMoreTokens()) {
@@ -674,9 +679,9 @@ public class GenerateFromTemplate {
   }
 
   private String parseArg(StreamTokenizer st) throws IOException {
-     if (st.nextToken() != '(') throw new IOException("Missing '('");
+     if (st.nextToken() != '(') throwIOException("Missing '('");
      String ret = evalStrExpr(st);
-     if (st.nextToken() != ')') throw new IOException("Missing ')'");
+     if (st.nextToken() != ')') throwIOException("Missing ')'");
      return ret;
   }
 
@@ -689,15 +694,15 @@ public class GenerateFromTemplate {
   }
 
   private String evalPad(StreamTokenizer st) throws IOException {
-     if (st.nextToken() != '(') throw new IOException("Missing '('");
+     if (st.nextToken() != '(') throwIOException("Missing '('");
      StringBuilder val = new StringBuilder(evalStrExpr(st));
      int unpaddedSize = val.length();
-     if (st.nextToken() != ',') throw new IOException("Missing ','");
+     if (st.nextToken() != ',') throwIOException("Missing ','");
      int len = evalExpr(st);
-     if (st.nextToken() != ',') throw new IOException("Missing ','");
-     if (st.nextToken() != '"') throw new IOException("Invalid string");
+     if (st.nextToken() != ',') throwIOException("Missing ','");
+     if (st.nextToken() != '"') throwIOException("Invalid string");
      String pad = st.sval;
-     if (st.nextToken() != ')') throw new IOException("Missing ')'");
+     if (st.nextToken() != ')') throwIOException("Missing ')'");
      while (val.length() < len)
         val.append(pad);
      val.setLength(Math.max(len, unpaddedSize));
@@ -705,15 +710,15 @@ public class GenerateFromTemplate {
   }
 
   private String evalSubst(StreamTokenizer st) throws IOException {
-     if (st.nextToken() != '(') throw new IOException("Missing '('");
+     if (st.nextToken() != '(') throwIOException("Missing '('");
      StringBuilder val = new StringBuilder(evalStrExpr(st));
-     if (st.nextToken() != ',') throw new IOException("Missing ','");
-     if (st.nextToken() != '"') throw new IOException("Invalid string");
+     if (st.nextToken() != ',') throwIOException("Missing ','");
+     if (st.nextToken() != '"') throwIOException("Invalid string");
      String oldc = st.sval;
-     if (st.nextToken() != ',') throw new IOException("Missing ','");
-     if (st.nextToken() != '"') throw new IOException("Invalid string");
+     if (st.nextToken() != ',') throwIOException("Missing ','");
+     if (st.nextToken() != '"') throwIOException("Invalid string");
      String newc = st.sval;
-     if (st.nextToken() != ')') throw new IOException("Missing ')'");
+     if (st.nextToken() != ')') throwIOException("Missing ')'");
      for (int i = 0; i < val.length(); i++) {
         int l = oldc.indexOf(val.charAt(i));
         if (l != -1) val.setCharAt(i, newc.charAt(l));
@@ -738,23 +743,24 @@ public class GenerateFromTemplate {
                      return val < evalExpr(st);
                   }
         case '=': if (st.nextToken() != '=')
-                     throw new IOException("Invalid token");
+                     throwIOException("Invalid token");
                   return val == evalExpr(st);
         case '!': if (st.nextToken() != '=')
-                     throw new IOException("Invalid token");
+                     throwIOException("Invalid token");
                   return val != evalExpr(st);
-        default:  throw new IOException("Invalid token");
+        default:  throwIOException("Invalid token");
      }
+     return false; // placate javac
   }
 
   private String evalIf(StreamTokenizer st) throws IOException {
-     if (st.nextToken() != '(') throw new IOException("Missing '('");
+     if (st.nextToken() != '(') throwIOException("Missing '('");
      boolean cond = evalCond(st);
-     if (st.nextToken() != ',') throw new IOException("Missing ','");
+     if (st.nextToken() != ',') throwIOException("Missing ','");
      String valtrue = evalStrExpr(st);
-     if (st.nextToken() != ',') throw new IOException("Missing ','");
+     if (st.nextToken() != ',') throwIOException("Missing ','");
      String valfalse = evalStrExpr(st);
-     if (st.nextToken() != ')') throw new IOException("Missing ')'");
+     if (st.nextToken() != ')') throwIOException("Missing ')'");
      if (cond)
         return valtrue;
      return valfalse;
@@ -772,14 +778,15 @@ public class GenerateFromTemplate {
         case '~':          return ~evalFactor(st);
         case '(':          int val = evalExpr(st);
                            if (st.nextToken() != ')')
-                              throw new IOException("Mismatched parentheses");
+                              throwIOException("Mismatched parentheses");
                            return val;
         case StreamTokenizer.TT_WORD:   if (st.sval.equals("@LENGTH"))
                               return evalLength(st);
                            else
-                              throw new IOException("Invalid token: "+tok);
-        default:           throw new IOException("Invalid token: "+tok);
+                              throwIOException("Invalid token: "+tok);
+        default:           throwIOException("Invalid token: "+tok);
      }
+     return 0; // placate javac
   }
 
   private int evalTerm(StreamTokenizer st) throws IOException {
@@ -792,7 +799,7 @@ public class GenerateFromTemplate {
            case '/': val /= t; break;
            case '%': val %= t; break;
            case '&': val &= t; break;
-           default: throw new IOException("Invalid token");
+           default: throwIOException("Invalid token");
         }
         token = st.nextToken();
      }
@@ -810,7 +817,7 @@ public class GenerateFromTemplate {
            case '-': val -= t; break;
            case '|': val |= t; break;
            case '^': val ^= t; break;
-           default: throw new IOException("Invalid token");
+           default: throwIOException("Invalid token");
         }
         token = st.nextToken();
      }
@@ -849,7 +856,7 @@ public class GenerateFromTemplate {
 
   private String evalLet(StreamTokenizer st) throws IOException {
      String val = evalStrExpr(st);
-     if (st.nextToken() != StreamTokenizer.TT_EOF) throw new IOException("Extra input: '"+st.ttype+"'");
+     if (st.nextToken() != StreamTokenizer.TT_EOF) throwIOException("Extra input: '"+st.ttype+"'");
      return val;
   }
 
@@ -866,10 +873,10 @@ public class GenerateFromTemplate {
     pst.wordChars('@','@'); pst.wordChars('_', '_');
     int tok = pst.nextToken();
     if (tok != StreamTokenizer.TT_WORD)
-       throw new IOException("Missing var name in LET");
+       throwIOException("Missing var name in LET");
     String var_name = pst.sval;
     if (pst.nextToken() == StreamTokenizer.TT_EOF)
-       throw new IOException("Missing value in LET");
+       throwIOException("Missing value in LET");
     pst.pushBack();
     String value = evalLet(pst);
 
@@ -897,10 +904,10 @@ public class GenerateFromTemplate {
     if (DEBUG) System.out.println("params=\""+params+"\"");
     QuotedStringTokenizer pst = new QuotedStringTokenizer(params);
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing var name in JOIN");
+       throwIOException("Missing var name in JOIN");
     String var_name = pst.nextToken();
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing separators in JOIN");
+       throwIOException("Missing separators in JOIN");
     String sep = pst.nextToken();
     int numValues = pst.countTokens();
     String value = "";
@@ -934,13 +941,13 @@ public class GenerateFromTemplate {
     if (DEBUG) System.out.println("params=\""+params+"\"");
     QuotedStringTokenizer pst = new QuotedStringTokenizer(params);
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing value in SPLIT");
+       throwIOException("Missing value in SPLIT");
     String value = pst.nextToken();
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing separators in SPLIT");
+       throwIOException("Missing separators in SPLIT");
     String sep = pst.nextToken();
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing variables in SPLIT");
+       throwIOException("Missing variables in SPLIT");
     int numVars = pst.countTokens();
     String[] var_names = new String[numVars];
     for (int i = 0; i < numVars; i++)
@@ -1000,6 +1007,7 @@ public class GenerateFromTemplate {
     if (DEBUG) System.out.println("doing eval: evaluating\n"+sw);
 
     LineNumberReader old_in = in;
+    String old_inFileName = inFileName;
     in = new LineNumberReader(new StringReader(sw.toString()));
 
     String inLine;
@@ -1014,8 +1022,8 @@ public class GenerateFromTemplate {
       Vector<Object> newRegion = buildTemplateRegion(inLine);
       processTemplateRegion(newRegion);
     }
-
     in = old_in;
+    inFileName = old_inFileName;
   }
 
   boolean evaluateConditional(String arg, String op, String[] value) {
@@ -1051,10 +1059,10 @@ public class GenerateFromTemplate {
     // get var name, operation and data value
     QuotedStringTokenizer pst = new QuotedStringTokenizer(params);
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing argument in IF");
+       throwIOException("Missing argument in IF");
     String arg = pst.nextToken();
     if (!pst.hasMoreTokens())
-       throw new IOException("Missing operation in IF");
+       throwIOException("Missing operation in IF");
     String op = pst.nextToken();
     String[] value = new String[pst.countTokens()];
     for (int i = 0; i < value.length; i++)
@@ -1159,7 +1167,7 @@ public class GenerateFromTemplate {
       // Write stuff inbetween last variable and current variable
       out.append(input.substring(oidx, idx));
       idx += varlen;
-      if (input.charAt(idx) != '.') throw new IOException("no field");
+      if (input.charAt(idx) != '.') throwIOException("no field");
       idx++;
 
       // Find which field this is
@@ -1177,7 +1185,8 @@ public class GenerateFromTemplate {
           break;
         }
       }
-      if (idx == idx_save) throw new IOException("unknown field");
+      if (idx == idx_save) throwIOException("unknown field (checking for occurrence of "+
+                                            var+" in: "+input.substring(oidx)+")");
       oidx = idx;
     }
     if (DEBUG) System.out.println("no more variables left on this line");
@@ -1202,5 +1211,21 @@ public class GenerateFromTemplate {
 
     return out.toString();
   }
-}
 
+  private void throwIOException(String message) throws IOException {
+    if (in != null) {
+      throw new IOException(inFileName+": "+in.getLineNumber()+": "+message);
+    } else {
+      throw new IOException(inFileName+": "+message);
+    }
+  }
+
+  private void throwIOException(String message, Exception cause) throws IOException {
+    if (in != null) {
+      throw new IOException(inFileName+": "+in.getLineNumber()+": "+message,
+                            cause);
+    } else {
+      throw new IOException(inFileName+": "+message, cause);
+    }
+  }
+}
