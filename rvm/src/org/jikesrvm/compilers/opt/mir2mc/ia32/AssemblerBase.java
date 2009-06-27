@@ -20,6 +20,7 @@ import org.jikesrvm.VM;
 import org.jikesrvm.Constants;
 import org.jikesrvm.compilers.common.assembler.ForwardReference;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
+import static org.jikesrvm.compilers.opt.OptimizingCompilerException.opt_assert;
 import org.jikesrvm.compilers.opt.ir.MIR_BinaryAcc;
 import org.jikesrvm.compilers.opt.ir.MIR_Branch;
 import org.jikesrvm.compilers.opt.ir.MIR_Call;
@@ -218,7 +219,7 @@ abstract class AssemblerBase extends Assembler
    */
   private GPR getGPMachineRegister(Register reg) {
     if (VM.VerifyAssertions) {
-      VM._assert(PhysicalRegisterSet.getPhysicalRegisterType(reg) == INT_REG);
+      opt_assert(PhysicalRegisterSet.getPhysicalRegisterType(reg) == INT_REG);
     }
     return GPR.lookup(reg.number - FIRST_INT);
   }
@@ -245,14 +246,14 @@ abstract class AssemblerBase extends Assembler
     if (type == INT_REG) {
       result = GPR.lookup(reg.number - FIRST_INT);
     } else {
-      if (VM.VerifyAssertions) VM._assert(type == DOUBLE_REG);
+      if (VM.VerifyAssertions) opt_assert(type == DOUBLE_REG);
       if (SSE2_FULL) {
         if (reg.number < FIRST_SPECIAL) {
           result = XMM.lookup(reg.number - FIRST_DOUBLE);
         } else if (reg.number == ST0) {
           result = FP0;
         } else {
-          if (VM.VerifyAssertions) VM._assert(reg.number == ST1);
+          if (VM.VerifyAssertions) opt_assert(reg.number == ST1);
           result = FP1;
         }
       } else {
@@ -288,8 +289,7 @@ abstract class AssemblerBase extends Assembler
   }
 
   MM getMM_Reg(Operand op) {
-    VM._assert(false, "MM registers not currently supported in the opt compiler");
-    return null;
+    throw new OptimizingCompilerException("MM registers not currently supported in the opt compiler");
   }
 
   XMM getXMM_Reg(Operand op) {
@@ -924,11 +924,12 @@ abstract class AssemblerBase extends Assembler
     if (isImm(MIR_CondBranch.getTarget(inst))) {
       emitJCC_Cond_Imm(cond, getImm(MIR_CondBranch.getTarget(inst)));
     } else {
-      if (VM.VerifyAssertions && !isLabel(MIR_CondBranch.getTarget(inst))) VM._assert(false, inst.toString());
+      if (VM.VerifyAssertions && !isLabel(MIR_CondBranch.getTarget(inst)))
+        throw new OptimizingCompilerException("Unexpected operand "+ inst.toString());
       int sourceLabel = -inst.getmcOffset();
       int targetLabel = getLabel(MIR_CondBranch.getTarget(inst));
       int delta = targetLabel - sourceLabel;
-      if (VM.VerifyAssertions) VM._assert(delta >= 0);
+      if (VM.VerifyAssertions) opt_assert(delta >= 0);
       if (delta < 10 || (delta < 90 && targetIsClose(inst, -targetLabel))) {
         int miStart = mi;
         ForwardReference r = new ForwardReference.ShortBranch(mi, targetLabel);
@@ -956,7 +957,7 @@ abstract class AssemblerBase extends Assembler
       int sourceLabel = -inst.getmcOffset();
       int targetLabel = getLabel(MIR_Branch.getTarget(inst));
       int delta = targetLabel - sourceLabel;
-      if (VM.VerifyAssertions) VM._assert(delta >= 0);
+      if (VM.VerifyAssertions) opt_assert(delta >= 0);
       if (delta < 10 || (delta < 90 && targetIsClose(inst, -targetLabel))) {
         int miStart = mi;
         ForwardReference r = new ForwardReference.ShortBranch(mi, targetLabel);
@@ -985,7 +986,8 @@ abstract class AssemblerBase extends Assembler
     } else if (isRegInd(MIR_Branch.getTarget(inst))) {
       emitJMP_RegInd(getBase(MIR_Branch.getTarget(inst)));
     } else {
-      if (VM.VerifyAssertions) VM._assert(false, inst.toString());
+      if (VM.VerifyAssertions)
+        throw new OptimizingCompilerException("Unexpected operand "+ inst.toString());
     }
   }
 
