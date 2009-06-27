@@ -1,0 +1,8 @@
+#####
+# LONG_NEG
+#####
+r:	LONG_NEG(r)
+23
+EMIT_INSTRUCTION
+LONG_NEG(P(p), Unary.getResult(P(p)), Unary.getVal(P(p)));
+

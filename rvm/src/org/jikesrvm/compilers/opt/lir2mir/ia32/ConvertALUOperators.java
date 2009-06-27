@@ -117,7 +117,13 @@ public class ConvertALUOperators extends CompilerPhase implements Operators, Arc
         s.operator = VM.BuildFor32Addr ? ATTEMPT_INT : ATTEMPT_LONG;
         break;
       case PREPARE_ADDR_opcode:
-        s.operator = VM.BuildFor32Addr ? PREPARE_INT : PREPARE_LONG;
+        s.operator = VM.BuildFor32Addr ? INT_LOAD : LONG_LOAD;
+        break;
+      case PREPARE_INT_opcode:
+        s.operator = INT_LOAD;
+        break;
+      case PREPARE_LONG_opcode:
+        s.operator = LONG_LOAD;
         break;
       case INT_2ADDRSigExt_opcode:
         s.operator = VM.BuildFor32Addr ? INT_MOVE : INT_2LONG;
@@ -129,6 +135,9 @@ public class ConvertALUOperators extends CompilerPhase implements Operators, Arc
         break;
       case ADDR_2INT_opcode:
         s.operator = VM.BuildFor32Addr ? INT_MOVE : LONG_2INT;
+        break;
+      case ADDR_2LONG_opcode:
+        s.operator = VM.BuildFor32Addr ? INT_2LONG : LONG_MOVE;
         break;
       case LONG_2ADDR_opcode:
         s.operator = VM.BuildFor32Addr ? LONG_2INT : LONG_MOVE;

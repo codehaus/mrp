@@ -12,8 +12,6 @@
 #
 # BURS rules for IA32 SSE2 Mode
 #
-# The format of PRODUCTION is 'non-terminal: rule'
-PRODUCTION
 # COST is a Java expression that evaluates to an integer.
 # The following conventions are more or less followed:
 #   Each instruction generated has a base cost of 10

@@ -1,0 +1,8 @@
+#####
+# LONG_NOT
+#####
+r:	LONG_NOT(r)
+23
+EMIT_INSTRUCTION
+LONG_NOT(P(p), Unary.getResult(P(p)), Unary.getVal(P(p)));
+

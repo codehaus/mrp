@@ -481,6 +481,7 @@ Check to make sure all required properties are specified. This includes properti
         <classpath>
           <pathelement location="${tasks.classes}"/>
         </classpath>
+        <!-- <arg value="-debug"/> -->
         <args/>
       </java>
     </sequential>
@@ -708,29 +709,44 @@ Check to make sure all required properties are specified. This includes properti
       <filelist dir="${build.burs.dir}/ppc" files="PPC_Common.rules,PPC_Alu64.rules,PPC_Mem64.rules"/>
     </concat>
 
-    <if>
-      <conditions>
-        <equals arg1="${target.arch.sse2}" arg2="full"/>
-      </conditions>
-      <sequential>
-        <property name="ia32-fp-rules" value="IA32_SSE2.rules"/>
-      </sequential>
-    </if>
+    <condition property="IA32-fp-rules"
+      value="IA32_SSE2.rules"
+      else="IA32_x87.rules">
+      <equals arg1="${target.arch.sse2}" arg2="full"/>
+    </condition>
 
-    <property name="ia32-fp-rules" value="IA32_x87.rules"/>
+    <concat destfile="${generated.dir}/IA32-32bit_RulesList.dat">
+      <header file="${build.burs.dir}/ia32/IA32.rules"/>
+      <fileset dir="${build.burs.dir}/ia32">
+        <include name="**/*.rules"/>
+        <exclude name="**/IA32.rules"/>
+        <exclude name="**/*-64.rules"/>
+        <exclude name="**/*SSE2.rules"/>
+        <exclude name="**/*x87.rules"/>
+      </fileset>
+      <footer file="${build.burs.dir}/ia32/${IA32-fp-rules}"/>
+    </concat>
 
-    <concat destfile="${generated.dir}/IA32_RulesList.dat">
-      <filelist dir="${build.burs.dir}/ia32" files="IA32.rules,${ia32-fp-rules}"/>
+    <concat destfile="${generated.dir}/IA32-64bit_RulesList.dat">
+      <header file="${build.burs.dir}/ia32/IA32.rules"/>
+      <fileset dir="${build.burs.dir}/ia32">
+        <include name="**/*.rules"/>
+        <exclude name="**/IA32.rules"/>
+        <exclude name="**/*-32.rules"/>
+        <exclude name="**/*SSE2.rules"/>
+        <exclude name="**/*x87.rules"/>
+      </fileset>
+      <footer file="${build.burs.dir}/ia32/${IA32-fp-rules}"/>
     </concat>
 
     <generate-ir arch="ia32"
                  addressSize="32"
                  operatorList="${build.ir.dir}/ia32/OperatorList.dat"
-                 rulesList="${generated.dir}/IA32_RulesList.dat"/>
+                 rulesList="${generated.dir}/IA32-32bit_RulesList.dat"/>
     <generate-ir arch="ia32"
                  addressSize="64"
                  operatorList="${build.ir.dir}/ia32/OperatorList.dat"
-                 rulesList="${generated.dir}/IA32_RulesList.dat"/>
+                 rulesList="${generated.dir}/IA32-64bit_RulesList.dat"/>
     <generate-ir arch="ppc"
                  addressSize="32"
                  operatorList="${generated.dir}/PPC-32bit_OperatorList.dat"

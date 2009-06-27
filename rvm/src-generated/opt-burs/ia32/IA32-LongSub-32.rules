@@ -1,0 +1,8 @@
+#####
+# LONG_SUB
+#####
+r:	LONG_SUB(rlv, rlv)
+23
+EMIT_INSTRUCTION
+LONG_SUB(P(p), Binary.getResult(P(p)), Binary.getVal1(P(p)), Binary.getVal2(P(p)));
+
