@@ -14,6 +14,7 @@ package org.jikesrvm.compilers.opt;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import org.jikesrvm.VM;
 import org.jikesrvm.classloader.TypeReference;
 
 /**
@@ -200,6 +201,18 @@ public class OptimizingCompilerException extends RuntimeException {
    */
   public static void TODO(String module) throws OptimizingCompilerException {
     throw new OptimizingCompilerException(module, "Unsupported function in IA32 port");
+  }
+
+  /**
+   * Opt assertion failure that will also dump IR
+   */
+  public static void opt_assert(boolean b) {
+    if (!VM.VerifyAssertions) {
+      throw new Error("Assertion should have been guard by VM.VerifyAssertions");
+    }
+    if (!b) {
+      throw new OptimizingCompilerException("Assertion failure");
+    }
   }
 
   /**
