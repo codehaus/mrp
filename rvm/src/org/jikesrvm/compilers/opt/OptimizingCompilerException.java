@@ -216,6 +216,18 @@ public class OptimizingCompilerException extends RuntimeException {
   }
 
   /**
+   * Opt assertion failure that will also dump IR
+   */
+  public static void opt_assert(boolean b, String message) {
+    if (!VM.VerifyAssertions) {
+      throw new Error("Assertion should have been guard by VM.VerifyAssertions");
+    }
+    if (!b) {
+      throw new OptimizingCompilerException("Assertion failure - "+message);
+    }
+  }
+
+  /**
    * Return a string that is the printout of level stackframes in the stacktrace.
    * @param level the number of levels to print
    * @return n-level dump of stacktrace
