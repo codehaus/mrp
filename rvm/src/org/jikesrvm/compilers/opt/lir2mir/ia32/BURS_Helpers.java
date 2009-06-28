@@ -1288,27 +1288,34 @@ Operand value, boolean signExtend) {
     // Get into accumulate form
     Operand lhs, lowlhs;
     boolean needsMove = !value1.similar(result);
-    if (value1.isRegister()) {
+    if (result.isRegister()) {
       Register lhsReg = result.asRegister().getRegister();
       Register lowlhsReg = regpool.getSecondReg(lhsReg);
       lowlhs = new RegisterOperand(lowlhsReg, TypeReference.Int);
       lhs = new RegisterOperand(lhsReg, TypeReference.Int);
     } else {
       // Memory operand
-      if (VM.VerifyAssertions) opt_assert(value1.isMemory());
-      lowlhs = setSize(value1.asMemory(),DW);
+      if (VM.VerifyAssertions) opt_assert(result.isMemory());
+      lowlhs = setSize(result.asMemory(),DW);
       lhs = lowlhs.copy();
       lhs.asMemory().disp = lhs.asMemory().disp.plus(4);
     }
     if (needsMove) {
-      Register rhsReg1 = ((RegisterOperand) value1).getRegister();
-      Register lowrhsReg1 = regpool.getSecondReg(rhsReg1);
-      EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-                                   lowlhs.copy(),
-                                   new RegisterOperand(lowrhsReg1, TypeReference.Int))));
-      EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-                                   lhs.copy(),
-                                   new RegisterOperand(rhsReg1, TypeReference.Int))));
+      Operand rhs1, lowrhs1;
+      if (value1.isRegister()) {
+        Register rhs1Reg = value1.asRegister().getRegister();
+        Register lowrhs1Reg = regpool.getSecondReg(rhs1Reg);
+        lowrhs1 = new RegisterOperand(lowrhs1Reg, TypeReference.Int);
+        rhs1 = new RegisterOperand(rhs1Reg, TypeReference.Int);
+      } else {
+        // Memory operand
+        if (VM.VerifyAssertions) opt_assert(value1.isMemory());
+        lowrhs1 = setSize(value1.asMemory(),DW);
+        rhs1 = lowrhs1.copy();
+        rhs1.asMemory().disp = rhs1.asMemory().disp.plus(4);
+      }
+      EMIT(CPOS(s, MIR_Move.create(IA32_MOV, lowlhs.copy(), lowrhs1)));
+      EMIT(CPOS(s, MIR_Move.create(IA32_MOV, lhs.copy(), rhs1)));
     }
     // Break apart RHS 2
     Operand rhs2, lowrhs2;
