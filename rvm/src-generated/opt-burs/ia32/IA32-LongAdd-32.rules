@@ -25,15 +25,15 @@ EMIT_LongCommutative(IA32_ADD, IA32_ADC, P(p), MO_S(P(p), QW), MO_S(P(p), QW), B
 stm:	LONG_STORE(LONG_ADD(rlv,LONG_LOAD(rlv,rlv)),OTHER_OPERAND(rlv, rlv))
 ADDRESS_EQUAL(P(p), PLR(p), 17)
 EMIT_INSTRUCTION
-EMIT_Commutative(IA32_ADD, P(p), MO_S(P(p), QW), MO_S(P(p), QW), Binary.getVal1(PL(p)));
+EMIT_LongCommutative(IA32_ADD, IA32_ADC, P(p), MO_S(P(p), QW), MO_S(P(p), QW), Binary.getVal1(PL(p)));
 
 stm:	LONG_ASTORE(LONG_ADD(LONG_ALOAD(rlv,rlv),rlv),OTHER_OPERAND(rlv, rlv))
 ARRAY_ADDRESS_EQUAL(P(p), PLL(p), 17)
 EMIT_INSTRUCTION
-EMIT_Commutative(IA32_ADD, P(p), MO_AS(P(p), QW_S, QW), MO_AS(P(p), QW_S, QW), Binary.getVal2(PL(p)));
+EMIT_LongCommutative(IA32_ADD, IA32_ADC, P(p), MO_AS(P(p), QW_S, QW), MO_AS(P(p), QW_S, QW), Binary.getVal2(PL(p)));
 
 stm:	LONG_ASTORE(LONG_ADD(rlv,LONG_ALOAD(rlv,rlv)),OTHER_OPERAND(rlv, rlv))
 ARRAY_ADDRESS_EQUAL(P(p), PLR(p), 17)
 EMIT_INSTRUCTION
-EMIT_Commutative(IA32_ADD, P(p), MO_AS(P(p), QW_S, QW), MO_AS(P(p), QW_S, QW), Binary.getVal1(PL(p)));
+EMIT_LongCommutative(IA32_ADD, IA32_ADC, P(p), MO_AS(P(p), QW_S, QW), MO_AS(P(p), QW_S, QW), Binary.getVal1(PL(p)));
 
