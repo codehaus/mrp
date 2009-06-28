@@ -499,83 +499,83 @@ public class GenerateFromTemplate {
       Vector<String> fields_v = new Vector<String>();
       Vector<Integer> fpl_v = new Vector<Integer>();
       for (String inLine = getNextLine(data);
-	   (inLine != null && inLine.length() != 0);
-	   inLine = getNextLine(data)) {
-	StringTokenizer st = new StringTokenizer(inLine);
-	fpl_v.addElement(st.countTokens());
-	while (st.hasMoreTokens()) {
-	  String tok = st.nextToken();
-	  if (DEBUG) System.out.println("read field "+fields_v.size()+" :"+tok);
-	  fields_v.addElement(tok);
-	}
+           (inLine != null && inLine.length() != 0);
+           inLine = getNextLine(data)) {
+        StringTokenizer st = new StringTokenizer(inLine);
+        fpl_v.addElement(st.countTokens());
+        while (st.hasMoreTokens()) {
+          String tok = st.nextToken();
+          if (DEBUG) System.out.println("read field "+fields_v.size()+" :"+tok);
+          fields_v.addElement(tok);
+        }
       }
       fields_v.addElement(indexField);
       // convert to arrays for faster access
       int[] fieldsPerLine = new int[fpl_v.size()];
       for (int i = 0; i < fieldsPerLine.length; i++)
-	fieldsPerLine[i] = fpl_v.elementAt(i);
+        fieldsPerLine[i] = fpl_v.elementAt(i);
       String[] fields = fields_v.toArray(new String[0]);
 
       // Count through data file.
       dataFileLoop:
       for (int curField = 0; ; curField++) {
-	// Read in all fields
-	int i = 0;
-	String[] fieldData = new String[fields.length];
-	for (int aFieldsPerLine : fieldsPerLine) {
-	  String line = getNextLine(data);
-	  if (line == null) break dataFileLoop;
-	  if (aFieldsPerLine == 1) {
-	    if (DEBUG) System.out.println("read field " + fields[i] + " :" + line);
-	    fieldData[i++] = line;
-	  } else {
-	    if (DEBUG) System.out.println("reading " + aFieldsPerLine + " fields");
-	    StringTokenizer st = new StringTokenizer(line);
-	    try {
-	      for (int k = 0; k < aFieldsPerLine; k++) {
-		String tok = st.nextToken();
-		if (DEBUG) System.out.println("read field " + fields[i] + ": " + tok);
-		fieldData[i++] = tok;
-	      }
-	    } catch (NoSuchElementException x) {
-	      throwIOException("Missing field " + fields[i]);
-	    }
-	  }
-	}
-	if (fieldsPerLine.length != 1) getNextLine(data); // skip empty line.
-	fieldData[i++] = Integer.toString(curField);
+        // Read in all fields
+        int i = 0;
+        String[] fieldData = new String[fields.length];
+        for (int aFieldsPerLine : fieldsPerLine) {
+          String line = getNextLine(data);
+          if (line == null) break dataFileLoop;
+          if (aFieldsPerLine == 1) {
+            if (DEBUG) System.out.println("read field " + fields[i] + " :" + line);
+            fieldData[i++] = line;
+          } else {
+            if (DEBUG) System.out.println("reading " + aFieldsPerLine + " fields");
+            StringTokenizer st = new StringTokenizer(line);
+            try {
+              for (int k = 0; k < aFieldsPerLine; k++) {
+                String tok = st.nextToken();
+                if (DEBUG) System.out.println("read field " + fields[i] + ": " + tok);
+                fieldData[i++] = tok;
+              }
+            } catch (NoSuchElementException x) {
+              throwIOException("Missing field " + fields[i]);
+            }
+          }
+        }
+        if (fieldsPerLine.length != 1) getNextLine(data); // skip empty line.
+        fieldData[i++] = Integer.toString(curField);
 
-	if (select != null) {
-	  for (int j = 0; j < fields.length; j++) {
-	    if (DEBUG) System.out.println("checking if select is field "+fields[j]);
-	    if (select.equals(fields[j])) {
-	      String value = fieldData[j];
-	      if (value.equals(start)) inRange = true;
-	      else if (end == null) inRange = false;
-	      else if (value.equals(end)) end = null;
+        if (select != null) {
+          for (int j = 0; j < fields.length; j++) {
+            if (DEBUG) System.out.println("checking if select is field "+fields[j]);
+            if (select.equals(fields[j])) {
+              String value = fieldData[j];
+              if (value.equals(start)) inRange = true;
+              else if (end == null) inRange = false;
+              else if (value.equals(end)) end = null;
 
-	      if (DEBUG) System.out.println("record in range; including");
-	      break;
-	    }
-	  }
+              if (DEBUG) System.out.println("record in range; including");
+              break;
+            }
+          }
 
-	  if (!inRange) break;
-	}
+          if (!inRange) break;
+        }
 
-	// Count through each line in region.
-	for (int j = 1; j < region.size(); j++) {
-	  try {
-	    String currentLine = (String) region.elementAt(j);
-	    String result = substitute(currentLine, var_name, fields, fieldData);
-	    out.print(result+"\n");
-	  } catch (ClassCastException e) {
-	    @SuppressWarnings("unchecked") // Suppress complaints that we are casting to an erased type
-	      Vector<Object> oldRegion = (Vector<Object>)region.elementAt(j);
-	    Vector<Object> newRegion = substituteInRegion(oldRegion, var_name, fields,
-							  fieldData);
-	    processTemplateRegion(newRegion);
-	  }
-	} // for j
+        // Count through each line in region.
+        for (int j = 1; j < region.size(); j++) {
+          try {
+            String currentLine = (String) region.elementAt(j);
+            String result = substitute(currentLine, var_name, fields, fieldData);
+            out.print(result+"\n");
+          } catch (ClassCastException e) {
+            @SuppressWarnings("unchecked") // Suppress complaints that we are casting to an erased type
+              Vector<Object> oldRegion = (Vector<Object>)region.elementAt(j);
+            Vector<Object> newRegion = substituteInRegion(oldRegion, var_name, fields,
+                                                          fieldData);
+            processTemplateRegion(newRegion);
+          }
+        } // for j
       } // for curField
     } catch (Exception e) {
       throwIOException("Error processing file "+file_name+" on line "+data.getLineNumber(), e);

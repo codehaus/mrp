@@ -66,7 +66,6 @@ import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOV;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVD;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSD;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSS;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSX__B;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVZX__B;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MUL;
 import static org.jikesrvm.compilers.opt.ir.Operators.IA32_NEG;
@@ -1267,8 +1266,8 @@ Operand value, boolean signExtend) {
    * @param val2 the second operand
    */
   protected final void EMIT_LongCommutative(Operator operator1, Operator operator2,
-					    Instruction s, Operand result,
-					    Operand value1, Operand value2) {
+                                            Instruction s, Operand result,
+                                            Operand value1, Operand value2) {
     // The value of value1 should be identical to result, to avoid moves, and a
     // register in the case of addition with a constant
     if ((value2.similar(result)) || value1.isLongConstant()) {
@@ -1305,11 +1304,11 @@ Operand value, boolean signExtend) {
       Register rhsReg1 = ((RegisterOperand) value1).getRegister();
       Register lowrhsReg1 = regpool.getSecondReg(rhsReg1);
       EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-				   lowlhs.copy(),
-				   new RegisterOperand(lowrhsReg1, TypeReference.Int))));
+                                   lowlhs.copy(),
+                                   new RegisterOperand(lowrhsReg1, TypeReference.Int))));
       EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-				   lhs.copy(),
-				   new RegisterOperand(rhsReg1, TypeReference.Int))));
+                                   lhs.copy(),
+                                   new RegisterOperand(rhsReg1, TypeReference.Int))));
     }
     // Break apart RHS 2
     Operand rhs2, lowrhs2;
@@ -1329,104 +1328,97 @@ Operand value, boolean signExtend) {
     }
     // Peep hole optimizations
     if ((operator1 == IA32_ADD) &&
-	lowrhs2.isIntConstant() &&
-	(lowrhs2.asIntConstant().value == 0)
-	) {
+        lowrhs2.isIntConstant() &&
+        (lowrhs2.asIntConstant().value == 0)
+        ) {
       // operation has no effect
       operator1 = null;
       operator2 = IA32_ADD;
-    }
-    else if (operator1 == IA32_OR) {
+    } else if (operator1 == IA32_OR) {
       if (lowrhs2.isIntConstant() &&
-	  (lowrhs2.asIntConstant().value == 0)) {
-	// operation has no effect
-	operator1 = null;
+          (lowrhs2.asIntConstant().value == 0)) {
+        // operation has no effect
+        operator1 = null;
       }
       if (rhs2.isIntConstant() &&
-	  (rhs2.asIntConstant().value == 0)) {
-	// operation has no effect
-	operator2 = null;
+          (rhs2.asIntConstant().value == 0)) {
+        // operation has no effect
+        operator2 = null;
       }
-    }
-    else if (operator1 == IA32_AND) {
+    } else if (operator1 == IA32_AND) {
       if (lowrhs2.isIntConstant()) {
-	if (lowrhs2.asIntConstant().value == -1) {
-	  // operation has no effect
-	  operator1 = null;
-	}
-	else if (lowrhs2.asIntConstant().value == 0) {
-	  // move 0
-	  operator1 = IA32_MOV;
-	}
+        if (lowrhs2.asIntConstant().value == -1) {
+          // operation has no effect
+          operator1 = null;
+        } else if (lowrhs2.asIntConstant().value == 0) {
+          // move 0
+          operator1 = IA32_MOV;
+        }
       }
       if (rhs2.isIntConstant()) {
-	if (rhs2.asIntConstant().value == -1) {
-	  // operation has no effect
-	  operator2 = null;
-	}
-	else if (rhs2.asIntConstant().value == 0) {
-	  // move 0
-	  operator2 = IA32_MOV;
-	}
+        if (rhs2.asIntConstant().value == -1) {
+          // operation has no effect
+          operator2 = null;
+        } else if (rhs2.asIntConstant().value == 0) {
+          // move 0
+          operator2 = IA32_MOV;
+        }
       }
       if (lowrhs2.isIntConstant() &&
-	  (lowrhs2.asIntConstant().value == -1)) {
-	// operation has no effect
-	operator1 = null;
+          (lowrhs2.asIntConstant().value == -1)) {
+        // operation has no effect
+        operator1 = null;
       }
       if (rhs2.isIntConstant() &&
-	  (rhs2.asIntConstant().value == -1)) {
-	// operation has no effect
-	operator2 = null;
+          (rhs2.asIntConstant().value == -1)) {
+        // operation has no effect
+        operator2 = null;
       }
-    }
-    else if (operator1 == IA32_XOR) {
+    } else if (operator1 == IA32_XOR) {
       if (lowrhs2.isIntConstant()) {
-	if (lowrhs2.asIntConstant().value == 0) {
-	  // operation has no effect
-	  operator1 = null;
-	}
-	else if (lowrhs2.asIntConstant().value == -1) {
-	  operator1 = IA32_NOT;
-	}
+        if (lowrhs2.asIntConstant().value == 0) {
+          // operation has no effect
+          operator1 = null;
+        } else if (lowrhs2.asIntConstant().value == -1) {
+          operator1 = IA32_NOT;
+        }
       }
       if (rhs2.isIntConstant()) {
-	if (rhs2.asIntConstant().value == 0) {
-	  // operation has no effect
-	  operator2 = null;
-	}
-	else if (rhs2.asIntConstant().value == -1) {
-	  operator2 = IA32_NOT;
-	}
+        if (rhs2.asIntConstant().value == 0) {
+          // operation has no effect
+          operator2 = null;
+        } else if (rhs2.asIntConstant().value == -1) {
+          operator2 = IA32_NOT;
+        }
       }
     }
     if (operator1 == null) {
       // no operation
     } else if (operator1 == IA32_MOV) {
       EMIT(CPOS(s, MIR_Move.create(operator1,
-				   lowlhs,
-				   lowrhs2)));
+                                   lowlhs,
+                                   lowrhs2)));
     } else if (operator1 == IA32_NOT) {
       EMIT(CPOS(s, MIR_UnaryAcc.create(operator1,
-				       lowlhs)));
+                                       lowlhs)));
     } else {
       EMIT(CPOS(s, MIR_BinaryAcc.create(operator1,
-					lowlhs,
-					lowrhs2)));
+                                        lowlhs,
+                                        lowrhs2)));
     }
     if (operator2 == null) {
       // no operation
     } else if (operator2 == IA32_MOV) {
       EMIT(CPOS(s, MIR_Move.create(operator2,
-				   lhs,
-				   rhs2)));
+                                   lhs,
+                                   rhs2)));
     } else if (operator2 == IA32_NOT) {
       EMIT(CPOS(s, MIR_UnaryAcc.create(operator2,
-				       lhs)));
+                                       lhs)));
     } else {
       EMIT(CPOS(s, MIR_BinaryAcc.create(operator2,
-					lhs,
-					rhs2)));
+                                        lhs,
+                                        rhs2)));
     }
   }
 
@@ -1991,7 +1983,7 @@ Operand value, boolean signExtend) {
                      IC(lhsVal))));
     }
     // Multiply by low-half of RHS
-    if (VM.VerifyAssertions) opt_assert(value2.isRegister());    
+    if (VM.VerifyAssertions) opt_assert(value2.isRegister());
     Register rhsReg = value2.asRegister().getRegister();
     Register lowrhsReg = regpool.getSecondReg(rhsReg);
     EMIT(MIR_Multiply.mutate(s, signed ? IA32_IMUL1 : IA32_MUL,
@@ -2841,7 +2833,7 @@ Operand value, boolean signExtend) {
       Operand temp = val1;
       val1 = val2;
       val2 = temp;
-    } 
+    }
     EMIT(CPOS(s, MIR_Compare.create(IA32_CMP, val1, val2)));
     if (!cond.isLOWER()) {
       RegisterOperand temp = regpool.makeTemp(TypeReference.Boolean);
