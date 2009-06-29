@@ -2834,21 +2834,10 @@ Operand value, boolean signExtend) {
    */
   protected final void BOOLEAN_CMP_INT(Instruction s, RegisterOperand res, Operand val1, Operand val2,
                                        ConditionOperand cond) {
-    // Peephole optimize case where carry flag is tested to use SBB rather than SETcc
-    if (cond.isHIGHER() && !val2.isConstant()) {
-      cond.flipOperands();
-      Operand temp = val1;
-      val1 = val2;
-      val2 = temp;
-    }
     EMIT(CPOS(s, MIR_Compare.create(IA32_CMP, val1, val2)));
-    if (!cond.isLOWER()) {
-      RegisterOperand temp = regpool.makeTemp(TypeReference.Boolean);
-      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, temp, COND(cond))));
-      EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, res, temp.copyD2U()));
-    } else {
-      EMIT(MIR_BinaryAcc.mutate(s, IA32_SBB, res, res.copyRO()));
-    }
+    RegisterOperand temp = regpool.makeTemp(TypeReference.Boolean);
+    EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, temp, COND(cond))));
+    EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, res, temp.copyD2U()));
   }
 
   /**
@@ -2860,14 +2849,9 @@ Operand value, boolean signExtend) {
    * @param cond the condition operand
    */
   protected final void BOOLEAN_CMP_INT(Instruction s, RegisterOperand res, ConditionOperand cond) {
-    // Peephole optimize case where carry flag is tested to use SBB rather than SETcc
-    if (!cond.isLOWER()) {
-      RegisterOperand temp = regpool.makeTemp(TypeReference.Boolean);
-      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, temp, COND(cond))));
-      EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, res, temp.copyD2U()));
-    } else {
-      EMIT(MIR_BinaryAcc.mutate(s, IA32_SBB, res, res.copyRO()));
-    }
+    RegisterOperand temp = regpool.makeTemp(TypeReference.Boolean);
+    EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, temp, COND(cond))));
+    EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, res, temp.copyD2U()));
   }
 
   /**
