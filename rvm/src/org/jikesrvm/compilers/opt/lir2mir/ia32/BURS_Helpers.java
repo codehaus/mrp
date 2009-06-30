@@ -1430,7 +1430,8 @@ Operand value, boolean signExtend) {
   }
 
   /**
-   * Expansion of LONG_SUB
+   * Expansion of LONG_SUB (the only non-commutative long operation
+   * excluding muls and divides which are special)
    *
    * @param s the instruction to expand
    * @param result the result operand
@@ -2009,72 +2010,57 @@ Operand value, boolean signExtend) {
   }
 
   /**
-   * Expansion of LONG_NEG
-   *
-   * @param s the instruction to expand
-   * @param result the result operand
-   * @param value the first operand
+   * Create the MIR instruction for LONG_NEG or LONG_NOT
+   * @param s the instruction being replaced
+   * @param result the destination register/memory
+   * @param val1 the operand
+   * @param negOrNot true for neg
    */
-  protected final void LONG_NEG(Instruction s, RegisterOperand result, Operand value) {
-    Register lhsReg = result.getRegister();
-    Register lowlhsReg = regpool.getSecondReg(lhsReg);
-    // Move value into result if its not already
-    if (!result.similar(value)){
-      if (value.isRegister()) {
-        Register rhsReg = value.asRegister().getRegister();
-        Register lowrhsReg = regpool.getSecondReg(rhsReg);
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            new RegisterOperand(lowlhsReg, TypeReference.Int),
-            new RegisterOperand(lowrhsReg, TypeReference.Int))));
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            new RegisterOperand(lhsReg, TypeReference.Int),
-            new RegisterOperand(rhsReg, TypeReference.Int))));
-      } else {
-        throw new OptimizingCompilerException("BURS_Helpers",
-            "unexpected parameters: " + result + "= -" + value);
-      }
+  protected final void EMIT_LongUnary(Instruction s, Operand result,
+                                      Operand value1, boolean negOrNot) {
+    // Break apart result
+    // Get into accumulate form
+    Operand lhs, lowlhs;
+    boolean needsMove = !value1.similar(result);
+    if (result.isRegister()) {
+      Register lhsReg = result.asRegister().getRegister();
+      Register lowlhsReg = regpool.getSecondReg(lhsReg);
+      lowlhs = new RegisterOperand(lowlhsReg, TypeReference.Int);
+      lhs = new RegisterOperand(lhsReg, TypeReference.Int);
+    } else {
+      // Memory operand
+      if (VM.VerifyAssertions) opt_assert(result.isMemory());
+      lowlhs = setSize(result.asMemory(),DW);
+      lhs = lowlhs.copy();
+      lhs.asMemory().disp = lhs.asMemory().disp.plus(4);
     }
-    // Perform negation
-    EMIT(CPOS(s, MIR_UnaryAcc.create(IA32_NOT,
-        new RegisterOperand(lhsReg, TypeReference.Int))));
-    EMIT(CPOS(s, MIR_UnaryAcc.create(IA32_NEG,
-        new RegisterOperand(lowlhsReg, TypeReference.Int))));
-    EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SBB,
-        new RegisterOperand(lhsReg, TypeReference.Int),
-        IC(-1))));
-  }
-
-  /**
-   * Expansion of LONG_NOT
-   *
-   * @param s the instruction to expand
-   * @param result the result operand
-   * @param value the first operand
-   */
-  protected final void LONG_NOT(Instruction s, RegisterOperand result, Operand value) {
-    Register lhsReg = result.getRegister();
-    Register lowlhsReg = regpool.getSecondReg(lhsReg);
-    // Move value into result if its not already
-    if (!result.similar(value)){
-      if (value.isRegister()) {
-        Register rhsReg = value.asRegister().getRegister();
-        Register lowrhsReg = regpool.getSecondReg(rhsReg);
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            new RegisterOperand(lowlhsReg, TypeReference.Int),
-            new RegisterOperand(lowrhsReg, TypeReference.Int))));
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            new RegisterOperand(lhsReg, TypeReference.Int),
-            new RegisterOperand(rhsReg, TypeReference.Int))));
+    if (needsMove) {
+      Operand rhs1, lowrhs1;
+      if (value1.isRegister()) {
+        Register rhs1Reg = value1.asRegister().getRegister();
+        Register lowrhs1Reg = regpool.getSecondReg(rhs1Reg);
+        lowrhs1 = new RegisterOperand(lowrhs1Reg, TypeReference.Int);
+        rhs1 = new RegisterOperand(rhs1Reg, TypeReference.Int);
       } else {
-        throw new OptimizingCompilerException("BURS_Helpers",
-            "unexpected parameters: " + result + "= ~" + value);
+        // Memory operand
+        if (VM.VerifyAssertions) opt_assert(value1.isMemory());
+        lowrhs1 = setSize(value1.asMemory(),DW);
+        rhs1 = lowrhs1.copy();
+        rhs1.asMemory().disp = rhs1.asMemory().disp.plus(4);
       }
+      EMIT(CPOS(s, MIR_Move.create(IA32_MOV, lowlhs.copy(), lowrhs1)));
+      EMIT(CPOS(s, MIR_Move.create(IA32_MOV, lhs.copy(), rhs1)));
     }
-    // Perform not
-    EMIT(CPOS(s, MIR_UnaryAcc.create(IA32_NOT,
-        new RegisterOperand(lhsReg, TypeReference.Int))));
-    EMIT(CPOS(s, MIR_UnaryAcc.mutate(s, IA32_NOT,
-        new RegisterOperand(lowlhsReg, TypeReference.Int))));
+    if (negOrNot) {
+      // Perform negation
+      EMIT(CPOS(s, MIR_UnaryAcc.create(IA32_NEG, lowlhs)));
+      EMIT(CPOS(s, MIR_UnaryAcc.create(IA32_NOT, lhs)));
+      EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SBB, lhs.copy(), IC(-1))));
+    } else {
+      // Perform not
+      EMIT(CPOS(s, MIR_UnaryAcc.create(IA32_NOT, lowlhs)));
+      EMIT(CPOS(s, MIR_UnaryAcc.create(IA32_NOT, lhs)));
+    }
   }
 
   /**
