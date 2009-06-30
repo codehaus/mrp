@@ -2,7 +2,7 @@
 # LONG_NEG
 #####
 r:	LONG_NEG(r)
-23
+26
 EMIT_INSTRUCTION
 EMIT_LongUnary(P(p), Unary.getResult(P(p)), Unary.getVal(P(p)), true);
 

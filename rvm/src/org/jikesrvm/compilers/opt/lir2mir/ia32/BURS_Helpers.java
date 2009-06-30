@@ -1264,24 +1264,29 @@ Operand value, boolean signExtend) {
    * @param result the destination register/memory
    * @param val1 the first operand
    * @param val2 the second operand
+   * @param commutative is the operation commutative?
    */
-  protected final void EMIT_LongCommutative(Operator operator1, Operator operator2,
-                                            Instruction s, Operand result,
-                                            Operand value1, Operand value2) {
-    // The value of value1 should be identical to result, to avoid moves, and a
-    // register in the case of addition with a constant
-    if ((value2.similar(result)) || value1.isLongConstant()) {
+    protected final void EMIT_LongBinary(Operator operator1, Operator operator2,
+                                       Instruction s, Operand result,
+                                       Operand value1, Operand value2,
+                                       boolean commutative) {
+    // Save moves by swapping operands for commutative operations
+    if (commutative && value2.similar(result)) {
       Operand temp = value1;
       value1 = value2;
       value2 = temp;
     }
-    // combinations are:
+    // commutative combinations are:
     // reg, reg, reg
     // reg, reg, mem
     // reg, reg, constant
     // reg, mem, constant
     // mem, mem, reg        - where the 2 mems are identical
     // mem, mem, constant   - where the 2 mems are identical
+    // non-commutative combinations are also:
+    // reg, constant, reg
+    // reg, constant, mem
+    // mem, constant, mem
 
     // Break apart result
 
@@ -1307,12 +1312,15 @@ Operand value, boolean signExtend) {
         Register lowrhs1Reg = regpool.getSecondReg(rhs1Reg);
         lowrhs1 = new RegisterOperand(lowrhs1Reg, TypeReference.Int);
         rhs1 = new RegisterOperand(rhs1Reg, TypeReference.Int);
-      } else {
-        // Memory operand
-        if (VM.VerifyAssertions) opt_assert(value1.isMemory());
+      } else if (value1.isMemory()) {
         lowrhs1 = setSize(value1.asMemory(),DW);
         rhs1 = lowrhs1.copy();
         rhs1.asMemory().disp = rhs1.asMemory().disp.plus(4);
+      } else {
+        // Long constant operand
+        if (VM.VerifyAssertions) opt_assert(value1.isLongConstant());
+        rhs1    = IC(value1.asLongConstant().upper32());
+        lowrhs1 = IC(value1.asLongConstant().lower32());
       }
       EMIT(CPOS(s, MIR_Move.create(IA32_MOV, lowlhs.copy(), lowrhs1)));
       EMIT(CPOS(s, MIR_Move.create(IA32_MOV, lhs.copy(), rhs1)));
@@ -1341,16 +1349,31 @@ Operand value, boolean signExtend) {
       // operation has no effect
       operator1 = null;
       operator2 = IA32_ADD;
+    } else if ((operator1 == IA32_SUB) &&
+        lowrhs2.isIntConstant() &&
+        (lowrhs2.asIntConstant().value == 0)
+        ) {
+      // operation has no effect
+      operator1 = null;
+      operator2 = IA32_SUB;
     } else if (operator1 == IA32_OR) {
-      if (lowrhs2.isIntConstant() &&
-          (lowrhs2.asIntConstant().value == 0)) {
-        // operation has no effect
-        operator1 = null;
+      if (lowrhs2.isIntConstant()) {
+        if (lowrhs2.asIntConstant().value == 0) {
+          // operation has no effect
+          operator1 = null;
+        } else if (lowrhs2.asIntConstant().value == -1) {
+          // move 0
+          operator1 = IA32_MOV;
+        }
       }
-      if (rhs2.isIntConstant() &&
-          (rhs2.asIntConstant().value == 0)) {
-        // operation has no effect
-        operator2 = null;
+      if (rhs2.isIntConstant()) {
+        if (rhs2.asIntConstant().value == 0) {
+          // operation has no effect
+          operator2 = null;
+        } else if (rhs2.asIntConstant().value == -1) {
+          // move 0
+          operator2 = IA32_MOV;
+        }
       }
     } else if (operator1 == IA32_AND) {
       if (lowrhs2.isIntConstant()) {
@@ -1370,16 +1393,6 @@ Operand value, boolean signExtend) {
           // move 0
           operator2 = IA32_MOV;
         }
-      }
-      if (lowrhs2.isIntConstant() &&
-          (lowrhs2.asIntConstant().value == -1)) {
-        // operation has no effect
-        operator1 = null;
-      }
-      if (rhs2.isIntConstant() &&
-          (rhs2.asIntConstant().value == -1)) {
-        // operation has no effect
-        operator2 = null;
       }
     } else if (operator1 == IA32_XOR) {
       if (lowrhs2.isIntConstant()) {
@@ -1429,177 +1442,6 @@ Operand value, boolean signExtend) {
     }
   }
 
-  /**
-   * Expansion of LONG_SUB (the only non-commutative long operation
-   * excluding muls and divides which are special)
-   *
-   * @param s the instruction to expand
-   * @param result the result operand
-   * @param val1 the first operand
-   * @param val2 the second operand
-   */
-  protected final void LONG_SUB(Instruction s, Operand result, Operand val1, Operand val2) {
-
-    if (result.similar(val1)) {
-      // Straight forward case where instruction is already in accumulate form
-      if (result.isRegister()) {
-        Register lhsReg = result.asRegister().getRegister();
-        Register lowlhsReg = regpool.getSecondReg(lhsReg);
-        if (val2.isRegister()) {
-          Register rhsReg2 = val2.asRegister().getRegister();
-          Register lowrhsReg2 = regpool.getSecondReg(rhsReg2);
-          EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SUB,
-              new RegisterOperand(lowlhsReg, TypeReference.Int),
-              new RegisterOperand(lowrhsReg2, TypeReference.Int))));
-          EMIT(CPOS(s, MIR_BinaryAcc.mutate(s, IA32_SBB,
-              new RegisterOperand(lhsReg, TypeReference.Int),
-              new RegisterOperand(rhsReg2, TypeReference.Int))));
-        } else if (val2.isLongConstant()) {
-          LongConstantOperand rhs2 = val2.asLongConstant();
-          int low = rhs2.lower32();
-          int high = rhs2.upper32();
-          EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SUB,
-              new RegisterOperand(lowlhsReg, TypeReference.Int),
-              IC(low))));
-          EMIT(CPOS(s, MIR_BinaryAcc.mutate(s, IA32_SBB,
-              new RegisterOperand(lhsReg, TypeReference.Int),
-              IC(high))));
-        } else {
-          throw new OptimizingCompilerException("BURS_Helpers",
-              "unexpected parameters: " + result + "=" + val1 + "-" + val2);
-        }
-      } else {
-        throw new OptimizingCompilerException("BURS_Helpers",
-            "unexpected parameters: " + result + "=" + val1 + "-" + val2);
-      }
-    } else if (!result.similar(val2)) {
-      // Move first operand to result and perform operator on result, if
-      // possible redundant moves should be remove by register allocator
-      if (result.isRegister()) {
-        Register lhsReg = result.asRegister().getRegister();
-        Register lowlhsReg = regpool.getSecondReg(lhsReg);
-        // Move val1 into result
-        if (val1.isRegister()) {
-          Register rhsReg1 = val1.asRegister().getRegister();
-          Register lowrhsReg1 = regpool.getSecondReg(rhsReg1);
-          EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-              new RegisterOperand(lowlhsReg, TypeReference.Int),
-              new RegisterOperand(lowrhsReg1, TypeReference.Int))));
-          EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-              new RegisterOperand(lhsReg, TypeReference.Int),
-              new RegisterOperand(rhsReg1, TypeReference.Int))));
-        } else if (val1.isLongConstant()) {
-          LongConstantOperand rhs1 = val1.asLongConstant();
-          int low = rhs1.lower32();
-          int high = rhs1.upper32();
-          EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-              new RegisterOperand(lowlhsReg, TypeReference.Int),
-              IC(low))));
-          EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-              new RegisterOperand(lhsReg, TypeReference.Int),
-              IC(high))));
-        } else {
-          throw new OptimizingCompilerException("BURS_Helpers",
-              "unexpected parameters: " + result + "=" + val1 + "-" + val2);
-        }
-        // Perform subtract
-        if (val2.isRegister()) {
-          Register rhsReg2 = val2.asRegister().getRegister();
-          Register lowrhsReg2 = regpool.getSecondReg(rhsReg2);
-          EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SUB,
-              new RegisterOperand(lowlhsReg, TypeReference.Int),
-              new RegisterOperand(lowrhsReg2, TypeReference.Int))));
-          EMIT(CPOS(s, MIR_BinaryAcc.mutate(s, IA32_SBB,
-              new RegisterOperand(lhsReg, TypeReference.Int),
-              new RegisterOperand(rhsReg2, TypeReference.Int))));
-        } else if (val2.isLongConstant()) {
-          LongConstantOperand rhs2 = val2.asLongConstant();
-          int low = rhs2.lower32();
-          int high = rhs2.upper32();
-          EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SUB,
-              new RegisterOperand(lowlhsReg, TypeReference.Int),
-              IC(low))));
-          EMIT(CPOS(s, MIR_BinaryAcc.mutate(s, IA32_SBB,
-              new RegisterOperand(lhsReg, TypeReference.Int),
-              IC(high))));
-        } else {
-          throw new OptimizingCompilerException("BURS_Helpers",
-              "unexpected parameters: " + result + "=" + val1 + "-" + val2);
-        }
-      } else {
-        throw new OptimizingCompilerException("BURS_Helpers",
-            "unexpected parameters: " + result + "=" + val1 + "-" + val2);
-      }
-    } else {
-      // Potential to clobber second operand during move to result. Use a
-      // temporary register to perform the operation and rely on register
-      // allocator to remove redundant moves
-      RegisterOperand temp1 = regpool.makeTempInt();
-      RegisterOperand temp2 = regpool.makeTempInt();
-      // Move val1 into temp
-      if (val1.isRegister()) {
-        Register rhsReg1 = val1.asRegister().getRegister();
-        Register lowrhsReg1 = regpool.getSecondReg(rhsReg1);
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            temp1,
-            new RegisterOperand(lowrhsReg1, TypeReference.Int))));
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            temp2,
-            new RegisterOperand(rhsReg1, TypeReference.Int))));
-      } else if (val1.isLongConstant()) {
-        LongConstantOperand rhs1 = val1.asLongConstant();
-        int low = rhs1.lower32();
-        int high = rhs1.upper32();
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            temp1,
-            IC(low))));
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            temp2,
-            IC(high))));
-      } else {
-        throw new OptimizingCompilerException("BURS_Helpers",
-            "unexpected parameters: " + result + "=" + val1 + "-" + val2);
-      }
-      // Perform subtract
-      if (val2.isRegister()) {
-        Register rhsReg2 = val2.asRegister().getRegister();
-        Register lowrhsReg2 = regpool.getSecondReg(rhsReg2);
-        EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SUB,
-            temp1.copyRO(),
-            new RegisterOperand(lowrhsReg2, TypeReference.Int))));
-        EMIT(CPOS(s, MIR_BinaryAcc.mutate(s, IA32_SBB,
-            temp2.copyRO(),
-            new RegisterOperand(rhsReg2, TypeReference.Int))));
-      } else if (val2.isLongConstant()) {
-        LongConstantOperand rhs2 = val2.asLongConstant();
-        int low = rhs2.lower32();
-        int high = rhs2.upper32();
-        EMIT(CPOS(s, MIR_BinaryAcc.create(IA32_SUB,
-            temp1.copyRO(),
-            IC(low))));
-        EMIT(CPOS(s, MIR_BinaryAcc.mutate(s, IA32_SBB,
-            temp2.copyRO(),
-            IC(high))));
-      } else {
-        throw new OptimizingCompilerException("BURS_Helpers",
-            "unexpected parameters: " + result + "=" + val1 + "-" + val2);
-      }
-      // Move result back
-      if (result.isRegister()) {
-        Register lhsReg = result.asRegister().getRegister();
-        Register lowlhsReg = regpool.getSecondReg(lhsReg);
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            new RegisterOperand(lowlhsReg, TypeReference.Int),
-            temp1.copyRO())));
-        EMIT(CPOS(s, MIR_Move.create(IA32_MOV,
-            new RegisterOperand(lhsReg, TypeReference.Int),
-            temp2.copyRO())));
-      } else {
-        throw new OptimizingCompilerException("BURS_Helpers",
-            "unexpected parameters: " + result + "=" + val1 + "-" + val2);
-      }
-    }
-  }
 
   /**
    * Expansion of LONG_MUL
