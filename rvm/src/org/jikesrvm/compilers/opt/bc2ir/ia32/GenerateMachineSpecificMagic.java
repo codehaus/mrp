@@ -19,7 +19,6 @@ import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.MagicNotImplementedException;
 import org.jikesrvm.compilers.opt.bc2ir.BC2IR;
 import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
-import org.jikesrvm.compilers.opt.ir.Binary;
 import org.jikesrvm.compilers.opt.ir.CacheOp;
 import org.jikesrvm.compilers.opt.ir.Empty;
 import org.jikesrvm.compilers.opt.ir.GetField;
@@ -31,7 +30,6 @@ import org.jikesrvm.compilers.opt.ir.Store;
 import static org.jikesrvm.compilers.opt.ir.IRTools.IC;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.operand.AddressConstantOperand;
-import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.LocationOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
@@ -138,7 +136,7 @@ public abstract class GenerateMachineSpecificMagic implements Operators, Stackfr
     } else if (methodName == MagicNames.getReturnAddressLocation) {
       Operand fp = bc2ir.popAddress();
       Instruction s = bc2ir._binaryHelper(REF_ADD, fp, IC(STACKFRAME_RETURN_ADDRESS_OFFSET.toInt()), TypeReference.Address);
-		bc2ir.appendInstruction(s);
+      bc2ir.appendInstruction(s);
     } else {
       // Distinguish between magics that we know we don't implement
       // (and never plan to implement) and those (usually new ones)

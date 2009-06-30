@@ -3844,13 +3844,13 @@ public abstract class Simplifier extends IRTools {
    * <li> <code> Reg = Reg <op> Constant </code>
    * <li> <code> Reg = Constant <op> Constant </code>
    * </ul>
-	* For object constant operands we treat movable objects like registers.
+   * For object constant operands we treat movable objects like registers.
    */
   private static void canonicalizeCommutativeOperator(Instruction instr) {
-	 Operand op1 = Binary.getVal1(instr);
+    Operand op1 = Binary.getVal1(instr);
     if (op1.isConstant() && !op1.isMovableObjectConstant()) {
-	   Operand tmp = Binary.getClearVal1(instr);
-	   Binary.setVal1(instr, Binary.getClearVal2(instr));
+      Operand tmp = Binary.getClearVal1(instr);
+      Binary.setVal1(instr, Binary.getClearVal2(instr));
       Binary.setVal2(instr, tmp);
     }
   }

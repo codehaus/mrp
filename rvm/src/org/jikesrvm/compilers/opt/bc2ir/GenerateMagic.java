@@ -93,7 +93,6 @@ import org.jikesrvm.compilers.opt.ir.Operator;
 import org.jikesrvm.compilers.opt.ir.Prepare;
 import org.jikesrvm.compilers.opt.ir.Store;
 import org.jikesrvm.compilers.opt.ir.Unary;
-import org.jikesrvm.compilers.opt.ir.operand.AddressConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.BranchProfileOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ConditionOperand;
 import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
@@ -800,7 +799,7 @@ public class GenerateMagic implements TIBLayoutConstants  {
         s = bc2ir._unaryHelper(INT_2ADDRSigExt, o2, resultType);
         bc2ir.appendInstruction(s);
         o2 = bc2ir.pop();
-		}
+      }
       Operand o1 = bc2ir.pop();
       s = bc2ir._binaryHelper(REF_ADD, o1, o2, resultType);
     } else if (methodName == MagicNames.wordMinus) {
@@ -809,7 +808,7 @@ public class GenerateMagic implements TIBLayoutConstants  {
         s = bc2ir._unaryHelper(INT_2ADDRSigExt, o2, resultType);
         bc2ir.appendInstruction(s);
         o2 = bc2ir.pop();
-		}
+      }
       Operand o1 = bc2ir.pop();
       s = bc2ir._binaryHelper(REF_SUB, o1, o2, resultType);
     } else if (methodName == MagicNames.wordDiff) {
@@ -883,7 +882,7 @@ public class GenerateMagic implements TIBLayoutConstants  {
   }
 
   private static Instruction _cmpHelper(BC2IR bc2ir, GenerationContext gc, ConditionOperand cond,
-													 Operand given_o2) {
+                                        Operand given_o2) {
     Operand o2 = given_o2 == null ? bc2ir.pop() : given_o2;
     Operand o1 = bc2ir.pop();
     RegisterOperand res = gc.temps.makeTempInt();
