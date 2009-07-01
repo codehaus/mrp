@@ -38,7 +38,7 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
   /**
    * Merge commonly adjacent bytecodes?
    */
-  private static final boolean mergeBytecodes = true;
+  private static final boolean mergeBytecodes = false;
 
   private static long gcMapNanos;
   private static long osrSetupNanos;
