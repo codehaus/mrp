@@ -454,6 +454,20 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
   }
 
   /**
+   * Find out whether a given signed value can be represented in a
+   * given number of bits.
+   *
+   * @param val the value to be represented
+   * @param bits the number of bits to use.
+   * @return true if val can be encoded in bits.
+   */
+  @Inline
+  protected static boolean fits (long val, int bits) {
+    val = val >> bits-1;
+    return (val == 0 || val == -1);
+  }
+
+  /**
    * In the representation of addressing modes in the ModRM and SIB
    * bytes, the code for register-displacement for on ESP has a
    * special meaning.  Thus, when register-displacement mode using ESP
@@ -1865,11 +1879,21 @@ public abstract class Assembler extends AbstractAssembler implements RegisterCon
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
   public final void emitMOV_Reg_Imm_Quad(GPR dstReg, long imm) {
-    int miStart = mi;
-    generateREXprefix(true, null, null, dstReg);
-    setMachineCodes(mi++, (byte) (0xB8 | dstReg.value()));
-    emitImm64(imm);
-    if (!Production && (lister != null)) lister.RI(miStart, "MOV", dstReg, imm);
+    if (imm > 0 && (imm >> 32 == 0)) {
+      // Do shorter unsigned 32bit move immediate
+      emitMOV_Reg_Imm(dstReg, (int)imm);
+    } else {
+      int miStart = mi;
+      generateREXprefix(true, null, null, dstReg);
+      if (fits(imm, 32)) {
+        setMachineCodes(mi++, (byte) (0xC7 | dstReg.value()));
+        emitImm32((int)imm);
+      } else {
+        setMachineCodes(mi++, (byte) (0xB8 | dstReg.value()));
+        emitImm64(imm);
+      }
+      if (!Production && (lister != null)) lister.RI(miStart, "MOV", dstReg, imm);
+    }
   }
 
   /** pop address and goto it */
