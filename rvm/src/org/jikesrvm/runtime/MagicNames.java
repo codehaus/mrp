@@ -66,6 +66,9 @@ public class MagicNames {
   public static final Atom unsignedRemainder = Atom.findOrCreateAsciiAtom("unsignedRemainder");
   public static final Atom sqrt  = Atom.findOrCreateAsciiAtom("sqrt");
 
+  public static final Atom getInlineDepth = Atom.findOrCreateAsciiAtom("getInlineDepth");
+  public static final Atom isConstantParameter = Atom.findOrCreateAsciiAtom("isConstantParameter");
+
   public static final Atom getUnsignedByteAtOffset = Atom.findOrCreateAsciiAtom("getUnsignedByteAtOffset");
   public static final Atom getByteAtOffset = Atom.findOrCreateAsciiAtom("getByteAtOffset");
   public static final Atom getShortAtOffset = Atom.findOrCreateAsciiAtom("getShortAtOffset");

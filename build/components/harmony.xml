@@ -100,7 +100,7 @@
           <isset property="harmony.arch"/>
         </conditions>
         <sequential>
-          <exec executable="${ant.exe}" dir="${harmony.dir}" failonerror="true">
+          <exec executable="ant" dir="${harmony.dir}" failonerror="true">
             <env key="ASFLAGS" value="${harmony.asflags}"/>
             <env key="LDFLAGS" value="${harmony.ldflags}"/>
             <env key="CFLAGS" value="${harmony.cflags}"/>

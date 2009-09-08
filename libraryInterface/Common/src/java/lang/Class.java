@@ -834,7 +834,7 @@ public final class Class<T> implements Serializable, Type, AnnotatedElement, Gen
 
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={0})
   public T newInstance() throws IllegalAccessException, InstantiationException,
-    InvocationTargetException, ExceptionInInitializerError, SecurityException {
+    ExceptionInInitializerError, SecurityException {
 
     // Basic checks
     checkMemberAccess(Member.PUBLIC);

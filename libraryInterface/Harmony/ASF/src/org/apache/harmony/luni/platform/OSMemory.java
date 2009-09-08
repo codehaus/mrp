@@ -81,7 +81,7 @@ final class OSMemory implements IMemorySystem {
 	 * 
 	 * @see #getOSMemory()
 	 */
-	OSMemory() {
+    private OSMemory() {
 		super();
 	}
 

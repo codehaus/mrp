@@ -271,6 +271,10 @@ Ljava/util/Collections$UnmodifiableSortedSet;
 Ljava/util/Collections;
 Ljava/util/Stack;
 Ljava/util/TreeMap;
+Ljava/util/TreeMap$1;
+Ljava/util/TreeMap$2;
+Ljava/util/TreeMap$3;
+Ljava/util/TreeMap$UnboundedKeyIterator;
 Ljava/util/TreeSet;
 Ljava/util/WeakHashMap$1$1;
 Ljava/util/WeakHashMap$1;
@@ -351,6 +355,8 @@ Ljava/nio/ReadWriteHeapByteBuffer;
 Ljava/security/AccessControlContext;
 Ljava/lang/ThreadLocal;
 # Used by ThreadLocal
+Ljava/util/LinkedList$Link;
+Ljava/util/LinkedList$LinkIterator;
 Ljava/util/LinkedList;
 
 Ljava/lang/SecurityManager;

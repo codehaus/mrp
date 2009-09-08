@@ -1638,11 +1638,10 @@ public class BootImageWriter extends BootImageWriterMessages
             // we failed to get a reflective field accessors
             if (jdkType != null) {
               // we know the type - probably a private field of a java.lang class
-              if(!copyKnownClasspathStaticField(jdkType,
-                                                rvmFieldName,
-                                                rvmFieldType,
-                                                rvmFieldOffset
-                                                )) {
+              if(!copyKnownStaticField(jdkType,
+                                       rvmFieldName,
+                                       rvmFieldType,
+                                       rvmFieldOffset)) {
                 // we didn't know the field so nullify
                 if (verbose >= 2) {
                   traceContext.push(rvmFieldType.toString(),
@@ -1831,7 +1830,7 @@ public class BootImageWriter extends BootImageWriterMessages
     } else {
       BootImageMap.Entry mapEntry = BootImageMap.findOrCreateEntry(referencedObject);
       if (mapEntry.imageAddress.EQ(OBJECT_NOT_PRESENT)) {
-        if (rvmFieldName == null || !copyKnownClasspathInstanceField(parentObject, rvmFieldName, rvmFieldType, fieldLocation)) {
+        if (rvmFieldName == null || !copyKnownInstanceField(parentObject, rvmFieldName, rvmFieldType, fieldLocation)) {
           // object not part of bootimage: install null reference
           if (verbose >= 2) traceContext.traceObjectNotInBootImage();
           bootImage.setNullAddressWord(fieldLocation, objField, root, false);
@@ -1854,7 +1853,7 @@ public class BootImageWriter extends BootImageWriterMessages
         }
         if (imageAddress.EQ(OBJECT_NOT_PRESENT)) {
           if (verbose >= 2) traceContext.traceObjectNotInBootImage();
-          if (!copyKnownClasspathInstanceField(parentObject, rvmFieldName, rvmFieldType, fieldLocation)) {
+          if (!copyKnownInstanceField(parentObject, rvmFieldName, rvmFieldType, fieldLocation)) {
             // object not part of bootimage: install null reference
             if (verbose >= 2) traceContext.traceObjectNotInBootImage();
             bootImage.setNullAddressWord(fieldLocation, objField, root, false);
@@ -1894,7 +1893,7 @@ public class BootImageWriter extends BootImageWriterMessages
     BootImageMap.Entry.LinkInfo info = mapEntry.removeLinkingAddress();
     while(info != null) {
       if (mapEntry.imageAddress.EQ(OBJECT_NOT_PRESENT)) {
-        if (info.rvmFieldName == null || !copyKnownClasspathInstanceField(info.parent, info.rvmFieldName, info.rvmFieldType, info.addressToFixup)) {
+        if (info.rvmFieldName == null || !copyKnownInstanceField(info.parent, info.rvmFieldName, info.rvmFieldType, info.addressToFixup)) {
           // object not part of bootimage: install null reference
           if (verbose >= 2) traceContext.traceObjectNotInBootImage();
           bootImage.setNullAddressWord(info.addressToFixup, info.objField, info.root, false);
@@ -2080,7 +2079,7 @@ public class BootImageWriter extends BootImageWriterMessages
 
       if (jdkFieldAcc == null) {
         // Field not found via reflection
-        if (!copyKnownClasspathInstanceField(jdkObject, rvmFieldName, rvmFieldType, rvmFieldAddress)) {
+        if (!copyKnownInstanceField(jdkObject, rvmFieldName, rvmFieldType, rvmFieldAddress)) {
           // Field wasn't a known Classpath field so write null
           if (verbose >= 2) traceContext.push(rvmFieldType.toString(),
               jdkType.getName(), rvmFieldName);
@@ -2392,7 +2391,7 @@ public class BootImageWriter extends BootImageWriterMessages
    * @param rvmFieldName the name of the field
    * @param rvmFieldType the type reference of the field
    */
-  private static boolean copyKnownClasspathStaticField(Class<?> jdkType, String rvmFieldName,
+  private static boolean copyKnownStaticField(Class<?> jdkType, String rvmFieldName,
                                                        TypeReference rvmFieldType,
                                                        Offset rvmFieldOffset) {
     if (classLibrary == "harmony") {
@@ -2590,7 +2589,7 @@ public class BootImageWriter extends BootImageWriterMessages
    * @param rvmFieldType the type reference of the field
    * @param rvmFieldAddress the address that the field is being written to
    */
-  private static boolean copyKnownClasspathInstanceField(Object jdkObject, String rvmFieldName, TypeReference rvmFieldType, Address rvmFieldAddress)
+  private static boolean copyKnownInstanceField(Object jdkObject, String rvmFieldName, TypeReference rvmFieldType, Address rvmFieldAddress)
     throws IllegalAccessException {
 
     // Class library independent objects

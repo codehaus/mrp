@@ -96,6 +96,7 @@
     <jniTest class="NullIdentity"/>
     <jniTest class="StringFunctions"/>
     <jniTest class="TestGC"/>
+    <jniTest class="TestNestedGC"/>
     <jniTest class="t3GT3"/>
 
     <!-- JNI 1.2 -->
@@ -105,6 +106,7 @@
 
     <!-- JNI 1.4 -->
     <jniTest class="TestJNIDirectBuffers"/>
+    <jniTest class="TestJNIGetFieldID"/>
 
     <finishResults/>
   </target>
