@@ -41,7 +41,6 @@ import org.jikesrvm.ia32.BaselineConstants;
 import org.jikesrvm.ia32.ThreadLocalState;
 import org.jikesrvm.jni.ia32.JNICompiler;
 import org.jikesrvm.mm.mminterface.MemoryManager;
-import org.jikesrvm.mm.mminterface.MemoryManagerConstants;
 import org.jikesrvm.objectmodel.JavaHeader;
 import org.jikesrvm.objectmodel.JavaHeaderConstants;
 import org.jikesrvm.objectmodel.ObjectModel;
