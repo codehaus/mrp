@@ -808,7 +808,7 @@ public class GenerateMagic implements TIBLayoutConstants  {
       Operand o2 = bc2ir.pop();
       if (VM.BuildFor64Addr && o2.isInt()) {
         s = bc2ir._unaryHelper(INT_2ADDRSigExt, o2, resultType);
-        bc2ir.appendInstruction(s);
+        if (s != null) bc2ir.appendInstruction(s);
         o2 = bc2ir.pop();
       }
       Operand o1 = bc2ir.pop();
@@ -817,7 +817,7 @@ public class GenerateMagic implements TIBLayoutConstants  {
       Operand o2 = bc2ir.pop();
       if (VM.BuildFor64Addr && o2.isInt()) {
         s = bc2ir._unaryHelper(INT_2ADDRSigExt, o2, resultType);
-        bc2ir.appendInstruction(s);
+        if (s != null) bc2ir.appendInstruction(s);
         o2 = bc2ir.pop();
       }
       Operand o1 = bc2ir.pop();

@@ -24,6 +24,7 @@ import org.jikesrvm.compilers.opt.ir.operand.DoubleConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.FloatConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.LocationOperand;
+import org.jikesrvm.compilers.opt.ir.operand.LongConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.MemoryOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
@@ -263,17 +264,33 @@ public abstract class BURS_MemOp_Helpers extends BURS_Common_Helpers {
 
   protected final MemoryOperand MO(Operand base, Operand offset, byte size, Offset disp,
                                        LocationOperand loc, Operand guard) {
-    if (base instanceof IntConstantOperand) {
-      if (offset instanceof IntConstantOperand) {
-        return MO_D(disp.plus(IV(base) + IV(offset)), size, loc, guard);
+    if (VM.BuildFor32Addr) {
+      if (base instanceof IntConstantOperand) {
+        if (offset instanceof IntConstantOperand) {
+          return MO_D(disp.plus(IV(base) + IV(offset)), size, loc, guard);
+        } else {
+          return MO_BD(offset, disp.plus(IV(base)), size, loc, guard);
+        }
       } else {
-        return MO_BD(offset, disp.plus(IV(base)), size, loc, guard);
+        if (offset instanceof IntConstantOperand) {
+          return MO_BD(base, disp.plus(IV(offset)), size, loc, guard);
+        } else {
+          return MO_BID(base, offset, disp, size, loc, guard);
+        }
       }
     } else {
-      if (offset instanceof IntConstantOperand) {
-        return MO_BD(base, disp.plus(IV(offset)), size, loc, guard);
+      if (base instanceof LongConstantOperand) {
+        if (offset instanceof IntConstantOperand) {
+          return MO_D(Offset.fromLong(disp.toLong()+LV(base)+IV(offset)), size, loc, guard);
+        } else {
+          return MO_BD(offset, Offset.fromLong(disp.toLong()+LV(base)), size, loc, guard);
+        }
       } else {
-        return MO_BID(base, offset, disp, size, loc, guard);
+        if (offset instanceof IntConstantOperand) {
+          return MO_BD(base, disp.plus(IV(offset)), size, loc, guard);
+        } else {
+          return MO_BID(base, offset, disp, size, loc, guard);
+        }
       }
     }
   }
