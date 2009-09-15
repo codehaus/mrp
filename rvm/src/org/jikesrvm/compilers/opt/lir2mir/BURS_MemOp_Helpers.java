@@ -285,6 +285,12 @@ public abstract class BURS_MemOp_Helpers extends BURS_Common_Helpers {
         } else {
           return MO_BD(offset, Offset.fromLong(disp.toLong()+LV(base)), size, loc, guard);
         }
+      } else if (base instanceof IntConstantOperand) {
+        if (offset instanceof IntConstantOperand) {
+          return MO_D(Offset.fromLong(disp.toLong()+IV(base)+IV(offset)), size, loc, guard);
+        } else {
+          return MO_BD(offset, Offset.fromLong(disp.toLong()+IV(base)), size, loc, guard);
+        }
       } else {
         if (offset instanceof IntConstantOperand) {
           return MO_BD(base, disp.plus(IV(offset)), size, loc, guard);
