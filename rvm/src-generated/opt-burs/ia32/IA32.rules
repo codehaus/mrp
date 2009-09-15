@@ -87,7 +87,7 @@ NOFLAGS
 // No code emitted
 
 # the non-terminal rlv is either an r or an lv
-rlv:	r
+rlv:	riv
 0
 NOFLAGS
 // No code emitted
