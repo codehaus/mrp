@@ -13,11 +13,9 @@ r:	LONG_ADD(r, rlv)
 11
 EMIT_INSTRUCTION
 if (Binary.getVal2(P(p)).isLongConstant()) { \\
-  pushAddress(R(Binary.getVal1(P(p))), null, B_S, Offset.fromLong(VR(p))); \\
-} else if (Binary.getVal2(P(p)).isIntConstant()) { \\
-  pushAddress(R(Binary.getVal1(P(p))), null, B_S, Offset.fromIntSignExtend(VR(p))); \\
+  pushAddress(R(Binary.getVal1(P(p))), null, B_S, Offset.fromLong(LV(Binary.getVal2(P(p))))); \\
 } else { \\
- pushAddress(R(Binary.getVal1(P(p))), R(Binary.getVal2(P(p))), B_S, Offset.zero()); \\
+  pushAddress(R(Binary.getVal1(P(p))), R(Binary.getVal2(P(p))), B_S, Offset.zero()); \\
 } \\
 EMIT_Lea(P(p), Binary.getResult(P(p)), consumeAddress(QW, null, null));
 

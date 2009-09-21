@@ -112,7 +112,7 @@ public abstract class BURS_MemOp_Helpers extends BURS_Common_Helpers {
         throw new OptimizingCompilerException("three base registers in address");
       }
     } else {
-      int disp = ((IntConstantOperand) op).value;
+      int disp = VM.BuildFor64Addr ? (int)((LongConstantOperand) op).value : ((IntConstantOperand) op).value;
       AddrStack.displacement = AddrStack.displacement.plus(disp);
     }
   }
@@ -280,20 +280,14 @@ public abstract class BURS_MemOp_Helpers extends BURS_Common_Helpers {
       }
     } else {
       if (base instanceof LongConstantOperand) {
-        if (offset instanceof IntConstantOperand) {
-          return MO_D(Offset.fromLong(disp.toLong()+LV(base)+IV(offset)), size, loc, guard);
+        if (offset instanceof LongConstantOperand) {
+          return MO_D(Offset.fromLong(disp.toLong()+LV(base)+LV(offset)), size, loc, guard);
         } else {
           return MO_BD(offset, Offset.fromLong(disp.toLong()+LV(base)), size, loc, guard);
         }
-      } else if (base instanceof IntConstantOperand) {
-        if (offset instanceof IntConstantOperand) {
-          return MO_D(Offset.fromLong(disp.toLong()+IV(base)+IV(offset)), size, loc, guard);
-        } else {
-          return MO_BD(offset, Offset.fromLong(disp.toLong()+IV(base)), size, loc, guard);
-        }
       } else {
-        if (offset instanceof IntConstantOperand) {
-          return MO_BD(base, disp.plus(IV(offset)), size, loc, guard);
+        if (offset instanceof LongConstantOperand) {
+          return MO_BD(base, disp.plus(Offset.fromLong(LV(offset))), size, loc, guard);
         } else {
           return MO_BID(base, offset, disp, size, loc, guard);
         }

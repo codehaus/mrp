@@ -42,3 +42,11 @@ augmentAddress(Load.getOffset(P(p))); \\
 EMIT(MIR_Move.mutate(P(p), IA32_MOV, Load.getResult(P(p)), \\
 	             consumeAddress(DW, Load.getLocation(P(p)), Load.getGuard(P(p)))));
 
+#####
+#INT_ALOAD
+#####
+r:      INT_ALOAD(riv, riv)
+15
+EMIT_INSTRUCTION
+EMIT(MIR_Move.mutate(P(p), IA32_MOV, ALoad.getResult(P(p)), MO_AL(P(p), DW_S, DW)));
+

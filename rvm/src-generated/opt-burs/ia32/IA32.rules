@@ -87,7 +87,7 @@ NOFLAGS
 // No code emitted
 
 # the non-terminal rlv is either an r or an lv
-rlv:	riv
+rlv:	r
 0
 NOFLAGS
 // No code emitted
@@ -428,38 +428,6 @@ EMIT_INSTRUCTION
 LONG_CMP(P(p), Binary.getResult(P(p)), Binary.getVal1(P(p)), Binary.getVal2(P(p)));
 
 #####
-# BYTE_LOAD
-#####
-r:	BYTE_LOAD(riv, riv)
-20
-EMIT_INSTRUCTION
-EMIT(MIR_Unary.mutate(P(p), IA32_MOVSX__B, Load.getResult(P(p)), MO_L(P(p), B)));
-
-#####
-# BYTE_ALOAD
-#####
-r:	BYTE_ALOAD(riv, riv)
-20
-EMIT_INSTRUCTION
-EMIT(MIR_Unary.mutate(P(p), IA32_MOVSX__B, ALoad.getResult(P(p)), MO_AL(P(p), B_S, B)));
-
-#####
-# UBYTE_LOAD
-#####
-r:	UBYTE_LOAD(riv, riv)
-15
-EMIT_INSTRUCTION
-EMIT(MIR_Unary.mutate(P(p), IA32_MOVZX__B, Load.getResult(P(p)), MO_L(P(p), B)));
-
-#####
-# UBYTE_ALOAD
-#####
-r:	UBYTE_ALOAD(riv, riv)
-15
-EMIT_INSTRUCTION
-EMIT(MIR_Unary.mutate(P(p), IA32_MOVZX__B, ALoad.getResult(P(p)), MO_AL(P(p), B_S, B)));
-
-#####
 # other load8 patterns
 #####
 # load8_16_32 & 0xff ===> uload8
@@ -486,38 +454,6 @@ EMIT_INSTRUCTION
 EMIT(MIR_Unary.mutate(P(p), IA32_MOVZX__B, Binary.getResult(P(p)), setSize(consumeMO(),1)));
 
 #####
-# SHORT_LOAD
-#####
-r:	SHORT_LOAD(riv, riv)
-20
-EMIT_INSTRUCTION
-EMIT(MIR_Unary.mutate(P(p), IA32_MOVSX__W, Load.getResult(P(p)), MO_L(P(p), W)));
-
-#####
-# SHORT_ALOAD
-#####
-r:	SHORT_ALOAD(riv, riv)
-20
-EMIT_INSTRUCTION
-EMIT(MIR_Unary.mutate(P(p), IA32_MOVSX__W, ALoad.getResult(P(p)), MO_AL(P(p), W_S, W)));
-
-#####
-# USHORT_LOAD
-#####
-r:	USHORT_LOAD(riv, riv)
-15
-EMIT_INSTRUCTION
-EMIT(MIR_Unary.mutate(P(p), IA32_MOVZX__W, Load.getResult(P(p)), MO_L(P(p), W)));
-
-#####
-# USHORT_ALOAD
-#####
-r:	USHORT_ALOAD(riv, riv)
-15
-EMIT_INSTRUCTION
-EMIT(MIR_Unary.mutate(P(p), IA32_MOVZX__W, ALoad.getResult(P(p)), MO_AL(P(p), W_S, W)));
-
-#####
 # other load16 patterns
 #####
 # load16_32 & 0xffff ===> uload16
@@ -532,63 +468,9 @@ VR(p) == 16 && VLR(p) == 16 ? 15 : INFINITE
 EMIT_INSTRUCTION
 EMIT(MIR_Unary.mutate(P(p), IA32_MOVZX__W, Binary.getResult(P(p)), setSize(consumeMO(),2)));
 
-#####
-#INT_ALOAD
-#####
-r:	INT_ALOAD(riv, riv)
-15
-EMIT_INSTRUCTION
-EMIT(MIR_Move.mutate(P(p), IA32_MOV, ALoad.getResult(P(p)), MO_AL(P(p), DW_S, DW)));
-
-#####
-# LONG_ALOAD
-#####
-r:	LONG_ALOAD(riv, riv)
-30
-EMIT_INSTRUCTION
-RegisterOperand hres = ALoad.getResult(P(p)); \\
-RegisterOperand lres = new RegisterOperand(regpool.getSecondReg(hres.getRegister()), TypeReference.Int); \\
-hres.setType(TypeReference.Int); \\
-EMIT(CPOS(P(p), MIR_Move.create(IA32_MOV, hres, MO_AL(P(p), QW_S, DW, DW).copy()))); \\
-EMIT(MIR_Move.mutate(P(p), IA32_MOV, lres, MO_AL(P(p), QW_S, DW)));
-
 ##################################
 # Stores (register to memory moves)
 ##################################
-#####
-# BYTE_STORE
-#####
-stm:	BYTE_STORE(riv, OTHER_OPERAND(riv, riv))
-15
-EMIT_INSTRUCTION
-EMIT(MIR_Move.mutate(P(p), IA32_MOV, MO_S(P(p), B), Store.getValue(P(p))));
-
-# Can avoid sign/zero extension when we are just doing a transfer of bits
-# from one memory location to another.
-stm:	BYTE_STORE(load8, OTHER_OPERAND(riv, riv))
-25
-EMIT_INSTRUCTION
-Register tmp = regpool.getInteger(); \\
-EMIT(CPOS(PL(p), MIR_Move.create(IA32_MOV, new RegisterOperand(tmp, TypeReference.Int), consumeMO()))); \\
-EMIT(MIR_Move.mutate(P(p), IA32_MOV, MO_S(P(p), B), new RegisterOperand(tmp, TypeReference.Int)));
-
-#####
-# BYTE_ASTORE
-#####
-stm:	BYTE_ASTORE(riv, OTHER_OPERAND(riv, riv))
-15
-EMIT_INSTRUCTION
-EMIT(MIR_Move.mutate(P(p), IA32_MOV, MO_AS(P(p), B_S, B), AStore.getValue(P(p))));
-
-# Can avoid sign/zero extension when we are just doing a transfer of bits
-# from one memory location to another.
-stm:	BYTE_ASTORE(load8, OTHER_OPERAND(riv, riv))
-25
-EMIT_INSTRUCTION
-Register tmp = regpool.getInteger(); \\
-EMIT(CPOS(PL(p), MIR_Move.create(IA32_MOV, new RegisterOperand(tmp, TypeReference.Int), consumeMO()))); \\
-EMIT(MIR_Move.mutate(P(p), IA32_MOV, MO_AS(P(p), B_S, B), new RegisterOperand(tmp, TypeReference.Int)));
-
 #####
 # SHORT_STORE
 #####

@@ -445,7 +445,7 @@ public abstract class StackManager extends GenericStackManager {
 
     //    ECX += frame Size
     int frameSize = getFrameFixedSize();
-    plg.insertBefore(MIR_BinaryAcc.create(IA32_ADD, new RegisterOperand(ECX, wordTR), IC(frameSize)));
+    plg.insertBefore(MIR_BinaryAcc.create(IA32_ADD, new RegisterOperand(ECX, wordTR), VM.BuildFor32Addr ? IC(frameSize) : LC(frameSize)));
     //    Trap if ESP <= ECX
     MIR_TrapIf.mutate(plg,
                       IA32_TRAPIF,
@@ -509,7 +509,7 @@ public abstract class StackManager extends GenericStackManager {
 
       // 4. Store my compiled method id
       int cmid = ir.compiledMethod.getId();
-      inst.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, IC(cmid)));
+      inst.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, VM.BuildFor32Addr ? IC(cmid) : LC(cmid)));
     } else {
       // 1. Save caller's frame pointer
       inst.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, fpHome));
@@ -519,7 +519,7 @@ public abstract class StackManager extends GenericStackManager {
 
       // 3. Store my compiled method id
       int cmid = ir.compiledMethod.getId();
-      inst.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, IC(cmid)));
+      inst.insertBefore(MIR_UnaryNoRes.create(IA32_PUSH, VM.BuildFor32Addr ? IC(cmid) : LC(cmid)));
 
       // 4. Insert Stack overflow check.
       insertNormalStackOverflowCheck(plg);
@@ -795,7 +795,7 @@ public abstract class StackManager extends GenericStackManager {
     int delta = desiredOffset - ESPOffset;
     if (delta != 0) {
       if (canModifyEFLAGS(s)) {
-        s.insertBefore(MIR_BinaryAcc.create(IA32_ADD, new RegisterOperand(ESP, wordTR), IC(delta)));
+        s.insertBefore(MIR_BinaryAcc.create(IA32_ADD, new RegisterOperand(ESP, wordTR), VM.BuildFor32Addr ? IC(delta) : LC(delta)));
       } else {
         MemoryOperand M =
             MemoryOperand.BD(new RegisterOperand(ESP, wordTR),

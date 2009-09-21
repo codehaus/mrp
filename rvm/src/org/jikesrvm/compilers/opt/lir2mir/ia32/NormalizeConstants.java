@@ -28,6 +28,7 @@ import org.jikesrvm.compilers.opt.ir.operand.DoubleConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.FloatConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.LocationOperand;
+import org.jikesrvm.compilers.opt.ir.operand.LongConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.NullConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ObjectConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
@@ -37,6 +38,7 @@ import org.jikesrvm.compilers.opt.ir.operand.TIBConstantOperand;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Statics;
 import org.vmmagic.unboxed.Offset;
+import org.vmmagic.unboxed.Word;
 
 
 /**
@@ -81,12 +83,12 @@ public abstract class NormalizeConstants {
                   offset = Offset.fromIntSignExtend(Statics.findOrCreateObjectLiteral(oc.value));
                 }
                 LocationOperand loc = new LocationOperand(offset);
-                s.insertBefore(Load.create(refLoad, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
+                s.insertBefore(Load.create(refLoad, rop, jtoc, wordOperand(offset.toWord()), loc));
                 s.putOperand(idx, rop.copyD2U());
               } else {
                 // Ensure object is in JTOC to keep it alive
                 Statics.findOrCreateObjectLiteral(oc.value);
-                s.putOperand(idx, new IntConstantOperand(Magic.objectAsAddress(oc.value).toInt()));
+                s.putOperand(idx, wordOperand(Magic.objectAsAddress(oc.value).toWord()));
               }
             } else if (use instanceof DoubleConstantOperand) {
               RegisterOperand rop = ir.regpool.makeTemp(TypeReference.Double);
@@ -109,28 +111,38 @@ public abstract class NormalizeConstants {
               s.insertBefore(Binary.create(MATERIALIZE_FP_CONSTANT, rop, jtoc, fc));
               s.putOperand(idx, rop.copyD2U());
             } else if (use instanceof NullConstantOperand) {
-              s.putOperand(idx, new IntConstantOperand(0));
+              s.putOperand(idx, wordOperand(Word.zero()));
             } else if (use instanceof AddressConstantOperand) {
-              int v = ((AddressConstantOperand) use).value.toInt();
-              s.putOperand(idx, new IntConstantOperand(v));
+              s.putOperand(idx, wordOperand(((AddressConstantOperand) use).value.toWord()));
             } else if (use instanceof TIBConstantOperand) {
               RegisterOperand rop = ir.regpool.makeTemp(TypeReference.TIB);
               Operand jtoc = ir.regpool.makeJTOCOp(ir, s);
               Offset offset = ((TIBConstantOperand) use).value.getTibOffset();
               LocationOperand loc = new LocationOperand(offset);
-              s.insertBefore(Load.create(refLoad, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
+              s.insertBefore(Load.create(refLoad, rop, jtoc, wordOperand(offset.toWord()), loc));
               s.putOperand(idx, rop.copyD2U());
             } else if (use instanceof CodeConstantOperand) {
               RegisterOperand rop = ir.regpool.makeTemp(TypeReference.CodeArray);
               Operand jtoc = ir.regpool.makeJTOCOp(ir, s);
               Offset offset = ((CodeConstantOperand) use).value.findOrCreateJtocOffset();
               LocationOperand loc = new LocationOperand(offset);
-              s.insertBefore(Load.create(refLoad, rop, jtoc, new IntConstantOperand(offset.toInt()), loc));
+              s.insertBefore(Load.create(refLoad, rop, jtoc, wordOperand(offset.toWord()), loc));
               s.putOperand(idx, rop.copyD2U());
             }
           }
         }
       }
+    }
+  }
+
+  /** Generate appropriately sized operand for given Word */
+  private static Operand wordOperand(Word c) {
+    if (VM.BuildFor64Addr) {
+      long v = c.toLong();
+      return new LongConstantOperand(v);
+    } else {
+      int v = c.toInt();
+      return new IntConstantOperand(v);
     }
   }
 

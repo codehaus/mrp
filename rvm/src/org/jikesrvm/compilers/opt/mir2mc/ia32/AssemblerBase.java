@@ -41,6 +41,7 @@ import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
 import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
+import org.jikesrvm.compilers.opt.ir.operand.LongConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.MemoryOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
@@ -145,6 +146,7 @@ abstract class AssemblerBase extends Assembler
    */
   boolean isImm(Operand op) {
     return (op instanceof IntConstantOperand) ||
+           (VM.BuildFor64Addr && op instanceof LongConstantOperand) ||
            (op instanceof TrapCodeOperand) ||
            (op instanceof BranchOperand && op.asBranch().target.getmcOffset() >= 0);
   }
@@ -167,6 +169,12 @@ abstract class AssemblerBase extends Assembler
   int getImm(Operand op) {
     if (op.isIntConstant()) {
       return op.asIntConstant().value;
+    } else if (VM.BuildFor64Addr && op.isLongConstant()) {
+      long v = op.asLongConstant().value;
+      if (((v<<32)>>32) != v) {
+        throw new OptimizingCompilerException("Invalid immediate operand "+v);
+      }
+      return (int)v;
     } else if (op.isBranch()) {
       // used by ImmOrLabel stuff
       return op.asBranch().target.getmcOffset();
@@ -636,6 +644,11 @@ abstract class AssemblerBase extends Assembler
 
     for (int i = 0; i < inst.getNumberOfOperands(); i++) {
       Operand op = inst.getOperand(i);
+      if (VM.BuildFor64Addr) {
+        if (op.isLong() || op.isRef()) {
+          return true;
+        }
+      }
       if (op instanceof MemoryOperand) {
         return (((MemoryOperand) op).size == 8);
       }

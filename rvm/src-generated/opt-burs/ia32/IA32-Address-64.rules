@@ -23,15 +23,15 @@ address:	address1scaledreg
 NOFLAGS
 //nothing to do
 
-address1scaledreg:	INT_SHL(r, INT_CONSTANT)
+address1scaledreg:	INT_SHL(r, LONG_CONSTANT)
 LEA_SHIFT(Binary.getVal2(P(p)), 0)
 EMIT_INSTRUCTION
 pushAddress(null, Binary.getVal1(P(p)).asRegister(), LEA_SHIFT(Binary.getVal2(P(p))), Offset.zero());
 
-address1reg:	INT_ADD(r, INT_CONSTANT)
+address1reg:	INT_ADD(r, LONG_CONSTANT)
 0
 EMIT_INSTRUCTION
-pushAddress(R(Binary.getVal1(P(p))), null, B_S, Offset.fromIntSignExtend(VR(p)));
+pushAddress(R(Binary.getVal1(P(p))), null, B_S, Offset.fromLong(LV(Binary.getVal2(P(p)))));
 
 address1reg:	INT_MOVE(r)
 0
@@ -43,12 +43,12 @@ address:	INT_ADD(r, r)
 EMIT_INSTRUCTION
 pushAddress(R(Binary.getVal1(P(p))), R(Binary.getVal2(P(p))), B_S, Offset.zero());
 
-address1reg:	INT_ADD(address1reg, INT_CONSTANT)
+address1reg:	INT_ADD(address1reg, LONG_CONSTANT)
 0
 EMIT_INSTRUCTION
 augmentAddress(Binary.getVal2(P(p)));
 
-address1scaledreg:	INT_ADD(address1scaledreg, INT_CONSTANT)
+address1scaledreg:	INT_ADD(address1scaledreg, LONG_CONSTANT)
 0
 EMIT_INSTRUCTION
 augmentAddress(Binary.getVal2(P(p)));
@@ -63,7 +63,7 @@ address:	INT_ADD(address1scaledreg, r)
 EMIT_INSTRUCTION
 augmentAddress(Binary.getVal2(P(p)));
 
-address:	INT_ADD(address1scaledreg, INT_CONSTANT)
+address:	INT_ADD(address1scaledreg, LONG_CONSTANT)
 0
 EMIT_INSTRUCTION
 augmentAddress(Binary.getVal2(P(p)));
@@ -86,7 +86,7 @@ pushAddress(null, Binary.getVal1(P(p)).asRegister(), LEA_SHIFT(Binary.getVal2(P(
 address1reg:	LONG_ADD(r, LONG_CONSTANT)
 0
 EMIT_INSTRUCTION
-pushAddress(R(Binary.getVal1(P(p))), null, B_S, Offset.fromIntSignExtend(VR(p)));
+pushAddress(R(Binary.getVal1(P(p))), null, B_S, Offset.fromLong(LV(Binary.getVal2(P(p)))));
 
 address1reg:	LONG_MOVE(r)
 0
