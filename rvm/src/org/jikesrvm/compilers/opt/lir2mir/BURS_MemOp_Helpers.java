@@ -392,7 +392,7 @@ public abstract class BURS_MemOp_Helpers extends BURS_Common_Helpers {
         return new MemoryOperand(null, R(index), scale, disp.plus(Offset.fromLong(LV(base))), size, loc, guard);
       } else {
         return new MemoryOperand(R(base), R(index), scale, disp, size, loc, guard);
-      }      
+      }
     }
   }
 
