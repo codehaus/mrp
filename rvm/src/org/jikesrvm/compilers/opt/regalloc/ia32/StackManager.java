@@ -929,7 +929,7 @@ public abstract class StackManager extends GenericStackManager {
       // is incremented.  Therefore update ESPOffset before rewriting
       // stacklocation and memory operands.
       if (s.operator() == IA32_POP) {
-        ESPOffset += 4;
+        ESPOffset += WORDSIZE;
       }
 
       for (OperandEnumeration ops = s.getOperands(); ops.hasMoreElements();) {

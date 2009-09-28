@@ -496,10 +496,14 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
     if (VM.VerifyAssertions) {
       VM._assert((type == INT_REG) || (type == DOUBLE_REG) || (type == SPECIAL_REG));
     }
-    if (type == DOUBLE_REG) {
-      return 8;
+    if (VM.BuildFor32Addr) {
+      if (type == DOUBLE_REG) {
+        return 8;
+      } else {
+        return 4;
+      }
     } else {
-      return 4;
+      return 8;
     }
   }
 
@@ -511,10 +515,14 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
     if (VM.VerifyAssertions) {
       VM._assert((type == INT_REG) || (type == DOUBLE_REG) || (type == SPECIAL_REG));
     }
-    if (type == DOUBLE_REG) {
-      return 8;
+    if (VM.BuildFor32Addr) {
+      if (type == DOUBLE_REG) {
+        return 8;
+      } else {
+        return 4;
+      }
     } else {
-      return 4;
+      return 8;
     }
   }
 

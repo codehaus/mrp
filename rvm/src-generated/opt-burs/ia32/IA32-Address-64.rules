@@ -23,7 +23,7 @@ address:	address1scaledreg
 NOFLAGS
 //nothing to do
 
-address1scaledreg:	INT_SHL(r, LONG_CONSTANT)
+address1scaledreg:	INT_SHL(r, INT_CONSTANT)
 LEA_SHIFT(Binary.getVal2(P(p)), 0)
 EMIT_INSTRUCTION
 pushAddress(null, Binary.getVal1(P(p)).asRegister(), LEA_SHIFT(Binary.getVal2(P(p))), Offset.zero());
@@ -78,7 +78,7 @@ address:	INT_ADD(address1reg, address1scaledreg)
 EMIT_INSTRUCTION
 combineAddresses();
 
-address1scaledreg:	LONG_SHL(r, LONG_CONSTANT)
+address1scaledreg:	LONG_SHL(r, INT_CONSTANT)
 LEA_SHIFT(Binary.getVal2(P(p)), 0)
 EMIT_INSTRUCTION
 pushAddress(null, Binary.getVal1(P(p)).asRegister(), LEA_SHIFT(Binary.getVal2(P(p))), Offset.zero());

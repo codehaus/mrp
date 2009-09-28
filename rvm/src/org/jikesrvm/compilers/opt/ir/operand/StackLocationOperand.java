@@ -12,6 +12,7 @@
  */
 package org.jikesrvm.compilers.opt.ir.operand;
 
+import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 
 /**
@@ -47,6 +48,10 @@ public final class StackLocationOperand extends Operand {
     this.fromTop = fromTop;
     this.offset = offset;
     this.size = size;
+    if (VM.VerifyAssertions) {
+      VM._assert((offset & (size-1)) == 0,
+                 "Displacements ("+offset+") should be aligned for their size ("+size+")");
+    }
   }
 
   /**
@@ -59,6 +64,10 @@ public final class StackLocationOperand extends Operand {
     this.fromTop = fromTop;
     this.offset = offset;
     this.size = (byte) size;
+    if (VM.VerifyAssertions) {
+      VM._assert((offset & (size-1)) == 0,
+                 "Displacements ("+offset+") should be aligned for their size ("+size+")");
+    }
   }
 
   /**
