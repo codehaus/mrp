@@ -66,12 +66,12 @@ NOFLAGS
 #####
 # SHORT_LOAD
 #####
-r:      SHORT_LOAD(rlv, riv)
+r:      SHORT_LOAD(rlv, rlv)
 20
 EMIT_INSTRUCTION
 EMIT(MIR_Unary.mutate(P(p), IA32_MOVSX__W, Load.getResult(P(p)), MO_L(P(p), W)));
 
-sload16: SHORT_LOAD(rlv, riv)
+sload16: SHORT_LOAD(rlv, rlv)
 0
 EMIT_INSTRUCTION
 pushMO(MO_L(P(p), W));
@@ -92,12 +92,12 @@ pushMO(MO_AL(P(p), W_S, W));
 #####
 # USHORT_LOAD
 #####
-r:      USHORT_LOAD(rlv, riv)
+r:      USHORT_LOAD(rlv, rlv)
 15
 EMIT_INSTRUCTION
 EMIT(MIR_Unary.mutate(P(p), IA32_MOVZX__W, Load.getResult(P(p)), MO_L(P(p), W)));
 
-uload16: USHORT_LOAD(rlv, riv)
+uload16: USHORT_LOAD(rlv, rlv)
 0
 EMIT_INSTRUCTION
 pushMO(MO_L(P(p), W));

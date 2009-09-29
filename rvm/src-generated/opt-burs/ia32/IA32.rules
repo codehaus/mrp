@@ -346,19 +346,23 @@ EMIT(MIR_Return.mutate(P(p), IA32_RET, null, Return.getVal(P(p)), null));
 stm:	RETURN(r)
 13
 EMIT_INSTRUCTION
-RegisterOperand ret = R(Return.getVal(P(p)));            \\
-RegisterOperand ret2 = null;	                            \\
-if (ret.getType().isLongType()) {                                 \\
-  ret.setType(TypeReference.Int);                           \\
+RegisterOperand ret = R(Return.getVal(P(p)));         \\
+RegisterOperand ret2 = null;	                      \\
+if (VM.BuildFor32Addr &&ret.getType().isLongType()) { \\
+  ret.setType(TypeReference.Int);                     \\
   ret2 = new RegisterOperand(regpool.getSecondReg(ret.getRegister()), TypeReference.Int); \\
-}                                                            \\
+}                                                     \\
 EMIT(MIR_Return.mutate(P(p), IA32_RET, null, ret, ret2));
 
 stm:	RETURN(LONG_CONSTANT)
 11
 EMIT_INSTRUCTION
 LongConstantOperand val = LC(Return.getVal(P(p))); \\
-EMIT(MIR_Return.mutate(P(p), IA32_RET, null, IC(val.upper32()), IC(val.lower32())));
+if (VM.BuildFor32Addr) {                           \\
+  EMIT(MIR_Return.mutate(P(p), IA32_RET, null, IC(val.upper32()), IC(val.lower32()))); \\
+} else {                                           \\
+  EMIT(MIR_Return.mutate(P(p), IA32_RET, null, val, null)); \\
+}
 
 #####
 # CALL
