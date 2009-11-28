@@ -1609,7 +1609,7 @@ const char *rvm_target_configuration = "${target.file}";
     <property name="rvm.includes"
               value="-I${bl.dir} -I${basedir}/include -I${dist.base}/include ${gcspy.includes.dir} ${arch.includes} ${classlib.includes}"/>
 
-    <property name="rvm.defines" value="-D_REENTRANT ${filter} "/>
+    <property name="rvm.defines" value="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE ${filter} "/>
 
     <property name="rvm.c.args" value="${c.args} ${rvm.includes} ${rvm.defines}"/>
 

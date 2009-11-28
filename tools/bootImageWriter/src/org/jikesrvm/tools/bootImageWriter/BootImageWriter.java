@@ -2557,6 +2557,9 @@ public class BootImageWriter extends BootImageWriterMessages
         } else if (rvmFieldName.equals("DEFAULT_LOAD_FACTOR") && rvmFieldType.isFloatType()) {
           Statics.setSlotContents(rvmFieldOffset, Float.floatToIntBits(0.75f));
           return true;
+	} else if (rvmFieldName.equals("DEFAULT_SIZE") && rvmFieldType.isIntType()) {
+          Statics.setSlotContents(rvmFieldOffset, 16);
+          return true;
         } else {
           throw new Error("Unknown field in java.util.HashMap " + rvmFieldName + " " + rvmFieldType);
         }

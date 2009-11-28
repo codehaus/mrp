@@ -406,8 +406,8 @@ public final class ExpandRuntimeServices extends CompilerPhase {
         break;
 
         case REF_ASTORE_opcode: {
-          if (NEEDS_REFERENCE_ASTORE_BARRIER) {
-            RVMMethod target = Entrypoints.referenceArrayWriteBarrierMethod;
+          if (NEEDS_OBJECT_ASTORE_BARRIER) {
+            RVMMethod target = Entrypoints.objectArrayWriteBarrierMethod;
             Instruction wb =
                 Call.create3(CALL,
                              null,
@@ -429,8 +429,8 @@ public final class ExpandRuntimeServices extends CompilerPhase {
         break;
 
         case REF_ALOAD_opcode: {
-          if (NEEDS_REFERENCE_ALOAD_BARRIER) {
-            RVMMethod target = Entrypoints.referenceArrayReadBarrierMethod;
+          if (NEEDS_OBJECT_ALOAD_BARRIER) {
+            RVMMethod target = Entrypoints.objectArrayReadBarrierMethod;
             Instruction rb =
               Call.create2(CALL,
                            ALoad.getClearResult(inst),
@@ -449,13 +449,13 @@ public final class ExpandRuntimeServices extends CompilerPhase {
         break;
 
         case PUTFIELD_opcode: {
-          if (NEEDS_REFERENCE_PUTFIELD_BARRIER) {
+          if (NEEDS_OBJECT_PUTFIELD_BARRIER) {
             LocationOperand loc = PutField.getLocation(inst);
             FieldReference fieldRef = loc.getFieldRef();
             if (!fieldRef.getFieldContentsType().isPrimitiveType()) {
               RVMField field = fieldRef.peekResolvedField();
               if (field == null || !field.isUntraced()) {
-                RVMMethod target = Entrypoints.referenceFieldWriteBarrierMethod;
+                RVMMethod target = Entrypoints.objectFieldWriteBarrierMethod;
                 Instruction wb =
                     Call.create4(CALL,
                                  null,
@@ -480,13 +480,13 @@ public final class ExpandRuntimeServices extends CompilerPhase {
         break;
 
         case GETFIELD_opcode: {
-          if (NEEDS_REFERENCE_GETFIELD_BARRIER) {
+          if (NEEDS_OBJECT_GETFIELD_BARRIER) {
             LocationOperand loc = GetField.getLocation(inst);
             FieldReference fieldRef = loc.getFieldRef();
             if (GetField.getResult(inst).getType().isReferenceType()) {
               RVMField field = fieldRef.peekResolvedField();
               if (field == null || !field.isUntraced()) {
-                RVMMethod target = Entrypoints.referenceFieldReadBarrierMethod;
+                RVMMethod target = Entrypoints.objectFieldReadBarrierMethod;
                 Instruction rb =
                   Call.create3(CALL,
                                GetField.getClearResult(inst),
@@ -508,11 +508,11 @@ public final class ExpandRuntimeServices extends CompilerPhase {
         break;
 
         case PUTSTATIC_opcode: {
-          if (NEEDS_REFERENCE_PUTSTATIC_BARRIER) {
+          if (NEEDS_OBJECT_PUTSTATIC_BARRIER) {
             LocationOperand loc = PutStatic.getLocation(inst);
             FieldReference field = loc.getFieldRef();
             if (!field.getFieldContentsType().isPrimitiveType()) {
-              RVMMethod target = Entrypoints.referenceNonHeapWriteBarrierMethod;
+              RVMMethod target = Entrypoints.objectStaticWriteBarrierMethod;
               Instruction wb =
                   Call.create3(CALL,
                                null,
@@ -534,11 +534,11 @@ public final class ExpandRuntimeServices extends CompilerPhase {
         break;
 
         case GETSTATIC_opcode: {
-          if (NEEDS_REFERENCE_GETSTATIC_BARRIER) {
+          if (NEEDS_OBJECT_GETSTATIC_BARRIER) {
             LocationOperand loc = GetStatic.getLocation(inst);
             FieldReference field = loc.getFieldRef();
             if (!field.getFieldContentsType().isPrimitiveType()) {
-              RVMMethod target = Entrypoints.referenceNonHeapReadBarrierMethod;
+              RVMMethod target = Entrypoints.objectStaticReadBarrierMethod;
               Instruction rb =
                   Call.create2(CALL,
                                GetStatic.getClearResult(inst),
