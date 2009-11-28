@@ -15,6 +15,7 @@
   <classpathentry excluding="**/@OTHER_ARCH@/**|org/jikesrvm/tools/header_gen/GenArch_@OTHER_ARCH@.java" kind="src" path="rvm/src"/>
   <classpathentry kind="src" path="MMTk/ext/vm/jikesrvm"/>
   <classpathentry kind="src" path="MMTk/src"/>
+  <classpathentry kind="src" path="projects/dbt/src"/>
   <classpathentry kind="src" path="common/options/src"/>
   <classpathentry kind="src" path="libraryInterface/Common/src"/>
   <classpathentry kind="src" path="libraryInterface/Harmony/ASF/src"/>

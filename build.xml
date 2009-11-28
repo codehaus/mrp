@@ -2520,7 +2520,7 @@ target.jni-suffix=${target.jni-suffix}
   </target>
 
   <target name="eclipse-project" depends="prepare-source">
-    <property name="eclipse.project.name" value="JikesRVM"/>
+    <property name="eclipse.project.name" value="MRP"/>
     <delete dir="eclipse"/>
     <delete file=".project"/>
     <delete file=".classpath"/>
