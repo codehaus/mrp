@@ -1,3 +1,15 @@
+/*
+ *  This file is part of MRP (http://mrp.codehaus.org/).
+ *
+ *  This file is licensed to You under the Eclipse Public License (EPL);
+ *  You may not use this file except in compliance with the License. You
+ *  may obtain a copy of the License at
+ *
+ *      http://www.opensource.org/licenses/eclipse-1.0.php
+ *
+ *  See the COPYRIGHT.txt file distributed with this work for information
+ *  regarding copyright ownership.
+ */
 package org.binarytranslator.arch.arm.os.process;
 
 import java.io.IOException;
@@ -20,7 +32,6 @@ import org.binarytranslator.generic.os.loader.elf.ELF_File.ByteOrder;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
-import org.vmmagic.pragma.Uninterruptible;
 
 public abstract class ARM_ProcessSpace extends ProcessSpace {
 
