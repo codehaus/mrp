@@ -12,9 +12,7 @@
  */
 package org.binarytranslator.vmInterface;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.os.process.ProcessSpace;
