@@ -28,7 +28,7 @@ public class ELF_File {
     LittleEndian(1),
     BigEndian(2);
     
-    private int identifier;
+    private final int identifier;
     
     private ByteOrder(int identifier) {
       this.identifier = identifier;
@@ -40,13 +40,13 @@ public class ELF_File {
   }
 
   /** Wrapper class used for reading the ELF file with the required endianness */
-  private BinaryReader reader;
+  private final BinaryReader reader;
 
   /** Header of ELF file */
-  private Header header;
+  private final Header header;
 
   /** Program segment headers */
-  private SegmentHeader segmentHeaders[];
+  private final SegmentHeader segmentHeaders[];
   
   public ByteOrder getByteOrder() {
     return header.byteOrder;
