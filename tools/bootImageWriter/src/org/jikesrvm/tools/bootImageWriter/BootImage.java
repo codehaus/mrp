@@ -120,7 +120,7 @@ public class BootImage extends BootImageWriterMessages
    * before writing it to disk. This operation is supported on UNIX but
    * not Windows.
    */
-  private static final boolean mapByteBuffers = !VM.BuildFor64Addr && !VM.BuildForWindows;
+  private static final boolean mapByteBuffers = true;
 
   /**
    * @param ltlEndian write words low-byte first?
@@ -133,6 +133,8 @@ public class BootImage extends BootImageWriterMessages
     dataOut = new RandomAccessFile(imageDataFileName,"rw");
     codeOut = new RandomAccessFile(imageCodeFileName,"rw");
     if (mapByteBuffers) {
+      dataOut.setLength(0); // shrink length to ensure reallocated zero-ed memory
+      codeOut.setLength(0);
       bootImageData = dataOut.getChannel().map(MapMode.READ_WRITE, 0, BOOT_IMAGE_DATA_SIZE);
       bootImageCode = codeOut.getChannel().map(MapMode.READ_WRITE, 0, BOOT_IMAGE_CODE_SIZE);
     } else {
