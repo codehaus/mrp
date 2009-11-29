@@ -12,6 +12,36 @@
  */
 package mrp.debug;
 
-public class DebugEntrypoints {
+import org.vmmagic.pragma.Uninterruptible;
+import org.vmmagic.unboxed.Address;
+import org.jikesrvm.scheduler.RVMThread;
+import static org.jikesrvm.SizeConstants.BYTES_IN_WORD;
 
+@Uninterruptible("No preemption or GC wanted during debug output")
+public class DebugEntrypoints {
+  /** Debug methods */
+  public static final int DUMP_THREAD=0;
+  public static final int DUMP_STACK =1;
+
+  /** Method to call */
+  public static int debugMethod;
+
+  /** Argument to debug method */
+  public static Address debugArgs;
+
+  /** Called when debug generation is requested */
+  public static void debugEntry() {
+    switch (debugMethod) {
+    case DUMP_THREAD: {
+      RVMThread t = (RVMThread)debugArgs.toObjectReference().toObject();
+      t.dump();
+      break;
+    }
+    case DUMP_STACK: {
+      RVMThread t = (RVMThread)debugArgs.toObjectReference().toObject();
+      RVMThread.dumpStack(t.framePointer);
+      break;
+    }
+    }
+  }
 }

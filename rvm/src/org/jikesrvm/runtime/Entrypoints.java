@@ -32,6 +32,13 @@ public class Entrypoints {
 
   public static final NormalMethod bootMethod = EntrypointHelper.getMethod(org.jikesrvm.VM.class, "boot", "()V");
 
+  public static final NormalMethod debugEntryMethod =
+    EntrypointHelper.getMethod(mrp.debug.DebugEntrypoints.class, "debugEntry", "()V");
+  public static final RVMField debugMethodField =
+    getField(mrp.debug.DebugEntrypoints.class, "debugMethod", int.class);
+  public static final RVMField debugArgsField =
+    getField(mrp.debug.DebugEntrypoints.class, "debugArgs", org.vmmagic.unboxed.Address.class);
+ 
   public static final RVMMethod java_lang_reflect_Method_invokeMethod =
       getMethod(java.lang.reflect.Method.class, "invoke",
           "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;");

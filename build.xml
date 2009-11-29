@@ -1309,6 +1309,7 @@ Check to make sure all required properties are specified. This includes properti
   <target name="gen-primordial-list">
 
     <fileset id="primordials.main" dir="${build.classes}">
+      <include name="mrp/**/*.class" />
       <include name="org/jikesrvm/**/*.class" />
       <include name="org/mmtk/**/*.class" />
       <include name="org/vmutil/**/*.class" />
@@ -1808,6 +1809,9 @@ const char *rvm_target_configuration = "${target.file}";
   <target name="build-bootloader" depends="build-gcspy-stub">
     <!-- create JVM library -->
     <echo message="Creating jvm${target.lib-ext}"/>
+    <CompileCtoObj cfile="${bl.dir}/debug.c"
+                   objfile="${build.base}/${target.obj-prefix}debug${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/jvm.c"
                    objfile="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"
                    cargs="${rvm.c.args}" />
@@ -1855,6 +1859,7 @@ const char *rvm_target_configuration = "${target.file}";
                    cargs="${rvm.c.args}" />
     <CreateLibrary outdir="${build.base}" dllname="jvm" srcdir="${bl.dir}">
       <ObjectFiles>
+        <arg value="${build.base}/${target.obj-prefix}debug${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysAlignmentCheck${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysConsole${target.obj-ext}"/>
@@ -1908,6 +1913,7 @@ const char *rvm_target_configuration = "${target.file}";
     </condition>
     <CreateDLL outdir="${build.base}" dllname="jvm" srcdir="${bl.dir}" lib="${jvm.vmi.lib.filter}">
       <ObjectFiles>
+        <arg value="${build.base}/${target.obj-prefix}debug${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}jvm${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysAlignmentCheck${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysConsole${target.obj-ext}"/>

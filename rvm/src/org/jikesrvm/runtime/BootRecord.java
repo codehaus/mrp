@@ -12,6 +12,7 @@
  */
 package org.jikesrvm.runtime;
 
+import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.VM;
 import org.jikesrvm.jni.FunctionTable;
 import org.jikesrvm.mm.mminterface.MemoryManager;
@@ -180,6 +181,9 @@ public class BootRecord {
    */
   public Address sysJavaVM;
 
+  public Address debugArgs;
+  public Address debugMethod;
+  public CodeArray debugEntry;
   /**
    * Reference to JNI function table
    */

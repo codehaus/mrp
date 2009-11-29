@@ -1047,6 +1047,10 @@ public class BootImageWriter extends BootImageWriterMessages
     bootRecord.bootImageRMapStart = bootImageRMapAddress;
     bootRecord.bootImageRMapEnd   = bootImageRMapAddress.plus(bootImage.getRMapSize());
 
+    bootRecord.debugArgs   = bootRecord.tocRegister.plus(Entrypoints.debugArgsField.getOffset());
+    bootRecord.debugMethod = bootRecord.tocRegister.plus(Entrypoints.debugMethodField.getOffset());
+    bootRecord.debugEntry  = Entrypoints.debugEntryMethod.getCurrentEntryCodeArray();
+
     // Update field of boot record now by re-copying
     //
     if (verbose >= 1) say("re-copying boot record (and its TIB)");

@@ -191,6 +191,10 @@ public class GenerateInterfaceDeclarations {
     pln("#define PRODUCTION " + (VM.Production ? "1" : "0"));
     pln();
 
+    pln("#define DEBUG_DUMP_THREAD " + mrp.debug.DebugEntrypoints.DUMP_THREAD);
+    pln("#define DEBUG_DUMP_STACK  " + mrp.debug.DebugEntrypoints.DUMP_STACK);
+    pln();
+
     if (VM.PortableNativeSync) {
       pln("#define PORTABLE_NATIVE_SYNC 1");
       pln();

@@ -460,7 +460,7 @@ public class RVMThread extends ThreadContext {
   /**
    * FP for current frame, saved in the prologue of every method
    */
-  Address framePointer;
+  public Address framePointer;
 
   /**
    * "hidden parameter" for interface invocation thru the IMT
