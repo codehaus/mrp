@@ -38,7 +38,7 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
   /**
    * Merge commonly adjacent bytecodes?
    */
-  private static final boolean mergeBytecodes = false;
+  private static final boolean mergeBytecodes = true;
 
   private static long gcMapNanos;
   private static long osrSetupNanos;
@@ -470,14 +470,13 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
    */
   private void do_lcmp_if(BranchCondition bc) {
     final boolean shouldPrint = !VM.Production && this.shouldPrint;
-    int biStart = bcodes.index();
+    int biStart = bcodes.index(); // start of if bytecode
     bytecodeMap[biStart] = asm.getMachineCodeIndex();
     bcodes.nextInstruction(); // skip opcode
     int offset = bcodes.getBranchOffset();
     int bTarget = biStart + offset;
     if (shouldPrint) asm.noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
     if (offset <= 0) emit_threadSwitchTest(RVMThread.BACKEDGE);
-    bytecodeMap[biStart] = asm.getMachineCodeIndex();
     emit_lcmp_if(bTarget, bc);
   }
 
@@ -540,14 +539,13 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
    */
   private void do_DFcmpGL_if(boolean single, boolean unorderedGT, BranchCondition bc) {
     final boolean shouldPrint = !VM.Production && this.shouldPrint;
-    int biStart = bcodes.index();
+    int biStart = bcodes.index(); // start of if bytecode
     bytecodeMap[biStart] = asm.getMachineCodeIndex();
     bcodes.nextInstruction(); // skip opcode
     int offset = bcodes.getBranchOffset();
     int bTarget = biStart + offset;
     if (shouldPrint) asm.noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
     if (offset <= 0) emit_threadSwitchTest(RVMThread.BACKEDGE);
-    bytecodeMap[biStart] = asm.getMachineCodeIndex();
     emit_DFcmpGL_if(single, unorderedGT, bTarget, bc);
   }
 
