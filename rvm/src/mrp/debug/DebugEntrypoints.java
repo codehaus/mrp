@@ -17,7 +17,6 @@ package mrp.debug;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Address;
 import org.jikesrvm.scheduler.RVMThread;
-import static org.jikesrvm.SizeConstants.BYTES_IN_WORD;
 
 @Uninterruptible("No preemption or GC wanted during debug output")
 public class DebugEntrypoints {

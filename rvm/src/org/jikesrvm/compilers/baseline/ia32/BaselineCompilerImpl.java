@@ -2092,31 +2092,39 @@ public abstract class BaselineCompilerImpl extends BaselineCompiler implements B
   @Override
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={2})
   protected final void emit_lcmp_if(int bTarget, BranchCondition bc) {
-    if (bc == BranchCondition.LE || bc == BranchCondition.GT) {
-      // flip operands in these cases
-      if (bc == BranchCondition.LE) {
-        bc = BranchCondition.GE;
+    if (VM.BuildFor32Addr) {
+      if (bc == BranchCondition.LE || bc == BranchCondition.GT) {
+        // flip operands in these cases
+        if (bc == BranchCondition.LE) {
+          bc = BranchCondition.GE;
+        } else {
+          bc = BranchCondition.LT;
+        }
+        asm.emitPOP_Reg(T1);                // (T0:T1) = (high half value2: low half value2)
+        asm.emitPOP_Reg(T0);
+        asm.emitPOP_Reg(S0);                // (..:S0) = (.. : low half of value1)
+        asm.emitSUB_Reg_Reg(T1, S0);        // T1 = T1 - S0
+        asm.emitPOP_Reg(S0);                // (S0:..) = (high half of value1 : ..)
+        // NB pop does not alter the carry register
+        asm.emitSBB_Reg_Reg(T0, S0);        // T0 = T0 - S0 - CF
       } else {
-        bc = BranchCondition.LT;
+        asm.emitPOP_Reg(T0);                // (S0:T0) = (high half value2: low half value2)
+        asm.emitPOP_Reg(S0);
+        asm.emitPOP_Reg(T1);                // (..:T1) = (.. : low half of value1)
+        asm.emitSUB_Reg_Reg(T1, T0);        // T1 = T1 - T0
+        asm.emitPOP_Reg(T0);                // (T0:..) = (high half of value1 : ..)
+        // NB pop does not alter the carry register
+        asm.emitSBB_Reg_Reg(T0, S0);        // T0 = T0 - S0 - CF
+        if (bc == BranchCondition.EQ || bc == BranchCondition.NE) {
+          asm.emitOR_Reg_Reg(T1, T0);       // T1 = T1 | T0 updating ZF
+        }
       }
-      asm.emitPOP_Reg(T1);                // (T0:T1) = (high half value2: low half value2)
-      asm.emitPOP_Reg(T0);
-      asm.emitPOP_Reg(S0);                // (..:S0) = (.. : low half of value1)
-      asm.emitSUB_Reg_Reg(T1, S0);        // T1 = T1 - S0
-      asm.emitPOP_Reg(S0);                // (S0:..) = (high half of value1 : ..)
-      // NB pop does not alter the carry register
-      asm.emitSBB_Reg_Reg(T0, S0);        // T0 = T0 - S0 - CF
     } else {
-      asm.emitPOP_Reg(T0);                // (S0:T0) = (high half value2: low half value2)
-      asm.emitPOP_Reg(S0);
-      asm.emitPOP_Reg(T1);                // (..:T1) = (.. : low half of value1)
-      asm.emitSUB_Reg_Reg(T1, T0);        // T1 = T1 - T0
-      asm.emitPOP_Reg(T0);                // (T0:..) = (high half of value1 : ..)
-      // NB pop does not alter the carry register
-      asm.emitSBB_Reg_Reg(T0, S0);        // T0 = T0 - S0 - CF
-      if (bc == BranchCondition.EQ || bc == BranchCondition.NE) {
-        asm.emitOR_Reg_Reg(T1, T0);       // T1 = T1 | T0 updating ZF
-      }
+      asm.emitPOP_Reg(T0);                // T0 is long value2
+      adjustStack(WORDSIZE, true);        // throw away slot
+      asm.emitPOP_Reg(T1);                // T1 is long value1
+      adjustStack(WORDSIZE, true);        // throw away slot
+      asm.emitCMP_Reg_Reg_Quad(T1, T0);   // 64bit compare
     }
     genCondBranch(mapCondition(bc), bTarget);
   }
