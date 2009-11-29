@@ -54,9 +54,9 @@
 
     <!-- Checks for Headers                                -->
     <!-- See http://checkstyle.sf.net/config_header.html   -->
-    <module name="Header">
+    <!-- <module name="Header">
       <property name="headerFile" value="${basedir}/build/checkstyle/License-Header.txt"/>
-    </module>
+    </module> -->
 
     <!-- Checks for imports                              -->
     <!-- See http://checkstyle.sf.net/config_imports.html -->
