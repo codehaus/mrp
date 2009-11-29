@@ -127,7 +127,11 @@ public final class OptCompiledMethod extends CompiledMethod {
     if (bci < 0) {
       return 0;
     }
-    return ((NormalMethod) method).getLineNumberForBCIndex(bci);
+    RVMMethod realMethod = _mcMap.getMethodForMCOffset(instructionOffset);
+    if (realMethod == null) {
+      return 0;
+    }
+    return ((NormalMethod) realMethod).getLineNumberForBCIndex(bci);
   }
 
   /**

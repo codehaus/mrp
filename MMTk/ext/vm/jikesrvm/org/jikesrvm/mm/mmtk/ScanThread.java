@@ -728,7 +728,7 @@ import org.jikesrvm.ArchitectureSpecific.Registers;
         Log.write("     code base = ");
         Log.write(codeBase);
         Log.write("     code offset = ");
-        Log.writeln(ip.diff(codeBase.toAddress()));
+        Log.write(ip.diff(codeBase.toAddress()));
         Log.write("     line number = ");
         Log.writeln(compiledMethod.findLineNumberForInstruction(ip.diff(codeBase.toAddress())));
     } else {
