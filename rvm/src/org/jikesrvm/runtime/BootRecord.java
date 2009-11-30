@@ -382,10 +382,18 @@ public class BootRecord {
   public Address gcspyFormatSizeIP;
   public Address gcspySprintfIP;
 
-   // perfctr
-   public Address sysPerfCtrInitIP;
-   public Address sysPerfCtrReadIP;
-   public Address sysPerfCtrReadCyclesIP;
-   public Address sysPerfCtrReadMetricIP;
+  // oprofile
+  public Address sysOProfileOpenAgentIP;
+  public Address sysOProfileCloseAgentIP;
+  public Address sysOProfileWriteNativeCodeIP;
+  public Address sysOProfileStartCompileMapIP;
+  public Address sysOProfileAddToCompileMapIP;
+  public Address sysOProfileFinishCompileMapIP;
+
+  // perfctr
+  public Address sysPerfCtrInitIP;
+  public Address sysPerfCtrReadIP;
+  public Address sysPerfCtrReadCyclesIP;
+  public Address sysPerfCtrReadMetricIP;
 
 }

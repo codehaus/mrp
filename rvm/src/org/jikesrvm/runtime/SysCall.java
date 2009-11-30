@@ -99,6 +99,24 @@ public abstract class SysCall {
   public abstract void sysSyncCache(Address address, int size);
 
   /*
+   * Interface to OProfile
+   */
+  @SysCallTemplate
+  public abstract Address sysOProfileOpenAgent();
+  @SysCallTemplate
+  public abstract void sysOProfileCloseAgent(Address opHandle);
+  @SysCallTemplate
+  public abstract void sysOProfileWriteNativeCode(Address opHandle,
+      byte[] symbolName, Address codeAddress, int codeLength);
+  @SysCallTemplate
+  public abstract Address sysOProfileStartCompileMap(Address handle, Address codeAddress);
+  @SysCallTemplate
+  public abstract void sysOProfileAddToCompileMap(Address compileMap,
+      Address offset, byte[] fileName, int lineNumber);
+  @SysCallTemplate
+  public abstract void sysOProfileFinishCompileMap(Address compileMap);
+
+  /*
    * Interface to performance counters
    */
   @SysCallTemplate

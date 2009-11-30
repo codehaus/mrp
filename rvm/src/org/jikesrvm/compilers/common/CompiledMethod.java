@@ -16,6 +16,7 @@ import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.VM;
 import org.jikesrvm.SizeConstants;
+import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.runtime.DynamicLink;
@@ -516,4 +517,29 @@ public abstract class CompiledMethod implements SizeConstants {
    */
   public int size() { return 0; }
 
+  /**
+   * Name for use in debuggers
+   */
+  public String symbolName() {
+    return toString();
+  }
+
+  /**
+   * Visitor for generating debug information over a compiled method.
+   */
+  public abstract static class DebugInformationVisitor {
+    /**
+     * Called when debug information can be recorded
+     * @param offs offset in code array
+     * @param sourceFileName name of source file
+     * @param lineNumber line number in source file
+     */
+    public abstract void visit(Offset offs, Atom sourceFileName, int lineNumber);
+  }
+
+  /**
+   * Walk and create debug information
+   * @param v visitor to add debug information to
+   */
+  public void walkDebugInformation(DebugInformationVisitor v) {}
 }

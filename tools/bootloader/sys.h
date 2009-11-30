@@ -327,6 +327,17 @@ EXTERNAL jfloat sysVaArgJfloat(va_list *ap);
 EXTERNAL jdouble sysVaArgJdouble(va_list *ap);
 EXTERNAL jobject sysVaArgJobject(va_list *ap);
 
+/* OProfile declarations */
+
+EXTERNAL Address sysOProfileOpenAgent();
+EXTERNAL void sysOProfileCloseAgent(Address handle);
+EXTERNAL void sysOProfileWriteNativeCode(Address handle,
+ char *symbolName, Address codeAddress, int length);
+EXTERNAL Address sysOProfileStartCompileMap(Address handle, Address codeAddress);
+EXTERNAL void sysOProfileAddToCompileMap(Address compileMap,
+  Address offset, char *fileName, int lineNumber);
+EXTERNAL void sysOProfileFinishCompileMap(Address compileMap);
+
 /* PerfCtr declarations */
 
 EXTERNAL int sysPerfCtrInit(int metric);

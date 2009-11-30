@@ -90,6 +90,9 @@
     <equals arg1="${classlib.provider}" arg2="GNU Classpath"/>
   </condition>
 
+  <!-- OProfile -->
+  <property name="config.oprofile" value="false"/>
+
   <!-- Permit parallelisation of the bootimage build -->
   <property name="bootimage.threads" value="1"/>
 
@@ -392,6 +395,10 @@ Check to make sure all required properties are specified. This includes properti
 
     <condition property="perfctr.filter" value="-DRVM_WITH_PERFCTR=1" else="">
       <equals arg1="${config.include.perfctr}" arg2="true"/>
+    </condition>
+
+    <condition property="oprofile.filter" value="-DRVM_WITH_OPROFILE=1" else="">
+      <equals arg1="${config.oprofile}" arg2="true"/>
     </condition>
 
     <condition property="classlib.filter" value="-DRVM_FOR_HARMONY=1" else="-DRVM_FOR_CLASSPATH=1">
@@ -995,6 +1002,7 @@ Check to make sure all required properties are specified. This includes properti
         <filter token="_PORTABLE_NATIVE_SYNC_" value="${config.portable-native-sync}"/>
         <filter token="_RVM_WITH_HARMONY_" value="${pp_RVM_WITH_HARMONY}"/>
         <filter token="_RVM_WITH_GNU_CLASSPATH_" value="${pp_RVM_WITH_GNU_CLASSPATH}"/>
+        <filter token="_RVM_WITH_OPROFILE_" value="${config.oprofile}"/>
       </filterset>
     </copy>
 
@@ -1839,6 +1847,9 @@ const char *rvm_target_configuration = "${target.file}";
     <CompileCtoObj cfile="${bl.dir}/sysVarArgs.c"
                    objfile="${build.base}/${target.obj-prefix}sysVarArgs${target.obj-ext}"
                    cargs="${rvm.c.args}" />
+    <CompileCtoObj cfile="${bl.dir}/sysOProfile.c"
+                   objfile="${build.base}/${target.obj-prefix}sysOProfile${target.obj-ext}"
+                   cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysPerfCtr.c"
                    objfile="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"
                    cargs="${rvm.c.args}" />
@@ -1869,6 +1880,7 @@ const char *rvm_target_configuration = "${target.file}";
         <arg value="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysVarArgs${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysOProfile${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
@@ -1923,6 +1935,7 @@ const char *rvm_target_configuration = "${target.file}";
         <arg value="${build.base}/${target.obj-prefix}sysMemory${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysMisc${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysVarArgs${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysOProfile${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>

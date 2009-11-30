@@ -17,9 +17,11 @@ import org.jikesrvm.VM;
 import org.jikesrvm.ArchitectureSpecific.BaselineCompilerImpl;
 import org.jikesrvm.ArchitectureSpecific.BaselineConstants;
 import org.jikesrvm.ArchitectureSpecific.BaselineExceptionDeliverer;
+import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.ExceptionHandlerMap;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.RVMArray;
+import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.classloader.TypeReference;
@@ -176,6 +178,13 @@ public final class BaselineCompiledMethod extends CompiledMethod implements Base
   /** @return "baseline compiler" */
   public String getCompilerName() {
     return "baseline compiler";
+  }
+
+  /**
+   * Name for use in debuggers
+   */
+  public String symbolName() {
+    return method.toString();
   }
 
   /**
@@ -444,5 +453,36 @@ public final class BaselineCompiledMethod extends CompiledMethod implements Base
     if (eTable != null) size += RVMArray.IntArray.getInstanceSize(eTable.length);
     if (referenceMaps != null) size += referenceMaps.size();
     return size;
+  }
+
+  /**
+   * Walk and create debug information
+   * @param v visitor to add debug information to
+   */
+  public void walkDebugInformation(DebugInformationVisitor v) {
+    int bcIndex = 0;
+    Offset instrIndex = Offset.zero();
+    NormalMethod nm = ((NormalMethod) method);
+    RVMClass dc = method.getDeclaringClass();
+    Atom sourceFile = dc.getSourceName();
+    v.visit(instrIndex, sourceFile, nm.getLineNumberForBCIndex(bcIndex));
+    for (int i = 0; i < bytecodeMap.length;) {
+      int b0 = ((int) bytecodeMap[i++]) & 255;  // unsign-extend
+      int deltaBC, deltaIns;
+      if (b0 != 255) {
+        deltaBC = b0 >> 5;
+        deltaIns = b0 & 31;
+      } else {
+        int b1 = ((int) bytecodeMap[i++]) & 255;  // unsign-extend
+        int b2 = ((int) bytecodeMap[i++]) & 255;  // unsign-extend
+        int b3 = ((int) bytecodeMap[i++]) & 255;  // unsign-extend
+        int b4 = ((int) bytecodeMap[i++]) & 255;  // unsign-extend
+        deltaBC = (b1 << 8) | b2;
+        deltaIns = (b3 << 8) | b4;
+      }
+      bcIndex += deltaBC;
+      instrIndex = instrIndex.plus(deltaIns);
+      v.visit(instrIndex, sourceFile, nm.getLineNumberForBCIndex(bcIndex));
+    }
   }
 }

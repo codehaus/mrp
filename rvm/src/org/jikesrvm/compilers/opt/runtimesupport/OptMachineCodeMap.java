@@ -17,11 +17,13 @@ import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
 import org.jikesrvm.Constants;
 import org.jikesrvm.adaptive.database.callgraph.CallSite;
+import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.MemberReference;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.TypeReference;
+import org.jikesrvm.compilers.common.CompiledMethod.DebugInformationVisitor;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.driver.OptConstants;
 import org.jikesrvm.compilers.opt.inlining.CallSiteTree;
@@ -608,6 +610,23 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
   ////////////////////////////////////////////
   //  Debugging
   ////////////////////////////////////////////
+
+  /**
+   * Walk and create debug information
+   * @param v visitor to add debug information to
+   */
+  public void walkDebugInformation(DebugInformationVisitor v) {
+    if (MCInformation == null) return;
+    for (int entry = 0; entry < MCInformation.length; entry = nextEntry(entry)) {
+      int bci = getBytecodeIndex(entry);
+      Offset offs = Offset.fromIntSignExtend(this.getMCOffset(entry));
+      int iei = getInlineEncodingIndex(entry);
+      int mid = OptEncodedCallSiteTree.getMethodID(iei, inlineEncoding);
+      RVMMethod meth = MemberReference.getMemberRef(mid).asMethodReference().getResolvedMember();
+      Atom sourceFile = meth.getDeclaringClass().getSourceName();
+      v.visit(offs, sourceFile, ((NormalMethod)meth).getLineNumberForBCIndex(bci));
+    }
+  }
 
   public void dumpMCInformation(boolean DUMP_MAPS) {
     if (DUMP_MAPS) {

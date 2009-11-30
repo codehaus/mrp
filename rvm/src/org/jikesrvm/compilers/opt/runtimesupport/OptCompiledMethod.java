@@ -52,6 +52,63 @@ import org.vmmagic.unboxed.Offset;
 @Uninterruptible
 public final class OptCompiledMethod extends CompiledMethod {
 
+  /** Sequencer for code patching */
+  private static final RVMThread.SoftHandshakeVisitor codePatchSyncRequestVisitor =
+    new RVMThread.SoftHandshakeVisitor() {
+      @Uninterruptible
+      public boolean checkAndSignal(RVMThread t) {
+        t.codePatchSyncRequested = true;
+        return true; // handshake with everyone but ourselves.
+      }
+    };
+
+  private static final ArchitectureSpecificOpt.OptExceptionDeliverer exceptionDeliverer =
+    new ArchitectureSpecificOpt.OptExceptionDeliverer();
+
+  //////////////////////////////////////
+  // Information the opt compiler needs to persistently associate
+  // with a particular compiled method.
+
+  private EncodedOSRMap _osrMap;
+
+  /** The primary machine code maps */
+  private OptMachineCodeMap _mcMap;
+  /** The encoded exception tables (null if there are none) */
+  private int[] eTable;
+  private int[] patchMap;
+
+  /**
+   * unsigned offset (off the framepointer) of nonvolatile save area
+   * in bytes
+   */
+  private char nonvolatileOffset;
+  /**
+   * unsigned offset (off the framepointer) of caught exception
+   * object in bytes
+   */
+  private char exceptionObjectOffset;
+  /**
+   * size of the fixed portion of the stackframe
+   */
+  private char stackFrameFixedSize;
+  /**
+   * first saved nonvolatile integer register (-1 if no nonvolatile
+   * GPRs)
+   */
+  private byte firstNonvolatileGPR;
+  /**
+   * first saved nonvolatile floating point register (-1 if no
+   * nonvolatile FPRs)
+   */
+  private byte firstNonvolatileFPR;
+  /** opt level at which the method was compiled */
+  private byte optLevel;
+  /** were the volatile registers saved? */
+  private boolean volatilesSaved;
+  /** is the current method executing with instrumentation */
+  private boolean instrumented;
+
+  /** Constructor */
   public OptCompiledMethod(int id, RVMMethod m) {
     super(id, m);
   }
@@ -68,6 +125,14 @@ public final class OptCompiledMethod extends CompiledMethod {
    */
   public String getCompilerName() {
     return "optimizing compiler";
+  }
+
+  /**
+   * Name for use in debuggers
+   */
+  @Interruptible
+  public String symbolName() {
+    return method.toString();
   }
 
   /**
@@ -246,14 +311,6 @@ public final class OptCompiledMethod extends CompiledMethod {
     return size;
   }
 
-  //----------------//
-  // implementation //
-  //----------------//
-  private static final ArchitectureSpecificOpt.OptExceptionDeliverer exceptionDeliverer =
-      new ArchitectureSpecificOpt.OptExceptionDeliverer();
-
-  private EncodedOSRMap _osrMap;
-
   @Interruptible
   public void createFinalOSRMap(IR ir) {
     this._osrMap = EncodedOSRMap.makeMap(ir.MIRInfo.osrVarMap);
@@ -262,47 +319,6 @@ public final class OptCompiledMethod extends CompiledMethod {
   public EncodedOSRMap getOSRMap() {
     return this._osrMap;
   }
-
-  //////////////////////////////////////
-  // Information the opt compiler needs to persistently associate
-  // with a particular compiled method.
-
-  /** The primary machine code maps */
-  private OptMachineCodeMap _mcMap;
-  /** The encoded exception tables (null if there are none) */
-  private int[] eTable;
-  private int[] patchMap;
-
-  /**
-   * unsigned offset (off the framepointer) of nonvolatile save area
-   * in bytes
-   */
-  private char nonvolatileOffset;
-  /**
-   * unsigned offset (off the framepointer) of caught exception
-   * object in bytes
-   */
-  private char exceptionObjectOffset;
-  /**
-   * size of the fixed portion of the stackframe
-   */
-  private char stackFrameFixedSize;
-  /**
-   * first saved nonvolatile integer register (-1 if no nonvolatile
-   * GPRs)
-   */
-  private byte firstNonvolatileGPR;
-  /**
-   * first saved nonvolatile floating point register (-1 if no
-   * nonvolatile FPRs)
-   */
-  private byte firstNonvolatileFPR;
-  /** opt level at which the method was compiled */
-  private byte optLevel;
-  /** were the volatile registers saved? */
-  private boolean volatilesSaved;
-  /** is the current method executing with instrumentation */
-  private boolean instrumented;
 
   public int getUnsignedNonVolatileOffset() {
     return nonvolatileOffset;
@@ -466,6 +482,15 @@ public final class OptCompiledMethod extends CompiledMethod {
   }
 
   /**
+   * Walk and create debug information
+   * @param v visitor to add debug information to
+   */
+  @Interruptible
+  public void walkDebugInformation(DebugInformationVisitor v) {
+    _mcMap.walkDebugInformation(v);
+  }
+
+  /**
    * Create the code patching maps from the IR for the method
    * @param ir the ir
    */
@@ -553,13 +578,4 @@ public final class OptCompiledMethod extends CompiledMethod {
 
     }
   }
-
-  private static RVMThread.SoftHandshakeVisitor codePatchSyncRequestVisitor =
-    new RVMThread.SoftHandshakeVisitor() {
-      @Uninterruptible
-      public boolean checkAndSignal(RVMThread t) {
-        t.codePatchSyncRequested = true;
-        return true; // handshake with everyone but ourselves.
-      }
-    };
 }
