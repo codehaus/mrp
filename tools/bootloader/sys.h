@@ -332,10 +332,10 @@ EXTERNAL jobject sysVaArgJobject(va_list *ap);
 EXTERNAL Address sysOProfileOpenAgent();
 EXTERNAL void sysOProfileCloseAgent(Address handle);
 EXTERNAL void sysOProfileWriteNativeCode(Address handle,
- char *symbolName, Address codeAddress, int length);
+ char const *symbolName, Address codeAddress, int length);
 EXTERNAL Address sysOProfileStartCompileMap(Address handle, Address codeAddress);
 EXTERNAL void sysOProfileAddToCompileMap(Address compileMap,
-  Address offset, char *fileName, int lineNumber);
+  Address offset, char const *fileName, int lineNumber);
 EXTERNAL void sysOProfileFinishCompileMap(Address compileMap);
 
 /* PerfCtr declarations */
