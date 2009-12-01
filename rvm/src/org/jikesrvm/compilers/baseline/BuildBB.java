@@ -16,6 +16,7 @@ import org.jikesrvm.VM;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.ExceptionHandlerMap;
+import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.NormalMethod;
 
 /**
@@ -76,7 +77,7 @@ final class BuildBB implements BBConstants {
     BasicBlock currentBB;         // current basic block being processed
     InstructionType lastInstrType;// type of the last instruction
     int lastInstrStart;// byte index where last instruction started
-
+    boolean hasMagic = false; // are there magic operations in this method (VM.VerifyAssertions only)
     //
     //  Initialization
     //
@@ -353,6 +354,16 @@ final class BuildBB implements BBConstants {
           break;
         }
 
+        case JBC_invokestatic:
+        case JBC_invokevirtual: {
+          if (VM.VerifyAssertions && !hasMagic) {
+            MethodReference methodRef = bcodes.getMethodReference();
+            hasMagic = methodRef.getType().isMagicType();
+            byteToBlockMap[lastInstrStart] = (short) currentBB.getBlockNumber();
+            gcPointCount = gcPointCount + 1;
+            break;
+          }
+        }
         case JBC_aaload:
         case JBC_iaload:
         case JBC_faload:
@@ -377,9 +388,7 @@ final class BuildBB implements BBConstants {
         case JBC_idiv:
         case JBC_lrem:
         case JBC_ldiv:
-        case JBC_invokevirtual:
         case JBC_invokespecial:
-        case JBC_invokestatic:
         case JBC_invokeinterface:
         case JBC_instanceof:
         case JBC_checkcast:
@@ -419,7 +428,7 @@ final class BuildBB implements BBConstants {
     }
 
     // can not support jsrs with unboxed types at the moment
-    if (VM.VerifyAssertions && !VM.BuildForHarmony) VM._assert(VM.runningVM || numJsrs == 0);
+    if (VM.VerifyAssertions) VM._assert(!hasMagic || numJsrs == 0);
   }
 
   /********************************/
