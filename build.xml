@@ -404,7 +404,7 @@ Check to make sure all required properties are specified. This includes properti
       <equals arg1="${classlib.provider}" arg2="Harmony"/>
     </condition>
 
-    <property name="filter" value="${arch.filter} ${os.filter} ${addr.filter} ${gctrace.filter} ${gcspy.filter} ${alignment-checking.filter} ${perfctr.filter} ${classlib.filter}"/>
+    <property name="filter" value="${arch.filter} ${os.filter} ${addr.filter} ${gctrace.filter} ${gcspy.filter} ${alignment-checking.filter} ${oprofile.filter} ${perfctr.filter} ${classlib.filter}"/>
   </target>
 
   <!-- **************************************************************************** -->
@@ -1607,6 +1607,10 @@ const char *rvm_target_configuration = "${target.file}";
       </and>
     </condition>
 
+    <condition property="oprofile.libraries" value="${libpath.specifier}/usr/lib/oprofile ${lib.specifier}opagent${target.lib-ext} ${lib.specifier}bfd${target.lib-ext}" else="">
+      <equals arg1="${config.oprofile}" arg2="true"/>
+    </condition>
+
     <condition property="arch.includes" value="-I${bl.dir}/ia32">
       <equals arg1="${target.arch}" arg2="ia32"/>
     </condition>
@@ -1795,7 +1799,7 @@ const char *rvm_target_configuration = "${target.file}";
           <arg value="-L@{outdir}"/>
           <ObjectFiles/>
           <arg line="@{lib} -lm -lc"/>
-          <arg line="${classlib.libraries}"/>
+          <arg line="${classlib.libraries} ${oprofile.libraries}"/>
         </exec>
       </sequential>
     </if>
