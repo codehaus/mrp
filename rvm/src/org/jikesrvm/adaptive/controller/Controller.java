@@ -178,9 +178,9 @@ public class Controller  {
     final Controller controller = new Controller();
     Callbacks.vmExitCallbacks.addCallback(
       new Callback() {
-	public void notify(Object... args) {
+        public void notify(Object... args) {
           report();
-	}
+        }
       });
 
     booted = true;
@@ -196,10 +196,10 @@ public class Controller  {
            * Called when the application wants to recompile all dynamically
            * loaded methods.  This can be expensive!
            */
-	  public void notify(Object... args) {
+          public void notify(Object... args) {
             AOSLogging.logger.recompilingAllDynamicallyLoadedMethods();
             RecompilationManager.recompileAllDynamicallyLoadedMethods(false);
-	  }
+          }
         });
     }
   }

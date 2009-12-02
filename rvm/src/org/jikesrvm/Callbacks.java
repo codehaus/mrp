@@ -12,12 +12,6 @@
  */
 package org.jikesrvm;
 
-import java.util.Enumeration;
-import org.jikesrvm.classloader.Atom;
-import org.jikesrvm.classloader.RVMClass;
-import org.jikesrvm.classloader.RVMMethod;
-import org.jikesrvm.classloader.RVMType;
-import org.jikesrvm.scheduler.RVMThread;
 import org.jikesrvm.util.LinkedListRVM;
 import org.jikesrvm.util.LinkedListIteratorRVM;
 
@@ -27,10 +21,10 @@ import org.jikesrvm.util.LinkedListIteratorRVM;
 public final class Callbacks {
   /** Abstract notion of a callback */
   public static interface Callback {
-    public void notify(Object... args);
+    void notify(Object... args);
   }
   /** Queue that maintains callbacks */
-  public static final class CallbackQueue {
+  public static class CallbackQueue {
     /** Queue of call backs */
     private final LinkedListRVM<Callback> cbs = new LinkedListRVM<Callback>();
     /** Name of call back queue */
@@ -54,7 +48,7 @@ public final class Callbacks {
     public synchronized void notify(Object... args) {
       if (trace) {
         VM.sysWrite("invoking ", name, " callbacks with: ");
-	for(Object o : args) {
+        for(Object o : args) {
           VM.sysWrite(o.toString());
           VM.sysWrite(" ");
         }
@@ -72,7 +66,7 @@ public final class Callbacks {
         e.notify(args);
       }
     }
-  } 
+  }
 
   /** Boot image callbacks */
   public static final CallbackQueue

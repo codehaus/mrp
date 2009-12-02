@@ -598,7 +598,7 @@ public class RuntimeCompiler implements Constants {
     if (VM.MeasureCompilation) {
       Callbacks.vmExitCallbacks.addCallback(
         new Callback(){
-	  public void notify(Object... args) {
+          public void notify(Object... args) {
             report(false);
           }
         });

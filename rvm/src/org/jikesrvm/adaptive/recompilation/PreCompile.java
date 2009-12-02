@@ -44,7 +44,7 @@ public final class PreCompile {
   public static void init() {
     Callbacks.vmStartCallbacks.addCallback(
       new Callback() {
-	public void notify(Object... args) {
+        public void notify(Object... args) {
           if (Controller.options.ENABLE_PRECOMPILE) {
             VM.sysWrite("Start precompiling");
             // precompile the methods

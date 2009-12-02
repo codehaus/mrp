@@ -17,7 +17,6 @@ package mrp.debug;
 import org.jikesrvm.Callbacks;
 import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.classloader.Atom;
-import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethod.DebugInformationVisitor;
 import org.jikesrvm.compilers.common.CompiledMethods;
