@@ -17,17 +17,21 @@
 
 #ifdef RVM_WITH_OPROFILE
 #include <opagent.h>
+#include <errno.h>
 #endif
 
 EXTERNAL Address sysOProfileOpenAgent()
 {
-  SYS_START();
+  Address result = NULL;
+SYS_START();
   TRACE_PRINTF("%s: sysOProfileOpenAgent\n", Me);
 #ifdef RVM_WITH_OPROFILE
-  return op_open_agent();
-#else
-  return 0;
+  result = op_open_agent();
+  if (result == NULL) {
+    ERROR_PRINTF("%s: Trouble opening OProfile agent - %s", Me, strerror(errno));
+  }
 #endif
+  return result;
 }
 
 EXTERNAL void sysOProfileCloseAgent(Address opHandle)
@@ -35,9 +39,10 @@ EXTERNAL void sysOProfileCloseAgent(Address opHandle)
   SYS_START();
   TRACE_PRINTF("%s: sysOProfileCloseAgent(%p)\n", Me, opHandle);
 #ifdef RVM_WITH_OPROFILE
-  return op_close_agent(opHandle);
-#else
-  return 0;
+  int result = op_close_agent(opHandle);
+  if (result != 0) {
+    ERROR_PRINTF("%s: Trouble closing OProfile agent - %s", Me, strerror(errno));
+  }
 #endif
 }
 
@@ -47,7 +52,10 @@ EXTERNAL void sysOProfileWriteNativeCode(Address opHandle, char const * symbolNa
   SYS_START();
   TRACE_PRINTF("%s: sysOProfileWriteNativeCode(%p,%s,%p,%d)\n", Me, opHandle, symbolName, codeAddress, codeLength);
 #ifdef RVM_WITH_OPROFILE
-  op_write_native_code(opHandle, symbolName, codeAddress, codeAddress, codeLength);
+  int result = op_write_native_code(opHandle, symbolName, codeAddress, codeAddress, codeLength);
+  if (result != 0) {
+    ERROR_PRINTF("%s: Trouble in OProfile write native code - %s", Me, strerror(errno));
+  }
 #endif
 }
 
@@ -63,6 +71,7 @@ struct compileMap {
 
 EXTERNAL Address sysOProfileStartCompileMap(Address opHandle, Address codeAddress)
 {
+  Address result;
   SYS_START();
   TRACE_PRINTF("%s: sysOProfileStartCompileMap(%p,%p)\n", Me, opHandle,codeAddress);
 #ifdef RVM_WITH_OPROFILE
@@ -72,7 +81,9 @@ EXTERNAL Address sysOProfileStartCompileMap(Address opHandle, Address codeAddres
   cmap->entries_count = 0;
   cmap->entries_length = 16;
   cmap->entries = (struct debug_line_info *)sysMalloc(sizeof(struct debug_line_info[16]));
+  result = cmap;
 #endif
+  return result;
 }
 
 EXTERNAL void sysOProfileAddToCompileMap(Address _cmap, Address offs,
@@ -108,7 +119,10 @@ EXTERNAL void  sysOProfileFinishCompileMap(Address _cmap)
   TRACE_PRINTF("%s: sysOProfileFinishCompileMap(%p)\n", Me, _cmap);
 #ifdef RVM_WITH_OPROFILE
   struct compileMap *cmap = (struct compileMap *)_cmap;
-  op_write_debug_line_info(cmap->hdl, cmap->code, cmap->entries_count, cmap->entries);
+  int result = op_write_debug_line_info(cmap->hdl, cmap->code, cmap->entries_count, cmap->entries);
+  if (result != 0) {
+    ERROR_PRINTF("%s: Trouble in OProfile write debug line - %s", Me, strerror(errno));
+  }
   sysFree(cmap->entries);
   sysFree(cmap);
 #endif
