@@ -15,8 +15,7 @@
 package mrp.debug;
 
 import org.jikesrvm.Callbacks;
-import org.jikesrvm.Callbacks.ExitMonitor;
-import org.jikesrvm.Callbacks.MethodCompileMonitor;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.CompiledMethod;
@@ -34,7 +33,7 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
  */
 public final class OProfileListener {
   /** Debug messages */
-  private static final boolean DEBUG = true;
+  private static final boolean DEBUG = false;
 
   /** Only instance of this class */
   private static OProfileListener singleton;
@@ -47,21 +46,21 @@ public final class OProfileListener {
     // create singleton
     singleton = new OProfileListener();
     // ensure clean exits
-    Callbacks.addExitMonitor(
-        new ExitMonitor(){
-          public void notifyExit(int unused) {
-            singleton.closeAgent();
-          }
-        });
+    Callbacks.vmExitCallbacks.addCallback(
+      new Callback(){
+        public void notify(Object... args) {
+          singleton.closeAgent();
+        }
+      });
     // describe methods in the boot image to oprofile
     for (int i=1; i < CompiledMethods.numCompiledMethods(); i++) {
       CompiledMethod cm = CompiledMethods.getCompiledMethod(i);
       if (cm != null && cm.isCompiled()) singleton.describeCompiledMethod(cm);
     }
-    Callbacks.addMethodCompileMonitor(
-      new MethodCompileMonitor() {
-        public void notifyMethodCompile(RVMMethod method, int compiler) {
-          CompiledMethod cm = method.getCurrentCompiledMethod();
+    Callbacks.methodCompiledCallbacks.addCallback(
+      new Callback() {
+        public void notify(Object... args) {
+          CompiledMethod cm = (CompiledMethod)args[0];
           if (cm != null && cm.isCompiled()) singleton.describeCompiledMethod(cm);
         }
       });
@@ -70,6 +69,9 @@ public final class OProfileListener {
   /** Private constructor */
   private OProfileListener() {
     opHandle = sysCall.sysOProfileOpenAgent();
+    if (opHandle.isZero()) {
+      throw new Error("Error opening oprofile agent");
+    }
   }
 
   /** Terminate OProfile session */
@@ -93,6 +95,7 @@ public final class OProfileListener {
     final class CompileMapVisitor extends DebugInformationVisitor {
       final Address cmap = sysCall.sysOProfileStartCompileMap(opHandle, codeAddress);
       public void visit(Offset offs, Atom fileName, int lineNumber) {
+        if (VM.VerifyAssertions) VM._assert(!cmap.isZero());
         sysCall.sysOProfileAddToCompileMap(cmap, codeAddress.plus(offs), fileName.toByteArray(), lineNumber);
       }
       void finish() {
