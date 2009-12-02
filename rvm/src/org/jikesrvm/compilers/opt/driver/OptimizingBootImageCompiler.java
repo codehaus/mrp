@@ -107,7 +107,7 @@ public final class OptimizingBootImageCompiler extends BootImageCompiler {
       CompiledMethod cm = null;
       OptimizingCompilerException escape = new OptimizingCompilerException(false);
       try {
-        Callbacks.notifyMethodCompile(method, CompiledMethod.OPT);
+        Callbacks.methodCompileStartCallbacks.notify(method, CompiledMethod.OPT);
         boolean include = match(method);
         if (!include) {
           throw escape;
@@ -154,7 +154,7 @@ public final class OptimizingBootImageCompiler extends BootImageCompiler {
   }
 
   private CompiledMethod baselineCompile(NormalMethod method) {
-    Callbacks.notifyMethodCompile(method, CompiledMethod.BASELINE);
+    Callbacks.methodCompileStartCallbacks.notify(method, CompiledMethod.BASELINE);
     CompiledMethod cm = BaselineCompiler.compile(method);
     /* We can't accurately measure compilation time on Host JVM, so just approximate with DNA */
     cm.setCompilationTime((float)CompilerDNA.estimateCompileTime(CompilerDNA.BASELINE, method));

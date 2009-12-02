@@ -13,6 +13,7 @@
 package org.jikesrvm.compilers.opt.driver;
 
 import org.jikesrvm.Callbacks;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.compilers.common.CompiledMethod;
@@ -46,7 +47,7 @@ import org.jikesrvm.compilers.opt.specialization.SpecializationDatabase;
  *
  * <p> This class is not meant to be instantiated.
  */
-public final class OptimizingCompiler implements Callbacks.StartupMonitor {
+public final class OptimizingCompiler {
 
   ////////////////////////////////////////////
   // Initialization
@@ -69,7 +70,15 @@ public final class OptimizingCompiler implements Callbacks.StartupMonitor {
       initializeStatics();
 
       // want to be notified when VM boot is done and ready to start application
-      Callbacks.addStartupMonitor(new OptimizingCompiler());
+      Callbacks.appStartCallbacks.addCallback(
+        new Callback(){
+          public void notify(Object... args) {
+            if (VM.TraceOnStackReplacement) {
+              VM.sysWriteln("Compiler got notified of app ready to begin");
+            }
+            setAppStarted();
+          }
+        });
       isInitialized = true;
     } catch (OptimizingCompilerException e) {
       // failures during initialization can't be ignored
@@ -81,16 +90,6 @@ public final class OptimizingCompiler implements Callbacks.StartupMonitor {
                                                 "untrapped failure during init, " +
                                                 " Converting to OptimizingCompilerException");
     }
-  }
-
-  /*
-   * callback when application is about to start.
-   */
-  public void notifyStartup() {
-    if (VM.TraceOnStackReplacement) {
-      VM.sysWriteln("Compiler got notified of app ready to begin");
-    }
-    setAppStarted();
   }
 
   /**

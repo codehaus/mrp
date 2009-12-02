@@ -20,6 +20,7 @@ import java.io.PrintStream;
 import java.util.StringTokenizer;
 import org.jikesrvm.VM;
 import org.jikesrvm.Callbacks;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.classloader.MemberReference;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.runtime.Magic;
@@ -28,7 +29,7 @@ import org.vmmagic.pragma.Entrypoint;
 /**
  * A repository of edge counters for bytecode-level edge conditional branches.
  */
-public final class EdgeCounts implements Callbacks.ExitMonitor {
+public final class EdgeCounts {
   /**
    * Adjustment to offset in data from the bytecode index for taken
    * branch counts
@@ -52,8 +53,6 @@ public final class EdgeCounts implements Callbacks.ExitMonitor {
   @Entrypoint
   private static int[][] data;
 
-  public void notifyExit(int value) { dumpCounts(); }
-
   public static void boot(String inputFileName) {
     if (inputFileName != null) {
       readCounts(inputFileName);
@@ -67,7 +66,12 @@ public final class EdgeCounts implements Callbacks.ExitMonitor {
       //             then the user must want us to dump them when the system
       //             exits.  Otherwise why would they have enabled them...
       registered = true;
-      Callbacks.addExitMonitor(new EdgeCounts());
+      Callbacks.vmExitCallbacks.addCallback(
+        new Callback(){
+          public void notify(Object... args) {
+            dumpCounts();
+          }
+        });
     }
     allocateCounters(m.getId(), numEntries);
   }
@@ -169,7 +173,12 @@ public final class EdgeCounts implements Callbacks.ExitMonitor {
 
     // Enable debug of input by dumping file as we exit the VM.
     if (false) {
-      Callbacks.addExitMonitor(new EdgeCounts());
+      Callbacks.vmExitCallbacks.addCallback(
+        new Callback(){
+          public void notify(Object... args) {
+            dumpCounts();
+          }
+        });
       BaselineCompiler.processCommandLineArg("-X:base:", "edge_counter_file=DebugEdgeCounters");
     }
   }

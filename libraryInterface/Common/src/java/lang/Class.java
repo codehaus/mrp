@@ -35,7 +35,6 @@ import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 
-import org.jikesrvm.Callbacks;
 import org.jikesrvm.UnimplementedError;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.BootstrapClassLoader;
@@ -811,7 +810,6 @@ public final class Class<T> implements Serializable, Type, AnnotatedElement, Gen
       Atom descriptor = Atom.findOrCreateAsciiAtom(className.replace('.','/')).descriptorFromClassName();
       TypeReference tRef = TypeReference.findOrCreate(classLoader, descriptor);
       RVMType ans = tRef.resolve();
-      Callbacks.notifyForName(ans);
       if (initialize && !ans.isInitialized()) {
         ans.resolve();
         ans.instantiate();

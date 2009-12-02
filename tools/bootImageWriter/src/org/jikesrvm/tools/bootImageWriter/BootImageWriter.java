@@ -1289,7 +1289,7 @@ public class BootImageWriter extends BootImageWriterMessages
   public static void createBootImageObjects(Vector<String> typeNames,
                                             String bootImageTypeNamesFile)
     throws IllegalAccessException {
-      Callbacks.notifyBootImage(typeNames.elements());
+      Callbacks.bootImageCallbacks.notify(typeNames.elements());
       long startTime = 0;
       long stopTime = 0;
 

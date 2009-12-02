@@ -429,7 +429,7 @@ class OptTestHarness {
     }
     processOptionString(args);
     if (perf != null) {
-      Callbacks.addExitMonitor(perf);
+      Callbacks.vmExitCallbacks.addCallback(perf);
     }
     executeCommand();
     if (perf != null) {
@@ -437,7 +437,7 @@ class OptTestHarness {
     }
   }
 
-  private static class Performance implements Callbacks.ExitMonitor {
+  private static class Performance implements Callbacks.Callback {
     private long start = 0;
     private long end = 0;
 
@@ -455,6 +455,6 @@ class OptTestHarness {
       System.out.println(" msec");
     }
 
-    public void notifyExit(int discard) { show(); }
+    public void notify(Object... args) { show(); }
   }
 }

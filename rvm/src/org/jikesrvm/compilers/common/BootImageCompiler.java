@@ -89,7 +89,7 @@ public abstract class BootImageCompiler {
    * @return the compiled method
    */
   public static CompiledMethod compile(NativeMethod method) {
-    Callbacks.notifyMethodCompile(method, CompiledMethod.JNI);
+    Callbacks.methodCompileStartCallbacks.notify(method, CompiledMethod.JNI);
     return JNICompiler.compile(method);
   }
 }

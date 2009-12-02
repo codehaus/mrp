@@ -48,7 +48,7 @@ public final class BaselineBootImageCompiler extends BootImageCompiler {
    */
   protected CompiledMethod compileMethod(NormalMethod method, TypeReference[] params) {
     CompiledMethod cm;
-    Callbacks.notifyMethodCompile(method, CompiledMethod.BASELINE);
+    Callbacks.methodCompileStartCallbacks.notify(method, CompiledMethod.BASELINE);
     cm = BaselineCompiler.compile(method);
 
     if (VM.BuildForAdaptiveSystem) {

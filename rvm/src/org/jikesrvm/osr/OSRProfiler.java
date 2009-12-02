@@ -14,6 +14,7 @@ package org.jikesrvm.osr;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.Callbacks;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.adaptive.controller.Controller;
 import org.jikesrvm.adaptive.controller.ControllerMemory;
 import org.jikesrvm.adaptive.controller.ControllerPlan;
@@ -29,22 +30,23 @@ import org.jikesrvm.compilers.opt.runtimesupport.OptCompiledMethod;
 /**
  * Maintain statistic information about on stack replacement events
  */
-public class OSRProfiler implements Callbacks.ExitMonitor {
+public final class OSRProfiler {
 
   private static int invalidations = 0;
   private static boolean registered = false;
-
-  public void notifyExit(int value) {
-    VM.sysWriteln("OSR invalidations " + invalidations);
-  }
 
   // we know which assumption is invalidated
   // current we only reset the root caller method to be recompiled.
   public static void notifyInvalidation(ExecutionState state) {
 
-    if (!registered && VM.MeasureCompilation) {
+    if (VM.MeasureCompilation && !registered) {
       registered = true;
-      Callbacks.addExitMonitor(new OSRProfiler());
+      Callbacks.vmExitCallbacks.addCallback(
+        new Callback() {
+          public void notify(Object... args) {
+            VM.sysWriteln("OSR invalidations " + invalidations);
+          }
+        });
     }
 
     if (VM.TraceOnStackReplacement || VM.MeasureCompilation) {

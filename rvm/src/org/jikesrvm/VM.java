@@ -2335,7 +2335,7 @@ public class VM extends Properties implements Constants, ExitStatus {
       VM.sysWriteln("... END context of the call to VM.sysExit]");
     }
     if (runningVM) {
-      Callbacks.notifyExit(value);
+      Callbacks.vmExitCallbacks.notify(value);
       VM.shutdown(value);
     } else {
       System.exit(value);

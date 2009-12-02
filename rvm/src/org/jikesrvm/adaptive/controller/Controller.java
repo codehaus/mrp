@@ -16,6 +16,7 @@ import java.util.Enumeration;
 import java.util.Vector;
 import org.jikesrvm.VM;
 import org.jikesrvm.Callbacks;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.adaptive.OSROrganizerThread;
 import org.jikesrvm.adaptive.database.AOSDatabase;
 import org.jikesrvm.adaptive.database.callgraph.PartialCallGraph;
@@ -36,8 +37,7 @@ import org.jikesrvm.scheduler.SoftLatch;
 /**
  * This class contains top level adaptive compilation subsystem functions.
  */
-public class Controller implements Callbacks.ExitMonitor,
-                                   Callbacks.RecompileAllDynamicallyLoadedMethodsMonitor {
+public class Controller  {
 
   /**
    * Signals when the options and (optional) logging mechanism are enabled
@@ -175,35 +175,36 @@ public class Controller implements Callbacks.ExitMonitor,
 
     createControllerThread();
 
-    Controller controller = new Controller();
-    Callbacks.addExitMonitor(controller);
-
-    // make sure the user hasn't explicitly prohibited this functionality
-    if (!options.DISABLE_RECOMPILE_ALL_METHODS) {
-      Callbacks.addRecompileAllDynamicallyLoadedMethodsMonitor(controller);
-    }
+    final Controller controller = new Controller();
+    Callbacks.vmExitCallbacks.addCallback(
+      new Callback() {
+	public void notify(Object... args) {
+          report();
+	}
+      });
 
     booted = true;
   }
 
-  /**
-   * To be called when the VM is about to exit.
-   * @param value the exit value
-   */
-  public void notifyExit(int value) {
-    report();
+  /** Constructor */
+  void Controller() {
+    // make sure the user hasn't explicitly prohibited this functionality
+    if (!options.DISABLE_RECOMPILE_ALL_METHODS) {
+      Callbacks.recompileAllCallbacks.addCallback(
+        new Callback() {
+          /**
+           * Called when the application wants to recompile all dynamically
+           * loaded methods.  This can be expensive!
+           */
+	  public void notify(Object... args) {
+            AOSLogging.logger.recompilingAllDynamicallyLoadedMethods();
+            RecompilationManager.recompileAllDynamicallyLoadedMethods(false);
+	  }
+        });
+    }
   }
 
-  /**
-   * Called when the application wants to recompile all dynamically
-   *  loaded methods.  This can be expensive!
-   */
-  public void notifyRecompileAll() {
-    AOSLogging.logger.recompilingAllDynamicallyLoadedMethods();
-    RecompilationManager.recompileAllDynamicallyLoadedMethods(false);
-  }
-
-  // Create the ControllerThread
+  /** Create the ControllerThread */
   static void createControllerThread() {
     SoftLatch sentinel = new SoftLatch(false);
     ControllerThread tt = new ControllerThread(sentinel);

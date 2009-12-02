@@ -14,6 +14,7 @@ package org.jikesrvm.adaptive.recompilation;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.Callbacks;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.adaptive.controller.Controller;
 import org.jikesrvm.adaptive.util.AOSLogging;
 import org.jikesrvm.adaptive.util.CompilerAdviceAttribute;
@@ -38,19 +39,20 @@ import org.jikesrvm.compilers.opt.driver.CompilationPlan;
  * @see org.jikesrvm.adaptive.util.CompilerAdviceInfoReader
  * @see org.jikesrvm.compilers.common.RuntimeCompiler
  */
-public class PreCompile implements Callbacks.StartupMonitor {
+public final class PreCompile {
 
   public static void init() {
-    Callbacks.addStartupMonitor(new PreCompile());
-  }
-
-  public void notifyStartup() {
-    if (Controller.options.ENABLE_PRECOMPILE) {
-      VM.sysWrite("Start precompiling");
-      // precompile the methods
-      compileAllMethods();
-      VM.sysWrite("Finish precompiling");
-    }
+    Callbacks.vmStartCallbacks.addCallback(
+      new Callback() {
+	public void notify(Object... args) {
+          if (Controller.options.ENABLE_PRECOMPILE) {
+            VM.sysWrite("Start precompiling");
+            // precompile the methods
+            compileAllMethods();
+            VM.sysWrite("Finish precompiling");
+          }
+        }
+      });
   }
 
   /**

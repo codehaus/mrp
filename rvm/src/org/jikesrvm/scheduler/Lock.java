@@ -680,16 +680,16 @@ public final class Lock implements Constants {
   @Interruptible
   public static void boot() {
     if (STATS) {
-      Callbacks.addExitMonitor(new Lock.ExitMonitor());
-      Callbacks.addAppRunStartMonitor(new Lock.AppRunStartMonitor());
+      Callbacks.vmExitCallbacks.addCallback(new Lock.ExitMonitor());
+      Callbacks.appStartCallbacks.addCallback(new Lock.AppRunStartMonitor());
     }
   }
 
   /**
    * Initialize counts in preparation for gathering statistics
    */
-  private static final class AppRunStartMonitor implements Callbacks.AppRunStartMonitor {
-    public void notifyAppRunStart(String app, int value) {
+  private static final class AppRunStartMonitor implements Callbacks.Callback {
+    public void notify(Object... args) {
       lockOperations = 0;
       unlockOperations = 0;
       deflations = 0;
@@ -701,8 +701,8 @@ public final class Lock implements Constants {
   /**
    * Report statistics at the end of execution.
    */
-  private static final class ExitMonitor implements Callbacks.ExitMonitor {
-    public void notifyExit(int value) {
+  private static final class ExitMonitor implements Callbacks.Callback {
+    public void notify(Object... args) {
       int totalLocks = lockOperations + ThinLock.fastLocks + ThinLock.slowLocks;
 
       RVMThread.dumpStats();

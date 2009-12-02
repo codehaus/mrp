@@ -20,6 +20,7 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import org.jikesrvm.VM;
 import org.jikesrvm.Callbacks;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.scheduler.RVMThread;
 import static org.jikesrvm.runtime.SysCall.sysCall;
 import org.vmmagic.pragma.NoInline;
@@ -120,16 +121,17 @@ public class FileSystem {
     System.setIn(new BufferedInputStream(fdIn));
     System.setOut(new PrintStream(new BufferedOutputStream(fdOut, 128), true));
     System.setErr(new PrintStream(new BufferedOutputStream(fdErr, 128), true));
-    Callbacks.addExitMonitor(new Callbacks.ExitMonitor() {
-      public void notifyExit(int value) {
-        try {
-          System.err.flush();
-          System.out.flush();
-        } catch (Throwable e) {
-          VM.sysWriteln("vm: error flushing stdout, stderr");
-          e.printStackTrace();
+    Callbacks.vmExitCallbacks.addCallback(
+      new Callback() {
+        public void notify(Object... args) {
+          try {
+            System.err.flush();
+            System.out.flush();
+          } catch (Throwable e) {
+            VM.sysWriteln("vm: error flushing stdout, stderr");
+            e.printStackTrace();
+          }
         }
-      }
-    });
+      });
   }
 }

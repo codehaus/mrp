@@ -23,7 +23,7 @@ import org.jikesrvm.VM;
 import org.jikesrvm.Callbacks;
 import org.jikesrvm.Configuration;
 import org.jikesrvm.Options;
-import org.jikesrvm.Callbacks.ExitMonitor;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.scheduler.RVMThread;
 import org.jikesrvm.util.HashSetRVM;
 import org.vmmagic.pragma.Uninterruptible;
@@ -270,8 +270,8 @@ public final class TraceEngine {
     ioThread.start();
 
     /* Install shutdown hook that will delay VM exit until I/O completes. */
-    Callbacks.addExitMonitor(new ExitMonitor(){
-      public void notifyExit(int value) {
+    Callbacks.vmExitCallbacks.addCallback(new Callback(){
+      public void notify(Object... args) {
         state = State.SHUTTING_DOWN;
         while (state == State.SHUTTING_DOWN) {
           try {

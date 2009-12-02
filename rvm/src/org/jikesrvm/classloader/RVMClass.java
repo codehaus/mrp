@@ -1034,7 +1034,7 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
 
     this.desiredAssertionStatus = RVMClassLoader.getDesiredAssertionStatus(this);
 
-    Callbacks.notifyClassLoaded(this);
+    Callbacks.classLoadedCallbacks.notify(this);
 
     if (VM.TraceClassLoading && VM.runningVM) {
       VM.sysWriteln("RVMClass: (end)   load file " + typeRef.getName());
@@ -1134,14 +1134,14 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
         }
 
         if (method.isObjectInitializer()) {
-          Callbacks.notifyMethodOverride(method, null);
+          Callbacks.methodOverrideCallbacks.notify(method);
           constructorMethods.addElement(method);
           if (hasVanillaObjectInitializer == false) {
             hasVanillaObjectInitializer = method.isVanillaObjectInitializer();
           }
         } else if (method.isStatic()) {
           if (!method.isClassInitializer()) {
-            Callbacks.notifyMethodOverride(method, null);
+            Callbacks.methodOverrideCallbacks.notify(method);
             staticMethods.addElement(method);
           }
         } else { // Virtual method
@@ -1164,7 +1164,7 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
           }
 
           if (superclassMethodIndex == -1) {
-            Callbacks.notifyMethodOverride(method, null);
+            Callbacks.methodOverrideCallbacks.notify(method);
             virtualMethods.addElement(method);                          // append
           } else {
             RVMMethod superc = virtualMethods.elementAt(superclassMethodIndex);
@@ -1173,7 +1173,7 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
                 VM.sysWriteln("WARNING: interruptible " + method + " overrides uninterruptible " + superc);
               }
             }
-            Callbacks.notifyMethodOverride(method, superc);
+            Callbacks.methodOverrideCallbacks.notify(method, superc);
             virtualMethods.setElementAt(method, superclassMethodIndex); // override
           }
         }
@@ -1330,7 +1330,7 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
       classLoadListener.classInitialized(this, true);
     }
 
-    Callbacks.notifyClassResolved(this);
+    Callbacks.classResolvedCallbacks.notify(this);
     MemoryManager.notifyClassResolved(this);
 
     // check for a "finalize" method that overrides the one in java.lang.Object
@@ -1483,9 +1483,9 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
       state = CLASS_INSTANTIATED;
     }
 
-    Callbacks.notifyClassInstantiated(this);
+    Callbacks.classInstantiatedCallbacks.notify(this);
     if (VM.writingBootImage) {
-      Callbacks.notifyClassInitialized(this);
+      Callbacks.classInitializedCallbacks.notify(this);
     }
 
     if (VM.TraceClassLoading && VM.runningVM) VM.sysWriteln("RVMClass: (end)   instantiate " + this);
@@ -1588,7 +1588,7 @@ public final class RVMClass extends RVMType implements Constants, ClassLoaderCon
 
     state = CLASS_INITIALIZED;
 
-    Callbacks.notifyClassInitialized(this);
+    Callbacks.classInitializedCallbacks.notify(this);
 
     markFinalFieldsAsLiterals();
 

@@ -16,6 +16,7 @@ import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.ArchitectureSpecific.JNICompiler;
 import org.jikesrvm.VM;
 import org.jikesrvm.Callbacks;
+import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.Constants;
 import org.jikesrvm.adaptive.controller.Controller;
 import org.jikesrvm.adaptive.controller.ControllerMemory;
@@ -70,7 +71,7 @@ import org.jikesrvm.scheduler.RVMThread;
  *   still be an accurate measure of the space costs of the compile-only
  *   approach.
  */
-public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
+public class RuntimeCompiler implements Constants {
 
   // Use these to encode the compiler for record()
   public static final byte JNI_COMPILER = 0;
@@ -152,6 +153,7 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
                                                     totalMethods[compiler]);
       }
     }
+    Callbacks.methodCompiledCallbacks.notify(compiledMethod, compiler);
   }
 
   /**
@@ -279,7 +281,7 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
    * @param method the method to compile
    */
   public static CompiledMethod baselineCompile(NormalMethod method) {
-    Callbacks.notifyMethodCompile(method, CompiledMethod.BASELINE);
+    Callbacks.methodCompileStartCallbacks.notify(method, CompiledMethod.BASELINE);
     long start = 0;
     CompiledMethod cm = null;
     try {
@@ -298,8 +300,6 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
         }
       }
     }
-
-
     return cm;
   }
 
@@ -344,8 +344,7 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
       if (VM.VerifyAssertions) {
         VM._assert(compilationInProgress, "Failed to acquire compilationInProgress \"lock\"");
       }
-
-      Callbacks.notifyMethodCompile(method, CompiledMethod.JNI);
+      Callbacks.methodCompileStartCallbacks.notify(method, CompiledMethod.OPT);
       long start = 0;
       CompiledMethod cm = null;
       try {
@@ -597,7 +596,12 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
 
   public static void boot() {
     if (VM.MeasureCompilation) {
-      Callbacks.addExitMonitor(new RuntimeCompiler());
+      Callbacks.vmExitCallbacks.addCallback(
+        new Callback(){
+	  public void notify(Object... args) {
+            report(false);
+          }
+        });
     }
     if (VM.BuildForAdaptiveSystem) {
       optimizationPlan = OptimizationPlanner.createOptimizationPlan((OptOptions) options);
@@ -752,7 +756,7 @@ public class RuntimeCompiler implements Constants, Callbacks.ExitMonitor {
    * @return its compiled method.
    */
   public static CompiledMethod compile(NativeMethod method) {
-    Callbacks.notifyMethodCompile(method, CompiledMethod.JNI);
+    Callbacks.methodCompileStartCallbacks.notify(method, CompiledMethod.JNI);
     long start = 0;
     CompiledMethod cm = null;
     try {
