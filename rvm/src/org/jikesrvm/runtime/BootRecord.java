@@ -386,6 +386,7 @@ public class BootRecord {
   public Address sysOProfileOpenAgentIP;
   public Address sysOProfileCloseAgentIP;
   public Address sysOProfileWriteNativeCodeIP;
+  public Address sysOProfileUnloadNativeCodeIP;
   public Address sysOProfileStartCompileMapIP;
   public Address sysOProfileAddToCompileMapIP;
   public Address sysOProfileFinishCompileMapIP;

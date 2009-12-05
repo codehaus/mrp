@@ -14,6 +14,7 @@ package org.jikesrvm.compilers.common;
 
 import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.ArchitectureSpecific.CodeArray;
+import org.jikesrvm.Callbacks;
 import org.jikesrvm.VM;
 import org.jikesrvm.SizeConstants;
 import org.jikesrvm.classloader.Atom;
@@ -280,6 +281,7 @@ public abstract class CompiledMethod implements SizeConstants {
   public final void compileComplete(CodeArray code) {
     instructions = code;
     flags |= COMPILED;
+    Callbacks.methodCompileCompleteCallbacks.notify(this);
   }
 
   /**
@@ -292,9 +294,9 @@ public abstract class CompiledMethod implements SizeConstants {
   /**
    * Mark the compiled method as obsolete (ie a candidate for eventual GC)
    */
-  @Uninterruptible
   public final void setObsolete() {
     flags |= OBSOLETE;
+    Callbacks.methodCompileObsoleteCallbacks.notify(this);
   }
 
   @Uninterruptible

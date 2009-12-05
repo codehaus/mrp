@@ -113,9 +113,13 @@ public final class Callbacks {
   /** Method compile start callbacks */
   public static final CallbackQueue
     methodCompileStartCallbacks = new CallbackQueue("method compile starts", false);
+
   /** Method compiled callbacks */
   public static final CallbackQueue
-    methodCompiledCallbacks = new CallbackQueue("method compiled", false);
+    methodCompileCompleteCallbacks = new CallbackQueue("compiled method complete", false);
+  /** Method compiled callbacks */
+  public static final CallbackQueue
+    methodCompileObsoleteCallbacks = new CallbackQueue("compiled method obsolete", false);
 
   /** Recompile all callbacks */
   public static final CallbackQueue

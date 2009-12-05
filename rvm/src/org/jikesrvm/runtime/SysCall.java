@@ -109,6 +109,8 @@ public abstract class SysCall {
   public abstract void sysOProfileWriteNativeCode(Address opHandle,
       byte[] symbolName, Address codeAddress, int codeLength);
   @SysCallTemplate
+  public abstract void sysOProfileUnloadNativeCode(Address opHandle, Address codeAddress);
+  @SysCallTemplate
   public abstract Address sysOProfileStartCompileMap(Address handle, Address codeAddress);
   @SysCallTemplate
   public abstract void sysOProfileAddToCompileMap(Address compileMap,

@@ -59,6 +59,18 @@ EXTERNAL void sysOProfileWriteNativeCode(Address opHandle, char const * symbolNa
 #endif
 }
 
+EXTERNAL void sysOProfileUnloadNativeCode(Address opHandle, Address codeAddress)
+{
+  SYS_START();
+  TRACE_PRINTF("%s: sysOProfileUnloadNativeCode(%p,%p)\n", Me, opHandle, codeAddress);
+#ifdef RVM_WITH_OPROFILE
+  int result = op_unload_native_code(opHandle, codeAddress);
+  if (result != 0) {
+    ERROR_PRINTF("%s: Trouble in OProfile unload native code - %s", Me, strerror(errno));
+  }
+#endif
+}
+
 #ifdef RVM_WITH_OPROFILE
 struct compileMap {
   Address hdl;

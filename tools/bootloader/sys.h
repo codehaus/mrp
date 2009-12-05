@@ -333,6 +333,7 @@ EXTERNAL Address sysOProfileOpenAgent();
 EXTERNAL void sysOProfileCloseAgent(Address handle);
 EXTERNAL void sysOProfileWriteNativeCode(Address handle,
  char const *symbolName, Address codeAddress, int length);
+EXTERNAL void sysOProfileUnloadNativeCode(Address handle, Address codeAddress);
 EXTERNAL Address sysOProfileStartCompileMap(Address handle, Address codeAddress);
 EXTERNAL void sysOProfileAddToCompileMap(Address compileMap,
   Address offset, char const *fileName, int lineNumber);

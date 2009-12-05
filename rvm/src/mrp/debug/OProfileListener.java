@@ -56,12 +56,19 @@ public final class OProfileListener {
       CompiledMethod cm = CompiledMethods.getCompiledMethod(i);
       if (cm != null && cm.isCompiled()) singleton.describeCompiledMethod(cm);
     }
-    Callbacks.methodCompiledCallbacks.addCallback(
+    Callbacks.methodCompileCompleteCallbacks.addCallback(
       new Callback() {
         public void notify(Object... args) {
           CompiledMethod cm = (CompiledMethod)args[0];
           if (cm != null && cm.isCompiled()) singleton.describeCompiledMethod(cm);
         }
+      });
+    Callbacks.methodCompileObsoleteCallbacks.addCallback(
+      new Callback() {
+    	public void notify(Object... args) {
+    	  CompiledMethod cm = (CompiledMethod)args[0];
+    	  if (cm != null && cm.isCompiled()) singleton.removeCompiledMethod(cm);
+    	}
       });
   }
 
@@ -79,7 +86,7 @@ public final class OProfileListener {
   }
 
   /**
-   * Describe a compiled method to oprofile
+   * Describe a compiled method to OProfile
    * @param cm compiled method to describe
    */
   private void describeCompiledMethod(CompiledMethod cm) {
@@ -104,5 +111,15 @@ public final class OProfileListener {
     CompileMapVisitor visitor = new CompileMapVisitor();
     cm.walkDebugInformation(visitor);
     visitor.finish();
+  }
+
+  /**
+   * Remove a compiled method from OProfile
+   * @param cm compiled method to remove
+   */
+  private void removeCompiledMethod(CompiledMethod cm) {
+    if (DEBUG) VM.sysWriteln("Removing compiled method: "+cm);
+    final Address codeAddress = Magic.objectAsAddress(cm.getEntryCodeArray());
+    sysCall.sysOProfileUnloadNativeCode(opHandle, codeAddress);
   }
 }

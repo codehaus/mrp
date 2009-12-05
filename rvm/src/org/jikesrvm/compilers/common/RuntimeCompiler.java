@@ -153,7 +153,6 @@ public class RuntimeCompiler implements Constants {
                                                     totalMethods[compiler]);
       }
     }
-    Callbacks.methodCompiledCallbacks.notify(compiledMethod, compiler);
   }
 
   /**
