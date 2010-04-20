@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.objectmodel;
 
-import org.jikesrvm.Constants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.mm.mminterface.MemoryManagerConstants;
 
 /**

@@ -12,20 +12,23 @@
  */
 package org.jikesrvm.compilers.baseline;
 
-import org.jikesrvm.ArchitectureSpecific.Assembler;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
-import org.jikesrvm.ArchitectureSpecific.BaselineCompilerImpl;
-import org.jikesrvm.ArchitectureSpecific.MachineCode;
 import org.jikesrvm.VM;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
+import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.FieldReference;
+import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.NormalMethod;
+import org.jikesrvm.compilers.common.assembler.AbstractAssembler;
+import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.osr.BytecodeTraverser;
+import org.jikesrvm.runtime.MagicNames;
 import org.jikesrvm.runtime.Time;
 import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.unboxed.Offset;
+import org.vmmagic.pragma.Uninterruptible;
 
 /**
  * Baseline compiler - platform independent code.
@@ -60,6 +63,46 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
    */
   ReferenceMaps refMaps;
 
+
+  public abstract byte getLastFixedStackRegister();
+  public abstract byte getLastFloatStackRegister();
+
+  @Uninterruptible
+  static short getGeneralLocalLocation(int localIndex, short[] localFixedLocations, NormalMethod method) {
+    if(VM.BuildForIA32) {
+      return org.jikesrvm.compilers.baseline.ia32.BaselineCompilerImpl.getGeneralLocalLocation(localIndex, localFixedLocations, method);
+    } else {
+      return org.jikesrvm.compilers.baseline.ppc.BaselineCompilerImpl.getGeneralLocalLocation(localIndex, localFixedLocations, method);
+    }
+  }
+
+  @Uninterruptible
+  static short getFloatLocalLocation(int localIndex, short[] localFixedLocations, NormalMethod method) {
+    if(VM.BuildForIA32) {
+      return org.jikesrvm.compilers.baseline.ia32.BaselineCompilerImpl.getFloatLocalLocation(localIndex, localFixedLocations, method);
+    } else {
+      return org.jikesrvm.compilers.baseline.ppc.BaselineCompilerImpl.getFloatLocalLocation(localIndex, localFixedLocations, method);
+    }
+  }
+
+  @Uninterruptible
+  static short getEmptyStackOffset(NormalMethod m) {
+    if(VM.BuildForIA32) {
+      return org.jikesrvm.compilers.baseline.ia32.BaselineCompilerImpl.getEmptyStackOffset(m);
+    } else {
+      return org.jikesrvm.compilers.baseline.ppc.BaselineCompilerImpl.getEmptyStackOffset(m);
+    }
+  }
+
+  @Uninterruptible
+  public static short offsetToLocation(int offset) {
+    if(VM.BuildForIA32) {
+      return org.jikesrvm.compilers.baseline.ia32.BaselineCompilerImpl.offsetToLocation(offset);
+    } else {
+      return org.jikesrvm.compilers.baseline.ppc.BaselineCompilerImpl.offsetToLocation(offset);
+    }
+  }
+
   protected final Offset getEdgeCounterOffset() {
     return Offset.fromIntZeroExtend(method.getId() << LOG_BYTES_IN_ADDRESS);
   }
@@ -92,8 +135,24 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
         VM.sysWriteln("\ttoo early in VM.boot() to print machine code");
       }
     }
-    asm = new Assembler(bcodes.length(), shouldPrint, (BaselineCompilerImpl) this);
     localTypes = new byte[method.getLocalWords()];
+  }
+
+  /**
+   * Indicate if specified Magic method causes a frame to be created on the runtime stack.
+   * @param methodToBeCalled RVMMethod of the magic method being called
+   * @return true if method causes a stackframe to be created
+   */
+  public static boolean checkForActualCall(MethodReference methodToBeCalled) {
+    Atom methodName = methodToBeCalled.getName();
+    return methodName == MagicNames.invokeClassInitializer ||
+      methodName == MagicNames.invokeMethodReturningVoid ||
+      methodName == MagicNames.invokeMethodReturningInt ||
+      methodName == MagicNames.invokeMethodReturningLong ||
+      methodName == MagicNames.invokeMethodReturningFloat ||
+      methodName == MagicNames.invokeMethodReturningDouble ||
+      methodName == MagicNames.invokeMethodReturningObject ||
+      methodName == MagicNames.addressArrayCreate;
   }
 
   /**
@@ -354,8 +413,8 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
       switch (nextBC) {
       case JBC_caload:
         final boolean shouldPrint = !VM.Production && this.shouldPrint;
-        if (shouldPrint) asm.noteBytecode(biStart, "caload");
-        bytecodeMap[bcodes.index()] = asm.getMachineCodeIndex();
+        if (shouldPrint) getAssembler().noteBytecode(biStart, "caload");
+        bytecodeMap[bcodes.index()] = getAssembler().getMachineCodeIndex();
         bcodes.nextInstruction(); // skip opcode
         emit_iload_caload(index);
         break;
@@ -400,8 +459,8 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
           bcodes.reset(gfIndex);
           emit_regular_aload(index);
         } else {
-          bytecodeMap[gfIndex] = asm.getMachineCodeIndex();
-          if (shouldPrint) asm.noteBytecode(biStart, "getfield", fieldRef);
+          bytecodeMap[gfIndex] = getAssembler().getMachineCodeIndex();
+          if (shouldPrint) getAssembler().noteBytecode(biStart, "getfield", fieldRef);
           emit_aload_resolved_getfield(index, fieldRef);
         }
         break;
@@ -471,11 +530,11 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
   private void do_lcmp_if(BranchCondition bc) {
     final boolean shouldPrint = !VM.Production && this.shouldPrint;
     int biStart = bcodes.index(); // start of if bytecode
-    bytecodeMap[biStart] = asm.getMachineCodeIndex();
+    bytecodeMap[biStart] = getAssembler().getMachineCodeIndex();
     bcodes.nextInstruction(); // skip opcode
     int offset = bcodes.getBranchOffset();
     int bTarget = biStart + offset;
-    if (shouldPrint) asm.noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
+    if (shouldPrint) getAssembler().noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
     if (offset <= 0) emit_threadSwitchTest(RVMThread.BACKEDGE);
     emit_lcmp_if(bTarget, bc);
   }
@@ -540,11 +599,11 @@ public abstract class BaselineCompiler extends TemplateCompilerFramework {
   private void do_DFcmpGL_if(boolean single, boolean unorderedGT, BranchCondition bc) {
     final boolean shouldPrint = !VM.Production && this.shouldPrint;
     int biStart = bcodes.index(); // start of if bytecode
-    bytecodeMap[biStart] = asm.getMachineCodeIndex();
+    bytecodeMap[biStart] = getAssembler().getMachineCodeIndex();
     bcodes.nextInstruction(); // skip opcode
     int offset = bcodes.getBranchOffset();
     int bTarget = biStart + offset;
-    if (shouldPrint) asm.noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
+    if (shouldPrint) getAssembler().noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
     if (offset <= 0) emit_threadSwitchTest(RVMThread.BACKEDGE);
     emit_DFcmpGL_if(single, unorderedGT, bTarget, bc);
   }

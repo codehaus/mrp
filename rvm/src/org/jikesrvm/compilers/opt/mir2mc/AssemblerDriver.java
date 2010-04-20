@@ -12,10 +12,9 @@
  */
 package org.jikesrvm.compilers.opt.mir2mc;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
-import org.jikesrvm.ArchitectureSpecificOpt.AssemblerOpt;
+import org.jikesrvm.architecture.ArchConstants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.compilers.opt.OptOptions;
 import org.jikesrvm.compilers.opt.driver.CompilerPhase;
 import org.jikesrvm.compilers.opt.driver.OptimizingCompiler;
@@ -57,7 +56,9 @@ final class AssemblerDriver extends CompilerPhase implements Constants {
     // As part of the generation, the machinecode offset
     // of every instruction will be set by calling setmcOffset.
     //////////
-    int codeLength = AssemblerOpt.generateCode(ir, shouldPrint);
+    int codeLength =
+      VM.BuildForIA32 ? org.jikesrvm.compilers.opt.mir2mc.ia32.AssemblerOpt.generateCode(ir, shouldPrint)
+                      : org.jikesrvm.compilers.opt.mir2mc.ppc.AssemblerOpt.generateCode(ir, shouldPrint);
 
     //////////
     // STEP 3: Generate all the mapping information
@@ -82,7 +83,7 @@ final class AssemblerDriver extends CompilerPhase implements Constants {
 
     if (VM.runningVM) {
       Memory.sync(Magic.objectAsAddress(ir.MIRInfo.machinecode),
-                     codeLength << ArchitectureSpecific.RegisterConstants.LG_INSTRUCTION_WIDTH);
+                     codeLength << ArchConstants.getLogInstructionWidth());
     }
   }
 

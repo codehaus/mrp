@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.compilers.opt.regalloc;
 
-import org.jikesrvm.ArchitectureSpecificOpt.CallingConvention;
+import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.OptOptions;
 import org.jikesrvm.compilers.opt.driver.CompilerPhase;
 import org.jikesrvm.compilers.opt.ir.IR;
@@ -41,6 +41,10 @@ public final class ExpandCallingConvention extends CompilerPhase {
   }
 
   public void perform(org.jikesrvm.compilers.opt.ir.IR ir) {
-    CallingConvention.expandCallingConventions(ir);
+    if (VM.BuildForIA32) {
+      org.jikesrvm.compilers.opt.regalloc.ia32.CallingConvention.expandCallingConventions(ir);
+    } else {
+      org.jikesrvm.compilers.opt.regalloc.ppc.CallingConvention.expandCallingConventions(ir);
+    }
   }
 }

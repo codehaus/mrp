@@ -277,6 +277,7 @@ public abstract class MemberReference {
    * referenced from "that" method?
    */
   public final boolean needsDynamicLink(RVMMethod that) {
+
     RVMMember resolvedThis = this.peekResolvedMember();
 
     if (resolvedThis == null) {
@@ -284,6 +285,7 @@ public abstract class MemberReference {
       // sufficiently to even know exactly where it is declared.
       return true;
     }
+
     RVMClass thisClass = resolvedThis.getDeclaringClass();
 
     if (thisClass == that.getDeclaringClass()) {

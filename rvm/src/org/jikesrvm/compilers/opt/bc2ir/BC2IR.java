@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.NoSuchElementException;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecificOpt.RegisterPool;
 import org.jikesrvm.adaptive.controller.Controller;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
@@ -60,6 +59,7 @@ import org.jikesrvm.compilers.opt.ir.ControlFlowGraph;
 import org.jikesrvm.compilers.opt.ir.Empty;
 import org.jikesrvm.compilers.opt.ir.ExceptionHandlerBasicBlock;
 import org.jikesrvm.compilers.opt.ir.ExceptionHandlerBasicBlockBag;
+import org.jikesrvm.compilers.opt.ir.GenericRegisterPool;
 import org.jikesrvm.compilers.opt.ir.GetField;
 import org.jikesrvm.compilers.opt.ir.GetStatic;
 import org.jikesrvm.compilers.opt.ir.Goto;
@@ -119,6 +119,12 @@ import org.vmmagic.pragma.NoInline;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.bc2ir.IRGenOptions.*;
+import static org.jikesrvm.classloader.ClassLoaderConstants.*;
+import static org.jikesrvm.compilers.opt.driver.OptConstants.*;
+import static org.jikesrvm.osr.OSRConstants.*;
+
 /**
  * This class translates from bytecode to HIR.
  * <p>
@@ -150,8 +156,7 @@ import org.vmmagic.unboxed.Offset;
  * @see GenerationContext
  * @see ConvertBCtoHIR
  */
-public final class BC2IR
-  implements IRGenOptions, Operators, ClassLoaderConstants, OptConstants, OSRConstants, HIRGenerator {
+public final class BC2IR implements HIRGenerator {
   /**
    * Dummy slot.
    * Used to deal with the fact the longs/doubles take
@@ -4964,7 +4969,7 @@ public final class BC2IR
    * very specialized operations that are performed during search/insertion
    * so we roll our own instead of using one from the standard library.
    */
-  private static final class BBSet implements IRGenOptions {
+  private static final class BBSet {
     /** root of the backing red/black tree*/
     private BasicBlockLE root;
 
@@ -6397,7 +6402,7 @@ public final class BC2IR
      * @param cfg ControlFlowGraph into which the block
      *            will eventually be inserted
      */
-    HandlerBlockLE(int loc, InlineSequence position, TypeOperand eType, RegisterPool temps,
+    HandlerBlockLE(int loc, InlineSequence position, TypeOperand eType, GenericRegisterPool temps,
                    int exprStackSize, ControlFlowGraph cfg) {
       super(loc);
       entryBlock = new ExceptionHandlerBasicBlock(SYNTH_CATCH_BCI, position, eType, cfg);

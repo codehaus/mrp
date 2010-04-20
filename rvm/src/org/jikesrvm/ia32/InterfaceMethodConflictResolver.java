@@ -12,10 +12,11 @@
  */
 package org.jikesrvm.ia32;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
+import org.jikesrvm.compilers.common.assembler.ia32.AssemblerConstants;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.objectmodel.ObjectModel;
 import org.jikesrvm.runtime.ArchEntrypoints;
 import org.jikesrvm.runtime.Magic;
@@ -37,10 +38,10 @@ public abstract class InterfaceMethodConflictResolver implements RegisterConstan
 
   // Create a conflict resolution stub for the set of interface method signatures l.
   //
-  public static ArchitectureSpecific.CodeArray createStub(int[] sigIds, RVMMethod[] targets) {
+  public static CodeArray createStub(int[] sigIds, RVMMethod[] targets) {
     int numEntries = sigIds.length;
     // (1) Create an assembler.
-    Assembler asm = new ArchitectureSpecific.Assembler(numEntries);
+    Assembler asm = new Assembler(numEntries);
 
     // (2) signatures must be in ascending order (to build binary search tree).
     if (VM.VerifyAssertions) {
@@ -84,7 +85,7 @@ public abstract class InterfaceMethodConflictResolver implements RegisterConstan
   // factor out to reduce code space in each call.
   //
   private static void insertStubPrologue(Assembler asm) {
-    ObjectModel.baselineEmitLoadTIB((ArchitectureSpecific.Assembler) asm, ECX.value(), EAX.value());
+    asm.baselineEmitLoadTIB(ECX, EAX);
   }
 
   // Generate a subtree covering from low to high inclusive.
@@ -104,10 +105,10 @@ public abstract class InterfaceMethodConflictResolver implements RegisterConstan
       Offset disp = ArchEntrypoints.hiddenSignatureIdField.getOffset();
       ThreadLocalState.emitCompareFieldWithImm(asm, disp, sigIds[middle]);
       if (low < middle) {
-        asm.emitJCC_Cond_Label(Assembler.LT, bcIndices[(low + middle - 1) / 2]);
+        asm.emitJCC_Cond_Label(AssemblerConstants.LT, bcIndices[(low + middle - 1) / 2]);
       }
       if (middle < high) {
-        asm.emitJCC_Cond_Label(Assembler.GT, bcIndices[(middle + 1 + high) / 2]);
+        asm.emitJCC_Cond_Label(AssemblerConstants.GT, bcIndices[(middle + 1 + high) / 2]);
       }
       // invoke the method for middle.
       RVMMethod target = targets[middle];

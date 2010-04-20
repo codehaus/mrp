@@ -31,8 +31,10 @@ import org.jikesrvm.compilers.opt.driver.OptConstants;
 import org.jikesrvm.compilers.opt.ir.*;
 import org.jikesrvm.compilers.opt.ir.operand.*;
 
-public class X862IR extends CodeTranslator implements HIRGenerator,
-    Operators, OptConstants {
+import static org.jikesrvm.compilers.opt.driver.OptConstants.*;
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
+public class X862IR extends CodeTranslator {
 
   private static final TypeReference  psTref;
   private static final FieldReference registersFref;

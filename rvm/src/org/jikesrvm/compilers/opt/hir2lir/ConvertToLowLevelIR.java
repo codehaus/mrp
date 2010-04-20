@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.compilers.opt.hir2lir;
 
-import static org.jikesrvm.SizeConstants.LOG_BYTES_IN_ADDRESS;
-import static org.jikesrvm.SizeConstants.LOG_BYTES_IN_INT;
+import static org.jikesrvm.architecture.SizeConstants.LOG_BYTES_IN_ADDRESS;
+import static org.jikesrvm.architecture.SizeConstants.LOG_BYTES_IN_INT;
 import static org.jikesrvm.compilers.opt.driver.OptConstants.RUNTIME_SERVICES_BCI;
 import static org.jikesrvm.compilers.opt.ir.Operators.ARRAYLENGTH;
 import static org.jikesrvm.compilers.opt.ir.Operators.BOUNDS_CHECK_opcode;
@@ -175,7 +175,7 @@ public abstract class ConvertToLowLevelIR extends IRTools {
         case GETSTATIC_opcode: {
           LocationOperand loc = GetStatic.getClearLocation(s);
           RegisterOperand result = GetStatic.getClearResult(s);
-          Operand address = ir.regpool.makeJTOCOp(ir, s);
+          Operand address = ir.regpool.makeJTOCOp();
           Operand offset = GetStatic.getClearOffset(s);
           Load.mutate(s, IRTools.getLoadOp(loc.getFieldRef(), true), result, address, offset, loc);
         }
@@ -184,7 +184,7 @@ public abstract class ConvertToLowLevelIR extends IRTools {
         case PUTSTATIC_opcode: {
           LocationOperand loc = PutStatic.getClearLocation(s);
           Operand value = PutStatic.getClearValue(s);
-          Operand address = ir.regpool.makeJTOCOp(ir, s);
+          Operand address = ir.regpool.makeJTOCOp();
           Operand offset = PutStatic.getClearOffset(s);
           Store.mutate(s, IRTools.getStoreOp(loc.getFieldRef(), true), value, address, offset, loc);
         }
@@ -1067,7 +1067,7 @@ public abstract class ConvertToLowLevelIR extends IRTools {
                             ir,
                             operator,
                             type,
-                            ir.regpool.makeJTOCOp(ir, s),
+                            ir.regpool.makeJTOCOp(),
                             AC(offset),
                             new LocationOperand(offset),
                             null);
@@ -1084,7 +1084,7 @@ public abstract class ConvertToLowLevelIR extends IRTools {
    */
   static RegisterOperand InsertLoadOffsetJTOC(Instruction s, IR ir, Operator operator,
                                                   TypeReference type, Operand offset) {
-    return InsertLoadOffset(s, ir, operator, type, ir.regpool.makeJTOCOp(ir, s), offset, null, null);
+    return InsertLoadOffset(s, ir, operator, type, ir.regpool.makeJTOCOp(), offset, null, null);
   }
 
   /**

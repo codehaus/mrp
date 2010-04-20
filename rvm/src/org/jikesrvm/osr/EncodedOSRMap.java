@@ -16,12 +16,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
-import org.jikesrvm.ArchitectureSpecificOpt.OptGCMapIteratorConstants;
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.inlining.CallSiteTree;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.vmmagic.pragma.Inline;
 import org.vmmagic.unboxed.Offset;
+import static org.jikesrvm.compilers.opt.runtimesupport.OptGCMap.FIRST_GCMAP_REG;
 
 /**
  * EncodedOSRMap provides the samilar function as GC map
@@ -31,7 +31,7 @@ import org.vmmagic.unboxed.Offset;
  * all OSR map info for that method.
  */
 
-public final class EncodedOSRMap implements OptGCMapIteratorConstants, OSRConstants {
+public final class EncodedOSRMap implements OSRConstants {
 
   /** osr info entries */
   private final long[] mapEntries;

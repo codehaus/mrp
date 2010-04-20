@@ -13,6 +13,7 @@
 package org.jikesrvm.runtime;
 
 import org.jikesrvm.VM;
+import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMField;
 import org.jikesrvm.classloader.NormalMethod;
 
@@ -20,10 +21,14 @@ import org.jikesrvm.classloader.NormalMethod;
  * Entrypoints that are specific to instruction architecture.
  */
 public interface ArchEntrypoints {
-  NormalMethod newArrayArrayMethod =
-      EntrypointHelper.getMethod("Lorg/jikesrvm/" + ArchEntrypoints.arch + "/MultianewarrayHelper;", "newArrayArray", "(IIII)Ljava/lang/Object;");
   String arch = VM.BuildForIA32 ? "ia32" : "ppc";
-  String ArchCodeArrayName = "Lorg/jikesrvm/ArchitectureSpecific$CodeArray;";
+  NormalMethod newArrayArrayMethod = (NormalMethod)
+      EntrypointHelper.getMethod(VM.BuildForIA32
+				 ? org.jikesrvm.ia32.MultianewarrayHelper.class
+				 : org.jikesrvm.ppc.MultianewarrayHelper.class,
+				 Atom.findOrCreateAsciiAtom("newArrayArray"),
+				 int.class, int.class, int.class, int.class, Object.class);
+  String ArchCodeArrayName = "Lorg/jikesrvm/compilers/common/CodeArray;";
   RVMField reflectiveMethodInvokerInstructionsField =
       EntrypointHelper.getField("Lorg/jikesrvm/" + arch + "/OutOfLineMachineCode;",
                "reflectiveMethodInvokerInstructions",
@@ -43,11 +48,11 @@ public interface ArchEntrypoints {
       (VM.BuildForPowerPC) ?
       EntrypointHelper.getField("Lorg/jikesrvm/" + arch + "/OutOfLineMachineCode;", "restoreVolatilesInstructions", ArchCodeArrayName) : null;
   RVMField registersIPField =
-      EntrypointHelper.getField("Lorg/jikesrvm/" + arch + "/Registers;", "ip", "Lorg/vmmagic/unboxed/Address;");
-  RVMField registersFPRsField = EntrypointHelper.getField("Lorg/jikesrvm/" + arch + "/Registers;", "fprs", "[D");
+      EntrypointHelper.getField("Lorg/jikesrvm/architecture/AbstractRegisters;", "ip", "Lorg/vmmagic/unboxed/Address;");
+  RVMField registersFPRsField = EntrypointHelper.getField("Lorg/jikesrvm/architecture/AbstractRegisters;", "fprs", "[D");
   RVMField registersGPRsField =
-      EntrypointHelper.getField("Lorg/jikesrvm/" + arch + "/Registers;", "gprs", "Lorg/vmmagic/unboxed/WordArray;");
-  RVMField registersInUseField = EntrypointHelper.getField("Lorg/jikesrvm/" + arch + "/Registers;", "inuse", "Z");
+      EntrypointHelper.getField("Lorg/jikesrvm/architecture/AbstractRegisters;", "gprs", "Lorg/vmmagic/unboxed/WordArray;");
+  RVMField registersInUseField = EntrypointHelper.getField("Lorg/jikesrvm/architecture/AbstractRegisters;", "inuse", "Z");
   RVMField registersLRField =
       (VM.BuildForPowerPC) ? EntrypointHelper.getField("Lorg/jikesrvm/" + arch + "/Registers;",
                                       "lr",

@@ -12,10 +12,9 @@
  */
 package org.jikesrvm.runtime;
 
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
-import org.jikesrvm.ArchitectureSpecific.DynamicLinkerHelper;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.MethodReference;
@@ -123,7 +122,12 @@ public class DynamicLinker implements Constants {
       } else {
         // invokevirtual or invokeinterface
         VM.disableGC();
-        Object targetObject = DynamicLinkerHelper.getReceiverObject();
+        Object targetObject;
+        if (VM.BuildForIA32) {
+          targetObject = org.jikesrvm.ia32.DynamicLinkerHelper.getReceiverObject();
+        } else {
+          targetObject = org.jikesrvm.ppc.DynamicLinkerHelper.getReceiverObject();
+        }
         VM.enableGC();
         RVMClass targetClass = Magic.getObjectType(targetObject).asClass();
         RVMMethod targetMethod = targetClass.findVirtualMethod(methodRef.getName(), methodRef.getDescriptor());
@@ -163,7 +167,12 @@ public class DynamicLinker implements Constants {
         targetClass.updateTIBEntry(targetMethod);
       } else {
         VM.disableGC();
-        Object targetObject = DynamicLinkerHelper.getReceiverObject();
+        Object targetObject;
+        if (VM.BuildForIA32) {
+          targetObject = org.jikesrvm.ia32.DynamicLinkerHelper.getReceiverObject();
+        } else {
+          targetObject = org.jikesrvm.ppc.DynamicLinkerHelper.getReceiverObject();
+        }
         VM.enableGC();
         RVMClass recvClass = (RVMClass) Magic.getObjectType(targetObject);
         recvClass.updateTIBEntry(targetMethod);

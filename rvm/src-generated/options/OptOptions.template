@@ -13,6 +13,7 @@
 package org.jikesrvm.compilers.opt;
 
 import org.jikesrvm.*;
+import org.jikesrvm.runtime.CommandLineArgs;
 
 /**
  * Class to handle command-line arguments and options for the

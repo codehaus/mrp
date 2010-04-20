@@ -21,8 +21,8 @@ import org.jikesrvm.VM;
 import org.jikesrvm.runtime.BootRecord;
 import org.jikesrvm.HeapLayoutConstants;
 import org.jikesrvm.runtime.Magic;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.objectmodel.JavaHeader;
-import org.jikesrvm.SizeConstants;
 
 import org.vmmagic.unboxed.*;
 import org.vmmagic.pragma.*;

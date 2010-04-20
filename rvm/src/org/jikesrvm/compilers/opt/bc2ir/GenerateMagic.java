@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.compilers.opt.bc2ir;
 
-import static org.jikesrvm.SizeConstants.LOG_BYTES_IN_ADDRESS;
-import static org.jikesrvm.SizeConstants.LOG_BYTES_IN_INT;
+import static org.jikesrvm.architecture.SizeConstants.LOG_BYTES_IN_ADDRESS;
+import static org.jikesrvm.architecture.SizeConstants.LOG_BYTES_IN_INT;
 import static org.jikesrvm.compilers.opt.ir.IRTools.*;
 import static org.jikesrvm.compilers.opt.ir.Operators.ADDR_2INT;
 import static org.jikesrvm.compilers.opt.ir.Operators.ADDR_2LONG;
@@ -71,7 +71,6 @@ import static org.jikesrvm.compilers.opt.ir.Operators.UNSIGNED_REM_64_32;
 import static org.jikesrvm.compilers.opt.ir.Operators.USHORT_LOAD;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecificOpt.GenerateMachineSpecificMagic;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMField;
 import org.jikesrvm.classloader.MemberReference;
@@ -777,7 +776,11 @@ public class GenerateMagic implements TIBLayoutConstants  {
       bc2ir.push(new IntConstantOperand(isConstant ? 1 : 0));
     } else {
       // Wasn't machine-independent, so try the machine-dependent magics next.
-      return GenerateMachineSpecificMagic.generateMagic(bc2ir, gc, meth);
+      if (VM.BuildForIA32) {
+        return org.jikesrvm.compilers.opt.bc2ir.ia32.GenerateMachineSpecificMagic.generateMagic(bc2ir, gc, meth);
+      } else {
+        return org.jikesrvm.compilers.opt.bc2ir.ppc.GenerateMachineSpecificMagic.generateMagic(bc2ir, gc, meth);
+      }
     }
     return true;
   } // generateMagic

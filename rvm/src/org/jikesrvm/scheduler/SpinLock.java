@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.scheduler;
 
-import org.jikesrvm.Constants;
 import org.jikesrvm.VM;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Entrypoints;
 import org.vmmagic.unboxed.Address;

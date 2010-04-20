@@ -12,10 +12,8 @@
  */
 package org.jikesrvm.compilers.opt.runtimesupport.ppc;
 
-import org.jikesrvm.ArchitectureSpecific.Registers;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
-import org.jikesrvm.classloader.BytecodeConstants;
+import org.jikesrvm.architecture.AbstractRegisters;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.opt.runtimesupport.OptCompiledMethod;
 import org.jikesrvm.runtime.ExceptionDeliverer;
@@ -24,20 +22,21 @@ import org.vmmagic.pragma.Unpreemptible;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
 import org.vmmagic.unboxed.Word;
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_ADDRESS;
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_DOUBLE;
 
 /**
  * Handle exception delivery and stack unwinding for
  * opt compiled methods.
  */
-public abstract class OptExceptionDeliverer extends ExceptionDeliverer
-    implements Constants, BytecodeConstants {
+public final class OptExceptionDeliverer extends ExceptionDeliverer {
 
   /**
    * Pass control to a catch block.
    */
   @Unpreemptible("Deliver exception possibly from unpreemptible code")
   public void deliverException(CompiledMethod cm, Address catchBlockInstructionAddress, Throwable exceptionObject,
-                               Registers registers) {
+                               AbstractRegisters registers) {
 
     // store exception object for later retrieval by catch block
     OptCompiledMethod compiledMethod = (OptCompiledMethod) cm;
@@ -51,22 +50,22 @@ public abstract class OptExceptionDeliverer extends ExceptionDeliverer
     }
 
     // set address at which to resume executing frame
-    registers.ip = catchBlockInstructionAddress;
+    registers.setIP(catchBlockInstructionAddress);
     VM.enableGC(); // disabled right before Runtime.deliverException was called
 
-    if (VM.VerifyAssertions) VM._assert(registers.inuse);
-    registers.inuse = false;
+    if (VM.VerifyAssertions) VM._assert(registers.getInUse());
+    registers.setInUse(false);
 
     // "branches" to catchBlockInstructionAddress
     Magic.restoreHardwareExceptionState(registers);
-    if (VM.VerifyAssertions) VM._assert(NOT_REACHED);
+    if (VM.VerifyAssertions) VM._assert(VM.NOT_REACHED);
   }
 
   /**
    * Unwind a stackframe.
    */
   @Unpreemptible("Deliver exception possibly from unpreemptible code")
-  public void unwindStackFrame(CompiledMethod cm, Registers registers) {
+  public void unwindStackFrame(CompiledMethod cm, AbstractRegisters registers) {
     Address fp = registers.getInnermostFramePointer();
     OptCompiledMethod compiledMethod = (OptCompiledMethod) cm;
 
@@ -78,7 +77,7 @@ public abstract class OptExceptionDeliverer extends ExceptionDeliverer
         frameOffset = frameOffset.plus(7).toWord().and(Word.fromIntSignExtend(~7)).toOffset();
       }
       for (int i = firstInteger; i < 32; i++) {
-        registers.gprs.set(i, fp.loadWord(frameOffset));
+        registers.getGPRs().set(i, fp.loadWord(frameOffset));
         frameOffset = frameOffset.plus(BYTES_IN_ADDRESS);
       }
     }
@@ -87,7 +86,7 @@ public abstract class OptExceptionDeliverer extends ExceptionDeliverer
       frameOffset = frameOffset.plus(7).toWord().and(Word.fromIntSignExtend(~7)).toOffset();
       for (int i = firstFloat; i < 32; i++) {
         long temp = Magic.getLongAtOffset(Magic.addressAsObject(fp), frameOffset);
-        registers.fprs[i] = Magic.longBitsAsDouble(temp);
+        registers.getFPRs()[i] = Magic.longBitsAsDouble(temp);
         frameOffset = frameOffset.plus(BYTES_IN_DOUBLE);
       }
     }

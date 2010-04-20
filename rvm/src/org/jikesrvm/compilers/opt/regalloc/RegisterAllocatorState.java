@@ -13,7 +13,7 @@
 package org.jikesrvm.compilers.opt.regalloc;
 
 import java.util.Enumeration;
-import org.jikesrvm.ArchitectureSpecificOpt.PhysicalRegisterSet;
+import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Register;
 
@@ -29,7 +29,7 @@ public class RegisterAllocatorState {
    *  Resets the physical register info
    */
   static void resetPhysicalRegisters(IR ir) {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
     for (Enumeration<Register> e = phys.enumerateAll(); e.hasMoreElements();) {
       Register reg = e.nextElement();
       reg.deallocateRegister();

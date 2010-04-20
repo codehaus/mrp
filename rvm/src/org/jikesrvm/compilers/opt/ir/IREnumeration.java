@@ -12,9 +12,8 @@
  */
 package org.jikesrvm.compilers.opt.ir;
 
+import java.util.Enumeration;
 import java.util.Iterator;
-import org.jikesrvm.ArchitectureSpecificOpt;
-import org.jikesrvm.ArchitectureSpecificOpt.PhysicalDefUse;
 import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.ir.operand.HeapOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
@@ -326,7 +325,7 @@ public abstract class IREnumeration {
     /**
      * Implicit definitions from the operator
      */
-    private final ArchitectureSpecificOpt.PhysicalDefUse.PDUEnumeration implicitDefs;
+    private final Enumeration<Register> implicitDefs;
     /**
      * Defining instruction
      */
@@ -342,7 +341,7 @@ public abstract class IREnumeration {
       this.instr = instr;
       instructionOperands = instr.getDefs();
       if (instr.operator().getNumberOfImplicitDefs() > 0) {
-        implicitDefs = ArchitectureSpecificOpt.PhysicalDefUse.enumerate(instr.operator().implicitDefs, ir);
+        implicitDefs = GenericPhysicalDefUse.enumerate(instr.operator().implicitDefs, ir);
       } else {
         implicitDefs = null;
       }
@@ -418,7 +417,7 @@ public abstract class IREnumeration {
     /**
      * Implicit uses from the operator
      */
-    private final PhysicalDefUse.PDUEnumeration implicitUses;
+    private final Enumeration<Register> implicitUses;
     /**
      * Defining instruction
      */
@@ -434,7 +433,7 @@ public abstract class IREnumeration {
       this.instr = instr;
       instructionOperands = instr.getUses();
       if (instr.operator().getNumberOfImplicitUses() > 0) {
-        implicitUses = PhysicalDefUse.enumerate(instr.operator().implicitUses, ir);
+        implicitUses = GenericPhysicalDefUse.enumerate(instr.operator().implicitUses, ir);
       } else {
         implicitUses = null;
       }

@@ -15,56 +15,54 @@ package org.jikesrvm.compilers.opt.regalloc.ia32;
 import java.util.Enumeration;
 import java.util.Iterator;
 import org.jikesrvm.VM;
-import static org.jikesrvm.SizeConstants.*;
 import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.Empty;
-import org.jikesrvm.compilers.opt.ir.MIR_BinaryAcc;
-import org.jikesrvm.compilers.opt.ir.MIR_FSave;
-import org.jikesrvm.compilers.opt.ir.MIR_Lea;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.MIR_Nullary;
-import org.jikesrvm.compilers.opt.ir.MIR_TrapIf;
-import org.jikesrvm.compilers.opt.ir.MIR_UnaryNoRes;
+import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_BinaryAcc;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_FSave;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Lea;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Nullary;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_TrapIf;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryNoRes;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
 import org.jikesrvm.compilers.opt.ir.OperandEnumeration;
 import org.jikesrvm.compilers.opt.ir.Operator;
-import static org.jikesrvm.compilers.opt.ir.Operators.ADVISE_ESP;
+
+import static org.jikesrvm.architecture.SizeConstants.*;
 import static org.jikesrvm.compilers.opt.ir.Operators.BBEND;
-import static org.jikesrvm.compilers.opt.ir.Operators.CALL_SAVE_VOLATILE;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_ADD;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FCLEAR;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FMOV;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FMOV_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FNINIT;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FNSAVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FRSTOR;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_LEA;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOV;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVQ;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSD;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSD_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSS;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSS_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOV_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_POP;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_PUSH;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_RET_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_SYSCALL;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_TRAPIF;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.ADVISE_ESP;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ADD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FCLEAR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV_opcode;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FNINIT;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FNSAVE;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FRSTOR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_LEA;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVQ;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVSD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVSD_opcode;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVSS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVSS_opcode;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOV_opcode;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_POP;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_PUSH;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_RET_opcode;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SYSCALL;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_TRAPIF;
 import static org.jikesrvm.compilers.opt.ir.Operators.NOP;
-import static org.jikesrvm.compilers.opt.ir.Operators.REQUIRE_ESP;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.REQUIRE_ESP;
 import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_BACKEDGE;
 import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_EPILOGUE;
 import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_OSR;
 import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_PROLOGUE;
 import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.DOUBLE_REG;
-import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.DOUBLE_VALUE;
-import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.FLOAT_VALUE;
 import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.INT_REG;
-import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.INT_VALUE;
 
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalDefUse;
@@ -89,7 +87,7 @@ import org.vmmagic.unboxed.Offset;
  * functions.
  * <p>
  */
-public abstract class StackManager extends GenericStackManager {
+public final class StackManager extends GenericStackManager {
 
   /**
    * Type reference of word size
@@ -256,7 +254,7 @@ public abstract class StackManager extends GenericStackManager {
    * </ul>
    */
   public void computeNonVolatileArea() {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
 
     if (ir.compiledMethod.isSaveVolatile()) {
       // Record that we use every nonvolatile GPR
@@ -393,7 +391,7 @@ public abstract class StackManager extends GenericStackManager {
       return;
     }
 
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
     Register ESP = phys.getESP();
     MemoryOperand M =
         MemoryOperand.BD(ir.regpool.makeTROp(),
@@ -430,7 +428,7 @@ public abstract class StackManager extends GenericStackManager {
       return;
     }
 
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
     Register ESP = phys.getESP();
     Register ECX = phys.getECX();
 
@@ -470,7 +468,7 @@ public abstract class StackManager extends GenericStackManager {
    *    </ul>
    */
   public void insertNormalPrologue() {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
     Register ESP = phys.getESP();
     MemoryOperand fpHome =
         MemoryOperand.BD(ir.regpool.makeTROp(),
@@ -540,7 +538,7 @@ public abstract class StackManager extends GenericStackManager {
    * @param inst the first instruction after the prologue.
    */
   private void saveNonVolatiles(Instruction inst) {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
     int nNonvolatileGPRS = ir.compiledMethod.getNumberOfNonvolatileGPRs();
 
     // Save each non-volatile GPR used by this method.
@@ -560,7 +558,7 @@ public abstract class StackManager extends GenericStackManager {
    * @param inst the return instruction
    */
   private void restoreNonVolatiles(Instruction inst) {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
     int nNonvolatileGPRS = ir.compiledMethod.getNumberOfNonvolatileGPRs();
 
     int n = nNonvolatileGPRS - 1;
@@ -580,7 +578,7 @@ public abstract class StackManager extends GenericStackManager {
   private void saveFloatingPointState(Instruction inst) {
 
     if (ArchConstants.SSE2_FULL) {
-      PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
       for (int i=0; i < 8; i++) {
         inst.insertBefore(MIR_Move.create(IA32_MOVQ,
             new StackLocationOperand(true, -fsaveLocation + (i * BYTES_IN_DOUBLE), BYTES_IN_DOUBLE),
@@ -599,7 +597,7 @@ public abstract class StackManager extends GenericStackManager {
    */
   private void restoreFloatingPointState(Instruction inst) {
     if (ArchConstants.SSE2_FULL) {
-      PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
       for (int i=0; i < 8; i++) {
         inst.insertBefore(MIR_Move.create(IA32_MOVQ,
             new RegisterOperand(phys.getFPR(i), TypeReference.Double),
@@ -618,7 +616,7 @@ public abstract class StackManager extends GenericStackManager {
    * @param inst the first instruction after the prologue.
    */
   private void saveVolatiles(Instruction inst) {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
 
     // Save each GPR.
     int i = 0;
@@ -637,7 +635,7 @@ public abstract class StackManager extends GenericStackManager {
    * @param inst the return instruction
    */
   private void restoreVolatileRegisters(Instruction inst) {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
 
     // Restore every GPR
     int i = 0;
@@ -790,7 +788,7 @@ public abstract class StackManager extends GenericStackManager {
    * particular offset from its usual location.
    */
   private void moveESPBefore(Instruction s, int desiredOffset) {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
     Register ESP = phys.getESP();
     int delta = desiredOffset - ESPOffset;
     if (delta != 0) {
@@ -875,7 +873,7 @@ public abstract class StackManager extends GenericStackManager {
   private void rewriteStackLocations() {
     // ESP is initially WORDSIZE above where the framepointer is going to be.
     ESPOffset = getFrameFixedSize() + WORDSIZE;
-    Register ESP = ir.regpool.getPhysicalRegisterSet().getESP();
+    Register ESP = ((PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet()).getESP();
 
     boolean seenReturn = false;
     for (InstructionEnumeration e = ir.forwardInstrEnumerator(); e.hasMoreElements();) {
@@ -1008,7 +1006,7 @@ public abstract class StackManager extends GenericStackManager {
       boolean removed = false;
       boolean unloaded = false;
       if (definedIn(scratch.scratch, s) ||
-          (s.isCall() && s.operator != CALL_SAVE_VOLATILE && scratch.scratch.isVolatile()) ||
+          (s.isCall() && !s.operator.isCallSaveVolatile() && scratch.scratch.isVolatile()) ||
           (s.operator == IA32_FNINIT && scratch.scratch.isFloatingPoint()) ||
           (s.operator == IA32_FCLEAR && scratch.scratch.isFloatingPoint())) {
         // s defines the scratch register, so save its contents before they
@@ -1081,7 +1079,7 @@ public abstract class StackManager extends GenericStackManager {
    * allocation.
    */
   public void initForArch(IR ir) {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
 
     // We reserve the last (bottom) slot in the FPR stack as a scratch register.
     // This allows us to do one push/pop sequence in order to use the

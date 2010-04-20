@@ -12,17 +12,17 @@
  */
 package org.jikesrvm.compilers.opt.regalloc.ppc;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.DefUse;
 import org.jikesrvm.compilers.opt.ir.Call;
+import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.Load;
-import org.jikesrvm.compilers.opt.ir.MIR_Call;
-import org.jikesrvm.compilers.opt.ir.MIR_Load;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.MIR_Return;
-import org.jikesrvm.compilers.opt.ir.MIR_Store;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Call;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Load;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Return;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Store;
 import org.jikesrvm.compilers.opt.ir.Move;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.IRTools;
@@ -34,18 +34,18 @@ import static org.jikesrvm.compilers.opt.ir.Operators.INT_MOVE;
 import static org.jikesrvm.compilers.opt.ir.Operators.INT_STORE;
 import static org.jikesrvm.compilers.opt.ir.Operators.IR_PROLOGUE;
 import static org.jikesrvm.compilers.opt.ir.Operators.LONG_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_FMR;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LAddr;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LFD;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LFS;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LInt;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_STAddr;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_STFD;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_STFS;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_STW;
-import static org.jikesrvm.compilers.opt.ir.Operators.REF_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.REF_STORE;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_FMR;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_LAddr;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_LFD;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_LFS;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_LInt;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_MOVE;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_STAddr;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_STFD;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_STFS;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_STW;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.REF_LOAD;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.REF_STORE;
 import static org.jikesrvm.compilers.opt.ir.Operators.SYSCALL;
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.Prologue;
@@ -69,6 +69,7 @@ import static org.jikesrvm.compilers.opt.regalloc.ppc.PhysicalRegisterConstants.
 import static org.jikesrvm.compilers.opt.regalloc.ppc.PhysicalRegisterConstants.NUMBER_INT_PARAM;
 import static org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_HEADER_SIZE;
 import static org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_METHOD_ID_OFFSET;
+import org.jikesrvm.ppc.ArchConstants;
 import org.vmmagic.unboxed.Offset;
 
 /**
@@ -171,14 +172,13 @@ public abstract class CallingConvention extends IRTools {
     // we are restoring the methodID after a sysCall.
     Instruction s2 =
         Store.create(REF_STORE,
-                     ir.regpool.makeJTOCOp(ir, s),
+                     ir.regpool.makeJTOCOp(),
                      ir.regpool.makeFPOp(),
                      AC(Offset.fromIntSignExtend(5 * BYTES_IN_ADDRESS)),
                      null);         // TODO: valid location?
     s.insertBefore(s2);
     if (VM.BuildForPowerOpenABI) {
-      s2 =
-          Load.create(REF_LOAD, ir.regpool.makeJTOCOp(ir, s), ip, AC(Offset.fromIntZeroExtend(BYTES_IN_ADDRESS)), null);
+	s2 = Load.create(REF_LOAD, (RegisterOperand)ir.regpool.makeJTOCOp(), ip, AC(Offset.fromIntZeroExtend(BYTES_IN_ADDRESS)), null);
       s.insertBefore(s2);
       RegisterOperand iptmp = ir.regpool.makeTempAddress();
       s2 = Load.create(REF_LOAD, iptmp, ip, AC(Offset.zero()), null);
@@ -186,12 +186,11 @@ public abstract class CallingConvention extends IRTools {
       ip = iptmp;
     }
     Call.mutate0(s, SYSCALL, Call.getClearResult(s), ip, null);
-    s2 =
-        Load.create(REF_LOAD,
-                    ir.regpool.makeJTOCOp(ir, s),
-                    ir.regpool.makeFPOp(),
-                    AC(Offset.fromIntSignExtend(5 * BYTES_IN_ADDRESS)),
-                    null);         // TODO: valid location?
+    s2 = Load.create(REF_LOAD,
+		     (RegisterOperand)ir.regpool.makeJTOCOp(),
+                     ir.regpool.makeFPOp(),
+                     AC(Offset.fromIntSignExtend(5 * BYTES_IN_ADDRESS)),
+                     null);         // TODO: valid location?
     s.insertAfter(s2);
     RegisterOperand temp = ir.regpool.makeTempInt();
     s2 = Move.create(INT_MOVE, temp, IC(ir.compiledMethod.getId()));
@@ -199,7 +198,7 @@ public abstract class CallingConvention extends IRTools {
         Store.create(INT_STORE,
                      temp.copy(),
                      ir.regpool.makeFPOp(),
-                     AC(Offset.fromIntSignExtend(STACKFRAME_METHOD_ID_OFFSET)),
+                     AC(STACKFRAME_METHOD_ID_OFFSET),
                      null);  // TODO: valid location?
     s.insertAfter(s3);
     s.insertAfter(s2);
@@ -227,8 +226,8 @@ public abstract class CallingConvention extends IRTools {
     int int_index = 0;
     int double_index = 0;
     int spilledArgumentCounter =
-        (-256 - ArchitectureSpecific.ArchConstants.STACKFRAME_HEADER_SIZE) >> LOG_BYTES_IN_ADDRESS;
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+        (-256 - ArchConstants.STACKFRAME_HEADER_SIZE) >> LOG_BYTES_IN_ADDRESS;
+    GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
     Register FP = phys.getFP();
     for (OperandEnumeration symParams = prologueInstr.getDefs(); symParams.hasMoreElements();) {
       RegisterOperand symParamOp = (RegisterOperand) symParams.next();
@@ -240,7 +239,7 @@ public abstract class CallingConvention extends IRTools {
         // Why? TODO: figure this out and remove the 'true' case below
         if (true || !useDU || symParam.useList != null) {
           if (double_index < NUMBER_DOUBLE_PARAM) {
-            Register param = phys.get(FIRST_DOUBLE_PARAM + (double_index));
+            Register param = phys.get(FIRST_DOUBLE_PARAM.value() + (double_index));
             start.insertBefore(MIR_Move.create(PPC_FMR, F(symParam), F(param)));
           } else {                  // spilled parameter
             start.insertBefore(MIR_Load.create(PPC_LFS,
@@ -258,7 +257,7 @@ public abstract class CallingConvention extends IRTools {
         // Why? TODO: figure this out and remove the 'true' case below
         if (true || !useDU || symParam.useList != null) {
           if (double_index < NUMBER_DOUBLE_PARAM) {
-            Register param = phys.get(FIRST_DOUBLE_PARAM + (double_index));
+            Register param = phys.get(FIRST_DOUBLE_PARAM.value() + (double_index));
             start.insertBefore(MIR_Move.create(PPC_FMR, D(symParam), D(param)));
           } else {                  // spilled parameter
             start.insertBefore(MIR_Load.create(PPC_LFD,
@@ -275,7 +274,7 @@ public abstract class CallingConvention extends IRTools {
         // Why? TODO: figure this out and remove the 'true' case below
         if (true || !useDU || symParam.useList != null) {
           if (int_index < NUMBER_INT_PARAM) {
-            Register param = phys.get(FIRST_INT_PARAM + (int_index));
+            Register param = phys.get(FIRST_INT_PARAM.value() + (int_index));
             start.insertBefore(MIR_Move.create(PPC_MOVE, new RegisterOperand(symParam, t), A(param)));
           } else {                  // spilled parameter
             if (VM
@@ -319,7 +318,7 @@ public abstract class CallingConvention extends IRTools {
     int int_index = 0;          // points to the first integer volatile
     int double_index = 0;       // poinst to the first f.p.    volatile
     int callSpillLoc = STACKFRAME_HEADER_SIZE;
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
     Instruction prev = s.prevInstructionInCodeOrder();
     Register FP = phys.getFP();
     boolean isSysCall = ir.stackManager.isSysCall(s);
@@ -333,7 +332,7 @@ public abstract class CallingConvention extends IRTools {
       Register reg = Reg.getRegister();
       if (Reg.getType().isFloatType()) {
         if (double_index < NUMBER_DOUBLE_PARAM) {       // register copy
-          Register real = phys.get(FIRST_DOUBLE_PARAM + (double_index++));
+          Register real = phys.get(FIRST_DOUBLE_PARAM.value() + (double_index++));
           s.insertBefore(MIR_Move.create(PPC_FMR, F(real), Reg));
           Reg = F(real);
           // Record that the call now has a use of the real reg
@@ -348,7 +347,7 @@ public abstract class CallingConvention extends IRTools {
         }
       } else if (Reg.getType().isDoubleType()) {
         if (double_index < NUMBER_DOUBLE_PARAM) {     // register copy
-          Register real = phys.get(FIRST_DOUBLE_PARAM + (double_index++));
+          Register real = phys.get(FIRST_DOUBLE_PARAM.value() + (double_index++));
           s.insertBefore(MIR_Move.create(PPC_FMR, D(real), Reg));
           Reg = D(real);
           // Record that the call now has a use of the real reg
@@ -370,14 +369,14 @@ public abstract class CallingConvention extends IRTools {
             if (firstLongHalf) {
               firstLongHalf = false;
             } else {
-              int true_index = FIRST_INT_PARAM + int_index;
+              int true_index = FIRST_INT_PARAM.value() + int_index;
               int_index += (true_index + 1) & 0x01; // if gpr is even, gpr += 1
               firstLongHalf = true;
             }
           }
         }
         if (int_index < NUMBER_INT_PARAM) {             // register copy
-          Register real = phys.get(FIRST_INT_PARAM + (int_index++));
+          Register real = phys.get(FIRST_INT_PARAM.value() + (int_index++));
           RegisterOperand Real = new RegisterOperand(real, Reg.getType());
           s.insertBefore(MIR_Move.create(PPC_MOVE, Real, Reg));
           Reg = new RegisterOperand(real, Reg.getType());
@@ -420,7 +419,7 @@ public abstract class CallingConvention extends IRTools {
     if (MIR_Call.hasResult2(s)) {
       if (VM.VerifyAssertions) VM._assert(VM.BuildFor32Addr);
       RegisterOperand result2 = MIR_Call.getClearResult2(s);
-      RegisterOperand physical = new RegisterOperand(phys.get(FIRST_INT_RETURN + 1), result2.getType());
+      RegisterOperand physical = new RegisterOperand(phys.get(FIRST_INT_RETURN.value() + 1), result2.getType());
       Instruction tmp = MIR_Move.create(PPC_MOVE, result2, physical);
       lastCallSeqInstr.insertAfter(tmp);
       lastCallSeqInstr = tmp;
@@ -429,13 +428,13 @@ public abstract class CallingConvention extends IRTools {
     if (MIR_Call.hasResult(s)) {
       RegisterOperand result1 = MIR_Call.getClearResult(s);
       if (result1.getType().isFloatType() || result1.getType().isDoubleType()) {
-        RegisterOperand physical = new RegisterOperand(phys.get(FIRST_DOUBLE_RETURN), result1.getType());
+        RegisterOperand physical = new RegisterOperand(phys.get(FIRST_DOUBLE_RETURN.value()), result1.getType());
         Instruction tmp = MIR_Move.create(PPC_FMR, result1, physical);
         lastCallSeqInstr.insertAfter(tmp);
         lastCallSeqInstr = tmp;
         MIR_Call.setResult(s, null);
       } else {
-        RegisterOperand physical = new RegisterOperand(phys.get(FIRST_INT_RETURN), result1.getType());
+        RegisterOperand physical = new RegisterOperand(phys.get(FIRST_INT_RETURN.value()), result1.getType());
         Instruction tmp = MIR_Move.create(PPC_MOVE, result1, physical);
         lastCallSeqInstr.insertAfter(tmp);
         lastCallSeqInstr = tmp;
@@ -450,15 +449,15 @@ public abstract class CallingConvention extends IRTools {
    * @param ir the ir
    */
   private static void returnExpand(Instruction s, IR ir) {
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
     if (MIR_Return.hasVal(s)) {
       RegisterOperand symb1 = MIR_Return.getClearVal(s);
       RegisterOperand phys1;
       if (symb1.getType().isFloatType() || symb1.getType().isDoubleType()) {
-        phys1 = D(phys.get(FIRST_DOUBLE_RETURN));
+        phys1 = D(phys.get(FIRST_DOUBLE_RETURN.value()));
         s.insertBefore(MIR_Move.create(PPC_FMR, phys1, symb1));
       } else {
-        phys1 = new RegisterOperand(phys.get(FIRST_INT_RETURN), symb1.getType());
+        phys1 = new RegisterOperand(phys.get(FIRST_INT_RETURN.value()), symb1.getType());
         s.insertBefore(MIR_Move.create(PPC_MOVE, phys1, symb1));
       }
       MIR_Return.setVal(s, phys1.copyD2U());
@@ -466,7 +465,7 @@ public abstract class CallingConvention extends IRTools {
     if (MIR_Return.hasVal2(s)) {
       if (VM.VerifyAssertions) VM._assert(VM.BuildFor32Addr);
       RegisterOperand symb2 = MIR_Return.getClearVal2(s);
-      RegisterOperand phys2 = I(phys.get(FIRST_INT_RETURN + 1));
+      RegisterOperand phys2 = I(phys.get(FIRST_INT_RETURN.value() + 1));
       s.insertBefore(MIR_Move.create(PPC_MOVE, phys2, symb2));
       MIR_Return.setVal2(s, phys2.copyD2U());
     }

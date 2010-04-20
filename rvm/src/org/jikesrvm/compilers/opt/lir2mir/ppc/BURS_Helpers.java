@@ -23,18 +23,18 @@ import org.jikesrvm.compilers.opt.ir.Call;
 import org.jikesrvm.compilers.opt.ir.IfCmp;
 import org.jikesrvm.compilers.opt.ir.IfCmp2;
 import org.jikesrvm.compilers.opt.ir.LowTableSwitch;
-import org.jikesrvm.compilers.opt.ir.MIR_Binary;
-import org.jikesrvm.compilers.opt.ir.MIR_Call;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch2;
-import org.jikesrvm.compilers.opt.ir.MIR_Load;
-import org.jikesrvm.compilers.opt.ir.MIR_LowTableSwitch;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.MIR_Return;
-import org.jikesrvm.compilers.opt.ir.MIR_RotateAndMask;
-import org.jikesrvm.compilers.opt.ir.MIR_Store;
-import org.jikesrvm.compilers.opt.ir.MIR_Trap;
-import org.jikesrvm.compilers.opt.ir.MIR_Unary;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Binary;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Call;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Load;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_LowTableSwitch;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Return;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_RotateAndMask;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Store;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Trap;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Unary;
 import org.jikesrvm.compilers.opt.ir.Nullary;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.Operator;
@@ -61,6 +61,8 @@ import org.jikesrvm.compilers.opt.ir.operand.TrapCodeOperand;
 import org.jikesrvm.compilers.opt.ir.operand.TrueGuardOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ppc.PowerPCConditionOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ppc.PowerPCTrapOperand;
+import org.jikesrvm.compilers.opt.ir.IRTools;
+import org.jikesrvm.compilers.opt.ir.ppc.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.lir2mir.BURS;
 import org.jikesrvm.compilers.opt.lir2mir.BURS_Common_Helpers;
 import org.jikesrvm.compilers.opt.regalloc.ppc.PhysicalRegisterConstants;
@@ -72,55 +74,59 @@ import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
 import org.vmmagic.unboxed.Word;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.*;
+import static org.jikesrvm.compilers.opt.regalloc.ppc.PhysicalRegisterConstants.*;
+import static org.jikesrvm.compilers.opt.ir.IRTools.*;
+
 /**
  * Contains architecture-specific helper functions for BURS.
  */
-abstract class BURS_Helpers extends BURS_Common_Helpers
-    implements Operators, PhysicalRegisterConstants {
+public abstract class BURS_Helpers extends BURS_Common_Helpers {
 
-  BURS_Helpers(BURS burs) {
+  public BURS_Helpers(BURS burs) {
     super(burs);
   }
 
   /**
    * returns true if a signed integer in 16 bits
    */
-  protected final boolean SI16(Address value) {
+  protected static boolean SI16(Address value) {
     return (value.LE(Address.fromIntSignExtend(32767)) || value.GE(Address.fromIntSignExtend(-32768)));
   }
 
   /**
    * returns true if a signed integer in 16 bits
    */
-  protected final boolean SI16(int value) {
+  protected static boolean SI16(int value) {
     return (value <= 32767) && (value >= -32768);
   }
 
   /**
    * returns true if a signed integer in 32 bits
    */
-  protected final boolean SI32(long value) {
+  protected static boolean SI32(long value) {
     return (value <= 0x7FFFFFFFL) && (value >= 0xFFFFFFFF80000000L);
   }
 
   /**
    * returns true if lower 16-bits are zero
    */
-  protected final boolean U16(int value) {
+  protected static boolean U16(int value) {
     return (value & 0xffff) == 0;
   }
 
   /**
    * returns true if lower 16-bits are zero
    */
-  protected final boolean U16(Address a) {
+  protected static boolean U16(Address a) {
     return a.toWord().and(Word.fromIntZeroExtend(0xffff)).isZero();
   }
 
   /**
    * returns true if the constant fits the mask of PowerPC's RLWINM
    */
-  protected final boolean MASK(int value) {
+  protected static boolean MASK(int value) {
     if (value < 0) {
       value = ~value;
     }
@@ -130,7 +136,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   /**
    * returns true if the constant fits the mask of PowerPC's RLWINM
    */
-  protected final boolean POSITIVE_MASK(int value) {
+  protected static boolean POSITIVE_MASK(int value) {
     if (value == 0) {
       return false;
     }
@@ -149,8 +155,23 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
     return true;
   }
 
-  protected final boolean MASK_AND_OR(int and, int or) {
+  protected static boolean MASK_AND_OR(int and, int or) {
     return ((~and & or) == or) && MASK(and);
+  }
+
+  /**
+   * Create a condition register operand for a given register number.
+   * To be used in passthrough expressions like
+   * <pre>
+   *    ... Binary.create(INT_CMP, CR(2), I(1), IC(4)) ...
+   * </pre>
+   *
+   * @param regnum the given condition register number
+   * @return condition register operand
+   */
+  protected final RegisterOperand CR(int regnum) {
+    PhysicalRegisterSet phys = getIR().regpool.getPhysicalRegisterSet().asPPC();
+    return CR(phys.getConditionRegister(regnum));
   }
 
   /**
@@ -215,32 +236,32 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
 
   // access functions
   protected final Register getXER() {
-    return getIR().regpool.getPhysicalRegisterSet().getXER();
+    return getIR().regpool.getPhysicalRegisterSet().asPPC().getXER();
   }
 
   protected final Register getLR() {
-    return getIR().regpool.getPhysicalRegisterSet().getLR();
+    return getIR().regpool.getPhysicalRegisterSet().asPPC().getLR();
   }
 
   protected final Register getCTR() {
-    return getIR().regpool.getPhysicalRegisterSet().getCTR();
+    return getIR().regpool.getPhysicalRegisterSet().asPPC().getCTR();
   }
 
   protected final Register getTU() {
-    return getIR().regpool.getPhysicalRegisterSet().getTU();
+    return getIR().regpool.getPhysicalRegisterSet().asPPC().getTU();
   }
 
   protected final Register getTL() {
-    return getIR().regpool.getPhysicalRegisterSet().getTL();
+    return getIR().regpool.getPhysicalRegisterSet().asPPC().getTL();
   }
 
   protected final Register getCR() {
-    return getIR().regpool.getPhysicalRegisterSet().getCR();
+    return getIR().regpool.getPhysicalRegisterSet().asPPC().getCR();
   }
 
   /* RVM registers */
   protected final Register getJTOC() {
-    return getIR().regpool.getPhysicalRegisterSet().getJTOC();
+    return getIR().regpool.getPhysicalRegisterSet().asPPC().getJTOC();
   }
 
   /**
@@ -250,7 +271,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
    * @param field
    */
   private void emitLFtoc(Operator operator, Register RT, RVMField field) {
-    Register JTOC = regpool.getPhysicalRegisterSet().getJTOC();
+    Register JTOC = regpool.getPhysicalRegisterSet().asPPC().getJTOC();
     Offset offset = field.getOffset();
     int valueLow = Bits.PPCMaskLower16(offset);
     Instruction s;
@@ -290,7 +311,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   protected final void GET_EXCEPTION_OBJECT(Instruction s) {
     burs.ir.stackManager.forceFrameAllocation();
     int offset = burs.ir.stackManager.allocateSpaceForCaughtException();
-    Register FP = regpool.getPhysicalRegisterSet().getFP();
+    Register FP = regpool.getPhysicalRegisterSet().asPPC().getFP();
     LocationOperand loc = new LocationOperand(-offset);
     EMIT(MIR_Load.mutate(s, PPC_LAddr, Nullary.getClearResult(s), A(FP), IC(offset), loc, TG()));
   }
@@ -302,7 +323,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   protected final void SET_EXCEPTION_OBJECT(Instruction s) {
     burs.ir.stackManager.forceFrameAllocation();
     int offset = burs.ir.stackManager.allocateSpaceForCaughtException();
-    Register FP = regpool.getPhysicalRegisterSet().getFP();
+    Register FP = regpool.getPhysicalRegisterSet().asPPC().getFP();
     LocationOperand loc = new LocationOperand(-offset);
     RegisterOperand obj = (RegisterOperand) CacheOp.getRef(s);
     EMIT(MIR_Store.mutate(s, PPC_STAddr, obj, A(FP), IC(offset), loc, TG()));
@@ -316,7 +337,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
    */
   protected final void FPR2GPR_32(Instruction s) {
     int offset = burs.ir.stackManager.allocateSpaceForConversion();
-    Register FP = regpool.getPhysicalRegisterSet().getFP();
+    Register FP = regpool.getPhysicalRegisterSet().asPPC().getFP();
     RegisterOperand val = (RegisterOperand) Unary.getClearVal(s);
     EMIT(MIR_Store.create(PPC_STFS, val, A(FP), IC(offset), null, TG()));
     EMIT(MIR_Load.mutate(s, PPC_LWZ, Unary.getClearResult(s), A(FP), IC(offset), null, TG()));
@@ -330,7 +351,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
    */
   protected final void GPR2FPR_32(Instruction s) {
     int offset = burs.ir.stackManager.allocateSpaceForConversion();
-    Register FP = regpool.getPhysicalRegisterSet().getFP();
+    Register FP = regpool.getPhysicalRegisterSet().asPPC().getFP();
     RegisterOperand val = (RegisterOperand) Unary.getClearVal(s);
     EMIT(MIR_Store.create(PPC_STW, val, A(FP), IC(offset), null, TG()));
     EMIT(MIR_Load.mutate(s, PPC_LFS, Unary.getClearResult(s), A(FP), IC(offset), null, TG()));
@@ -344,7 +365,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
    */
   protected final void FPR2GPR_64(Instruction s) {
     int offset = burs.ir.stackManager.allocateSpaceForConversion();
-    Register FP = regpool.getPhysicalRegisterSet().getFP();
+    Register FP = regpool.getPhysicalRegisterSet().asPPC().getFP();
     RegisterOperand val = (RegisterOperand) Unary.getClearVal(s);
     EMIT(MIR_Store.create(PPC_STFD, val, A(FP), IC(offset), null, TG()));
     RegisterOperand i1 = Unary.getClearResult(s);
@@ -365,7 +386,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
    */
   protected final void GPR2FPR_64(Instruction s) {
     int offset = burs.ir.stackManager.allocateSpaceForConversion();
-    Register FP = regpool.getPhysicalRegisterSet().getFP();
+    Register FP = regpool.getPhysicalRegisterSet().asPPC().getFP();
     RegisterOperand i1 = (RegisterOperand) Unary.getClearVal(s);
     EMIT(MIR_Store.create(PPC_STAddr, i1, A(FP), IC(offset), null, TG()));
     if (VM.BuildFor32Addr) {
@@ -434,7 +455,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
     Operator callOp;
     if (target instanceof RegisterOperand) {
       // indirect call through target (contains code addr)
-      Register ctr = regpool.getPhysicalRegisterSet().getCTR();
+      Register ctr = regpool.getPhysicalRegisterSet().asPPC().getCTR();
       EMIT(MIR_Move.create(PPC_MTSPR, A(ctr), (RegisterOperand) target));
       target = null;
       callOp = PPC_BCTRL;
@@ -501,7 +522,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
     Operator callOp;
     if (target instanceof RegisterOperand) {
       // indirect call through target (contains code addr)
-      Register ctr = regpool.getPhysicalRegisterSet().getCTR();
+      Register ctr = regpool.getPhysicalRegisterSet().asPPC().getCTR();
       EMIT(MIR_Move.create(PPC_MTSPR, A(ctr), (RegisterOperand) target));
       target = null;
       callOp = PPC_BCTRL_SYS;
@@ -718,7 +739,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
                                 ConditionOperand cond) {
     if (VM.VerifyAssertions) VM._assert(!cond.isUNSIGNED());
     if (!def.getRegister().spansBasicBlock()) {
-      def.setRegister(regpool.getPhysicalRegisterSet().getTemp());
+      def.setRegister(regpool.getPhysicalRegisterSet().asPPC().getTemp());
     }
     EMIT(MIR_Unary.create(op, def, left));
     EMIT(MIR_CondBranch.mutate(s,
@@ -733,7 +754,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
                                 Operand right, ConditionOperand cond) {
     if (VM.VerifyAssertions) VM._assert(!cond.isUNSIGNED());
     if (!def.getRegister().spansBasicBlock()) {
-      def.setRegister(regpool.getPhysicalRegisterSet().getTemp());
+      def.setRegister(regpool.getPhysicalRegisterSet().asPPC().getTemp());
     }
     EMIT(MIR_Binary.create(op, def, left, right));
     EMIT(MIR_CondBranch.mutate(s,
@@ -838,7 +859,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   protected final void BOOLEAN_CMP_INT_IMM(RegisterOperand def, ConditionOperand cmp, RegisterOperand one,
                                            IntConstantOperand two) {
     Register t1, t = regpool.getInteger();
-    Register zero = regpool.getPhysicalRegisterSet().getTemp();
+    Register zero = regpool.getPhysicalRegisterSet().asPPC().getTemp();
     int value = two.value;
     switch (cmp.value) {
       case ConditionOperand.EQUAL:
@@ -1039,7 +1060,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   protected final void BOOLEAN_CMP_ADDR_IMM(RegisterOperand def, ConditionOperand cmp, RegisterOperand one,
                                             IntConstantOperand two) {
     Register t1, t = regpool.getAddress();
-    Register zero = regpool.getPhysicalRegisterSet().getTemp();
+    Register zero = regpool.getPhysicalRegisterSet().asPPC().getTemp();
     int value = two.value;
     switch (cmp.value) {
       case ConditionOperand.EQUAL:
@@ -1182,7 +1203,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
       break;
       case ConditionOperand.LESS_EQUAL: {
         t1 = regpool.getInteger();
-        zero = regpool.getPhysicalRegisterSet().getTemp();
+        zero = regpool.getPhysicalRegisterSet().asPPC().getTemp();
         EMIT(MIR_Binary.create(PPC_SRWI, I(t), one, IC(BITS_IN_INT - 1)));
         EMIT(MIR_Binary.create(PPC_SRAWI, I(t1), two, IC(BITS_IN_INT - 1)));
         if (VM.BuildFor64Addr) {
@@ -1199,7 +1220,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
       break;
       case ConditionOperand.GREATER_EQUAL: {
         t1 = regpool.getInteger();
-        zero = regpool.getPhysicalRegisterSet().getTemp();
+        zero = regpool.getPhysicalRegisterSet().asPPC().getTemp();
         EMIT(MIR_Binary.create(PPC_SRWI, I(t), two, IC(BITS_IN_INT - 1)));
         EMIT(MIR_Binary.create(PPC_SRAWI, I(t1), one, IC(BITS_IN_INT - 1)));
         if (VM.BuildFor64Addr) {
@@ -1238,7 +1259,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
       break;
       case ConditionOperand.LESS_EQUAL: {
         t1 = regpool.getInteger();
-        zero = regpool.getPhysicalRegisterSet().getTemp();
+        zero = regpool.getPhysicalRegisterSet().asPPC().getTemp();
         EMIT(MIR_Binary.create(PPC_SRAddrI, I(t), one, IC(BITS_IN_ADDRESS - 1)));
         EMIT(MIR_Binary.create(PPC_SRAAddrI, I(t1), two, IC(BITS_IN_ADDRESS - 1)));
         EMIT(MIR_Binary.create(PPC_SUBFC, A(zero), one.copyRO(), two.copyRO()));
@@ -1247,7 +1268,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
       break;
       case ConditionOperand.GREATER_EQUAL: {
         t1 = regpool.getInteger();
-        zero = regpool.getPhysicalRegisterSet().getTemp();
+        zero = regpool.getPhysicalRegisterSet().asPPC().getTemp();
         EMIT(MIR_Binary.create(PPC_SRAddrI, I(t), two, IC(BITS_IN_ADDRESS - 1)));
         EMIT(MIR_Binary.create(PPC_SRAAddrI, I(t1), one, IC(BITS_IN_ADDRESS - 1)));
         EMIT(MIR_Binary.create(PPC_SUBFC, A(zero), two.copyRO(), one.copyRO()));
@@ -1344,7 +1365,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   protected final void INT_2DOUBLE(Instruction s, RegisterOperand def, RegisterOperand left) {
     Register res = def.getRegister();
     Register src = left.getRegister();
-    Register FP = regpool.getPhysicalRegisterSet().getFP();
+    Register FP = regpool.getPhysicalRegisterSet().asPPC().getFP();
     RegisterOperand temp = regpool.makeTempInt();
     int p = burs.ir.stackManager.allocateSpaceForConversion();
     EMIT(MIR_Unary.mutate(s, PPC_LDIS, temp, IC(0x4330)));
@@ -1645,7 +1666,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   }
 
   // LONG_DIV and LONG_REM are handled by system calls in 32-bit version
-  void LONG_DIV_IMM(Instruction s, RegisterOperand def, RegisterOperand left, RegisterOperand c,
+  protected void LONG_DIV_IMM(Instruction s, RegisterOperand def, RegisterOperand left, RegisterOperand c,
                     IntConstantOperand right) {
     if (VM.VerifyAssertions) VM._assert(VM.BuildFor64Addr);
     int power = PowerOf2(right.value);
@@ -1658,7 +1679,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
     }
   }
 
-  void LONG_REM(Instruction s, RegisterOperand def, RegisterOperand left, RegisterOperand right) {
+  protected void LONG_REM(Instruction s, RegisterOperand def, RegisterOperand left, RegisterOperand right) {
     if (VM.VerifyAssertions) VM._assert(VM.BuildFor64Addr);
     Register temp = regpool.getLong();
     EMIT(MIR_Binary.mutate(s, PPC64_DIVD, L(temp), left, right));
@@ -1666,7 +1687,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
     EMIT(MIR_Binary.create(PPC_SUBF, def, L(temp), left.copyU2U()));
   }
 
-  void LONG_REM_IMM(Instruction s, RegisterOperand def, RegisterOperand left, RegisterOperand c,
+  protected void LONG_REM_IMM(Instruction s, RegisterOperand def, RegisterOperand left, RegisterOperand c,
                     IntConstantOperand right) {
     if (VM.VerifyAssertions) VM._assert(VM.BuildFor64Addr);
     Register temp = regpool.getLong();
@@ -2021,7 +2042,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   private void mutateTrapToCall(Instruction s, RVMMethod target) {
     Offset offset = target.getOffset();
     RegisterOperand tmp = regpool.makeTemp(TypeReference.JavaLangObjectArray);
-    Register JTOC = regpool.getPhysicalRegisterSet().getJTOC();
+    Register JTOC = regpool.getPhysicalRegisterSet().asPPC().getJTOC();
     MethodOperand meth = MethodOperand.STATIC(target);
     meth.setIsNonReturningCall(true);
     int valueLow = Bits.PPCMaskLower16(offset);
@@ -2039,7 +2060,7 @@ abstract class BURS_Helpers extends BURS_Common_Helpers
   }
 
   /* special case handling OSR instructions */
-  void OSR(BURS burs, Instruction s) {
+  protected void OSR(BURS burs, Instruction s) {
     if (VM.VerifyAssertions) VM._assert(OsrPoint.conforms(s));
 
     // 1. how many params

@@ -13,9 +13,9 @@
 package org.jikesrvm.classloader;
 
 import static org.jikesrvm.mm.mminterface.Barriers.*;
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
+import org.jikesrvm.architecture.ArchConstants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.mm.mminterface.Barriers;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.objectmodel.ObjectModel;
@@ -188,7 +188,7 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
    */
   private int computeLogElementSize() {
     if (elementType.getTypeRef().equals(TypeReference.Code)) {
-      return ArchitectureSpecific.ArchConstants.LG_INSTRUCTION_WIDTH;
+      return ArchConstants.getLogInstructionWidth();
     }
     switch (getDescriptor().parseForArrayElementTypeCode()) {
       case ClassTypeCode:

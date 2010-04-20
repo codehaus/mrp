@@ -17,7 +17,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.jikesrvm.ArchitectureSpecificOpt.RegisterPool;
+import org.jikesrvm.VM;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.RVMType;
@@ -37,6 +37,7 @@ import org.jikesrvm.compilers.opt.ir.ControlFlowGraph;
 import org.jikesrvm.compilers.opt.ir.Empty;
 import org.jikesrvm.compilers.opt.ir.ExceptionHandlerBasicBlock;
 import org.jikesrvm.compilers.opt.ir.ExceptionHandlerBasicBlockBag;
+import org.jikesrvm.compilers.opt.ir.GenericRegisterPool;
 import org.jikesrvm.compilers.opt.ir.IRTools;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.MonitorOp;
@@ -58,12 +59,15 @@ import org.jikesrvm.runtime.Entrypoints;
 import org.jikesrvm.runtime.Statics;
 import org.vmmagic.unboxed.Offset;
 
+import static org.jikesrvm.compilers.opt.driver.OptConstants.*;
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
 /**
  * Defines the context in which BC2IR will abstractly interpret
  * a method's bytecodes and populate targetIR with instructions.
  *
  **/
-public final class GenerationContext implements org.jikesrvm.compilers.opt.driver.OptConstants, Operators {
+public final class GenerationContext {
 
   //////////
   // These fields are used to communicate information from its
@@ -102,7 +106,7 @@ public final class GenerationContext implements org.jikesrvm.compilers.opt.drive
   /**
    * The register pool to be used during generation
    */
-  public RegisterPool temps;
+  public GenericRegisterPool temps;
 
   /**
    * The parameters which BC2IR should use to seed the local state
@@ -237,7 +241,7 @@ public final class GenerationContext implements org.jikesrvm.compilers.opt.drive
     epilogue.insertOut(exit);
 
     // Create register pool, initialize arguments, resultReg.
-    temps = new RegisterPool(meth);
+    temps = VM.BuildForIA32 ? new org.jikesrvm.compilers.opt.ir.ia32.RegisterPool(meth) : new org.jikesrvm.compilers.opt.ir.ppc.RegisterPool(meth);;
     _ncGuards = new HashMap<Register, RegisterOperand>();
     initLocalPool();
     TypeReference[] definedParams = meth.getParameterTypes();

@@ -13,7 +13,7 @@
 package org.jikesrvm.classloader;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.vmmagic.pragma.Uninterruptible;
 
 /**

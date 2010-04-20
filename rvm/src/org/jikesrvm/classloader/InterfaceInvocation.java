@@ -12,10 +12,9 @@
  */
 package org.jikesrvm.classloader;
 
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
-import org.jikesrvm.ArchitectureSpecific.InterfaceMethodConflictResolver;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.VM;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.objectmodel.IMT;
 import org.jikesrvm.objectmodel.ITable;
@@ -424,7 +423,9 @@ public class InterfaceInvocation implements TIBLayoutConstants, SizeConstants {
             targets[idx] = p.method;
             sigIds[idx] = p.signature.getId();
           }
-          CodeArray conflictResolutionStub = InterfaceMethodConflictResolver.createStub(sigIds, targets);
+          CodeArray conflictResolutionStub =
+            VM.BuildForIA32 ? org.jikesrvm.ia32.InterfaceMethodConflictResolver.createStub(sigIds, targets)
+                            : org.jikesrvm.ppc.InterfaceMethodConflictResolver.createStub(sigIds, targets);
           klass.addCachedObject(Magic.codeArrayAsObject(conflictResolutionStub));
           set(tib, imt, slot, conflictResolutionStub);
         }

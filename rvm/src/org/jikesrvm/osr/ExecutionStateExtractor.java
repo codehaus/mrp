@@ -12,15 +12,15 @@
  */
 package org.jikesrvm.osr;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
-import org.jikesrvm.PrintContainer;
+import org.jikesrvm.architecture.Constants;
+import org.jikesrvm.architecture.StackFrameLayout;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.RuntimeEntrypoints;
 import org.jikesrvm.scheduler.RVMThread;
+import org.jikesrvm.util.PrintContainer;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
 
@@ -56,10 +56,10 @@ public abstract class ExecutionStateExtractor implements Constants {
     Address fp = Magic.objectAsAddress(stack).plus(osrFPoff);
     Address ip = Magic.getReturnAddress(fp);
     fp = Magic.getCallerFramePointer(fp);
-    while (Magic.getCallerFramePointer(fp).NE(ArchitectureSpecific.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP)) {
+    while (Magic.getCallerFramePointer(fp).NE(StackFrameLayout.getStackFrameSentinelFP())) {
       int cmid = Magic.getCompiledMethodID(fp);
 
-      if (cmid == ArchitectureSpecific.StackframeLayoutConstants.INVISIBLE_METHOD_ID) {
+      if (cmid == StackFrameLayout.getInvisibleMethodID()) {
         VM.sysWriteln(" invisible method ");
       } else {
         CompiledMethod cm = CompiledMethods.getCompiledMethod(cmid);

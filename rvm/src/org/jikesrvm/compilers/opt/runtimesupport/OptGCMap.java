@@ -13,7 +13,6 @@
 package org.jikesrvm.compilers.opt.runtimesupport;
 
 import java.util.List;
-import org.jikesrvm.ArchitectureSpecificOpt.OptGCMapIteratorConstants;
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.ir.GCIRMapElement;
 import org.jikesrvm.compilers.opt.ir.RegSpillListElement;
@@ -43,7 +42,7 @@ import org.vmmagic.pragma.Uninterruptible;
  *            these methods are static
  */
 @Uninterruptible
-public final class OptGCMap implements OptGCMapIteratorConstants {
+public final class OptGCMap {
   public static final int NO_MAP_ENTRY = -1;
   public static final int ERROR = -2;
 
@@ -71,6 +70,14 @@ public final class OptGCMap implements OptGCMapIteratorConstants {
   private int[] gcMapInformation;
 
   public static final boolean DEBUG = false;
+
+  public static final int FIRST_GCMAP_REG =
+    VM.BuildForIA32 ? org.jikesrvm.compilers.opt.runtimesupport.ia32.OptGCMapIteratorConstants.FIRST_GCMAP_REG
+                    : org.jikesrvm.compilers.opt.runtimesupport.ppc.OptGCMapIteratorConstants.FIRST_GCMAP_REG;
+  public static final int LAST_GCMAP_REG =
+    VM.BuildForIA32 ? org.jikesrvm.compilers.opt.runtimesupport.ia32.OptGCMapIteratorConstants.LAST_GCMAP_REG
+                    : org.jikesrvm.compilers.opt.runtimesupport.ppc.OptGCMapIteratorConstants.LAST_GCMAP_REG;
+
 
   /**
    * Constructor, called during compilation

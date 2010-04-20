@@ -15,18 +15,17 @@ package org.jikesrvm.compilers.opt.regalloc.ia32;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecificOpt.PhysicalRegisterSet;
-import org.jikesrvm.compilers.opt.ir.MIR_BinaryAcc;
-import org.jikesrvm.compilers.opt.ir.MIR_CacheOp;
-import org.jikesrvm.compilers.opt.ir.MIR_Compare;
-import org.jikesrvm.compilers.opt.ir.MIR_CondMove;
-import org.jikesrvm.compilers.opt.ir.MIR_DoubleShift;
-import org.jikesrvm.compilers.opt.ir.MIR_LowTableSwitch;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.MIR_Set;
-import org.jikesrvm.compilers.opt.ir.MIR_Test;
-import org.jikesrvm.compilers.opt.ir.MIR_Unary;
-import org.jikesrvm.compilers.opt.ir.MIR_UnaryNoRes;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_BinaryAcc;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_CacheOp;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Compare;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_CondMove;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_DoubleShift;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_LowTableSwitch;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Set;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Test;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Unary;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryNoRes;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
@@ -37,15 +36,20 @@ import org.jikesrvm.compilers.opt.ir.operand.MemoryOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ia32.BURSManagedFPROperand;
+import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
+import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.regalloc.GenericRegisterRestrictions;
 import org.jikesrvm.compilers.opt.regalloc.LiveIntervalElement;
+
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
+import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.*;
 
 /**
  * An instance of this class encapsulates restrictions on register
  * assignment.
  */
-public class RegisterRestrictions extends GenericRegisterRestrictions
-    implements Operators, PhysicalRegisterConstants {
+public final class RegisterRestrictions extends GenericRegisterRestrictions {
 
   /**
    * Allow scratch registers in PEIs?
@@ -55,7 +59,7 @@ public class RegisterRestrictions extends GenericRegisterRestrictions
   /**
    * Default Constructor
    */
-  protected RegisterRestrictions(PhysicalRegisterSet phys) {
+  public RegisterRestrictions(GenericPhysicalRegisterSet phys) {
     super(phys);
   }
 
@@ -125,7 +129,7 @@ public class RegisterRestrictions extends GenericRegisterRestrictions
         for (LiveIntervalElement symb : symbolics) {
           if (symb.getRegister().isFloatingPoint()) {
             if (contains(symb, s.scratch)) {
-              addRestrictions(symb.getRegister(), phys.getFPRs());
+              addRestrictions(symb.getRegister(), phys.asIA32().getFPRs());
             }
           }
         }
@@ -182,6 +186,7 @@ public class RegisterRestrictions extends GenericRegisterRestrictions
    * DL, since these are the only 8-bit registers we normally address.
    */
   final void restrictTo8Bits(Register r) {
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)this.phys;
     Register ESP = phys.getESP();
     Register EBP = phys.getEBP();
     Register ESI = phys.getESI();
@@ -369,6 +374,7 @@ public class RegisterRestrictions extends GenericRegisterRestrictions
    * Can physical register r hold an 8-bit value?
    */
   private boolean okFor8(Register r) {
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)this.phys;
     Register ESP = phys.getESP();
     Register EBP = phys.getEBP();
     Register ESI = phys.getESI();

@@ -62,6 +62,9 @@ import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.compilers.opt.ir.operand.TrueGuardOperand;
 import org.jikesrvm.compilers.opt.ir.operand.TypeOperand;
 
+import static org.jikesrvm.compilers.opt.driver.OptConstants.*;
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
 /**
  * A collection of common tools used by decoders. The public entry point for the
  * translators is generateHIR(GenerationContext gc).
@@ -83,8 +86,7 @@ import org.jikesrvm.compilers.opt.ir.operand.TypeOperand;
  * </dd>
  * </dl>
  */
-public abstract class CodeTranslator implements OptConstants,
-    Operators, HIRGenerator {
+public abstract class CodeTranslator implements HIRGenerator {
 
   /** The trace that we're currently translating code for. */
   protected final DBT_Trace trace;

@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.ia32;
 
-import org.jikesrvm.SizeConstants;
 import org.jikesrvm.VM;
+import org.jikesrvm.architecture.SizeConstants;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
 import static org.jikesrvm.ia32.BaselineConstants.WORDSIZE;

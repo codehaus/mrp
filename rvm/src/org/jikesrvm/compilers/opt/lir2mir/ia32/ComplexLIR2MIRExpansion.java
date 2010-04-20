@@ -20,63 +20,23 @@ import org.jikesrvm.compilers.opt.ir.BBend;
 import org.jikesrvm.compilers.opt.ir.Binary;
 import org.jikesrvm.compilers.opt.ir.IfCmp;
 import org.jikesrvm.compilers.opt.ir.Label;
-import org.jikesrvm.compilers.opt.ir.MIR_BinaryAcc;
-import org.jikesrvm.compilers.opt.ir.MIR_Branch;
-import org.jikesrvm.compilers.opt.ir.MIR_Compare;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch2;
-import org.jikesrvm.compilers.opt.ir.MIR_DoubleShift;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.MIR_Multiply;
-import org.jikesrvm.compilers.opt.ir.MIR_Test;
-import org.jikesrvm.compilers.opt.ir.MIR_Unary;
-import org.jikesrvm.compilers.opt.ir.MIR_UnaryAcc;
-import org.jikesrvm.compilers.opt.ir.MIR_UnaryNoRes;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_BinaryAcc;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Compare;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_DoubleShift;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Multiply;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Test;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Unary;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryAcc;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryNoRes;
+import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.IRTools;
 import org.jikesrvm.compilers.opt.ir.Instruction;
-import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_2INT_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_2LONG_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_IFCMP_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_2INT_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_2LONG_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_IFCMP_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_ADD;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_CMP;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_CVTTSD2SI;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_CVTTSS2SI;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FISTP;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FLD;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FLDCW;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FNSTCW;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FSTP;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_FUCOMIP;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_IMUL2;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_JCC;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_JCC2;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_JMP;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOV;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSD;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVSS;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MOVZX__W;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_MUL;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_NOT;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_OR;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_SAR;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_SHL;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_SHLD;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_SHR;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_SHRD;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_TEST;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_UCOMISD;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_UCOMISS;
-import static org.jikesrvm.compilers.opt.ir.Operators.IA32_XOR;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_IFCMP_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_MUL_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_SHL_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_SHR_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_USHR_opcode;
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.Unary;
 import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
@@ -91,6 +51,9 @@ import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.compilers.opt.ir.operand.StackLocationOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ia32.IA32ConditionOperand;
 import org.jikesrvm.runtime.Entrypoints;
+
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
 
 /**
  * Handles the conversion from LIR to MIR of operators whose
@@ -240,6 +203,10 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     return nextInstr;
   }
 
+  private static PhysicalRegisterSet phys(IR ir) {
+    return ir.regpool.getPhysicalRegisterSet().asIA32();
+  }
+
   private static Instruction float_2long(Instruction s, IR ir) {
     Instruction nextInstr = s.nextInstructionInCodeOrder();
     while(Label.conforms(nextInstr)||BBend.conforms(nextInstr)) {
@@ -274,9 +241,9 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     RegisterOperand value = Unary.getVal(s).asRegister();
     RegisterOperand cw = ir.regpool.makeTempInt();
     MemoryOperand maxlong = BURS_Helpers.loadFromJTOC(Entrypoints.maxlongFloatField.getOffset(), (byte)4);
-    RegisterOperand st0 = new RegisterOperand(ir.regpool.getPhysicalRegisterSet().getST0(),
+    RegisterOperand st0 = new RegisterOperand(phys(ir).getST0(),
         TypeReference.Float);
-    RegisterOperand st1 = new RegisterOperand(ir.regpool.getPhysicalRegisterSet().getST1(),
+    RegisterOperand st1 = new RegisterOperand(phys(ir).getST1(),
         TypeReference.Float);
     int offset = -ir.stackManager.allocateSpaceForConversion();
     StackLocationOperand slLo = new StackLocationOperand(true, offset, 4);
@@ -453,9 +420,9 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     RegisterOperand value = Unary.getVal(s).asRegister();
     RegisterOperand cw = ir.regpool.makeTempInt();
     MemoryOperand maxlong = BURS_Helpers.loadFromJTOC(Entrypoints.maxlongField.getOffset(), (byte)8);
-    RegisterOperand st0 = new RegisterOperand(ir.regpool.getPhysicalRegisterSet().getST0(),
+    RegisterOperand st0 = new RegisterOperand(phys(ir).getST0(),
         TypeReference.Double);
-    RegisterOperand st1 = new RegisterOperand(ir.regpool.getPhysicalRegisterSet().getST1(),
+    RegisterOperand st1 = new RegisterOperand(phys(ir).getST1(),
         TypeReference.Double);
     int offset = -ir.stackManager.allocateSpaceForConversion();
     StackLocationOperand slLo = new StackLocationOperand(true, offset, 4);
@@ -569,7 +536,7 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     }
 
     // ecx = shift amount
-    Register ecx = ir.regpool.getPhysicalRegisterSet().getECX();
+    Register ecx = phys(ir).getECX();
     testBB.appendInstruction(CPOS(s, MIR_Move.create(IA32_MOV,
         new RegisterOperand(ecx, TypeReference.Int),
         Binary.getVal2(s))));
@@ -669,7 +636,7 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     }
 
     // ecx = shift amount
-    Register ecx = ir.regpool.getPhysicalRegisterSet().getECX();
+    Register ecx = phys(ir).getECX();
     testBB.appendInstruction(CPOS(s, MIR_Move.create(IA32_MOV,
         new RegisterOperand(ecx, TypeReference.Int),
         Binary.getVal2(s))));
@@ -774,7 +741,7 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     }
 
     // ecx = shift amount
-    Register ecx = ir.regpool.getPhysicalRegisterSet().getECX();
+    Register ecx = phys(ir).getECX();
     testBB.appendInstruction(CPOS(s, MIR_Move.create(IA32_MOV,
         new RegisterOperand(ecx, TypeReference.Int),
         Binary.getVal2(s))));
@@ -858,8 +825,8 @@ public abstract class ComplexLIR2MIRExpansion extends IRTools {
     Register lowrhsReg2 = ir.regpool.getSecondReg(rhsReg2);
 
     // Working registers
-    Register edx = ir.regpool.getPhysicalRegisterSet().getEDX();
-    Register eax = ir.regpool.getPhysicalRegisterSet().getEAX();
+    Register edx = phys(ir).getEDX();
+    Register eax = phys(ir).getEAX();
     Register tmp = ir.regpool.getInteger();
 
     // The general form of the multiply is

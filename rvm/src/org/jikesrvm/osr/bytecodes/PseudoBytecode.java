@@ -12,8 +12,9 @@
  */
 package org.jikesrvm.osr.bytecodes;
 
-import org.jikesrvm.SizeConstants;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
+
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.osr.OSRConstants;
 import org.vmmagic.unboxed.Word;
 

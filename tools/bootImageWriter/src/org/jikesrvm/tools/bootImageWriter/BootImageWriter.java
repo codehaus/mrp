@@ -42,11 +42,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.jikesrvm.Callbacks;
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
-import org.jikesrvm.ArchitectureSpecific.LazyCompilationTrampoline;
-import org.jikesrvm.ArchitectureSpecific.OutOfLineMachineCode;
+import org.jikesrvm.architecture.ArchitectureFactory;
+import org.jikesrvm.compilers.common.CodeArray;
+import org.jikesrvm.compilers.common.LazyCompilationTrampoline;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.BootstrapClassLoader;
 import org.jikesrvm.classloader.RVMArray;
@@ -66,6 +65,7 @@ import org.jikesrvm.objectmodel.ObjectModel;
 import org.jikesrvm.objectmodel.RuntimeTable;
 import org.jikesrvm.objectmodel.TIB;
 import org.jikesrvm.runtime.BootRecord;
+import org.jikesrvm.runtime.Callbacks;
 import org.jikesrvm.runtime.Entrypoints;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Statics;
@@ -1403,7 +1403,7 @@ public class BootImageWriter extends BootImageWriterMessages
       bootRecord.tocRegister = jtocAddress.plus(intArrayType.getInstanceSize(Statics.middleOfTable));
 
       // set up some stuff we need for compiling
-      OutOfLineMachineCode.init();
+      ArchitectureFactory.initOutOfLineMachineCode();
 
       //
       // Compile methods and populate jtoc with literals, TIBs, and machine code.
@@ -2258,7 +2258,7 @@ public class BootImageWriter extends BootImageWriterMessages
             if (verbose >= 2) traceContext.push(values[i].getClass().getName(), jdkClass.getName(), i);
             if (isTIB && values[i] instanceof Word) {
               bootImage.setAddressWord(arrayImageAddress.plus(i << LOG_BYTES_IN_ADDRESS), (Word)values[i], false, false);
-            } else if (isTIB && values[i] == LazyCompilationTrampoline.instructions) {
+            } else if (isTIB && values[i] == LazyCompilationTrampoline.getInstructions()) {
               Address codeAddress = arrayImageAddress.plus(((TIB)parentObject).lazyMethodInvokerTrampolineIndex() << LOG_BYTES_IN_ADDRESS);
               bootImage.setAddressWord(arrayImageAddress.plus(i << LOG_BYTES_IN_ADDRESS), codeAddress.toWord(), false, false);
             } else {

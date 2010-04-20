@@ -12,14 +12,13 @@
  */
 package org.jikesrvm.compilers.common;
 
-import org.jikesrvm.ArchitectureSpecific;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
-import org.jikesrvm.Callbacks;
 import org.jikesrvm.VM;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.ArchConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.RVMType;
+import org.jikesrvm.runtime.Callbacks;
 import org.jikesrvm.runtime.DynamicLink;
 import org.jikesrvm.runtime.ExceptionDeliverer;
 import org.jikesrvm.runtime.Magic;
@@ -206,7 +205,7 @@ public abstract class CompiledMethod implements SizeConstants {
       return Offset.zero();
     } else {
       Offset offset = ip.diff(Magic.objectAsAddress(instructions));
-      int max = (instructions.length() + 1) << ArchitectureSpecific.ArchConstants.LG_INSTRUCTION_WIDTH;
+      int max = (instructions.length() + 1) << ArchConstants.getLogInstructionWidth();
       if (!offset.toWord().LT(Word.fromIntZeroExtend(max))) {
         Address instructionStart = Magic.objectAsAddress(instructions);
         VM.sysWriteln("\nIn thread ",RVMThread.getCurrentThreadSlot()," getInstructionOffset: ip is not within compiled code for method: ",ip);
@@ -266,7 +265,7 @@ public abstract class CompiledMethod implements SizeConstants {
   @Uninterruptible
   public final boolean containsReturnAddress(Address ip) {
     Address beg = Magic.objectAsAddress(instructions);
-    Address end = beg.plus(instructions.length() << ArchitectureSpecific.ArchConstants.LG_INSTRUCTION_WIDTH);
+    Address end = beg.plus(instructions.length() << ArchConstants.getLogInstructionWidth());
 
     // note that "ip" points to a return site (not a call site)
     // so the range check here must be "ip <= beg || ip >  end"
@@ -500,7 +499,7 @@ public abstract class CompiledMethod implements SizeConstants {
    * @param instructionOffset offset of machine instruction from start of method
    * @param out the PrintLN to print the stack trace to.
    */
-  public abstract void printStackTrace(Offset instructionOffset, org.jikesrvm.PrintLN out);
+  public abstract void printStackTrace(Offset instructionOffset, org.jikesrvm.util.PrintLN out);
 
   /**
    * Set the stack browser to the innermost logical stack frame of this method

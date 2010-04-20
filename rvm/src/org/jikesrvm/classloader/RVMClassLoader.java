@@ -17,8 +17,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
 import org.jikesrvm.Properties;
+import org.jikesrvm.architecture.Constants;
 
 /**
  * Manufacture type descriptions as needed by the running virtual machine. <p>

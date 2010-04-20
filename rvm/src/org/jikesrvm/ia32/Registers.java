@@ -12,18 +12,16 @@
  */
 package org.jikesrvm.ia32;
 
-import org.jikesrvm.runtime.ArchEntrypoints;
+import org.jikesrvm.architecture.AbstractRegisters;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.runtime.Magic;
-import org.jikesrvm.scheduler.RVMThread;
 import org.jikesrvm.VM;
-import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.vmmagic.pragma.NonMoving;
 import org.vmmagic.pragma.Uninterruptible;
-import org.vmmagic.pragma.Untraced;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Word;
 import org.vmmagic.unboxed.Offset;
-import org.vmmagic.unboxed.WordArray;
+import static org.jikesrvm.ia32.RegisterConstants.ESP;
 
 /**
  * The machine state comprising a thread's execution context, used both for
@@ -32,78 +30,16 @@ import org.vmmagic.unboxed.WordArray;
  */
 @Uninterruptible
 @NonMoving
-public abstract class Registers implements RegisterConstants {
-
-  /** General purpose registers */
-  @Untraced
-  public final WordArray gprs;
-  /** Floating point registers */
-  @Untraced
-  public final double[] fprs;
-  public final WordArray gprsShadow;
-  public final double[] fprsShadow;
-  /** Instruction address register */
-  public Address ip;
+public final class Registers extends AbstractRegisters {
   /** Frame pointer */
-  public Address fp;
+  private Address fp;
 
-  /**
-   * Do exception registers currently contain live values? Set by C hardware
-   * exception handler and RuntimeEntrypoints.athrow and reset by each
-   * implementation of ExceptionDeliverer.deliverException
-   */
-  public boolean inuse;
+  public Registers() { }
 
-  public Registers() {
-    gprs = gprsShadow = MemoryManager.newNonMovingWordArray(NUM_GPRS);
-    fprs = fprsShadow = MemoryManager.newNonMovingDoubleArray(NUM_FPRS);
-  }
-  public final void copyFrom(Registers other) {
-    for (int i=0;i<NUM_GPRS;++i) {
-      gprs.set(i,other.gprs.get(i));
-    }
-    for (int i=0;i<NUM_FPRS;++i) {
-      fprs[i]=other.fprs[i];
-    }
-    ip=other.ip;
-    fp=other.fp;
-  }
+  @Override
   public final void clear() {
-    for (int i=0;i<NUM_GPRS;++i) {
-      gprs.set(i,Word.zero());
-    }
-    for (int i=0;i<NUM_FPRS;++i) {
-      fprs[i]=0.;
-    }
-    ip=Address.zero();
     fp=Address.zero();
-  }
-  public final void assertSame(Registers other) {
-    boolean fail=false;
-    for (int i=0;i<NUM_GPRS;++i) {
-      if (gprs.get(i).NE(other.gprs.get(i))) {
-        VM.sysWriteln("Registers not equal: GPR #",i);
-        fail=true;
-      }
-    }
-    for (int i=0;i<NUM_FPRS;++i) {
-      if (fprs[i]!=other.fprs[i]) {
-        VM.sysWriteln("Registers not equal: FPR #",i);
-        fail=true;
-      }
-    }
-    if (ip.NE(other.ip)) {
-      VM.sysWriteln("Registers not equal: IP");
-      fail=true;
-    }
-    if (fp.NE(other.fp)) {
-      VM.sysWriteln("Registers not equal: FP");
-      fail=true;
-    }
-    if (fail) {
-      RVMThread.dumpStack();
-      VM.sysFail("Registers.assertSame() failed");
-    }
+    super.clear();
   }
 
   /**
@@ -149,19 +85,51 @@ public abstract class Registers implements RegisterConstants {
     fp = Magic.getCallerFramePointer(current_fp);
   }
 
-  public final Address getIPLocation() {
-    Offset ipOffset = ArchEntrypoints.registersIPField.getOffset();
-    return Magic.objectAsAddress(this).plus(ipOffset);
+  /**
+   * The following method initializes a thread stack as if
+   * "startoff" method had been called by an empty baseline-compiled
+   *  "sentinel" frame with one local variable
+   *
+   * @param contextRegisters The context registers for this thread
+   * @param ip The instruction pointer for the "startoff" method
+   * @param sp The base of the stack
+   */
+  @Uninterruptible
+  public final void initializeStack(Address ip, Address sp) {
+    Address fp;
+    sp = sp.minus(StackframeLayoutConstants.STACKFRAME_HEADER_SIZE);                   // last word of header
+    fp = sp.minus(SizeConstants.BYTES_IN_ADDRESS).minus(StackframeLayoutConstants.STACKFRAME_BODY_OFFSET);
+    Magic.setCallerFramePointer(fp, StackframeLayoutConstants.STACKFRAME_SENTINEL_FP);
+    Magic.setCompiledMethodID(fp, StackframeLayoutConstants.INVISIBLE_METHOD_ID);
+
+    sp = sp.minus(SizeConstants.BYTES_IN_ADDRESS);                                 // allow for one local
+    getGPRs().set(ESP.value(), sp.toWord());
+    this.fp = fp;
+    this.ip = ip;
   }
+
+  /**
+   * A thread's stack has been moved or resized.
+   * Adjust the ESP register to reflect new position.
+   *
+   * @param registers The registers for this thread
+   * @param delta The displacement to be applied
+   * @param traceAdjustments Log all adjustments to stderr if true
+   */
+  @Uninterruptible
+  @Override
+  public final void adjustESP( Offset delta, boolean traceAdjustments) {
+    Word old = getGPRs().get(ESP.value());
+    getGPRs().set(ESP.value(), old.plus(delta));
+    if (traceAdjustments) {
+      VM.sysWrite(" esp =");
+      VM.sysWrite(getGPRs().get(ESP.value()));
+    }
+  }
+
+  @Override
   public final void dump() {
-    for (int i=0;i<NUM_GPRS;++i) {
-      VM.sysWriteln("gprs[",i,"] = ",gprs.get(i));
-    }
-    for (int i=0;i<NUM_FPRS;++i) {
-      VM.sysWriteln("fprs[",i,"] = ",fprs[i]);
-    }
-    VM.sysWriteln("ip = ",ip);
+    super.dump();
     VM.sysWriteln("fp = ",fp);
   }
 }
-

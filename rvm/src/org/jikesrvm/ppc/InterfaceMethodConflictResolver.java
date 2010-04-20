@@ -12,11 +12,11 @@
  */
 package org.jikesrvm.ppc;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.assembler.ppc.Assembler;
 import org.jikesrvm.compilers.common.assembler.ppc.AssemblerConstants;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.objectmodel.ObjectModel;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Memory;
@@ -27,12 +27,11 @@ import org.jikesrvm.runtime.Memory;
  */
 public abstract class InterfaceMethodConflictResolver implements BaselineConstants, AssemblerConstants {
 
-  // Create a conflict resolution stub for the set of interface method signatures l.
-  //
-  public static ArchitectureSpecific.CodeArray createStub(int[] sigIds, RVMMethod[] targets) {
+  /** Create a conflict resolution stub for the set of interface method signatures l. */
+  public static CodeArray createStub(int[] sigIds, RVMMethod[] targets) {
     // (1) Create an assembler.
     int numEntries = sigIds.length;
-    Assembler asm = new ArchitectureSpecific.Assembler(numEntries); // pretend each entry is a bytecode
+    Assembler asm = new Assembler(numEntries); // pretend each entry is a bytecode
 
     // (2) signatures must be in ascending order (to build binary search tree).
     if (VM.VerifyAssertions) {
@@ -51,7 +50,7 @@ public abstract class InterfaceMethodConflictResolver implements BaselineConstan
     insertStubPrologue(asm);
     insertStubCase(asm, sigIds, targets, bcIndices, 0, numEntries - 1);
 
-    ArchitectureSpecific.CodeArray stub = asm.makeMachineCode().getInstructions();
+    CodeArray stub = asm.getMachineCodes();
 
     // (5) synchronize icache with generated machine code that was written through dcache
     if (VM.runningVM) Memory.sync(Magic.objectAsAddress(stub), stub.length() << LG_INSTRUCTION_WIDTH);
@@ -81,7 +80,7 @@ public abstract class InterfaceMethodConflictResolver implements BaselineConstan
   // factor out to reduce code space in each call.
   //
   private static void insertStubPrologue(Assembler asm) {
-    ObjectModel.baselineEmitLoadTIB((ArchitectureSpecific.Assembler) asm, S0, T0);
+    asm.baselineEmitLoadTIB(S0, T0);
   }
 
   // Generate a subtree covering from low to high inclusive.

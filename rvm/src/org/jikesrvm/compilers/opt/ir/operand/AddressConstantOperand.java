@@ -13,7 +13,7 @@
 package org.jikesrvm.compilers.opt.ir.operand;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.TypeReference;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Extent;

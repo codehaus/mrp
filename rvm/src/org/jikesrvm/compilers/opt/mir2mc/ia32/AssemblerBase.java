@@ -14,30 +14,32 @@ package org.jikesrvm.compilers.opt.mir2mc.ia32;
 
 import java.util.ArrayList;
 import static org.jikesrvm.ia32.ArchConstants.SSE2_FULL;
-import org.jikesrvm.ArchitectureSpecificOpt.AssemblerOpt;
-import org.jikesrvm.ArchitectureSpecific.Assembler;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
+import org.jikesrvm.architecture.Constants;
+import org.jikesrvm.architecture.MachineRegister;
 import org.jikesrvm.compilers.common.assembler.ForwardReference;
+import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
+import org.jikesrvm.compilers.common.assembler.ia32.AssemblerConstants;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import static org.jikesrvm.compilers.opt.OptimizingCompilerException.opt_assert;
-import org.jikesrvm.compilers.opt.ir.MIR_BinaryAcc;
-import org.jikesrvm.compilers.opt.ir.MIR_Branch;
-import org.jikesrvm.compilers.opt.ir.MIR_Call;
-import org.jikesrvm.compilers.opt.ir.MIR_Compare;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch;
-import org.jikesrvm.compilers.opt.ir.MIR_Lea;
-import org.jikesrvm.compilers.opt.ir.MIR_LowTableSwitch;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.MIR_Test;
-import org.jikesrvm.compilers.opt.ir.MIR_Unary;
-import org.jikesrvm.compilers.opt.ir.MIR_UnaryNoRes;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_BinaryAcc;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Call;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Compare;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Lea;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_LowTableSwitch;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Test;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Unary;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryNoRes;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.OperandEnumeration;
 import org.jikesrvm.compilers.opt.ir.Operator;
 import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.compilers.opt.ir.Register;
+import org.jikesrvm.compilers.opt.ir.ia32.ArchOperator;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
 import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
@@ -51,6 +53,10 @@ import org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants;
 import org.jikesrvm.ia32.TrapConstants;
 import org.vmmagic.pragma.NoInline;
 import org.vmmagic.unboxed.Offset;
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
+import static org.jikesrvm.architecture.Constants.*;
+import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.*;
 
 /**
  *  This class provides support functionality used by the generated
@@ -62,8 +68,7 @@ import org.vmmagic.unboxed.Offset;
  * not meant to be used in isolation, but rather to provide support
  * from the Assembler.
  */
-abstract class AssemblerBase extends Assembler
-    implements Operators, Constants, PhysicalRegisterConstants {
+abstract class AssemblerBase extends Assembler {
 
   private static final boolean DEBUG_ESTIMATE = false;
 
@@ -94,20 +99,20 @@ abstract class AssemblerBase extends Assembler
 
   static {
     ArrayList<Operator> temp = new ArrayList<Operator>();
-    for (Operator opr : Operator.OperatorArray) {
+    for (Operator opr : ArchOperator.operatorArray()) {
       if (opr != null && opr.toString().indexOf("__b") != -1) {
         temp.add(opr);
       }
     }
     byteSizeOperators = temp.toArray(new Operator[temp.size()]);
     temp.clear();
-    for (Operator opr : Operator.OperatorArray) {
+    for (Operator opr : ArchOperator.operatorArray()) {
       if (opr != null && opr.toString().indexOf("__w") != -1) {
         temp.add(opr);
       }
     }
     wordSizeOperators = temp.toArray(new Operator[temp.size()]);
-    for (Operator opr : Operator.OperatorArray) {
+    for (Operator opr : ArchOperator.operatorArray()) {
       if (opr != null && opr.toString().indexOf("__q") != -1) {
         temp.add(opr);
       }
@@ -121,8 +126,8 @@ abstract class AssemblerBase extends Assembler
    */
   AssemblerBase(int bytecodeSize, boolean shouldPrint, IR ir) {
     super(bytecodeSize, shouldPrint);
-    EBP = ir.regpool.getPhysicalRegisterSet().getEBP();
-    ESP = ir.regpool.getPhysicalRegisterSet().getESP();
+    EBP = ir.regpool.getPhysicalRegisterSet().asIA32().getEBP();
+    ESP = ir.regpool.getPhysicalRegisterSet().asIA32().getESP();
   }
 
   /**
@@ -950,7 +955,7 @@ abstract class AssemblerBase extends Assembler
         forwardRefs = ForwardReference.enqueue(forwardRefs, r);
         setMachineCodes(mi++, (byte) (0x70 + cond));
         mi += 1; // leave space for displacement
-        if (!VM.Production && (lister != null)) lister.I(miStart, "J" + CONDITION[cond], 0);
+        if (!VM.Production && (lister != null)) lister.I(miStart, "J" + AssemblerConstants.CONDITION[cond], 0);
       } else {
         emitJCC_Cond_Label(cond, targetLabel);
       }
@@ -1019,10 +1024,10 @@ abstract class AssemblerBase extends Assembler
     // idx += [ms + idx<<2 + ??] - we will patch ?? when we know the placement of the table
     int toPatchAddress = getMachineCodeIndex();
     if (VM.buildFor32Addr()) {
-      emitMOV_Reg_RegIdx(idx, ms, idx, Assembler.WORD, Offset.fromIntZeroExtend(Integer.MAX_VALUE));
+      emitMOV_Reg_RegIdx(idx, ms, idx, AssemblerConstants.WORD, Offset.fromIntZeroExtend(Integer.MAX_VALUE));
       emitADD_Reg_Reg(idx, ms);
     } else {
-      emitMOV_Reg_RegIdx(idx, ms, idx, Assembler.WORD, Offset.fromIntZeroExtend(Integer.MAX_VALUE));
+      emitMOV_Reg_RegIdx(idx, ms, idx, AssemblerConstants.WORD, Offset.fromIntZeroExtend(Integer.MAX_VALUE));
       emitADD_Reg_Reg_Quad(idx, ms);
     }
     // JMP T0
@@ -1063,7 +1068,7 @@ abstract class AssemblerBase extends Assembler
       // by the assembler.
       count++;
       p.setmcOffset(-count);
-      if (p.operator() == Operators.MIR_LOWTABLESWITCH) {
+      if (p.operator() == MIR_LOWTABLESWITCH) {
         // Table switch kludge, as these will occupy multiple slots in the
         // generated assembler
         count += MIR_LowTableSwitch.getNumberOfTargets(p);

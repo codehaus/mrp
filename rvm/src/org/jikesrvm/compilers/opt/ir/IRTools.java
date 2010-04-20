@@ -13,7 +13,6 @@
 package org.jikesrvm.compilers.opt.ir;
 
 import java.util.Enumeration;
-import org.jikesrvm.ArchitectureSpecificOpt.RegisterPool;
 import org.jikesrvm.Configuration;
 import org.jikesrvm.classloader.FieldReference;
 import org.jikesrvm.classloader.TypeReference;
@@ -27,38 +26,10 @@ import org.jikesrvm.compilers.opt.ir.operand.NullConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.compilers.opt.ir.operand.TrueGuardOperand;
-
-import static org.jikesrvm.compilers.opt.ir.Operators.BYTE_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.BYTE_STORE;
-import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_COND_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_STORE;
-import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_COND_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_STORE;
-import static org.jikesrvm.compilers.opt.ir.Operators.GOTO;
-import static org.jikesrvm.compilers.opt.ir.Operators.GUARD_COND_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.GUARD_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.INT_COND_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.INT_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.INT_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.INT_STORE;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_COND_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.LONG_STORE;
-import static org.jikesrvm.compilers.opt.ir.Operators.REF_COND_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.REF_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.REF_MOVE;
-import static org.jikesrvm.compilers.opt.ir.Operators.REF_STORE;
-import static org.jikesrvm.compilers.opt.ir.Operators.SHORT_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.SHORT_STORE;
-import static org.jikesrvm.compilers.opt.ir.Operators.UBYTE_LOAD;
-import static org.jikesrvm.compilers.opt.ir.Operators.USHORT_LOAD;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
+
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
 
 /**
  * This abstract class contains a bunch of useful static methods for
@@ -387,7 +358,7 @@ public abstract class IRTools {
    * @param op operand to copy to a register
    * @return register operand that we copied into
    */
-  public static RegisterOperand moveIntoRegister(RegisterPool pool, Instruction s, Operand op) {
+  public static RegisterOperand moveIntoRegister(GenericRegisterPool pool, Instruction s, Operand op) {
     if (op instanceof RegisterOperand) {
       return (RegisterOperand) op;
     }
@@ -407,7 +378,7 @@ public abstract class IRTools {
    * @param op operand to copy to a register
    * @return last use register operand that we copied into
    */
-  public static RegisterOperand moveIntoRegister(TypeReference type, Operator move_op, RegisterPool pool,
+  public static RegisterOperand moveIntoRegister(TypeReference type, Operator move_op, GenericRegisterPool pool,
                                                      Instruction s, Operand op) {
     RegisterOperand rop = pool.makeTemp(type);
     s.insertBefore(Move.create(move_op, rop, op));

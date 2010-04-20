@@ -19,17 +19,17 @@ package org.jikesrvm.compilers.opt.instrsched;
  *
  * @see OperatorClass
  */
-final class ResourceReservation {
+public final class ResourceReservation {
   // Resource Class.
   private final int rclass;
   /**
    * Start Time.
    */
-  final int start;
+  private final int start;
   /**
    * Duration of Use.
    */
-  final int duration;
+  private final int duration;
 
   /**
    * Creates a new reservation for specified resource class
@@ -55,6 +55,16 @@ final class ResourceReservation {
     this.rclass = rclass;
     this.start = start;
     this.duration = duration;
+  }
+
+  /** @return start time */
+  public int getStart() {
+    return start;
+  }
+
+  /** @return duration of use */
+  public int getDuration() {
+    return duration;
   }
 
   /**

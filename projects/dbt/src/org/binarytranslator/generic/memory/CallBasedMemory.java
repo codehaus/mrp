@@ -28,13 +28,15 @@ import org.jikesrvm.compilers.opt.ir.*;
 import org.jikesrvm.compilers.opt.ir.operand.*;
 import org.vmmagic.pragma.Uninterruptible;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
 /**
  * CallBasedMemory abstraction:
  * 
  * By default the translation methods plant calls to the load/store calls, which
  * are still abstract, ie there's no memory backing store yet
  */
-public abstract class CallBasedMemory extends Memory implements Operators {
+public abstract class CallBasedMemory extends Memory {
 
   /**
    * The process space type reference

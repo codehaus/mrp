@@ -13,6 +13,7 @@
 package org.jikesrvm;
 
 import org.vmmagic.pragma.*;
+import org.jikesrvm.runtime.CommandLineArgs;
 
 /**
  * Class to handle command-line arguments and options meant

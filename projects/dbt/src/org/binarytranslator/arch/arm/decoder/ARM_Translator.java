@@ -28,8 +28,9 @@ import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.ir.*;
 import org.jikesrvm.compilers.opt.ir.operand.*;
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
 
-public class ARM_Translator implements Operators {
+public class ARM_Translator {
 
   /** The process space that we're interpreting.*/
   protected final ARM_ProcessSpace ps;

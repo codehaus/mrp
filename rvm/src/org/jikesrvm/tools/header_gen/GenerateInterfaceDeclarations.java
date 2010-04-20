@@ -16,8 +16,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
+import org.jikesrvm.architecture.StackFrameLayout;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.RVMField;
 import org.jikesrvm.classloader.TypeReference;
@@ -365,12 +365,12 @@ public class GenerateInterfaceDeclarations {
 
     // values in Constants, from Configuration
     //
-    pln("Constants_STACK_SIZE_GUARD", ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GUARD);
-    pln("Constants_INVISIBLE_METHOD_ID", ArchitectureSpecific.StackframeLayoutConstants.INVISIBLE_METHOD_ID);
-    pln("Constants_STACKFRAME_HEADER_SIZE",  ArchitectureSpecific.StackframeLayoutConstants.STACKFRAME_HEADER_SIZE);
-    pln("Constants_STACKFRAME_METHOD_ID_OFFSET", ArchitectureSpecific.StackframeLayoutConstants.STACKFRAME_METHOD_ID_OFFSET);
-    pln("Constants_STACKFRAME_FRAME_POINTER_OFFSET", ArchitectureSpecific.StackframeLayoutConstants.STACKFRAME_FRAME_POINTER_OFFSET);
-    pln("Constants_STACKFRAME_SENTINEL_FP", ArchitectureSpecific.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP);
+    pln("Constants_STACK_SIZE_GUARD", StackFrameLayout.getStackSizeGuard());
+    pln("Constants_INVISIBLE_METHOD_ID", StackFrameLayout.getInvisibleMethodID());
+    pln("Constants_STACKFRAME_HEADER_SIZE", StackFrameLayout.getStackFrameHeaderSize());
+    pln("Constants_STACKFRAME_METHOD_ID_OFFSET", StackFrameLayout.getStackFrameMethodIDOffset());
+    pln("Constants_STACKFRAME_FRAME_POINTER_OFFSET", StackFrameLayout.getStackFramePointerOffset());
+    pln("Constants_STACKFRAME_SENTINEL_FP", StackFrameLayout.getStackFrameSentinelFP());
     pln();
 
     // values in ObjectModel

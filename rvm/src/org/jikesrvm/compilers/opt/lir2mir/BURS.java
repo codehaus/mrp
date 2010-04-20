@@ -12,7 +12,6 @@
  */
 package org.jikesrvm.compilers.opt.lir2mir;
 
-import org.jikesrvm.ArchitectureSpecificOpt.BURS_TreeNode;
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
 import org.jikesrvm.compilers.opt.ir.IR;
@@ -32,11 +31,11 @@ public abstract class BURS {
 
   public static final boolean DEBUG = false;
 
-  protected final BURS_TreeNode NullTreeNode = new BURS_TreeNode(NULL_opcode);
-  protected final BURS_TreeNode LongConstant = new BURS_TreeNode(LONG_CONSTANT_opcode);
-  protected final BURS_TreeNode AddressConstant = new BURS_TreeNode(ADDRESS_CONSTANT_opcode);
-  protected final BURS_TreeNode Register = new BURS_TreeNode(REGISTER_opcode);
-  protected final BURS_TreeNode BranchTarget = new BURS_TreeNode(BRANCH_TARGET_opcode);
+  protected final AbstractBURS_TreeNode NullTreeNode = AbstractBURS_TreeNode.create(NULL_opcode);
+  protected final AbstractBURS_TreeNode LongConstant = AbstractBURS_TreeNode.create(LONG_CONSTANT_opcode);
+  protected final AbstractBURS_TreeNode AddressConstant = AbstractBURS_TreeNode.create(ADDRESS_CONSTANT_opcode);
+  protected final AbstractBURS_TreeNode Register = AbstractBURS_TreeNode.create(REGISTER_opcode);
+  protected final AbstractBURS_TreeNode BranchTarget = AbstractBURS_TreeNode.create(BRANCH_TARGET_opcode);
 
   // initialize scratch field for expression tree labeling.
   BURS(IR ir) {
@@ -50,6 +49,108 @@ public abstract class BURS {
 
   public final IR ir;
   protected Instruction lastInstr;
+
+  /** Make the architecture dependent BURS coder */
+  BURS_StateCoder makeCoder() {
+    if(VM.BuildForIA32) {
+      if(VM.BuildFor32Addr) {
+	return new org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE(this);
+      } else {
+	return new org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE(this);
+      }
+    } else {
+      if(VM.BuildFor32Addr) {
+	return new org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE(this);
+      } else {
+	return new org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE(this);
+      }
+    }
+  }
+
+  /** Recursively label tree with costs */
+  static void label(AbstractBURS_TreeNode tn) {
+    if(VM.BuildForIA32) {
+      if(VM.BuildFor32Addr) {
+	org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.label(tn);
+      } else {
+	org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.label(tn);
+      }
+    } else {
+      if(VM.BuildFor32Addr) {
+	org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.label(tn);
+      } else {
+	org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.label(tn);
+      }
+    }
+  }
+
+  /** Traverse tree marking the non-terminal to be generated for each sub-tree */
+  static void mark(AbstractBURS_TreeNode tn, byte goalnt) {
+    if(VM.BuildForIA32) {
+      if(VM.BuildFor32Addr) {
+	org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.mark(tn, goalnt);
+      } else {
+	org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.mark(tn, goalnt);
+      }
+    } else {
+      if(VM.BuildFor32Addr) {
+	org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.mark(tn, goalnt);
+      } else {
+	org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.mark(tn, goalnt);
+      }
+    }
+  }
+
+  /** @return the action associated with a rule */
+  static byte action(int rule) {
+    if(VM.BuildForIA32) {
+      if(VM.BuildFor32Addr) {
+	return org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.action(rule);
+      } else {
+	return org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.action(rule);
+      }
+    } else {
+      if(VM.BuildFor32Addr) {
+	return org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.action(rule);
+      } else {
+	return org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.action(rule);
+      }
+    }
+  }
+
+  /** Dump the tree for debugging */
+  static void dumpTree(AbstractBURS_TreeNode tn) {
+    if(VM.BuildForIA32) {
+      if(VM.BuildFor32Addr) {
+	org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.dumpTree(tn);
+      } else {
+	org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.dumpTree(tn);
+      }
+    } else {
+      if(VM.BuildFor32Addr) {
+	org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.dumpTree(tn);
+      } else {
+	org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.dumpTree(tn);
+      }
+    }
+  }
+
+  /** Debug string for a particular rule */
+  static String debug(int rule) {
+    if(VM.BuildForIA32) {
+      if(VM.BuildFor32Addr) {
+	return org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_Debug.string[rule];
+      } else {
+	return org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_Debug.string[rule];
+      }
+    } else {
+      if(VM.BuildFor32Addr) {
+	return org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_Debug.string[rule];
+      } else {
+	return org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_Debug.string[rule];
+      }
+    }
+  }
 
   /**
    * Prepare to convert a block. Must be called before invoke.

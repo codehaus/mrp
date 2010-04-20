@@ -25,6 +25,8 @@ import java.io.RandomAccessFile;
 import org.binarytranslator.generic.decoder.CodeTranslator;
 import org.binarytranslator.generic.memory.IntAddressedLittleEndianMemory;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
 /**
  * IntAddressedPreSwappedMemory:
  * 

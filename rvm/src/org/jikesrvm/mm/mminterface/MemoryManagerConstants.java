@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.mm.mminterface;
 
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 
 /**
  * This class merely exposes the MMTk constants into the Jikes RVM

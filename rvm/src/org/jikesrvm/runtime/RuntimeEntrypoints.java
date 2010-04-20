@@ -12,11 +12,10 @@
  */
 package org.jikesrvm.runtime;
 
-import org.jikesrvm.ArchitectureSpecific;
-import org.jikesrvm.ArchitectureSpecific.Registers;
+import org.jikesrvm.architecture.AbstractRegisters;
+import org.jikesrvm.architecture.StackFrameLayout;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
-import org.jikesrvm.Services;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.DynamicTypeCheck;
@@ -31,6 +30,7 @@ import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.objectmodel.ObjectModel;
 import org.jikesrvm.objectmodel.TIB;
 import org.jikesrvm.scheduler.RVMThread;
+import org.jikesrvm.util.Services;
 import org.vmmagic.pragma.Entrypoint;
 import org.vmmagic.pragma.Inline;
 import org.vmmagic.pragma.NoInline;
@@ -76,7 +76,7 @@ import org.vmmagic.unboxed.Word;
  *   <li> "fp" values that point to interior of "stack" objects
  * </ul>
  */
-public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.StackframeLayoutConstants {
+public class RuntimeEntrypoints implements Constants {
 
   private static final boolean traceAthrow = false;
   // Trap codes for communication with C trap handler.
@@ -805,10 +805,10 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
       RVMThread.dumpStack();
     }
     RVMThread myThread = RVMThread.getCurrentThread();
-    Registers exceptionRegisters = myThread.getExceptionRegisters();
+    AbstractRegisters exceptionRegisters = myThread.getExceptionRegisters();
     VM.disableGC();              // VM.enableGC() is called when the exception is delivered.
     Magic.saveThreadState(exceptionRegisters);
-    exceptionRegisters.inuse = true;
+    exceptionRegisters.setInUse(true);
     deliverException(exceptionObject, exceptionRegisters);
   }
 
@@ -839,22 +839,22 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
     RVMThread myThread = RVMThread.getCurrentThread();
     if (false) VM.sysWriteln("we have a thread = ",Magic.objectAsAddress(myThread));
     if (false) VM.sysWriteln("it's in state = ",myThread.getExecStatus());
-    Registers exceptionRegisters = myThread.getExceptionRegisters();
+    AbstractRegisters exceptionRegisters = myThread.getExceptionRegisters();
     if (false) VM.sysWriteln("we have exception registers = ",Magic.objectAsAddress(exceptionRegisters));
 
     if ((trapCode == TRAP_STACK_OVERFLOW || trapCode == TRAP_JNI_STACK) &&
-        myThread.getStack().length < (STACK_SIZE_MAX >> LOG_BYTES_IN_ADDRESS) &&
+        myThread.getStack().length < (StackFrameLayout.getMaxStackSize() >> LOG_BYTES_IN_ADDRESS) &&
         !myThread.hasNativeStackFrame()) {
       // expand stack by the size appropriate for normal or native frame
       // and resume execution at successor to trap instruction
       // (C trap handler has set register.ip to the instruction following the trap).
       if (trapCode == TRAP_JNI_STACK) {
-        RVMThread.resizeCurrentStack(myThread.getStackLength() + STACK_SIZE_JNINATIVE_GROW, exceptionRegisters);
+        RVMThread.resizeCurrentStack(myThread.getStackLength() + StackFrameLayout.getJNIStackGrowthSize(), exceptionRegisters);
       } else {
-        RVMThread.resizeCurrentStack(myThread.getStackLength() + STACK_SIZE_GROW, exceptionRegisters);
+        RVMThread.resizeCurrentStack(myThread.getStackLength() + StackFrameLayout.getStackGrowthSize(), exceptionRegisters);
       }
-      if (VM.VerifyAssertions) VM._assert(exceptionRegisters.inuse);
-      exceptionRegisters.inuse = false;
+      if (VM.VerifyAssertions) VM._assert(exceptionRegisters.getInUse());
+      exceptionRegisters.setInUse(false);
       Magic.restoreHardwareExceptionState(exceptionRegisters);
 
       if (VM.VerifyAssertions) VM._assert(NOT_REACHED);
@@ -871,7 +871,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
     if (VM.VerifyAssertions && !VM.sysFailInProgress()) {
       Address fp = exceptionRegisters.getInnermostFramePointer();
       int compiledMethodId = Magic.getCompiledMethodID(fp);
-      if (compiledMethodId != INVISIBLE_METHOD_ID) {
+      if (compiledMethodId != StackFrameLayout.getInvisibleMethodID()) {
         CompiledMethod compiledMethod = CompiledMethods.getCompiledMethod(compiledMethodId);
         Address ip = exceptionRegisters.getInnermostInstructionAddress();
         Offset instructionOffset = compiledMethod.getInstructionOffset(ip);
@@ -1150,7 +1150,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
    * </ul>
    */
   @Unpreemptible("Deliver exception trying to avoid preemption")
-  private static void deliverException(Throwable exceptionObject, Registers exceptionRegisters) {
+  private static void deliverException(Throwable exceptionObject, AbstractRegisters exceptionRegisters) {
     if (VM.TraceExceptionDelivery) {
       VM.sysWriteln("RuntimeEntrypoints.deliverException() entered; just got an exception object.");
     }
@@ -1164,9 +1164,9 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
     }
     RVMType exceptionType = Magic.getObjectType(exceptionObject);
     Address fp = exceptionRegisters.getInnermostFramePointer();
-    while (Magic.getCallerFramePointer(fp).NE(STACKFRAME_SENTINEL_FP)) {
+    while (Magic.getCallerFramePointer(fp).NE(StackFrameLayout.getStackFrameSentinelFP())) {
       int compiledMethodId = Magic.getCompiledMethodID(fp);
-      if (compiledMethodId != INVISIBLE_METHOD_ID) {
+      if (compiledMethodId != StackFrameLayout.getInvisibleMethodID()) {
         CompiledMethod compiledMethod = CompiledMethods.getCompiledMethod(compiledMethodId);
         ExceptionDeliverer exceptionDeliverer = compiledMethod.getExceptionDeliverer();
         Address ip = exceptionRegisters.getInnermostInstructionAddress();
@@ -1231,7 +1231,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
       callee_fp = fp;
       ip = Magic.getReturnAddress(fp);
       fp = Magic.getCallerFramePointer(fp);
-    } while (!MemoryManager.addressInVM(ip) && fp.NE(STACKFRAME_SENTINEL_FP));
+    } while (!MemoryManager.addressInVM(ip) && fp.NE(StackFrameLayout.getStackFrameSentinelFP()));
 
     if (VM.BuildForPowerPC) {
       // We want to return fp, not callee_fp because we want the stack walkers
@@ -1267,7 +1267,7 @@ public class RuntimeEntrypoints implements Constants, ArchitectureSpecific.Stack
    *  --dave 6/29/01
    */
   @Uninterruptible
-  private static void unwindInvisibleStackFrame(Registers registers) {
+  private static void unwindInvisibleStackFrame(AbstractRegisters registers) {
     registers.unwindStackFrame();
   }
 

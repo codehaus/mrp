@@ -26,8 +26,8 @@ import org.vmutil.options.PagesOption;
 import org.vmutil.options.StringOption;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
-import org.jikesrvm.CommandLineArgs;
+import org.jikesrvm.architecture.Constants;
+import org.jikesrvm.runtime.CommandLineArgs;
 
 /**
  * Class to handle command-line arguments and options for GC.

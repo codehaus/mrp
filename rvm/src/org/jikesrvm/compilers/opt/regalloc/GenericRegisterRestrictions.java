@@ -16,13 +16,12 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import org.jikesrvm.ArchitectureSpecificOpt.PhysicalRegisterSet;
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
+import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
-import static org.jikesrvm.compilers.opt.ir.Operators.CALL_SAVE_VOLATILE;
 import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_OSR;
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.util.BitSet;
@@ -42,12 +41,12 @@ public abstract class GenericRegisterRestrictions {
   // a set of symbolic registers that must not be spilled.
   private final HashSet<Register> noSpill = new HashSet<Register>();
 
-  protected final PhysicalRegisterSet phys;
+  protected final GenericPhysicalRegisterSet phys;
 
   /**
    * Default Constructor
    */
-  protected GenericRegisterRestrictions(PhysicalRegisterSet phys) {
+  protected GenericRegisterRestrictions(GenericPhysicalRegisterSet phys) {
     this.phys = phys;
   }
 
@@ -123,7 +122,7 @@ public abstract class GenericRegisterRestrictions {
     // case.
     for (InstructionEnumeration ie = bb.forwardInstrEnumerator(); ie.hasMoreElements();) {
       Instruction s = ie.next();
-      if (s.operator.isCall() && s.operator != CALL_SAVE_VOLATILE) {
+      if (s.operator.isCall() && !s.operator.isCallSaveVolatile()) {
         for (LiveIntervalElement symb : symbolic) {
           if (contains(symb, s.scratch)) {
             forbidAllVolatiles(symb.getRegister());
@@ -320,7 +319,7 @@ public abstract class GenericRegisterRestrictions {
     /**
      * Default constructor
      */
-    RestrictedRegisterSet(PhysicalRegisterSet phys) {
+    RestrictedRegisterSet(GenericPhysicalRegisterSet phys) {
       bitset = new BitSet(phys);
     }
 

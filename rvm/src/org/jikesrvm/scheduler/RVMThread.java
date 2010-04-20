@@ -15,22 +15,14 @@ package org.jikesrvm.scheduler;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
-import org.jikesrvm.ArchitectureSpecific.Registers;
-import org.jikesrvm.ArchitectureSpecificOpt.PostThreadSwitch;
-import static org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_NORMAL;
-import static org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants.INVISIBLE_METHOD_ID;
-import static org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP;
-import static org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GUARD;
-import org.jikesrvm.ArchitectureSpecific.ThreadLocalState;
-import org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants;
-import org.jikesrvm.ArchitectureSpecific.ArchConstants;
 import org.jikesrvm.VM;
 import org.jikesrvm.Configuration;
-import org.jikesrvm.Services;
-import org.jikesrvm.UnimplementedError;
 import org.jikesrvm.adaptive.OnStackReplacementEvent;
 import org.jikesrvm.adaptive.measurements.RuntimeMeasurements;
+import org.jikesrvm.architecture.AbstractRegisters;
+import org.jikesrvm.architecture.ArchitectureFactory;
+import org.jikesrvm.architecture.StackFrameLayout;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.osr.ObjectHolder;
@@ -73,6 +65,8 @@ import org.jikesrvm.classloader.MemberReference;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.tuningfork.TraceEngine;
 import org.jikesrvm.tuningfork.Feedlet;
+import org.jikesrvm.util.Services;
+import org.jikesrvm.util.UnimplementedError;
 
 /**
  * A generic java thread's execution context.
@@ -585,14 +579,14 @@ public class RVMThread extends ThreadContext {
    */
   @Entrypoint
   @Untraced
-  public final Registers contextRegisters;
+  public final AbstractRegisters contextRegisters;
 
   /**
    * Place to save register state when this thread is not actually running.
    */
   @Entrypoint
   @Untraced
-  public final Registers contextRegistersSave;
+  public final AbstractRegisters contextRegistersSave;
 
   /**
    * Place to save register state during hardware(C signal trap handler) or
@@ -600,12 +594,12 @@ public class RVMThread extends ThreadContext {
    */
   @Entrypoint
   @Untraced
-  private final Registers exceptionRegisters;
+  private final AbstractRegisters exceptionRegisters;
 
   // evil shadow fields to get the above traced by GC
-  private final Registers contextRegistersShadow;
-  private final Registers contextRegistersSaveShadow;
-  private final Registers exceptionRegistersShadow;
+  private final AbstractRegisters contextRegistersShadow;
+  private final AbstractRegisters contextRegistersSaveShadow;
+  private final AbstractRegisters exceptionRegistersShadow;
 
   /** Count of recursive uncaught exceptions, we need to bail out at some point */
   private int uncaughtExceptionCount = 0;
@@ -1463,9 +1457,9 @@ public class RVMThread extends ThreadContext {
     this.daemon = daemon;
     this.priority = priority;
 
-    this.contextRegisters = this.contextRegistersShadow = new Registers();
-    this.contextRegistersSave = this.contextRegistersSaveShadow = new Registers();
-    this.exceptionRegisters = this.exceptionRegistersShadow = new Registers();
+    this.contextRegisters = this.contextRegistersShadow = ArchitectureFactory.createRegisters();
+    this.contextRegistersSave = this.contextRegistersSaveShadow = ArchitectureFactory.createRegisters();
+    this.exceptionRegisters = this.exceptionRegistersShadow = ArchitectureFactory.createRegisters();
     if (VM.runningVM) {
       feedlet = TraceEngine.engine.makeFeedlet(name, name);
     }
@@ -1493,7 +1487,7 @@ public class RVMThread extends ThreadContext {
       this.execStatus = NEW;
       this.waiting = Waiting.RUNNABLE;
 
-      stackLimit = Magic.objectAsAddress(stack).plus(STACK_SIZE_GUARD);
+      stackLimit = Magic.objectAsAddress(stack).plus(StackFrameLayout.getStackSizeGuard());
 
       // get instructions for method to be executed as thread startoff
       CodeArray instructions = Entrypoints.threadStartoffMethod
@@ -1507,7 +1501,7 @@ public class RVMThread extends ThreadContext {
 
       // Initialize the a thread stack as if "startoff" method had been called
       // by an empty baseline-compiled "sentinel" frame with one local variable.
-      Configuration.archHelper.initializeStack(contextRegisters, ip, sp);
+      contextRegisters.initializeStack(ip, sp);
 
       VM.enableGC();
 
@@ -1547,7 +1541,7 @@ public class RVMThread extends ThreadContext {
    * Create a thread with default stack and with the given name.
    */
   public RVMThread(String name) {
-    this(MemoryManager.newStack(STACK_SIZE_NORMAL), null, // java.lang.Thread
+    this(MemoryManager.newStack(StackFrameLayout.getNormalStackSize()), null, // java.lang.Thread
         name, true, // daemon
         true, // system
         Thread.NORM_PRIORITY);
@@ -1571,7 +1565,7 @@ public class RVMThread extends ThreadContext {
    */
   public RVMThread(Thread thread, long stacksize, String name, boolean daemon,
       int priority) {
-    this(MemoryManager.newStack((stacksize <= 0) ? STACK_SIZE_NORMAL : (int) stacksize), thread, name, daemon, false, priority);
+    this(MemoryManager.newStack((stacksize <= 0) ? StackFrameLayout.getNormalStackSize() : (int) stacksize), thread, name, daemon, false, priority);
   }
 
   final void acknowledgeBlockRequests() {
@@ -2372,7 +2366,8 @@ public class RVMThread extends ThreadContext {
    * @return The currently executing thread
    */
   public static RVMThread getCurrentThread() {
-    return ThreadLocalState.getCurrentThread();
+    return VM.BuildForIA32 ? org.jikesrvm.ia32.ThreadLocalState.getCurrentThread()
+                           : org.jikesrvm.ppc.ThreadLocalState.getCurrentThread();
   }
 
   /**
@@ -2554,7 +2549,7 @@ public class RVMThread extends ThreadContext {
     acctLock.unlock();
     if (traceAcct)
       VM.sysWriteln("Thread #", threadSlot, " starting!");
-    sysCall.sysThreadCreate(contextRegisters.ip, contextRegisters.getInnermostFramePointer(),
+    sysCall.sysThreadCreate(contextRegisters.getIP(), contextRegisters.getInnermostFramePointer(),
                             Magic.objectAsAddress(this), Magic.getJTOC());
   }
 
@@ -2596,7 +2591,7 @@ public class RVMThread extends ThreadContext {
     // if the thread terminated because of an exception, remove
     // the mark from the exception register object, or else the
     // garbage collector will attempt to relocate its ip field.
-    exceptionRegisters.inuse = false;
+    exceptionRegisters.setInUse(false);
 
     numActiveThreads -= 1;
     if (daemon) {
@@ -3661,7 +3656,11 @@ public class RVMThread extends ThreadContext {
       // be no interleaved GC; obviously if we did this before the thread
       // switch then there would be the possibility of interleaved GC.
       if (VM.BuildForAdaptiveSystem && t.isWaitingForOsr) {
-        PostThreadSwitch.postProcess(t);
+        if (VM.BuildForIA32) {
+          org.jikesrvm.osr.ia32.PostThreadSwitch.postProcess(t);
+        } else {
+          org.jikesrvm.osr.ppc.PostThreadSwitch.postProcess(t);
+        }
       }
       if (t.asyncThrowable != null) {
         throwThis = t.asyncThrowable;
@@ -3690,8 +3689,7 @@ public class RVMThread extends ThreadContext {
    *          --> normal method call, not a trap)
    */
   @Unpreemptible("May block due to allocation")
-  public static void resizeCurrentStack(int newSize,
-      Registers exceptionRegisters) {
+  public static void resizeCurrentStack(int newSize, AbstractRegisters exceptionRegisters) {
     if (traceAdjustments)
       VM.sysWrite("Thread: resizeCurrentStack\n");
     if (MemoryManager.gcInProgress()) {
@@ -3713,8 +3711,7 @@ public class RVMThread extends ThreadContext {
   @BaselineNoRegisters
   // this method does not do a normal return and hence does not execute epilogue
   // --> non-volatiles not restored!
-  private static void transferExecutionToNewStack(byte[] newStack,
-      Registers exceptionRegisters) {
+  private static void transferExecutionToNewStack(byte[] newStack, AbstractRegisters exceptionRegisters) {
     // prevent opt compiler from inlining a method that contains a magic
     // (returnToNewStack) that it does not implement.
 
@@ -3765,8 +3762,7 @@ public class RVMThread extends ThreadContext {
     // install new stack
     //
     myThread.stack = newStack;
-    myThread.stackLimit = Magic.objectAsAddress(newStack)
-        .plus(STACK_SIZE_GUARD);
+    myThread.stackLimit = Magic.objectAsAddress(newStack).plus(StackFrameLayout.getStackSizeGuard());
 
     // return to caller, resuming execution on new stack
     // (original stack now abandoned)
@@ -3795,7 +3791,7 @@ public class RVMThread extends ThreadContext {
     if (!contextRegisters.getInnermostFramePointer().isZero()) {
       adjustRegisters(contextRegisters, delta);
     }
-    if ((exceptionRegisters.inuse) &&
+    if ((exceptionRegisters.getInUse()) &&
         (exceptionRegisters.getInnermostFramePointer().NE(Address.zero()))) {
       adjustRegisters(exceptionRegisters, delta);
     }
@@ -3814,7 +3810,7 @@ public class RVMThread extends ThreadContext {
    * @param delta
    *          displacement to be applied
    */
-  private static void adjustRegisters(Registers registers, Offset delta) {
+  private static void adjustRegisters(AbstractRegisters registers, Offset delta) {
     if (traceAdjustments)
       VM.sysWrite("Thread: adjustRegisters\n");
 
@@ -3832,9 +3828,9 @@ public class RVMThread extends ThreadContext {
     // (1) frames from all compilers on IA32 need to update ESP
     int compiledMethodId = Magic.getCompiledMethodID(registers
         .getInnermostFramePointer());
-    if (compiledMethodId != INVISIBLE_METHOD_ID) {
+    if (compiledMethodId != StackFrameLayout.getInvisibleMethodID()) {
       if (VM.BuildForIA32) {
-        Configuration.archHelper.adjustESP(registers, delta, traceAdjustments);
+        registers.adjustESP(delta, traceAdjustments);
       }
       if (traceAdjustments) {
         CompiledMethod compiledMethod = CompiledMethods
@@ -3861,7 +3857,7 @@ public class RVMThread extends ThreadContext {
     if (traceAdjustments)
       VM.sysWrite("Thread: adjustStack\n");
 
-    while (Magic.getCallerFramePointer(fp).NE(STACKFRAME_SENTINEL_FP)) {
+    while (Magic.getCallerFramePointer(fp).NE(StackFrameLayout.getStackFrameSentinelFP())) {
       // adjust FP save area
       //
       Magic.setCallerFramePointer(fp, Magic.getCallerFramePointer(fp).plus(
@@ -3906,8 +3902,7 @@ public class RVMThread extends ThreadContext {
     // before copying, make sure new stack isn't too small
     //
     if (VM.VerifyAssertions) {
-      VM._assert(newFP.GE(Magic.objectAsAddress(newStack)
-          .plus(STACK_SIZE_GUARD)));
+      VM._assert(newFP.GE(Magic.objectAsAddress(newStack).plus(StackFrameLayout.getStackSizeGuard())));
     }
 
     Memory.memcopy(newFP, myFP, myDepth.toWord().toExtent());
@@ -4219,7 +4214,7 @@ public class RVMThread extends ThreadContext {
   /**
    * @return the thread's exception registers
    */
-  public final Registers getExceptionRegisters() {
+  public final AbstractRegisters getExceptionRegisters() {
     return exceptionRegisters;
   }
 
@@ -4227,7 +4222,7 @@ public class RVMThread extends ThreadContext {
    * @return the thread's context registers (saved registers when thread is
    *         suspended by green-thread scheduler).
    */
-  public final Registers getContextRegisters() {
+  public final AbstractRegisters getContextRegisters() {
     return contextRegisters;
   }
 
@@ -4760,7 +4755,7 @@ public class RVMThread extends ThreadContext {
         VM._assert(VM.NOT_REACHED);
     }
 
-    if (fp.EQ(StackframeLayoutConstants.STACKFRAME_SENTINEL_FP)) {
+    if (fp.EQ(StackFrameLayout.getStackFrameSentinelFP())) {
       VM.sysWriteln("Empty stack");
     } else if (!isAddressValidFramePointer(fp)) {
       VM.sysWrite("Bogus looking frame pointer: ", fp);
@@ -4769,7 +4764,7 @@ public class RVMThread extends ThreadContext {
       try {
         VM.sysWriteln("-- Stack --");
         while (Magic.getCallerFramePointer(fp).NE(
-            StackframeLayoutConstants.STACKFRAME_SENTINEL_FP)) {
+            StackFrameLayout.getStackFrameSentinelFP())) {
 
           // if code is outside of RVM heap, assume it to be native code,
           // skip to next frame
@@ -4780,7 +4775,7 @@ public class RVMThread extends ThreadContext {
           } else {
 
             int compiledMethodId = Magic.getCompiledMethodID(fp);
-            if (compiledMethodId == StackframeLayoutConstants.INVISIBLE_METHOD_ID) {
+            if (compiledMethodId == StackFrameLayout.getInvisibleMethodID()) {
               showMethod("invisible method", fp);
             } else {
               // normal java frame(s)
@@ -4850,7 +4845,7 @@ public class RVMThread extends ThreadContext {
    * </ul>
    *
    * <p>
-   * or it is {@link StackframeLayoutConstants#STACKFRAME_SENTINEL_FP}. The
+   * or it is {@link AbstractStackFrameLayout#STACKFRAME_SENTINEL_FP}. The
    * STACKFRAME_SENTINEL_FP is possible when the thread has been created but has
    * yet to be scheduled.
    * </p>
@@ -4863,7 +4858,7 @@ public class RVMThread extends ThreadContext {
     if (address.EQ(Address.zero()))
       return false; // Avoid hitting assertion failure in MMTk
     else
-      return address.EQ(StackframeLayoutConstants.STACKFRAME_SENTINEL_FP) || MemoryManager.mightBeFP(address);
+      return address.EQ(StackFrameLayout.getStackFrameSentinelFP()) || MemoryManager.mightBeFP(address);
   }
 
   private static void showPrologue(Address fp) {
@@ -4969,7 +4964,7 @@ public class RVMThread extends ThreadContext {
    */
   @Interruptible
   public static RVMThread setupBootThread() {
-    byte[] stack = new byte[ArchConstants.STACK_SIZE_BOOT];
+    byte[] stack = new byte[StackFrameLayout.getBootThreadStackSize()];
     if (VM.VerifyAssertions)
       VM._assert(bootThread == null);
     bootThread = new RVMThread(stack, "Jikes_RBoot_Thread");

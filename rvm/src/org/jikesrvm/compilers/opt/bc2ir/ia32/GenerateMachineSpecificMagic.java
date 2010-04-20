@@ -42,12 +42,16 @@ import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.MagicNames;
 import org.vmmagic.unboxed.Offset;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
+import static org.jikesrvm.ia32.StackframeLayoutConstants.*;
+
 /**
  * This class implements the machine-specific magics for the opt compiler.
  *
  * @see org.jikesrvm.compilers.opt.bc2ir.GenerateMagic for the machine-independent magics
  */
-public abstract class GenerateMachineSpecificMagic implements Operators, StackframeLayoutConstants {
+public abstract class GenerateMachineSpecificMagic {
 
   /** Generate appropriately sized operand for given Offset */
   private static Operand offsetOperand(Offset o) {
@@ -73,7 +77,7 @@ public abstract class GenerateMachineSpecificMagic implements Operators, Stackfr
       throws MagicNotImplementedException {
 
     Atom methodName = meth.getName();
-    PhysicalRegisterSet phys = gc.temps.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = gc.temps.getPhysicalRegisterSet().asIA32();
 
     if (methodName == MagicNames.getESIAsThread) {
       RegisterOperand rop = gc.temps.makeTROp();

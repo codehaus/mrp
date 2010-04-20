@@ -32,6 +32,9 @@ import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.vmmagic.unboxed.Offset;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.driver.OptConstants.*;
+
 /**
  * An implementation of a InstrumentedEventCounterManager .  It
  * uses an unsynchronized two dimensional array of doubles to allocate
@@ -41,7 +44,7 @@ import org.vmmagic.unboxed.Offset;
  * NOTE: Much of this class was stolen from CounterArray.java, which
  * is now gone.
  */
-public final class CounterArrayManager extends InstrumentedEventCounterManager implements Operators, OptConstants {
+public final class CounterArrayManager extends InstrumentedEventCounterManager {
 
   static final boolean DEBUG = false;
 
@@ -196,7 +199,7 @@ public final class CounterArrayManager extends InstrumentedEventCounterManager i
    * @return the result operand of the inserted instruction
    */
   static RegisterOperand InsertALoadOffset(Instruction s, IR ir, Operator operator,
-                                               TypeReference type, Operand reg2, int offset) {
+                                           TypeReference type, Operand reg2, int offset) {
     RegisterOperand regTarget = ir.regpool.makeTemp(type);
     Instruction s2 = ALoad.create(operator, regTarget, reg2, IRTools.IC(offset), null, null);
     s.insertBefore(s2);

@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.adaptive.recompilation.instrumentation;
 
-import org.jikesrvm.Constants;
 import org.jikesrvm.adaptive.util.AOSOptions;
+import org.jikesrvm.architecture.Constants;
 import org.vmmagic.pragma.Uninterruptible;
 
 /**

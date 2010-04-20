@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.tools.bootImageWriter;
 
-import org.jikesrvm.Constants;
+import org.jikesrvm.architecture.Constants;
 import org.vmmagic.unboxed.Address;
 
 /**

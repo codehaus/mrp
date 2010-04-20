@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.objectmodel;
 
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.unboxed.Word;
 

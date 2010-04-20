@@ -35,7 +35,9 @@ import org.jikesrvm.compilers.opt.bc2ir.GenerationContext;
 import org.jikesrvm.compilers.opt.ir.*;
 import org.jikesrvm.compilers.opt.ir.operand.*;
 
-public class ARM2IR extends CodeTranslator implements HIRGenerator {
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
+public class ARM2IR extends CodeTranslator {
 
   /** Mapping of ARM registers to HIR registers */
   private Register regMap[] = new Register[16];

@@ -14,13 +14,13 @@
  */
 package mrp.debug;
 
-import org.jikesrvm.Callbacks;
-import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethod.DebugInformationVisitor;
 import org.jikesrvm.compilers.common.CompiledMethods;
+import org.jikesrvm.runtime.Callbacks;
 import org.jikesrvm.runtime.Magic;
+import org.jikesrvm.runtime.Callbacks.Callback;
 import org.jikesrvm.VM;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
@@ -28,7 +28,7 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
 
 /**
  * The purpose of this class is to listen for OProfile events and to inform
- * OProfile about JIT events that have occured.
+ * OProfile about JIT events that have occurred.
  */
 public final class OProfileListener {
   /** Debug messages */

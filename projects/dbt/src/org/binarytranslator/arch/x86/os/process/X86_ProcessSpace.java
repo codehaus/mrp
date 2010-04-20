@@ -28,7 +28,7 @@ import org.binarytranslator.arch.x86.decoder.X86_InstructionDecoder;
 import org.binarytranslator.generic.os.loader.Loader;
 import org.binarytranslator.vmInterface.DBT_Trace;
 import org.binarytranslator.vmInterface.DynamicCodeRunner;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
+import org.jikesrvm.compilers.common.CodeArray;
 
 /**
  * Encapsulate the parts of an X86 process that are common across operating systems

@@ -22,12 +22,15 @@ import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.IRTools;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
-import org.jikesrvm.compilers.opt.ir.MIR_Nullary;
-import org.jikesrvm.compilers.opt.ir.MIR_UnaryNoRes;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Nullary;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryNoRes;
 import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.ia32.ArchConstants;
+
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
 
 /**
  * At the beginning of each basic block, the register allocator expects
@@ -63,7 +66,7 @@ import org.jikesrvm.ia32.ArchConstants;
  * beginning of each catch block.
  */
 
-public final class ExpandFPRStackConvention extends CompilerPhase implements Operators {
+public final class ExpandFPRStackConvention extends CompilerPhase {
 
   /**
    * The number of FPRs available for allocation.
@@ -96,7 +99,7 @@ public final class ExpandFPRStackConvention extends CompilerPhase implements Ope
     if (ArchConstants.SSE2_FULL) {
       return;
     }
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
 
     for (BasicBlockEnumeration b = ir.getBasicBlocks(); b.hasMoreElements();) {
       BasicBlock bb = b.nextElement();

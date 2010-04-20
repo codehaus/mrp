@@ -23,7 +23,7 @@ import org.vmmagic.pragma.Pure;
  * This class provides utilities to record defs and uses of physical
  * registers by IR operators.
  */
-public abstract class PhysicalDefUse {
+public final class PhysicalDefUse {
 
   // constants used to encode defs/uses of physical registers
   /** Default empty mask */
@@ -143,7 +143,7 @@ public abstract class PhysicalDefUse {
     private PhysicalRegisterSet phys;
 
     PDUEnumeration(int c, IR ir) {
-      phys = ir.regpool.getPhysicalRegisterSet();
+      phys = (PhysicalRegisterSet)ir.regpool.getPhysicalRegisterSet();
       code = c;
       curMask = maskHIGH;
     }

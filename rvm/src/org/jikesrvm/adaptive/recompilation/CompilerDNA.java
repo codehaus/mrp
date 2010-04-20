@@ -17,9 +17,9 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.util.StringTokenizer;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
 import org.jikesrvm.adaptive.controller.Controller;
 import org.jikesrvm.adaptive.util.AOSLogging;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.compilers.common.RuntimeCompiler;
 

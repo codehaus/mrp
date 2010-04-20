@@ -13,10 +13,10 @@
 package org.jikesrvm.compilers.opt.runtimesupport;
 
 import java.util.ArrayList;
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
 import org.jikesrvm.adaptive.database.callgraph.CallSite;
+import org.jikesrvm.architecture.ArchConstants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.MemberReference;
@@ -27,7 +27,6 @@ import org.jikesrvm.compilers.common.CompiledMethod.DebugInformationVisitor;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.driver.OptConstants;
 import org.jikesrvm.compilers.opt.inlining.CallSiteTree;
-import org.jikesrvm.compilers.opt.ir.MIR_Call;
 import org.jikesrvm.compilers.opt.ir.GCIRMap;
 import org.jikesrvm.compilers.opt.ir.GCIRMapElement;
 import org.jikesrvm.compilers.opt.ir.IR;
@@ -111,7 +110,7 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
     if (DUMP_MAP_SIZES) {
       map.recordStats(ir.method,
                       map.size(),
-                      machineCodeSize << ArchitectureSpecific.RegisterConstants.LG_INSTRUCTION_WIDTH, DUMP_MAP_SIZES);
+                      machineCodeSize << ArchConstants.getLogInstructionWidth(), DUMP_MAP_SIZES);
     }
 
     if (DUMP_MAPS) {
@@ -339,7 +338,12 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
       numEntries++;
       Instruction instr = irMapElem.getInstruction();
       if (instr.position == null && instr.bcIndex != INSTRUMENTATION_BCI) {
-        if (MIR_Call.conforms(instr) && MIR_Call.hasMethod(instr)) {
+	if ((VM.BuildForIA32 &&
+             org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.conforms(instr) &&
+	     org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.hasMethod(instr))||
+            (VM.BuildForPowerPC &&
+             org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.conforms(instr) &&
+	     org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.hasMethod(instr))) {
           throw new OptimizingCompilerException("position required for all call instructions " + instr);
         }
       } else {
@@ -372,7 +376,13 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
       // get bci information
       int bci = instr.getBytecodeIndex();
       if (bci < 0) {
-        if (bci == UNKNOWN_BCI && MIR_Call.conforms(instr) && MIR_Call.hasMethod(instr)) {
+        if ((bci == UNKNOWN_BCI) &&
+	    ((VM.BuildForIA32 &&
+              org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.conforms(instr) &&
+	      org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.hasMethod(instr))||
+             (VM.BuildForPowerPC &&
+              org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.conforms(instr) &&
+	      org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.hasMethod(instr)))) {
           throw new OptimizingCompilerException("valid bytecode index required for all calls " + instr);
         }
         bci = -1;
@@ -384,8 +394,11 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
       }
       // set the call info
       int cm = 0;
-      if (MIR_Call.conforms(instr)) {
-        MethodOperand mo = MIR_Call.getMethod(instr);
+      if ((VM.BuildForIA32 && org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.conforms(instr)) ||
+          (VM.BuildForPowerPC && org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.conforms(instr))) {
+        MethodOperand mo = VM.BuildForIA32
+	    ? org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.getMethod(instr)
+	    : org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.getMethod(instr);
         if (mo != null && mo.isGuardedInlineOffBranch()) {
           cm = IS_GUARDED_CALL;
         } else {

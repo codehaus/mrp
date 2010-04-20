@@ -16,53 +16,22 @@ import org.jikesrvm.VM;
 import org.jikesrvm.classloader.InterfaceMethodSignature;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
-import org.jikesrvm.compilers.opt.ir.MIR_Binary;
-import org.jikesrvm.compilers.opt.ir.MIR_Branch;
-import org.jikesrvm.compilers.opt.ir.MIR_Call;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch2;
-import org.jikesrvm.compilers.opt.ir.MIR_CondCall;
-import org.jikesrvm.compilers.opt.ir.MIR_DataLabel;
-import org.jikesrvm.compilers.opt.ir.MIR_Load;
-import org.jikesrvm.compilers.opt.ir.MIR_LoadUpdate;
-import org.jikesrvm.compilers.opt.ir.MIR_LowTableSwitch;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.MIR_Unary;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Binary;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Call;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_CondCall;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_DataLabel;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Load;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_LoadUpdate;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_LowTableSwitch;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Unary;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.IRTools;
 import org.jikesrvm.compilers.opt.ir.Instruction;
-import static org.jikesrvm.compilers.opt.ir.Operators.BBEND_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.LABEL_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.MIR_LOWTABLESWITCH_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_ADD;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_ADDI;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_ADDIS;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_BCL;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_BCOND;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_BCOND2_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_BCTR;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_BCTRL;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_BCTRL_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_BL;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_BLRL_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_CMPI;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_DATA_LABEL;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LAddr;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LDI;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LDIS;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LInt;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_LIntUX;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_MFSPR;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_MTSPR;
-import static org.jikesrvm.compilers.opt.ir.Operators.PPC_SLWI;
-import static org.jikesrvm.compilers.opt.ir.Operators.RESOLVE_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.UNINT_BEGIN_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.UNINT_END_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_BACKEDGE_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_EPILOGUE_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_OSR_opcode;
-import static org.jikesrvm.compilers.opt.ir.Operators.YIELDPOINT_PROLOGUE_opcode;
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.operand.MethodOperand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
@@ -73,6 +42,9 @@ import org.jikesrvm.compilers.opt.util.Bits;
 import org.jikesrvm.runtime.Entrypoints;
 import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.unboxed.Offset;
+
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.*;
 
 /**
  * Final acts of MIR expansion for the PowerPC architecture.
@@ -92,7 +64,7 @@ public abstract class FinalMIRExpansion extends IRTools {
     int conditionalBranchCount = 0;
     int machinecodeLength = 0;
 
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet().asPPC();
     for (Instruction p = ir.firstInstructionInCodeOrder(); p != null; p = p.nextInstructionInCodeOrder()) {
       p.setmcOffset(-1);
       p.scratchObject = null;
@@ -311,7 +283,7 @@ public abstract class FinalMIRExpansion extends IRTools {
    */
   static BasicBlock findOrCreateYieldpointBlock(IR ir, int whereFrom) {
     RVMMethod meth = null;
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet().asPPC();
     Register zero = phys.getGPR(0);
 
     // first see if the requested block exists. If not, set up some

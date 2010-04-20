@@ -15,7 +15,6 @@ package org.jikesrvm.compilers.opt.driver;
 import java.util.Vector;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.Callbacks;
 import org.jikesrvm.adaptive.recompilation.CompilerDNA;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.RVMMethod;
@@ -28,6 +27,7 @@ import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.opt.MagicNotImplementedException;
 import org.jikesrvm.compilers.opt.OptOptions;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
+import org.jikesrvm.runtime.Callbacks;
 
 /**
  * Use optimizing compiler to build virtual machine boot image.

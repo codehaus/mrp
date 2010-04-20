@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.Callbacks;
 import org.jikesrvm.Configuration;
 import org.jikesrvm.Options;
-import org.jikesrvm.Callbacks.Callback;
+import org.jikesrvm.runtime.Callbacks;
+import org.jikesrvm.runtime.Callbacks.Callback;
 import org.jikesrvm.scheduler.RVMThread;
 import org.jikesrvm.util.HashSetRVM;
 import org.vmmagic.pragma.Uninterruptible;

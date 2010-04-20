@@ -12,9 +12,7 @@
  */
 package org.jikesrvm.compilers.opt.controlflow;
 
-import org.jikesrvm.compilers.opt.ir.MIR_Branch;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch2;
+import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
@@ -36,6 +34,89 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
     super(level);
   }
 
+  /** @return whether the instruction conforms to being an MIR_Branch */
+  private static boolean isMIR_Branch(Instruction x) {
+    if(VM.BuildForIA32) {
+      return org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(x);
+    } else {
+      return org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(x);
+    }
+  }
+
+  /** @return whether the instruction conforms to being an MIR_CondBranch */
+  private static boolean isMIR_CondBranch(Instruction x) {
+    if(VM.BuildForIA32) {
+      return org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.conforms(x);
+    } else {
+      return org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.conforms(x);
+    }
+  }
+
+  /** @return whether the instruction conforms to being an MIR_CondBranch2 */
+  private static boolean isMIR_CondBranch2(Instruction x) {
+    if(VM.BuildForIA32) {
+      return org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.conforms(x);
+    } else {
+      return org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.conforms(x);
+    }
+  }
+
+  private static BranchOperand MIR_Branch_getTarget(Instruction x) {
+    if(VM.BuildForIA32) {
+      return (BranchOperand)org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.getTarget(x);
+    } else {
+      return (BranchOperand)org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.getTarget(x);
+    }    
+  }
+
+  private static void MIR_Branch_setTarget(Instruction x, BranchOperand y) {
+    if(VM.BuildForIA32) {
+      org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.setTarget(x, y);
+    } else {
+      org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.setTarget(x, y);
+    }    
+  }
+
+  private static void MIR_CondBranch_setTarget(Instruction x, BranchOperand y) {
+    if(VM.BuildForIA32) {
+      org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.setTarget(x, y);
+    } else {
+      org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.setTarget(x, y);
+    }    
+  }
+
+  private static BranchOperand MIR_CondBranch2_getTarget1(Instruction x) {
+    if(VM.BuildForIA32) {
+      return (BranchOperand)org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getTarget1(x);
+    } else {
+      return (BranchOperand)org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget1(x);
+    }    
+  }
+
+  private static BranchOperand MIR_CondBranch2_getTarget2(Instruction x) {
+    if(VM.BuildForIA32) {
+      return (BranchOperand)org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getTarget2(x);
+    } else {
+      return (BranchOperand)org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget2(x);
+    }    
+  }
+
+  private static void MIR_CondBranch2_setTarget1(Instruction x, BranchOperand y) {
+    if(VM.BuildForIA32) {
+      org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.setTarget1(x, y);
+    } else {
+      org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.setTarget1(x, y);
+    }    
+  }
+
+  private static void MIR_CondBranch2_setTarget2(Instruction x, BranchOperand y) {
+    if(VM.BuildForIA32) {
+      org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.setTarget2(x, y);
+    } else {
+      org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.setTarget2(x, y);
+    }    
+  }
+
   /**
    * This method actually does the work of attempting to
    * peephole optimize a branch instruction.
@@ -46,11 +127,11 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
    * @return true if an optimization was applied, false otherwise
    */
   protected boolean optimizeBranchInstruction(IR ir, Instruction s, BasicBlock bb) {
-    if (MIR_Branch.conforms(s)) {
+    if (isMIR_Branch(s)) {
       return processGoto(ir, s, bb);
-    } else if (MIR_CondBranch.conforms(s)) {
+    } else if (isMIR_CondBranch(s)) {
       return processCondBranch(ir, s, bb);
-    } else if (MIR_CondBranch2.conforms(s)) {
+    } else if (isMIR_CondBranch2(s)) {
       return processTwoTargetConditionalBranch(ir, s, bb);
     } else {
       return false;
@@ -95,7 +176,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       g.remove();
       return true;
     }
-    if (MIR_Branch.conforms(targetInst)) {
+    if (isMIR_Branch(targetInst)) {
       // unconditional branch to unconditional branch.
       // replace g with goto to targetInst's target
       Instruction target2 = firstRealInstructionFollowing(targetInst.getBranchTarget().firstInstruction());
@@ -107,15 +188,15 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
         // This happens in jByteMark.EmFloatPnt.denormalize() due to a while(true) {}
         return false;
       }
-      BranchOperand top = (BranchOperand) MIR_Branch.getTarget(targetInst).copy();
-      MIR_Branch.setTarget(g, top);
+      BranchOperand top = (BranchOperand)(MIR_Branch_getTarget(targetInst).copy());
+      MIR_Branch_setTarget(g, top);
       bb.recomputeNormalOut(ir); // fix the CFG
       return true;
     }
     if (targetBlock.isEmpty()) {
       // GOTO an empty block.  Change target to the next block.
       BasicBlock nextBlock = targetBlock.getFallThroughBlock();
-      MIR_Branch.setTarget(g, nextBlock.makeJumpTarget());
+      MIR_Branch_setTarget(g, nextBlock.makeJumpTarget());
       bb.recomputeNormalOut(ir); // fix the CFG
       return true;
     }
@@ -166,14 +247,14 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
         return true;
       }
       Instruction nextI = firstRealInstructionFollowing(nextLabel);
-      if (nextI != null && MIR_Branch.conforms(nextI)) {
+      if (nextI != null && isMIR_Branch(nextI)) {
         // replicate Goto
         cb.insertAfter(nextI.copyWithoutLinks());
         bb.recomputeNormalOut(ir); // fix the CFG
         return true;
       }
     }
-    if (MIR_Branch.conforms(targetInst)) {
+    if (isMIR_Branch(targetInst)) {
       // conditional branch to unconditional branch.
       // change conditional branch target to latter's target
       Instruction target2 = firstRealInstructionFollowing(targetInst.getBranchTarget().firstInstruction());
@@ -185,7 +266,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
         // This happens in GCUtil in some systems due to a while(true) {}
         return false;
       }
-      MIR_CondBranch.setTarget(cb, (BranchOperand) (MIR_Branch.getTarget(targetInst).copy()));
+      MIR_CondBranch_setTarget(cb, (BranchOperand)MIR_Branch_getTarget(targetInst).copy());
       bb.recomputeNormalOut(ir); // fix the CFG
       return true;
     }
@@ -193,7 +274,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       // branch to an empty block.  Change target to the next block.
       BasicBlock nextBlock = targetBlock.getFallThroughBlock();
       BranchOperand newTarget = nextBlock.makeJumpTarget();
-      MIR_CondBranch.setTarget(cb, newTarget);
+      MIR_CondBranch_setTarget(cb, newTarget);
       bb.recomputeNormalOut(ir); // fix the CFG
       return true;
     }
@@ -229,15 +310,15 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
    */
   private boolean processTwoTargetConditionalBranch(IR ir, Instruction cb, BasicBlock bb) {
     // First condition/target
-    Instruction target1Label = MIR_CondBranch2.getTarget1(cb).target;
+    Instruction target1Label = MIR_CondBranch2_getTarget1(cb).target;
     Instruction target1Inst = firstRealInstructionFollowing(target1Label);
     Instruction nextLabel = firstLabelFollowing(cb);
     boolean endsBlock = cb.nextInstructionInCodeOrder().operator() == BBEND;
     if (target1Inst != null && target1Inst != cb) {
-      if (MIR_Branch.conforms(target1Inst)) {
+      if (isMIR_Branch(target1Inst)) {
         // conditional branch to unconditional branch.
         // change conditional branch target to latter's target
-        MIR_CondBranch2.setTarget1(cb, MIR_Branch.getTarget(target1Inst));
+        MIR_CondBranch2_setTarget1(cb, MIR_Branch_getTarget(target1Inst));
         bb.recomputeNormalOut(ir); // fix CFG
         return true;
       }
@@ -245,34 +326,47 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       if (target1Block.isEmpty()) {
         // branch to an empty block.  Change target to the next block.
         BasicBlock nextBlock = target1Block.getFallThroughBlock();
-        MIR_CondBranch2.setTarget1(cb, nextBlock.makeJumpTarget());
+        MIR_CondBranch2_setTarget1(cb, nextBlock.makeJumpTarget());
         bb.recomputeNormalOut(ir); // fix the CFG
         return true;
       }
     }
 
     // Second condition/target
-    Instruction target2Label = MIR_CondBranch2.getTarget2(cb).target;
+    Instruction target2Label = MIR_CondBranch2_getTarget2(cb).target;
     Instruction target2Inst = firstRealInstructionFollowing(target2Label);
     if (target2Inst != null && target2Inst != cb) {
-      if (MIR_Branch.conforms(target2Inst)) {
+      if (isMIR_Branch(target2Inst)) {
         // conditional branch to unconditional branch.
         // change conditional branch target to latter's target
-        MIR_CondBranch2.setTarget2(cb, MIR_Branch.getTarget(target2Inst));
+        MIR_CondBranch2_setTarget2(cb, MIR_Branch_getTarget(target2Inst));
         bb.recomputeNormalOut(ir); // fix CFG
         return true;
       }
       if ((target2Label == nextLabel) && endsBlock) {
         // found a conditional branch to the next instruction.
         // Reduce to MIR_BranchCond
-        Operators.helper.mutateMIRCondBranch(cb);
+	if(VM.BuildForPowerPC) {
+	  org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.mutate(cb,
+            org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_BCOND,
+	    org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getValue(cb),
+	    org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getCond1(cb),
+	    org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget1(cb),
+            org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getBranchProfile1(cb));
+	} else {
+	  org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.mutate(cb,
+            org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_JCC,
+            org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getCond1(cb),
+            org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getTarget1(cb),
+            org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getBranchProfile1(cb));
+	}
         return true;
       }
       BasicBlock target2Block = target2Label.getBasicBlock();
       if (target2Block.isEmpty()) {
         // branch to an empty block.  Change target to the next block.
         BasicBlock nextBlock = target2Block.getFallThroughBlock();
-        MIR_CondBranch2.setTarget2(cb, nextBlock.makeJumpTarget());
+        MIR_CondBranch2_setTarget2(cb, nextBlock.makeJumpTarget());
         bb.recomputeNormalOut(ir); // fix the CFG
         return true;
       }
@@ -281,7 +375,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
     // if fall through to a goto; replicate the goto
     if (endsBlock) {
       Instruction nextI = firstRealInstructionFollowing(nextLabel);
-      if (nextI != null && MIR_Branch.conforms(nextI)) {
+      if (nextI != null && isMIR_Branch(nextI)) {
         // replicate unconditional branch
         cb.insertAfter(nextI.copyWithoutLinks());
         bb.recomputeNormalOut(ir); // fix the CFG
@@ -306,7 +400,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
   private boolean isFlipCandidate(Instruction cb, Instruction target) {
     // condition 1: is next instruction a GOTO?
     Instruction next = cb.nextInstructionInCodeOrder();
-    if (!MIR_Branch.conforms(next)) {
+    if (!isMIR_Branch(next)) {
       return false;
     }
     // condition 2: is the target of the conditional branch the
@@ -329,10 +423,16 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
   private void flipConditionalBranch(Instruction cb) {
     // get the trailing GOTO instruction
     Instruction g = cb.nextInstructionInCodeOrder();
-    BranchOperand gTarget = MIR_Branch.getTarget(g);
+    BranchOperand gTarget = MIR_Branch_getTarget(g);
     // now flip the test and set the new target
-    MIR_CondBranch.setCond(cb, MIR_CondBranch.getCond(cb).flipCode());
-    MIR_CondBranch.setTarget(cb, gTarget);
+    if(VM.BuildForIA32) {
+      org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.setCond(cb,
+	org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.getCond(cb).flipCode());
+    } else {
+      org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.setCond(cb,
+	org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.getCond(cb).flipCode());
+    }
+    MIR_CondBranch_setTarget(cb, gTarget);
     // Remove the trailing GOTO instruction
     g.remove();
   }

@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.osr;
 
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.ClassLoaderConstants;
 
 /**

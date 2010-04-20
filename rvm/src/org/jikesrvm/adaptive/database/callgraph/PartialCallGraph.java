@@ -19,7 +19,7 @@ import java.io.OutputStreamWriter;
 import java.util.Comparator;
 import java.util.TreeSet;
 import java.util.Iterator;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.VM;
 import org.jikesrvm.adaptive.controller.Controller;
 import org.jikesrvm.adaptive.measurements.Decayable;

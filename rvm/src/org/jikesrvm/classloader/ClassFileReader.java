@@ -16,8 +16,8 @@ package org.jikesrvm.classloader;
 import java.io.DataInputStream;
 import java.io.IOException;
 
-import org.jikesrvm.Constants;
 import org.jikesrvm.VM;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.runtime.Statics;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Offset;

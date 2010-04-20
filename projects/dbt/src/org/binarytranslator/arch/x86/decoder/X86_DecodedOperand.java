@@ -16,11 +16,13 @@ import org.binarytranslator.arch.x86.os.process.X86_Registers;
 import org.jikesrvm.compilers.opt.ir.*;
 import org.jikesrvm.compilers.opt.ir.operand.*;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
 /**
  * Wrapper for X86 decoded operands that are either in memory, registers or
  * immediates
  */
-abstract class X86_DecodedOperand implements Operators {
+abstract class X86_DecodedOperand {
   /**
    * Read the value into a register
    */

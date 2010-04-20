@@ -212,7 +212,7 @@ public final class MethodReference extends MemberReference {
 
     // Hasn't been resolved yet. Try to do it now without triggering class loading.
     RVMClass declaringClass = (RVMClass) type.peekType();
-    if (declaringClass == null) { return false; }
+    if (declaringClass == null) return false;
 
     if (!declaringClass.isResolved()) {
       declaringClass.resolve();

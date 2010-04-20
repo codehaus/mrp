@@ -47,7 +47,8 @@ extern Tree tree(const char *op, Tree left, Tree right);
 struct rule {		/* rules: */
 	Nonterm lhs;		/* lefthand side nonterminal */
 	Tree pattern;		/* rule pattern */
-	int ern;		/* external rule number */
+   int ern;		/* external rule number */
+   int sorted_ern;
 	int packed;		/* packed external rule number */
 	int cost;		/* cost, if a constant */
 	const char *code;	/* cost, if an expression */

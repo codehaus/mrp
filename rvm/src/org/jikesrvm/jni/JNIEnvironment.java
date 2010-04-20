@@ -13,8 +13,8 @@
 package org.jikesrvm.jni;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.SizeConstants;
 import org.jikesrvm.mm.mminterface.MemoryManager;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.runtime.BootRecord;

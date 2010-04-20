@@ -13,9 +13,9 @@
 package org.jikesrvm.classloader;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
-import org.jikesrvm.SizeConstants;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
+import org.jikesrvm.architecture.Constants;
+import org.jikesrvm.architecture.SizeConstants;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.objectmodel.TIB;
 import org.jikesrvm.runtime.RuntimeEntrypoints;

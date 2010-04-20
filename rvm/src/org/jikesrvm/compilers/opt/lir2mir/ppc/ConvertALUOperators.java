@@ -17,10 +17,13 @@ import org.jikesrvm.compilers.opt.driver.CompilerPhase;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Operators;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.*;
+
 /**
  * Nothing to do on PowerPC.
  */
-public abstract class ConvertALUOperators extends CompilerPhase implements Operators {
+public final class ConvertALUOperators extends CompilerPhase {
 
   /**
    * Return this instance of this phase. This phase contains no

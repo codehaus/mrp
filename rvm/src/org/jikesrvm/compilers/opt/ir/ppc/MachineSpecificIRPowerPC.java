@@ -48,7 +48,6 @@ public abstract class MachineSpecificIRPowerPC extends MachineSpecificIR {
    * Wrappers around 32-bit PowerPC-specific IR
    */
   public static final class PPC32 extends MachineSpecificIRPowerPC {
-    public static final PPC32 singleton = new PPC32();
 
     @Override
     public boolean mayEscapeThread(Instruction instruction) {

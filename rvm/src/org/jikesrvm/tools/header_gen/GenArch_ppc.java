@@ -15,6 +15,7 @@ package org.jikesrvm.tools.header_gen;
 import org.jikesrvm.VM;
 import org.jikesrvm.ppc.BaselineConstants;
 import org.jikesrvm.ppc.RegisterConstants;
+import org.jikesrvm.ppc.RegisterConstants.GPR;
 import org.jikesrvm.ppc.StackframeLayoutConstants;
 import org.jikesrvm.ppc.TrapConstants;
 import org.jikesrvm.runtime.ArchEntrypoints;
@@ -26,6 +27,10 @@ import org.vmmagic.unboxed.Offset;
  * Posix version: AIX PPC, Linux PPC, Linux IA32
  */
 final class GenArch_ppc extends GenArch {
+  static void pln(String s, GPR gp) {
+    out.print("#define " + s + " 0x" + Integer.toHexString(gp.value()) + "\n");
+  }
+
   public void emitArchVirtualMachineDeclarations() {
     Offset offset;
     offset = ArchEntrypoints.registersLRField.getOffset();
@@ -66,28 +71,28 @@ final class GenArch_ppc extends GenArch {
 
   public void emitArchAssemblerDeclarations() {
     if (VM.BuildForOsx) {
-      pln("#define FP r" + BaselineConstants.FP);
-      pln("#define JTOC r" + BaselineConstants.JTOC);
-      pln("#define THREAD_REGISTER r" + BaselineConstants.THREAD_REGISTER);
-      pln("#define S0 r" + BaselineConstants.S0);
-      pln("#define T0 r" + BaselineConstants.T0);
-      pln("#define T1 r" + BaselineConstants.T1);
-      pln("#define T2 r" + BaselineConstants.T2);
-      pln("#define T3 r" + BaselineConstants.T3);
+      pln("#define FP r" + BaselineConstants.FP.value());
+      pln("#define JTOC r" + BaselineConstants.JTOC.value());
+      pln("#define THREAD_REGISTER r" + BaselineConstants.THREAD_REGISTER.value());
+      pln("#define S0 r" + BaselineConstants.S0.value());
+      pln("#define T0 r" + BaselineConstants.T0.value());
+      pln("#define T1 r" + BaselineConstants.T1.value());
+      pln("#define T2 r" + BaselineConstants.T2.value());
+      pln("#define T3 r" + BaselineConstants.T3.value());
       pln("#define STACKFRAME_NEXT_INSTRUCTION_OFFSET " +
           StackframeLayoutConstants.STACKFRAME_NEXT_INSTRUCTION_OFFSET);
     } else {
-      pln(".set FP," + BaselineConstants.FP);
-      pln(".set JTOC," + BaselineConstants.JTOC);
-      pln(".set THREAD_REGISTER," + BaselineConstants.THREAD_REGISTER);
-      pln(".set S0," + BaselineConstants.S0);
-      pln(".set T0," + BaselineConstants.T0);
-      pln(".set T1," + BaselineConstants.T1);
-      pln(".set T2," + BaselineConstants.T2);
-      pln(".set T3," + BaselineConstants.T3);
+      pln(".set FP," + BaselineConstants.FP.value());
+      pln(".set JTOC," + BaselineConstants.JTOC.value());
+      pln(".set THREAD_REGISTER," + BaselineConstants.THREAD_REGISTER.value());
+      pln(".set S0," + BaselineConstants.S0.value());
+      pln(".set T0," + BaselineConstants.T0.value());
+      pln(".set T1," + BaselineConstants.T1.value());
+      pln(".set T2," + BaselineConstants.T2.value());
+      pln(".set T3," + BaselineConstants.T3.value());
       pln(".set STACKFRAME_NEXT_INSTRUCTION_OFFSET," + StackframeLayoutConstants.STACKFRAME_NEXT_INSTRUCTION_OFFSET);
       if (!VM.BuildForAix) {
-        pln(".set T4," + (BaselineConstants.T3 + 1));
+        pln(".set T4," + (BaselineConstants.T3.nextGPR().value()));
       }
     }
   }

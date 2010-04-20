@@ -18,7 +18,7 @@ import java.lang.reflect.Method;
 import java.nio.Buffer;
 import org.jikesrvm.VM;
 import org.jikesrvm.Properties;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMClass;

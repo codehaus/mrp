@@ -15,7 +15,6 @@ package org.jikesrvm.compilers.opt.driver;
 import java.util.ArrayList;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecificOpt.MIROptimizationPlanner;
 import org.jikesrvm.adaptive.recompilation.instrumentation.InsertInstructionCounters;
 import org.jikesrvm.adaptive.recompilation.instrumentation.InsertMethodInvocationCounter;
 import org.jikesrvm.adaptive.recompilation.instrumentation.InsertYieldpointCounters;
@@ -157,7 +156,11 @@ public class OptimizationPlanner {
     HIROptimizations(temp);
     HIR2LIR(temp);
     LIROptimizations(temp);
-    MIROptimizationPlanner.intializeMasterPlan(temp);
+    if (VM.BuildForIA32) {
+      org.jikesrvm.compilers.opt.driver.ia32.MIROptimizationPlanner.intializeMasterPlan(temp);
+    } else {
+      org.jikesrvm.compilers.opt.driver.ppc.MIROptimizationPlanner.intializeMasterPlan(temp);
+    }
     masterPlan = toArray(temp);
   }
 

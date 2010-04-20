@@ -34,10 +34,10 @@ import static org.jikesrvm.compilers.opt.ir.Operators.SET_CAUGHT_EXCEPTION;
 import static org.jikesrvm.compilers.opt.ir.Operators.UNINT_BEGIN;
 import static org.jikesrvm.compilers.opt.ir.Operators.UNINT_END;
 
-import org.jikesrvm.ArchitectureSpecificOpt.PhysicalDefUse;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
 import org.jikesrvm.compilers.opt.ir.BasicBlockEnumeration;
 import org.jikesrvm.compilers.opt.ir.ExceptionHandlerBasicBlock;
+import org.jikesrvm.compilers.opt.ir.GenericPhysicalDefUse;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.LocationCarrier;
@@ -49,6 +49,7 @@ import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.compilers.opt.liveness.LiveSet;
 import org.jikesrvm.compilers.opt.util.SpaceEffGraph;
+import java.util.Enumeration;
 
 /**
  * Dependence Graph for a single basic block in the program.
@@ -162,13 +163,13 @@ public final class DepGraph extends SpaceEffGraph {
       int useMask = p.operator().implicitUses;
       int defMask = p.operator().implicitDefs;
       if (p.isTSPoint()) {
-        useMask |= PhysicalDefUse.maskTSPUses;
-        defMask |= PhysicalDefUse.maskTSPDefs;
+        useMask |= GenericPhysicalDefUse.getMaskTSPUses();
+        defMask |= GenericPhysicalDefUse.getMaskTSPDefs();
       }
       for (OperandEnumeration uses = p.getUses(); uses.hasMoreElements();) {
         computeForwardDependencesUse(uses.next(), pnode, lastExceptionNode);
       }
-      for (PhysicalDefUse.PDUEnumeration uses = PhysicalDefUse.enumerate(useMask, ir); uses.hasMoreElements();)
+      for (Enumeration<Register> uses = GenericPhysicalDefUse.enumerate(useMask, ir); uses.hasMoreElements();)
       {
         Register r = uses.nextElement();
         computeImplicitForwardDependencesUse(r, pnode);
@@ -176,7 +177,7 @@ public final class DepGraph extends SpaceEffGraph {
       for (OperandEnumeration defs = p.getDefs(); defs.hasMoreElements();) {
         computeForwardDependencesDef(defs.next(), pnode, lastExceptionNode);
       }
-      for (PhysicalDefUse.PDUEnumeration defs = PhysicalDefUse.enumerate(defMask, ir); defs.hasMoreElements();)
+      for (Enumeration<Register> defs = GenericPhysicalDefUse.enumerate(defMask, ir); defs.hasMoreElements();)
       {
         Register r = defs.nextElement();
         computeImplicitForwardDependencesDef(r, pnode);
@@ -242,13 +243,13 @@ public final class DepGraph extends SpaceEffGraph {
       int useMask = p.operator().implicitUses;
       int defMask = p.operator().implicitDefs;
       if (p.isTSPoint()) {
-        useMask |= PhysicalDefUse.maskTSPUses;
-        defMask |= PhysicalDefUse.maskTSPDefs;
+        useMask |= GenericPhysicalDefUse.getMaskTSPUses();
+        defMask |= GenericPhysicalDefUse.getMaskTSPDefs();
       }
       for (OperandEnumeration uses = p.getUses(); uses.hasMoreElements();) {
         computeBackwardDependencesUse(uses.next(), pnode, lastExceptionNode);
       }
-      for (PhysicalDefUse.PDUEnumeration uses = PhysicalDefUse.enumerate(useMask, ir); uses.hasMoreElements();)
+      for (Enumeration<Register> uses = GenericPhysicalDefUse.enumerate(useMask, ir); uses.hasMoreElements();)
       {
         Register r = uses.nextElement();
         computeImplicitBackwardDependencesUse(r, pnode);
@@ -256,7 +257,7 @@ public final class DepGraph extends SpaceEffGraph {
       for (OperandEnumeration defs = p.getDefs(); defs.hasMoreElements();) {
         computeBackwardDependencesDef(defs.next(), pnode, lastExceptionNode);
       }
-      for (PhysicalDefUse.PDUEnumeration defs = PhysicalDefUse.enumerate(defMask, ir); defs.hasMoreElements();)
+      for (Enumeration<Register> defs = GenericPhysicalDefUse.enumerate(defMask, ir); defs.hasMoreElements();)
       {
         Register r = defs.nextElement();
         computeImplicitBackwardDependencesDef(r, pnode);
@@ -378,8 +379,8 @@ public final class DepGraph extends SpaceEffGraph {
       if (regOp.getRegister().isValidation()) {
         sourceNode.insertOutEdge(destNode, GUARD_TRUE);
       } else {
-        for (PhysicalDefUse.PDUEnumeration e =
-            PhysicalDefUse.enumerate(PhysicalDefUse.maskTSPDefs, ir); e.hasMoreElements();) {
+        for (Enumeration<Register> e =
+            GenericPhysicalDefUse.enumerate(GenericPhysicalDefUse.getMaskTSPDefs(), ir); e.hasMoreElements();) {
           Register r = e.nextElement();
           if (regOp.getRegister() == r) {
             sourceNode.insertOutEdge(destNode, REG_MAY_DEF);
@@ -470,8 +471,8 @@ public final class DepGraph extends SpaceEffGraph {
   private void computeImplicitForwardDependencesUse(Register r, DepGraphNode destNode) {
     DepGraphNode sourceNode = r.dNode();
     if (sourceNode != null) {
-      for (PhysicalDefUse.PDUEnumeration e =
-          PhysicalDefUse.enumerate(PhysicalDefUse.maskTSPDefs, ir); e.hasMoreElements();) {
+      for (Enumeration<Register> e =
+          GenericPhysicalDefUse.enumerate(GenericPhysicalDefUse.getMaskTSPDefs(), ir); e.hasMoreElements();) {
         Register r2 = e.nextElement();
         if (r == r2) {
           sourceNode.insertOutEdge(destNode, REG_MAY_DEF);
@@ -550,7 +551,7 @@ public final class DepGraph extends SpaceEffGraph {
       }
       if (p == end) break;
     }
-    for (PhysicalDefUse.PDUEnumeration e = PhysicalDefUse.enumerateAllImplicitDefUses(ir); e.hasMoreElements();)
+    for (Enumeration<Register> e = GenericPhysicalDefUse.enumerateAllImplicitDefUses(ir); e.hasMoreElements();)
     {
       Register r = e.nextElement();
       r.setdNode(null);

@@ -12,12 +12,9 @@
  */
 package org.jikesrvm.compilers.baseline;
 
-import org.jikesrvm.ArchitectureSpecific.Assembler;
-import org.jikesrvm.ArchitectureSpecific.MachineCode;
-import org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants;
+import org.jikesrvm.compilers.common.assembler.AbstractAssembler;
 import org.jikesrvm.VM;
-import org.jikesrvm.Services;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.ClassLoaderConstants;
 import org.jikesrvm.classloader.RVMArray;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
@@ -29,12 +26,14 @@ import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.classloader.TypeReference;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.compilers.common.assembler.ForwardReference;
 import org.jikesrvm.osr.bytecodes.InvokeStatic;
 import org.jikesrvm.runtime.Statics;
 import org.jikesrvm.scheduler.RVMThread;
+import org.jikesrvm.util.Services;
 import org.vmmagic.pragma.Inline;
 import org.vmmagic.pragma.NoInline;
 import org.vmmagic.unboxed.Offset;
@@ -46,7 +45,7 @@ import org.vmmagic.unboxed.Offset;
  * seen. It is the common base class of the base compiler.
  */
 public abstract class TemplateCompilerFramework
-    implements ClassLoaderConstants, SizeConstants, StackframeLayoutConstants {
+    implements ClassLoaderConstants, SizeConstants {
 
   /**
    * The method being compiled
@@ -72,11 +71,6 @@ public abstract class TemplateCompilerFramework
    * bi at the start of a bytecode
    */
   protected int biStart;
-
-  /**
-   * The Assembler being used for this compilation
-   */
-  public Assembler asm;
 
   /**
    * The compiledMethod assigned to this compilation of method
@@ -123,6 +117,23 @@ public abstract class TemplateCompilerFramework
     EQ, NE, LT, GE, GT, LE
   }
 
+  public static class MachineCode {
+    private final CodeArray instructions;
+    private int[] bcMap;
+    MachineCode(CodeArray i, int[] bcm) {
+      instructions = i;
+      bcMap = bcm;
+    }
+    public CodeArray getInstructions() {
+      return instructions;
+    }
+    public int[] getBytecodeMap() {
+      return bcMap;
+    }
+    public void setBytecodeMap(int[] newmap) {
+      bcMap = newmap;
+    }
+  }
   /**
    * Construct a BaselineCompilerImpl
    */
@@ -158,6 +169,8 @@ public abstract class TemplateCompilerFramework
         method.toString());
     }
   }
+
+  protected abstract AbstractAssembler getAssembler();
 
   final int[] getBytecodeMap() {
     return bytecodeMap;
@@ -219,6 +232,7 @@ public abstract class TemplateCompilerFramework
    */
   protected final MachineCode genCode() {
     final boolean shouldPrint = !VM.Production && this.shouldPrint;
+    AbstractAssembler asm = getAssembler();
     emit_prologue();
     while (bcodes.hasMoreBytecodes()) {
       biStart = bcodes.index();
@@ -1963,7 +1977,7 @@ public abstract class TemplateCompilerFramework
       ending_bytecode();
     }
     bytecodeMap[bcodes.length()] = asm.getMachineCodeIndex();
-    return asm.finalizeMachineCode(bytecodeMap);
+    return new MachineCode(getAssembler().getMachineCodes(),bytecodeMap);
   }
 
   /**
@@ -1976,7 +1990,7 @@ public abstract class TemplateCompilerFramework
     final boolean shouldPrint = !VM.Production && this.shouldPrint;
     int offset = bcodes.getBranchOffset();
     int bTarget = biStart + offset;
-    if (shouldPrint) asm.noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
+    if (shouldPrint) getAssembler().noteBranchBytecode(biStart, "if"+bc, offset, bTarget);
     if (offset <= 0) emit_threadSwitchTest(RVMThread.BACKEDGE);
     emit_if(bTarget, bc);
   }
@@ -1991,7 +2005,7 @@ public abstract class TemplateCompilerFramework
     final boolean shouldPrint = !VM.Production && this.shouldPrint;
     int offset = bcodes.getBranchOffset();
     int bTarget = biStart + offset;
-    if (shouldPrint) asm.noteBranchBytecode(biStart, "if_icmp"+bc, offset, bTarget);
+    if (shouldPrint) getAssembler().noteBranchBytecode(biStart, "if_icmp"+bc, offset, bTarget);
     if (offset <= 0) emit_threadSwitchTest(RVMThread.BACKEDGE);
     emit_if_icmp(bTarget, bc);
   }

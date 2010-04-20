@@ -13,7 +13,9 @@
 package org.jikesrvm.jni;
 
 import org.jikesrvm.VM;
-import static org.jikesrvm.SizeConstants.BYTES_IN_ADDRESS;
+
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_ADDRESS;
+
 import org.jikesrvm.classloader.UTF8Convert;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Memory;

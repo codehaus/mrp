@@ -185,7 +185,7 @@ public class NullCheckCombining extends CompilerPhase {
       // However, enabling this causes a large number of failures.
       // Figure out why that is the case and enable some variant of this.
       // if (isStore) return true; // Even on AIX low memory is write protected
-      return VM.BuildForPowerPC && Operators.helper.canFoldNullCheckAndLoad(s);
+      return s.canFoldNullCheckAndLoad();
     }
     for (int i = 0, n = s.getNumberOfOperands(); i < n; i++) {
       Operand op = s.getOperand(i);

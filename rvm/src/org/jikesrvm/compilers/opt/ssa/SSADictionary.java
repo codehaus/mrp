@@ -880,7 +880,7 @@ public final class SSADictionary {
         phiHelper(s, b);
         break;
       default:
-        if (!Operators.helper.isHandledByRegisterUnknown(s.getOpcode()) && !s.isPEI()) {
+        if (!isHandledByRegisterUnknown(s.getOpcode()) && !s.isPEI()) {
           System.out.println("SSA dictionary failed on " + s.toString());
           throw new OperationNotImplementedException("SSADictionary: Unsupported opcode " + s);
         }
@@ -888,6 +888,25 @@ public final class SSADictionary {
     if (insertPEIDeps) {
       if (s.isImplicitStore()) addExceptionStateToUses(s);
       if (s.isPEI()) addExceptionStateToDefs(s, b);
+    }
+  }
+
+  private boolean isHandledByRegisterUnknown(char opcode) {
+    if(VM.BuildForIA32) {
+      return opcode == org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.PREFETCH_opcode;
+    } else {
+      switch (opcode) {
+      case org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.DCBST_opcode:
+      case org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.DCBT_opcode:
+      case org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.DCBTST_opcode:
+      case org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.DCBZ_opcode:
+      case org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.DCBZL_opcode:
+      case org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.ICBI_opcode:
+        return true;
+      default:
+        return false;
+	
+      }
     }
   }
 

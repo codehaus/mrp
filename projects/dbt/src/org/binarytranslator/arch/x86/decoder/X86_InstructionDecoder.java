@@ -1330,8 +1330,7 @@ class X86_OpcodeInModRMReg_Decoder extends X86_InstructionDecoder {
 /**
  * The decoder for the opcode of the instruction
  */
-abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
-    Operators {
+abstract class X86_OpcodeDecoder extends X86_InstructionDecoder {
   /**
    * Size of register and/or memory values
    */
@@ -1908,8 +1907,7 @@ abstract class X86_OpcodeDecoder extends X86_InstructionDecoder implements
 /**
  * The decoder for the escape opcode
  */
-final class X86_Escape_OpcodeDecoder extends X86_InstructionDecoder implements
-    Operators {
+final class X86_Escape_OpcodeDecoder extends X86_InstructionDecoder {
   /**
    * Look up table to find secondary opcode translator
    */

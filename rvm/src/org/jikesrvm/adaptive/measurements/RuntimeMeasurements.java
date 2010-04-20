@@ -13,12 +13,13 @@
 package org.jikesrvm.adaptive.measurements;
 
 import java.util.Vector;
-import org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants;
+
 import org.jikesrvm.adaptive.controller.Controller;
 import org.jikesrvm.adaptive.measurements.listeners.ContextListener;
 import org.jikesrvm.adaptive.measurements.listeners.MethodListener;
 import org.jikesrvm.adaptive.measurements.listeners.NullListener;
 import org.jikesrvm.adaptive.util.AOSLogging;
+import org.jikesrvm.architecture.StackFrameLayout;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.runtime.Magic;
@@ -133,7 +134,7 @@ public abstract class RuntimeMeasurements {
     //    Caller is out-of-line assembly (no RVMMethod object) or top-of-stack psuedo-frame
     //    Caller is a native method
     CompiledMethod ypTakenInCM = CompiledMethods.getCompiledMethod(ypTakenInCMID);
-    if (ypTakenInCallerCMID == StackframeLayoutConstants.INVISIBLE_METHOD_ID ||
+    if (ypTakenInCallerCMID == StackFrameLayout.getInvisibleMethodID() ||
         ypTakenInCM.getMethod().getDeclaringClass().hasBridgeFromNativeAnnotation()) {
       ypTakenInCallerCMID = -1;
     }
@@ -219,7 +220,7 @@ public abstract class RuntimeMeasurements {
     //    Caller is out-of-line assembly (no RVMMethod object) or top-of-stack psuedo-frame
     //    Caller is a native method
     CompiledMethod ypTakenInCM = CompiledMethods.getCompiledMethod(ypTakenInCMID);
-    if (ypTakenInCallerCMID == StackframeLayoutConstants.INVISIBLE_METHOD_ID ||
+    if (ypTakenInCallerCMID == StackFrameLayout.getInvisibleMethodID() ||
         ypTakenInCM.getMethod().getDeclaringClass().hasBridgeFromNativeAnnotation()) {
       ypTakenInCallerCMID = -1;
     }
@@ -251,7 +252,7 @@ public abstract class RuntimeMeasurements {
     //    Caller is out-of-line assembly (no RVMMethod object) or top-of-stack psuedo-frame
     //    Caller is a native method
     CompiledMethod ypTakenInCM = CompiledMethods.getCompiledMethod(ypTakenInCMID);
-    if (ypTakenInCallerCMID == StackframeLayoutConstants.INVISIBLE_METHOD_ID ||
+    if (ypTakenInCallerCMID == StackFrameLayout.getInvisibleMethodID() ||
         ypTakenInCM.getMethod().getDeclaringClass().hasBridgeFromNativeAnnotation()) {
       // drop sample
     } else {

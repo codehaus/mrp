@@ -27,3 +27,12 @@ All bug reports related to the use of jburg in building RVM
 should be reported to the Jikes RVM group at IBM and _not_ to David
 R. Hanson.  Please report them using the the normal RVM bug
 reporting channels.
+
+----------------
+Ian Rogers Addendum.
+
+jburg (identified above) has been modified further to improve the
+quality of the code it generates.
+
+All bug reports should be reported to the MRP project:
+http://mrp.codehaus.org

@@ -12,11 +12,12 @@
  */
 package org.jikesrvm.ia32;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.RVMField;
 import org.jikesrvm.compilers.common.assembler.ForwardReference;
 import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
+import org.jikesrvm.compilers.common.assembler.ia32.AssemblerConstants;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.objectmodel.ObjectModel;
 import org.jikesrvm.objectmodel.JavaHeaderConstants;
 import org.jikesrvm.runtime.ArchEntrypoints;
@@ -66,44 +67,44 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
 
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via field array above
-  private static  ArchitectureSpecific.CodeArray pcThunkEAXInstructions;
+  private static  CodeArray pcThunkEAXInstructions;
 
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via field array above
-  private static  ArchitectureSpecific.CodeArray pcThunkEBXInstructions;
+  private static  CodeArray pcThunkEBXInstructions;
 
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via field array above
-  private static  ArchitectureSpecific.CodeArray pcThunkECXInstructions;
+  private static  CodeArray pcThunkECXInstructions;
 
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via field array above
-  private static  ArchitectureSpecific.CodeArray pcThunkEDXInstructions;
+  private static  CodeArray pcThunkEDXInstructions;
 
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via field array above
-  private static  ArchitectureSpecific.CodeArray pcThunkEBPInstructions;
+  private static  CodeArray pcThunkEBPInstructions;
 
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via field array above
-  private static  ArchitectureSpecific.CodeArray pcThunkESIInstructions;
+  private static  CodeArray pcThunkESIInstructions;
 
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via field array above
-  private static  ArchitectureSpecific.CodeArray pcThunkEDIInstructions;
+  private static  CodeArray pcThunkEDIInstructions;
 
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via EntryPoints
-  private static ArchitectureSpecific.CodeArray reflectiveMethodInvokerInstructions;
+  private static CodeArray reflectiveMethodInvokerInstructions;
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via EntryPoints
-  private static ArchitectureSpecific.CodeArray saveThreadStateInstructions;
+  private static CodeArray saveThreadStateInstructions;
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via EntryPoints
-  private static ArchitectureSpecific.CodeArray threadSwitchInstructions;
+  private static CodeArray threadSwitchInstructions;
   @SuppressWarnings({"unused", "UnusedDeclaration", "FieldCanBeLocal"})
   // Accessed via EntryPoints
-  private static ArchitectureSpecific.CodeArray restoreHardwareExceptionStateInstructions;
+  private static CodeArray restoreHardwareExceptionStateInstructions;
 
   private static final Offset PARAMS_FP_OFFSET = Offset.fromIntSignExtend(WORDSIZE * 2);
   private static final Offset FPRMETA_FP_OFFSET = Offset.fromIntSignExtend(WORDSIZE * 3);
@@ -116,63 +117,63 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
    * method
    */
   private static void generatePcThunkInstructions() {
-    Assembler asm = new ArchitectureSpecific.Assembler(0);
+    Assembler asm = new Assembler(0);
     asm.emitMOV_Reg_RegInd(EAX, SP);
     asm.emitRET();
     pcThunkEAXInstructions = asm.getMachineCodes();
     pcThunkInstructionsField[EAX.value()] =
        EntrypointHelper.getField(OutOfLineMachineCode.class,
-         "pcThunkEAXInstructions", ArchitectureSpecific.CodeArray.class);
+         "pcThunkEAXInstructions", CodeArray.class);
 
-    asm = new ArchitectureSpecific.Assembler(0);
+    asm = new Assembler(0);
     asm.emitMOV_Reg_RegInd(EBX, SP);
     asm.emitRET();
     pcThunkEBXInstructions = asm.getMachineCodes();
     pcThunkInstructionsField[EBX.value()] =
        EntrypointHelper.getField(OutOfLineMachineCode.class,
-         "pcThunkEBXInstructions", ArchitectureSpecific.CodeArray.class);
+         "pcThunkEBXInstructions", CodeArray.class);
 
-    asm = new ArchitectureSpecific.Assembler(0);
+    asm = new Assembler(0);
     asm.emitMOV_Reg_RegInd(ECX, SP);
     asm.emitRET();
     pcThunkECXInstructions = asm.getMachineCodes();
     pcThunkInstructionsField[ECX.value()] =
        EntrypointHelper.getField(OutOfLineMachineCode.class,
-         "pcThunkECXInstructions", ArchitectureSpecific.CodeArray.class);
+         "pcThunkECXInstructions", CodeArray.class);
 
-    asm = new ArchitectureSpecific.Assembler(0);
+    asm = new Assembler(0);
     asm.emitMOV_Reg_RegInd(EDX, SP);
     asm.emitRET();
     pcThunkEDXInstructions = asm.getMachineCodes();
     pcThunkInstructionsField[EDX.value()] =
        EntrypointHelper.getField(OutOfLineMachineCode.class,
-         "pcThunkEDXInstructions", ArchitectureSpecific.CodeArray.class);
+         "pcThunkEDXInstructions", CodeArray.class);
 
     // NB a PC thunk into ESP isn't allowed
 
-    asm = new ArchitectureSpecific.Assembler(0);
+    asm = new Assembler(0);
     asm.emitMOV_Reg_RegInd(EBP, SP);
     asm.emitRET();
     pcThunkEBPInstructions = asm.getMachineCodes();
     pcThunkInstructionsField[EBP.value()] =
        EntrypointHelper.getField(OutOfLineMachineCode.class,
-         "pcThunkEBPInstructions", ArchitectureSpecific.CodeArray.class);
+         "pcThunkEBPInstructions", CodeArray.class);
 
-    asm = new ArchitectureSpecific.Assembler(0);
+    asm = new Assembler(0);
     asm.emitMOV_Reg_RegInd(ESI, SP);
     asm.emitRET();
     pcThunkESIInstructions = asm.getMachineCodes();
     pcThunkInstructionsField[ESI.value()] =
        EntrypointHelper.getField(OutOfLineMachineCode.class,
-         "pcThunkESIInstructions", ArchitectureSpecific.CodeArray.class);
+         "pcThunkESIInstructions", CodeArray.class);
 
-    asm = new ArchitectureSpecific.Assembler(0);
+    asm = new Assembler(0);
     asm.emitMOV_Reg_RegInd(EDI, SP);
     asm.emitRET();
     pcThunkEDIInstructions = asm.getMachineCodes();
     pcThunkInstructionsField[EDI.value()] =
        EntrypointHelper.getField(OutOfLineMachineCode.class,
-         "pcThunkEDIInstructions", ArchitectureSpecific.CodeArray.class);
+         "pcThunkEDIInstructions", CodeArray.class);
   }
 
   /**
@@ -220,8 +221,8 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
    *   artificial stackframe created and destroyed
    *   volatile, and scratch registers destroyed
    */
-  private static ArchitectureSpecific.CodeArray generateReflectiveMethodInvokerInstructions() {
-    Assembler asm = new ArchitectureSpecific.Assembler(100);
+  private static CodeArray generateReflectiveMethodInvokerInstructions() {
+    Assembler asm = new Assembler(100);
     int gprs;
     Offset fpOffset = ArchEntrypoints.framePointerField.getOffset();
     GPR T = T0;
@@ -282,7 +283,7 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
     }
 
     int parameterLoopLabel = asm.getMachineCodeIndex();
-    ForwardReference fr1 = asm.forwardJcc(Assembler.EQ); // done? --> branch to end
+    ForwardReference fr1 = asm.forwardJcc(AssemblerConstants.EQ); // done? --> branch to end
     if (VM.BuildFor32Addr) {
       asm.emitMOV_Reg_RegInd(T0, S0);                  // T0 <- Paramaters[i]
     } else {
@@ -325,34 +326,34 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
       ForwardReference fr_next;
 
       asm.emitCMP_Reg_Imm(T1, 0);                         // length == 0 ?
-      ForwardReference fpr_r1 = asm.forwardJcc(Assembler.EQ);
+      ForwardReference fpr_r1 = asm.forwardJcc(AssemblerConstants.EQ);
       asm.emitMOVSD_Reg_RegInd(XMM0, T0);
       asm.emitCMP_RegInd_Imm_Byte(S0, 0);
-      fr_next = asm.forwardJcc(Assembler.NE);
+      fr_next = asm.forwardJcc(AssemblerConstants.NE);
       asm.emitCVTSD2SS_Reg_Reg(XMM0, XMM0);
       fr_next.resolve(asm);
 
       asm.emitSUB_Reg_Imm(T1, 1);                         // length == 0 ?
-      ForwardReference fpr_r2 = asm.forwardJcc(Assembler.EQ);
+      ForwardReference fpr_r2 = asm.forwardJcc(AssemblerConstants.EQ);
       asm.emitMOVSD_Reg_RegDisp(XMM1, T0, Offset.fromIntZeroExtend(WORDSIZE*2));
       asm.emitCMP_RegDisp_Imm_Byte(S0, Offset.fromIntZeroExtend(1), 0);
-      fr_next = asm.forwardJcc(Assembler.NE);
+      fr_next = asm.forwardJcc(AssemblerConstants.NE);
       asm.emitCVTSD2SS_Reg_Reg(XMM1, XMM1);
       fr_next.resolve(asm);
 
       asm.emitSUB_Reg_Imm(T1, 1);                         // length == 0 ?
-      ForwardReference fpr_r3 = asm.forwardJcc(Assembler.EQ);
+      ForwardReference fpr_r3 = asm.forwardJcc(AssemblerConstants.EQ);
       asm.emitMOVSD_Reg_RegDisp(XMM2, T0, Offset.fromIntZeroExtend(WORDSIZE*4));
       asm.emitCMP_RegDisp_Imm_Byte(S0, Offset.fromIntZeroExtend(2), 0);
-      fr_next = asm.forwardJcc(Assembler.NE);
+      fr_next = asm.forwardJcc(AssemblerConstants.NE);
       asm.emitCVTSD2SS_Reg_Reg(XMM2, XMM2);
       fr_next.resolve(asm);
 
       asm.emitSUB_Reg_Imm(T1, 1);                         // length == 0 ?
-      ForwardReference fpr_r4 = asm.forwardJcc(Assembler.EQ);
+      ForwardReference fpr_r4 = asm.forwardJcc(AssemblerConstants.EQ);
       asm.emitMOVSD_Reg_RegDisp(XMM3, T0, Offset.fromIntZeroExtend(WORDSIZE*6));
       asm.emitCMP_RegDisp_Imm_Byte(S0, Offset.fromIntZeroExtend(3), 0);
-      fr_next = asm.forwardJcc(Assembler.NE);
+      fr_next = asm.forwardJcc(AssemblerConstants.NE);
       asm.emitCVTSD2SS_Reg_Reg(XMM3, XMM3);
       fr_next.resolve(asm);
 
@@ -372,7 +373,7 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
       asm.emitCMP_Reg_Imm(T1, 0);                        // length == 0 ?
 
       int fprsLoopLabel = asm.getMachineCodeIndex();
-      ForwardReference fr2 = asm.forwardJcc(Assembler.EQ);   // done? --> branch to end
+      ForwardReference fr2 = asm.forwardJcc(AssemblerConstants.EQ);   // done? --> branch to end
       asm.emitSUB_Reg_Imm(S0, 2 * WORDSIZE);            // i--
       asm.emitFLD_Reg_RegInd_Quad(FP0, S0);              // frp[fpr_sp++] <-FPRs[i]
       asm.emitSUB_Reg_Imm(T1, 2 * WORDSIZE);              // length--
@@ -397,7 +398,7 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
         asm.emitCMP_Reg_Imm_Quad(T1, 0);                        // length == 0 ?
       }
     }
-    ForwardReference fr3 = asm.forwardJcc(Assembler.EQ);   // result 0 --> branch to end
+    ForwardReference fr3 = asm.forwardJcc(AssemblerConstants.EQ);   // result 0 --> branch to end
     if (VM.BuildFor32Addr) {
       asm.emitMOV_Reg_RegInd(T0, S0);                    // T0 <- GPRs[0]
     } else {
@@ -405,7 +406,7 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
     }
     asm.emitADD_Reg_Imm(S0, WORDSIZE);                 // S0 += WORDSIZE
     asm.emitADD_Reg_Imm(T1, -1);                       // T1--
-    ForwardReference fr4 = asm.forwardJcc(Assembler.EQ);   // result 0 --> branch to end
+    ForwardReference fr4 = asm.forwardJcc(AssemblerConstants.EQ);   // result 0 --> branch to end
     if (VM.BuildFor32Addr) {
       asm.emitMOV_Reg_RegInd(T1, S0);                    // T1 <- GPRs[1]
     } else {
@@ -452,11 +453,11 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
    *    S0, T1 destroyed
    *    Thread state stored into Registers object
    */
-  private static ArchitectureSpecific.CodeArray generateSaveThreadStateInstructions() {
+  private static CodeArray generateSaveThreadStateInstructions() {
     if (VM.VerifyAssertions) {
       VM._assert(NUM_NONVOLATILE_FPRS == 0); // assuming no NV FPRs (otherwise would have to save them here)
     }
-    Assembler asm = new ArchitectureSpecific.Assembler(0);
+    Assembler asm = new Assembler(0);
     Offset ipOffset = ArchEntrypoints.registersIPField.getOffset();
     Offset fpOffset = ArchEntrypoints.registersFPField.getOffset();
     Offset gprsOffset = ArchEntrypoints.registersGPRsField.getOffset();
@@ -509,11 +510,11 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
    *    restores new thread's Registers nonvolatile hardware state.
    *    execution resumes at address specificed by restored thread's Registers ip field
    */
-  private static ArchitectureSpecific.CodeArray generateThreadSwitchInstructions() {
+  private static CodeArray generateThreadSwitchInstructions() {
     if (VM.VerifyAssertions) {
       VM._assert(NUM_NONVOLATILE_FPRS == 0); // assuming no NV FPRs (otherwise would have to save them here)
     }
-    Assembler asm = new ArchitectureSpecific.Assembler(0);
+    Assembler asm = new Assembler(0);
     Offset ipOffset = ArchEntrypoints.registersIPField.getOffset();
     Offset fpOffset = ArchEntrypoints.registersFPField.getOffset();
     Offset gprsOffset = ArchEntrypoints.registersGPRsField.getOffset();
@@ -602,8 +603,8 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
    *    all registers are restored except THREAD_REGISTER and EFLAGS;
    *    execution resumes at "registers.ip"
    */
-  private static ArchitectureSpecific.CodeArray generateRestoreHardwareExceptionStateInstructions() {
-    Assembler asm = new ArchitectureSpecific.Assembler(0);
+  private static CodeArray generateRestoreHardwareExceptionStateInstructions() {
+    Assembler asm = new Assembler(0);
 
     // Set TR.framePointer to be registers.fp
     if (VM.BuildFor32Addr) {

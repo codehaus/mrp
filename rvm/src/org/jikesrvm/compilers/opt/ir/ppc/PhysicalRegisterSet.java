@@ -13,6 +13,7 @@
 package org.jikesrvm.compilers.opt.ir.ppc;
 
 import java.util.Enumeration;
+import org.jikesrvm.architecture.MachineRegister;
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
@@ -53,7 +54,7 @@ import org.jikesrvm.ppc.RegisterConstants;
  * using getPrev().
  * <P> TODO; clean up all this and provide appropriate enumerators
  */
-public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
+public final class PhysicalRegisterSet extends GenericPhysicalRegisterSet
     implements RegisterConstants, PhysicalRegisterConstants {
 
   /**
@@ -138,51 +139,54 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
     }
 
     // 5. set up the volatile GPRs
-    for (int i = FIRST_VOLATILE_GPR; i < LAST_VOLATILE_GPR; i++) {
+    for (int i = FIRST_VOLATILE_GPR.value(); i < LAST_VOLATILE_GPR.value(); i++) {
       Register r = reg[i];
       r.setVolatile();
       r.linkWithNext(reg[i + 1]);
     }
-    reg[LAST_VOLATILE_GPR].setVolatile();
-    reg[LAST_VOLATILE_GPR].linkWithNext(reg[FIRST_SCRATCH_GPR]);
-    for (int i = FIRST_SCRATCH_GPR; i < LAST_SCRATCH_GPR; i++) {
+    reg[LAST_VOLATILE_GPR.value()].setVolatile();
+    reg[LAST_VOLATILE_GPR.value()].linkWithNext(reg[FIRST_SCRATCH_GPR.value()]);
+    for (int i = FIRST_SCRATCH_GPR.value(); i < LAST_SCRATCH_GPR.value(); i++) {
       Register r = reg[i];
       r.setVolatile();
       r.linkWithNext(reg[i + 1]);
     }
-    reg[LAST_SCRATCH_GPR].setVolatile();
+    reg[LAST_SCRATCH_GPR.value()].setVolatile();
 
     // 6. set up the non-volatile GPRs
-    for (int i = FIRST_NONVOLATILE_GPR; i < LAST_NONVOLATILE_GPR; i++) {
+    for (int i = FIRST_NONVOLATILE_GPR.value(); i < LAST_NONVOLATILE_GPR.value(); i++) {
       Register r = reg[i];
       r.setNonVolatile();
       r.linkWithNext(reg[i + 1]);
     }
 
     // 7. set properties on some special registers
-    reg[THREAD_REGISTER].setSpansBasicBlock();
-    reg[FRAME_POINTER].setSpansBasicBlock();
-    reg[JTOC_POINTER].setSpansBasicBlock();
+    reg[THREAD_REGISTER.value()].setSpansBasicBlock();
+    reg[FRAME_POINTER.value()].setSpansBasicBlock();
+    reg[JTOC_POINTER.value()].setSpansBasicBlock();
 
     // 8. set up the volatile FPRs
-    for (int i = FIRST_DOUBLE + FIRST_VOLATILE_FPR; i < FIRST_DOUBLE + LAST_VOLATILE_FPR; i++) {
+    for (int i = FIRST_DOUBLE + FIRST_VOLATILE_FPR.value();
+         i < FIRST_DOUBLE + LAST_VOLATILE_FPR.value(); i++) {
       Register r = reg[i];
       r.setVolatile();
       r.linkWithNext(reg[i + 1]);
     }
-    reg[FIRST_DOUBLE + LAST_VOLATILE_FPR].linkWithNext(reg[FIRST_DOUBLE + FIRST_SCRATCH_FPR]);
-    reg[FIRST_DOUBLE + LAST_VOLATILE_FPR].setVolatile();
+    reg[FIRST_DOUBLE + LAST_VOLATILE_FPR.value()].linkWithNext(reg[FIRST_DOUBLE + FIRST_SCRATCH_FPR.value()]);
+    reg[FIRST_DOUBLE + LAST_VOLATILE_FPR.value()].setVolatile();
     if (FIRST_SCRATCH_FPR != LAST_SCRATCH_FPR) {
-      for (int i = FIRST_DOUBLE + FIRST_SCRATCH_FPR; i < FIRST_DOUBLE + LAST_SCRATCH_FPR; i++) {
+      for (int i = FIRST_DOUBLE + FIRST_SCRATCH_FPR.value();
+           i < FIRST_DOUBLE + LAST_SCRATCH_FPR.value(); i++) {
         Register r = reg[i];
         r.setVolatile();
         r.linkWithNext(reg[i + 1]);
       }
     }
-    reg[FIRST_DOUBLE + LAST_SCRATCH_FPR].setVolatile();
+    reg[FIRST_DOUBLE + LAST_SCRATCH_FPR.value()].setVolatile();
 
     // 9. set up the non-volatile FPRs
-    for (int i = FIRST_DOUBLE + FIRST_NONVOLATILE_FPR; i < FIRST_DOUBLE + LAST_NONVOLATILE_FPR; i++) {
+    for (int i = FIRST_DOUBLE + FIRST_NONVOLATILE_FPR.value();
+         i < FIRST_DOUBLE + LAST_NONVOLATILE_FPR.value(); i++) {
       Register r = reg[i];
       r.setNonVolatile();
       r.linkWithNext(reg[i + 1]);
@@ -215,8 +219,8 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
     reg[TU].setExcludedLiveA();
     reg[TL].setExcludedLiveA();
     reg[XER].setExcludedLiveA();
-    reg[FRAME_POINTER].setExcludedLiveA();
-    reg[JTOC_POINTER].setExcludedLiveA();
+    reg[FRAME_POINTER.value()].setExcludedLiveA();
+    reg[JTOC_POINTER.value()].setExcludedLiveA();
     reg[LR].setExcludedLiveA();
   }
 
@@ -224,13 +228,12 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
    * Is a certain physical register allocatable?
    */
   public boolean isAllocatable(Register r) {
-    switch (r.number) {
-      case THREAD_REGISTER:
-      case FRAME_POINTER:
-      case JTOC_POINTER:
-        return false;
-      default:
-        return (r.number < FIRST_SPECIAL);
+    if (r.number == THREAD_REGISTER.value() ||
+        r.number == FRAME_POINTER.value() ||
+        r.number == JTOC_POINTER.value()) {
+      return false;
+    } else {
+      return (r.number < FIRST_SPECIAL);
     }
   }
 
@@ -280,21 +283,21 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
    * @return the JTOC register
    */
   public Register getJTOC() {
-    return reg[JTOC_POINTER];
+    return reg[JTOC_POINTER.value()];
   }
 
   /**
    * @return the FP registers
    */
   public Register getFP() {
-    return reg[FRAME_POINTER];
+    return reg[FRAME_POINTER.value()];
   }
 
   /**
    * @return the thread register
    */
   public Register getTR() {
-    return reg[THREAD_REGISTER];
+    return reg[THREAD_REGISTER.value()];
   }
 
   /**
@@ -307,50 +310,59 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
   /**
    * @return the nth physical GPR
    */
+  @Override
   public Register getGPR(int n) {
     return reg[FIRST_INT + n];
+  }
+
+  /**
+   * @return the nth physical GPR
+   */
+  @Override
+  public Register getGPR(MachineRegister n) {
+    return reg[FIRST_INT + n.value()];
   }
 
   /**
    * @return the first scratch GPR
    */
   public Register getFirstScratchGPR() {
-    return reg[FIRST_SCRATCH_GPR];
+    return reg[FIRST_SCRATCH_GPR.value()];
   }
 
   /**
    * @return the last scratch GPR
    */
   public Register getLastScratchGPR() {
-    return reg[LAST_SCRATCH_GPR];
+    return reg[LAST_SCRATCH_GPR.value()];
   }
 
   /**
    * @return the first volatile GPR
    */
   public Register getFirstVolatileGPR() {
-    return reg[FIRST_INT + FIRST_VOLATILE_GPR];
+    return reg[FIRST_INT + FIRST_VOLATILE_GPR.value()];
   }
 
   /**
    * @return the first nonvolatile GPR
    */
   public Register getFirstNonvolatileGPR() {
-    return reg[FIRST_INT + FIRST_NONVOLATILE_GPR];
+    return reg[FIRST_INT + FIRST_NONVOLATILE_GPR.value()];
   }
 
   /**
    * @return the last nonvolatile GPR
    */
   public Register getLastNonvolatileGPR() {
-    return reg[FIRST_INT + LAST_NONVOLATILE_GPR];
+    return reg[FIRST_INT + LAST_NONVOLATILE_GPR.value()];
   }
 
   /**
    * @return the first GPR return
    */
   public Register getFirstReturnGPR() {
-    return reg[FIRST_INT_RETURN];
+    return reg[FIRST_INT_RETURN.value()];
   }
 
   /**
@@ -364,35 +376,35 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
    * @return the first scratch FPR
    */
   public Register getFirstScratchFPR() {
-    return reg[FIRST_DOUBLE + FIRST_SCRATCH_FPR];
+    return reg[FIRST_DOUBLE + FIRST_SCRATCH_FPR.value()];
   }
 
   /**
    * @return the first volatile FPR
    */
   public Register getFirstVolatileFPR() {
-    return reg[FIRST_DOUBLE + FIRST_VOLATILE_FPR];
+    return reg[FIRST_DOUBLE + FIRST_VOLATILE_FPR.value()];
   }
 
   /**
    * @return the last scratch FPR
    */
   public Register getLastScratchFPR() {
-    return reg[FIRST_DOUBLE + LAST_SCRATCH_FPR];
+    return reg[FIRST_DOUBLE + LAST_SCRATCH_FPR.value()];
   }
 
   /**
    * @return the first nonvolatile FPR
    */
   public Register getFirstNonvolatileFPR() {
-    return reg[FIRST_DOUBLE + FIRST_NONVOLATILE_FPR];
+    return reg[FIRST_DOUBLE + FIRST_NONVOLATILE_FPR.value()];
   }
 
   /**
    * @return the last nonvolatile FPR
    */
   public Register getLastNonvolatileFPR() {
-    return reg[FIRST_DOUBLE + LAST_NONVOLATILE_FPR];
+    return reg[FIRST_DOUBLE + LAST_NONVOLATILE_FPR.value()];
   }
 
   /**
@@ -522,9 +534,9 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
     for (int i = 0; i < NUM_CRS; i++) {
       regName[i + FIRST_CONDITION] = "C" + i;
     }
-    regName[JTOC_POINTER] = "JTOC";
-    regName[FRAME_POINTER] = "FP";
-    regName[THREAD_REGISTER] = "TR";
+    regName[JTOC_POINTER.value()] = "JTOC";
+    regName[FRAME_POINTER.value()] = "FP";
+    regName[THREAD_REGISTER.value()] = "TR";
     regName[XER] = "XER";
     regName[LR] = "LR";
     regName[CTR] = "CTR";
@@ -600,14 +612,14 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
    * <em> after </em> the volatile GPRs
    */
   public Enumeration<Register> enumerateVolatileGPRs() {
-    return new PhysicalRegisterEnumeration(FIRST_INT + FIRST_VOLATILE_GPR, FIRST_INT + LAST_SCRATCH_GPR);
+    return new PhysicalRegisterEnumeration(FIRST_INT + FIRST_VOLATILE_GPR.value(), FIRST_INT + LAST_SCRATCH_GPR.value());
   }
 
   static {
     // enumerateVolatileGPRs relies on volatiles & scratches being
     // contiguous; so let's make sure that is the case!
     if (VM.VerifyAssertions) {
-      VM._assert(LAST_VOLATILE_GPR + 1 == FIRST_SCRATCH_GPR);
+      VM._assert(LAST_VOLATILE_GPR.value() + 1 == FIRST_SCRATCH_GPR.value());
     }
   }
 
@@ -618,14 +630,14 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
     if (VM.VerifyAssertions) {
       VM._assert(n <= NUMBER_INT_PARAM);
     }
-    return new PhysicalRegisterEnumeration(FIRST_INT_PARAM, FIRST_INT_PARAM + n - 1);
+    return new PhysicalRegisterEnumeration(FIRST_INT_PARAM.value(), FIRST_INT_PARAM.value() + n - 1);
   }
 
   /**
    * Enumerate all the nonvolatile GPRs in this set.
    */
   public Enumeration<Register> enumerateNonvolatileGPRs() {
-    return new PhysicalRegisterEnumeration(FIRST_INT + FIRST_NONVOLATILE_GPR, FIRST_INT + LAST_NONVOLATILE_GPR);
+    return new PhysicalRegisterEnumeration(FIRST_INT + FIRST_NONVOLATILE_GPR.value(), FIRST_INT + LAST_NONVOLATILE_GPR.value());
   }
 
   /**
@@ -641,7 +653,7 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
    * <em> before</em> the volatile FPRs
    */
   public Enumeration<Register> enumerateVolatileFPRs() {
-    return new PhysicalRegisterEnumeration(FIRST_DOUBLE + FIRST_SCRATCH_FPR, FIRST_DOUBLE + LAST_VOLATILE_FPR);
+    return new PhysicalRegisterEnumeration(FIRST_DOUBLE + FIRST_SCRATCH_FPR.value(), FIRST_DOUBLE + LAST_VOLATILE_FPR.value());
   }
 
   /**
@@ -651,14 +663,14 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
     if (VM.VerifyAssertions) {
       VM._assert(n <= NUMBER_DOUBLE_PARAM);
     }
-    return new PhysicalRegisterEnumeration(FIRST_DOUBLE_PARAM, FIRST_DOUBLE_PARAM + n - 1);
+    return new PhysicalRegisterEnumeration(FIRST_DOUBLE_PARAM.value(), FIRST_DOUBLE_PARAM.value() + n - 1);
   }
 
   /**
    * Enumerate all the nonvolatile FPRs in this set.
    */
   public Enumeration<Register> enumerateNonvolatileFPRs() {
-    return new PhysicalRegisterEnumeration(FIRST_DOUBLE + FIRST_NONVOLATILE_FPR, FIRST_DOUBLE + LAST_NONVOLATILE_FPR);
+    return new PhysicalRegisterEnumeration(FIRST_DOUBLE + FIRST_NONVOLATILE_FPR.value(), FIRST_DOUBLE + LAST_NONVOLATILE_FPR.value());
   }
 
   /**
@@ -755,10 +767,10 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
    * return the index into the GPR parameters for r.  Otherwise, return -1;
    */
   public int getGPRParamIndex(Register r) {
-    if ((r.number < FIRST_INT_PARAM) || (r.number > LAST_VOLATILE_GPR)) {
+    if ((r.number < FIRST_INT_PARAM.value()) || (r.number > LAST_VOLATILE_GPR.value())) {
       return -1;
     } else {
-      return r.number - FIRST_INT_PARAM;
+      return r.number - FIRST_INT_PARAM.value();
     }
   }
 
@@ -767,10 +779,10 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
    * return the index into the FPR parameters for r.  Otherwise, return -1;
    */
   public int getFPRParamIndex(Register r) {
-    if ((r.number < FIRST_DOUBLE_PARAM) || (r.number > LAST_VOLATILE_FPR)) {
+    if ((r.number < FIRST_DOUBLE_PARAM.value()) || (r.number > LAST_VOLATILE_FPR.value())) {
       return -1;
     } else {
-      return r.number - FIRST_DOUBLE_PARAM;
+      return r.number - FIRST_DOUBLE_PARAM.value();
     }
   }
 

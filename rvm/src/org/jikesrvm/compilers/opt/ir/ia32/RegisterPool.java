@@ -24,6 +24,8 @@ import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.runtime.Magic;
 import org.vmmagic.unboxed.Address;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
 /**
  * Pool of symbolic registers.
  * Intel specific implementation where JTOC is stored in the processor object
@@ -31,14 +33,14 @@ import org.vmmagic.unboxed.Address;
  *
  * @see org.jikesrvm.compilers.opt.ir.Register
  */
-public abstract class RegisterPool extends GenericRegisterPool implements Operators {
+public final class RegisterPool extends GenericRegisterPool {
 
   /**
    * Initializes a new register pool for the method meth.
    *
    * @param meth the RVMMethod of the outermost method
    */
-  protected RegisterPool(RVMMethod meth) {
+  public RegisterPool(RVMMethod meth) {
     super(meth);
   }
 
@@ -48,13 +50,22 @@ public abstract class RegisterPool extends GenericRegisterPool implements Operat
    *       but that causes rippling changes in BURS that are larger
    *       than I want to deal with right now. --dave 12/20/2005.
    *
-   * @param  ir  the containing IR
-   * @param s    the instruction to insert the load operand before
-   * @return a register operand that holds the JTOC
+   * @return an operand that holds the JTOC
    */
-  public Operand makeJTOCOp(IR ir, Instruction s) {
+  @Override
+  public Operand makeJTOCOp() {
     Address jtoc = Magic.getTocPointer();
     return VM.BuildFor32Addr ? new IntConstantOperand(jtoc.toInt()) :
       new LongConstantOperand(jtoc.toLong());
+  }
+
+  /**
+   * Get a temporary that represents the JTOC register (as an Object)
+   *
+   * @return the temp
+   */
+  @Override
+  public Operand makeTocOp() {
+    return makeJTOCOp();
   }
 }

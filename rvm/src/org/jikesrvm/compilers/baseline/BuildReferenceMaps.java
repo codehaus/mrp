@@ -12,7 +12,6 @@
  */
 package org.jikesrvm.compilers.baseline;
 
-import org.jikesrvm.ArchitectureSpecific.BaselineCompilerImpl;
 import org.jikesrvm.VM;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
 import org.jikesrvm.classloader.BytecodeStream;
@@ -2087,7 +2086,7 @@ final class BuildReferenceMaps implements ClassLoaderConstants, BBConstants {
     boolean popParams = true;
 
     if (target.getType().isMagicType()) {
-      boolean producesCall = BaselineCompilerImpl.checkForActualCall(target);
+      boolean producesCall = BaselineCompiler.checkForActualCall(target);
       if (producesCall) {
         // register a map, but do NOT include any of the parameters to the call.
         // Chances are what appear to be parameters are not parameters to

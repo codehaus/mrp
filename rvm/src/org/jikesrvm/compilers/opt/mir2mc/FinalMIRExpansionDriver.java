@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.compilers.opt.mir2mc;
 
-import org.jikesrvm.ArchitectureSpecificOpt.FinalMIRExpansion;
+import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.OptOptions;
 import org.jikesrvm.compilers.opt.driver.CompilerPhase;
 import org.jikesrvm.compilers.opt.ir.IR;
@@ -39,6 +39,8 @@ final class FinalMIRExpansionDriver extends CompilerPhase {
       ir.verify("right before Final MIR Expansion", true);
     }
 
-    ir.MIRInfo.mcSizeEstimate = FinalMIRExpansion.expand(ir);
+    ir.MIRInfo.mcSizeEstimate =
+      VM.BuildForIA32 ? org.jikesrvm.compilers.opt.mir2mc.ia32.FinalMIRExpansion.expand(ir)
+                      : org.jikesrvm.compilers.opt.mir2mc.ppc.FinalMIRExpansion.expand(ir);
   }
 }

@@ -13,7 +13,7 @@
 package org.vmmagic.unboxed;
 
 import org.vmmagic.pragma.*;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 
 /**
  * The object reference type is used by the runtime system and collector to

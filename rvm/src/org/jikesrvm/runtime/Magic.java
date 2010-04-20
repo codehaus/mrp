@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.runtime;
 
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
-import org.jikesrvm.ArchitectureSpecific.Registers;
+import org.jikesrvm.compilers.common.CodeArray;
+import org.jikesrvm.architecture.AbstractRegisters;
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.mm.mminterface.CollectorThread;
@@ -764,7 +764,7 @@ public final class Magic {
    * @param registers place to save register values
    */
   // PNT: make a version of this that implicitly uses contextRegisters.
-  public static void saveThreadState(Registers registers) {
+  public static void saveThreadState(AbstractRegisters registers) {
     if (VM.VerifyAssertions) VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
   }
 
@@ -780,7 +780,7 @@ public final class Magic {
    * @param restoreRegs   registers from which we should restore
    *                      the saved hardware state of another thread.
    */
-  public static void threadSwitch(RVMThread currentThread, Registers restoreRegs) {
+  public static void threadSwitch(RVMThread currentThread, AbstractRegisters restoreRegs) {
     if (VM.VerifyAssertions) VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
   }
 
@@ -793,7 +793,7 @@ public final class Magic {
    * does not return (execution resumes at new IP)
    * @param registers register values to be used
    */
-  public static void restoreHardwareExceptionState(Registers registers) {
+  public static void restoreHardwareExceptionState(AbstractRegisters registers) {
     if (VM.VerifyAssertions) VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
   }
 

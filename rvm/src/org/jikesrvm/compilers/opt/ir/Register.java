@@ -12,7 +12,6 @@
  */
 package org.jikesrvm.compilers.opt.ir;
 
-import org.jikesrvm.ArchitectureSpecificOpt.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 
 /**
@@ -231,7 +230,7 @@ public final class Register {
   }
 
   public int getNumber() {
-    int start = PhysicalRegisterSet.getSize();
+    int start = GenericPhysicalRegisterSet.getSize();
     return number - start;
   }
 
@@ -240,7 +239,7 @@ public final class Register {
    */
   public String toString() {
     if (isPhysical()) {
-      return PhysicalRegisterSet.getName(number);
+      return GenericPhysicalRegisterSet.getName(number);
     }
 
     // Set s to descriptive letter for register type

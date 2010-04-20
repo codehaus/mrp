@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.mm.mmtk;
 
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.runtime.Magic;
 import org.mmtk.vm.VM;
 

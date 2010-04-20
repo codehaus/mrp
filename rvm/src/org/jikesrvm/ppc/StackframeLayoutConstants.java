@@ -13,8 +13,9 @@
 package org.jikesrvm.ppc;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.vmmagic.unboxed.Address;
+import org.vmmagic.unboxed.Offset;
 
 /**
  *--------------------------------------------------------------------------
@@ -132,9 +133,9 @@ public interface StackframeLayoutConstants {
 
   // SVR4 ABI has no space between FP and LR, swap the positions for LR and CMID depending on ABI.
   int STACKFRAME_NEXT_INSTRUCTION_OFFSET = VM.BuildForPowerOpenABI || VM.BuildForMachOABI ? 2 * BYTES_IN_STACKSLOT : BYTES_IN_STACKSLOT;
-  int STACKFRAME_METHOD_ID_OFFSET = VM.BuildForPowerOpenABI || VM.BuildForMachOABI ? BYTES_IN_STACKSLOT : 2 * BYTES_IN_STACKSLOT;
+  Offset STACKFRAME_METHOD_ID_OFFSET = Offset.fromIntSignExtend(VM.BuildForPowerOpenABI || VM.BuildForMachOABI ? BYTES_IN_STACKSLOT : 2 * BYTES_IN_STACKSLOT);
 
-  int STACKFRAME_FRAME_POINTER_OFFSET = 0;    // base of this frame
+  Offset STACKFRAME_FRAME_POINTER_OFFSET = Offset.zero();    // base of this frame
 
   Address STACKFRAME_SENTINEL_FP = Address.fromIntSignExtend(-2); // fp value indicating end of stack walkback
   int INVISIBLE_METHOD_ID = -1; // marker for "assembler" frames that have no associated RVMMethod

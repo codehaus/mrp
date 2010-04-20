@@ -12,9 +12,10 @@
  */
 package org.jikesrvm;
 
-import org.jikesrvm.ArchitectureSpecific.ThreadLocalState;
 import org.jikesrvm.adaptive.controller.Controller;
 import org.jikesrvm.adaptive.util.CompilerAdvice;
+import org.jikesrvm.architecture.Constants;
+import org.jikesrvm.architecture.StackFrameLayout;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.BootstrapClassLoader;
 import org.jikesrvm.classloader.FieldVector;
@@ -33,6 +34,8 @@ import org.jikesrvm.compilers.common.BootImageCompiler;
 import org.jikesrvm.compilers.common.RuntimeCompiler;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.runtime.BootRecord;
+import org.jikesrvm.runtime.Callbacks;
+import org.jikesrvm.runtime.CommandLineArgs;
 import org.jikesrvm.runtime.DynamicLibrary;
 import org.jikesrvm.runtime.Entrypoints;
 import org.jikesrvm.runtime.ExitStatus;
@@ -47,6 +50,7 @@ import org.jikesrvm.scheduler.Synchronization;
 import org.jikesrvm.scheduler.RVMThread;
 import org.jikesrvm.runtime.FileSystem;
 import org.jikesrvm.tuningfork.TraceEngine;
+import org.jikesrvm.util.Services;
 import org.vmmagic.pragma.Entrypoint;
 import org.vmmagic.pragma.Inline;
 import org.vmmagic.pragma.Interruptible;
@@ -134,7 +138,11 @@ public class VM extends Properties implements Constants, ExitStatus {
     // has placed a pointer to the current RVMThread in a special
     // register.
     if (verboseBoot >= 1) VM.sysWriteln("Setting up current RVMThread");
-    ThreadLocalState.boot();
+    if (VM.BuildForIA32) {
+      org.jikesrvm.ia32.ThreadLocalState.boot();
+    } else {
+      org.jikesrvm.ppc.ThreadLocalState.boot();
+    }
 
     // Finish thread initialization that couldn't be done in boot image.
     // The "stackLimit" must be set before any interruptible methods are called
@@ -143,7 +151,7 @@ public class VM extends Properties implements Constants, ExitStatus {
     if (verboseBoot >= 1) VM.sysWriteln("Doing thread initialization");
     RVMThread currentThread = RVMThread.getCurrentThread();
     currentThread.stackLimit = Magic.objectAsAddress(
-        currentThread.getStack()).plus(ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GUARD);
+        currentThread.getStack()).plus(StackFrameLayout.getStackSizeGuard());
 
     finishBooting();
   }
@@ -2579,9 +2587,9 @@ public class VM extends Properties implements Constants, ExitStatus {
     // 1.
     //
     if (!VM.AutomaticStackGrowth) {
-      if (Magic.getFramePointer().minus(ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED)
+      if (Magic.getFramePointer().minus(StackFrameLayout.getStackSizeGCDisabled())
           .LT(myThread.stackLimit) && !myThread.hasNativeStackFrame()) {
-        RVMThread.resizeCurrentStack(myThread.getStackLength() + ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_GCDISABLED, null);
+        RVMThread.resizeCurrentStack(myThread.getStackLength() + StackFrameLayout.getStackSizeGCDisabled(), null);
       }
     }
 

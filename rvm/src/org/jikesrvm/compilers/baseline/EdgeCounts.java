@@ -19,11 +19,11 @@ import java.io.LineNumberReader;
 import java.io.PrintStream;
 import java.util.StringTokenizer;
 import org.jikesrvm.VM;
-import org.jikesrvm.Callbacks;
-import org.jikesrvm.Callbacks.Callback;
 import org.jikesrvm.classloader.MemberReference;
 import org.jikesrvm.classloader.NormalMethod;
+import org.jikesrvm.runtime.Callbacks;
 import org.jikesrvm.runtime.Magic;
+import org.jikesrvm.runtime.Callbacks.Callback;
 import org.vmmagic.pragma.Entrypoint;
 
 /**

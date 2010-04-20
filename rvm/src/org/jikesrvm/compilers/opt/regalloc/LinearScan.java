@@ -24,10 +24,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecificOpt.PhysicalRegisterConstants;
-import org.jikesrvm.ArchitectureSpecificOpt.PhysicalRegisterSet;
-import org.jikesrvm.ArchitectureSpecificOpt.RegisterRestrictions;
-import org.jikesrvm.ArchitectureSpecificOpt.StackManager;
+import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.OptOptions;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.driver.CompilerPhase;
@@ -35,20 +32,24 @@ import org.jikesrvm.compilers.opt.driver.OptimizationPlanAtomicElement;
 import org.jikesrvm.compilers.opt.driver.OptimizationPlanCompositeElement;
 import org.jikesrvm.compilers.opt.driver.OptimizationPlanElement;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
+import org.jikesrvm.compilers.opt.ir.BasicBlockEnumeration;
 import org.jikesrvm.compilers.opt.ir.ControlFlowGraph;
+import org.jikesrvm.compilers.opt.ir.Empty;
+import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.GCIRMapElement;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
 import org.jikesrvm.compilers.opt.ir.OperandEnumeration;
-import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.compilers.opt.ir.RegSpillListElement;
 import org.jikesrvm.compilers.opt.ir.Register;
+import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.operand.AddressConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.LongConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.operand.ia32.BURSManagedFPROperand;
 import org.jikesrvm.compilers.opt.util.GraphEdge;
 import org.jikesrvm.compilers.opt.util.SpaceEffGraphNode;
 import org.jikesrvm.osr.OSRConstants;
@@ -56,6 +57,8 @@ import org.jikesrvm.osr.LocalRegPair;
 import org.jikesrvm.osr.MethodVariables;
 import org.jikesrvm.osr.VariableMapElement;
 import org.vmmagic.unboxed.Word;
+
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
 
 /**
  * Main driver for linear scan register allocation.
@@ -243,8 +246,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
     }
   }
 
-  public static final class LinearScanPhase extends CompilerPhase
-      implements PhysicalRegisterConstants, Operators {
+  public static final class LinearScanPhase extends CompilerPhase {
 
     /**
      * An object which manages spill location assignments.
@@ -1253,7 +1255,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
       }
 
       Register r = ci.getRegister();
-      RegisterRestrictions restrict = ir.stackManager.getRestrictions();
+      GenericRegisterRestrictions restrict = ir.stackManager.getRestrictions();
 
       // first attempt to allocate to the preferred register
       if (ir.options.REGALLOC_COALESCE_MOVES) {
@@ -1266,8 +1268,8 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
         }
       }
 
-      PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
-      int type = PhysicalRegisterSet.getPhysicalRegisterType(r);
+      GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      int type = GenericPhysicalRegisterSet.getPhysicalRegisterType(r);
 
       // next attempt to allocate to a volatile
       if (!restrict.allVolatilesForbidden(r)) {
@@ -1298,7 +1300,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
      */
     Register findAvailableRegister(Register symb) {
 
-      RegisterRestrictions restrict = ir.stackManager.getRestrictions();
+      GenericRegisterRestrictions restrict = ir.stackManager.getRestrictions();
 
       // first attempt to allocate to the preferred register
       if (ir.options.REGALLOC_COALESCE_MOVES) {
@@ -1311,8 +1313,8 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
         }
       }
 
-      PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
-      int type = PhysicalRegisterSet.getPhysicalRegisterType(symb);
+      GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      int type = GenericPhysicalRegisterSet.getPhysicalRegisterType(symb);
 
       // next attempt to allocate to a volatile
       if (!restrict.allVolatilesForbidden(symb)) {
@@ -1514,9 +1516,9 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
      * register p.  If so, return true; If not, return false.
      */
     private boolean allocateToPhysical(CompoundInterval i, Register p) {
-      RegisterRestrictions restrict = ir.stackManager.getRestrictions();
+      GenericRegisterRestrictions restrict = ir.stackManager.getRestrictions();
       Register r = i.getRegister();
-      PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
       if (p != null && !phys.isAllocatable(p)) return false;
 
       if (VERBOSE_DEBUG && p != null) {
@@ -1546,8 +1548,8 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
      * register symb; so p.isAvailable() is the key information needed.
      */
     private boolean allocateNewSymbolicToPhysical(Register symb, Register p) {
-      RegisterRestrictions restrict = ir.stackManager.getRestrictions();
-      PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      GenericRegisterRestrictions restrict = ir.stackManager.getRestrictions();
+      GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
       if (p != null && !phys.isAllocatable(p)) return false;
 
       if (VERBOSE_DEBUG && p != null) {
@@ -1567,7 +1569,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
       if (ir.options.FREQ_FOCUS_EFFORT && newInterval.isInfrequent()) {
         // if it's legal to spill this infrequent interval, then just do so!
         // don't spend any more effort.
-        RegisterRestrictions restrict = ir.stackManager.getRestrictions();
+        GenericRegisterRestrictions restrict = ir.stackManager.getRestrictions();
         if (!restrict.mustNotSpill(newInterval.getRegister())) {
           return newInterval;
         }
@@ -1584,7 +1586,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
       if (VERBOSE_DEBUG) {
         System.out.println(" interval caused a spill: " + newInterval);
       }
-      RegisterRestrictions restrict = ir.stackManager.getRestrictions();
+      GenericRegisterRestrictions restrict = ir.stackManager.getRestrictions();
       Register r = newInterval.getRegister();
       double minCost = spillCost.getCost(r);
       if (VERBOSE_DEBUG) {
@@ -1651,7 +1653,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
     private boolean checkAssignmentIfSpilled(CompoundInterval i, CompoundInterval spill) {
       Register r = spill.getAssignment();
 
-      RegisterRestrictions restrict = ir.stackManager.getRestrictions();
+      GenericRegisterRestrictions restrict = ir.stackManager.getRestrictions();
       if (restrict.isForbidden(i.getRegister(), r)) return false;
 
       // 1. Speculatively simulate the spill.
@@ -1683,7 +1685,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
   /**
    * phase to compute linear scan intervals.
    */
-  public static final class IntervalAnalysis extends CompilerPhase implements Operators {
+  public static final class IntervalAnalysis extends CompilerPhase {
     /**
      * the governing ir
      */
@@ -1744,7 +1746,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
       this.ir = ir;
 
       ControlFlowGraph cfg = ir.cfg;
-      PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
       LinearScanState state = new LinearScanState();
       ir.MIRInfo.linearScanState = state;
 
@@ -1864,6 +1866,36 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
     }
 
     /**
+     * Mutate FMOVs that end live ranges
+     *
+     * @param live The live interval for a basic block/reg pair
+     * @param register The register for this live interval
+     * @param dfnbegin The (adjusted) begin for this interval
+     * @param dfnend The (adjusted) end for this interval
+     */
+    private boolean mutateFMOVs(LiveIntervalElement live, Register register, int dfnbegin, int dfnend) {
+      Instruction end = live.getEnd();
+      if (end != null && end.operator == org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV) {
+	if (dfnend == dfnbegin) {
+	  // if end, an FMOV, both begins and ends the live range,
+	  // then end is dead.  Change it to a NOP and return null.
+	  Empty.mutate(end, NOP);
+	  return false;
+	} else {
+	  if (!end.isPEI()) {
+	    if (VM.VerifyAssertions) {
+	      Operand value = org.jikesrvm.compilers.opt.ir.ia32.MIR_Move.getValue(end);
+	      VM._assert(value.isRegister());
+	      VM._assert(org.jikesrvm.compilers.opt.ir.ia32.MIR_Move.getValue(end).asRegister().getRegister() == register);
+	    }
+	    end.operator = org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV_ENDING_LIVE_RANGE;
+	  }
+	}
+      }
+      return true;
+    }
+
+    /**
      * for each live interval associated with this block
      * we either add a new interval, or extend a previous interval
      * if it is contiguous
@@ -1881,7 +1913,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
       int dfnbegin = getDfnBegin(live, bb);
 
       if (MUTATE_FMOV && reg.isFloatingPoint()) {
-        Operators.helper.mutateFMOVs(live, reg, dfnbegin, dfnend);
+          mutateFMOVs(live, reg, dfnbegin, dfnend);
       }
 
       // check for an existing live interval for this register
@@ -1918,7 +1950,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
   /**
    * The following class manages allocation and reuse of spill locations.
    */
-  static class SpillLocationManager implements PhysicalRegisterConstants {
+  static class SpillLocationManager {
 
     /**
      * The governing IR
@@ -1939,11 +1971,8 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
       SpillLocationInterval result = null;
 
       Register r = ci.getRegister();
-      int type = PhysicalRegisterSet.getPhysicalRegisterType(r);
-      if (type == -1) {
-        type = DOUBLE_REG;
-      }
-      int spillSize = PhysicalRegisterSet.getSpillSize(type);
+      int type = GenericPhysicalRegisterSet.getPhysicalRegisterType(r);
+      int spillSize = GenericPhysicalRegisterSet.getSpillSize(type);
 
       // Search the free intervals and try to find an interval to
       // reuse. First look for the preferred interval.
@@ -2330,7 +2359,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
      *  @param ir the IR
      */
     public void perform(IR ir) {
-      PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
       ScratchMap scratchMap = ir.stackManager.getScratchMap();
 
       if (GC_DEBUG) {
@@ -2412,7 +2441,7 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
   /**
    * Insert Spill Code after register assignment.
    */
-  static final class SpillCode extends CompilerPhase implements Operators {
+  static final class SpillCode extends CompilerPhase {
     /**
      * Return this instance of this phase. This phase contains no
      * per-compilation instance fields.
@@ -2436,6 +2465,57 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
     }
 
     /**
+     *  Rewrite floating point registers to reflect changes in stack
+     *  height induced by BURS.
+     *
+     *  Side effect: update the fpStackHeight in MIRInfo
+     */
+    private void rewriteFPStack(IR ir) {
+      GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+      for (BasicBlockEnumeration b = ir.getBasicBlocks(); b.hasMoreElements();) {
+	BasicBlock bb = b.nextElement();
+
+	// The following holds the floating point stack offset from its
+	// 'normal' position.
+	int fpStackOffset = 0;
+
+	for (InstructionEnumeration inst = bb.forwardInstrEnumerator(); inst.hasMoreElements();) {
+	  Instruction s = inst.next();
+	  for (OperandEnumeration ops = s.getOperands(); ops.hasMoreElements();) {
+	    Operand op = ops.next();
+	    if (op.isRegister()) {
+	      RegisterOperand rop = op.asRegister();
+	      Register r = rop.getRegister();
+
+	      // Update MIR state for every physical FPR we see
+	      if (r.isPhysical() && r.isFloatingPoint() &&
+                      s.operator() != org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.DUMMY_DEF &&
+                      s.operator() != org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.DUMMY_USE) {
+		int n = PhysicalRegisterSet.getFPRIndex(r);
+		if (fpStackOffset != 0) {
+		  n += fpStackOffset;
+		  rop.setRegister(phys.getFPR(n));
+		}
+		ir.MIRInfo.fpStackHeight = Math.max(ir.MIRInfo.fpStackHeight, n + 1);
+	      }
+	    } else if (op instanceof BURSManagedFPROperand) {
+	      int regNum = ((BURSManagedFPROperand) op).regNum;
+	      s.replaceOperand(op, new RegisterOperand(phys.getFPR(regNum), TypeReference.Double));
+	    }
+	  }
+	  // account for any effect s has on the floating point stack
+	  // position.
+	  if (s.operator().isFpPop()) {
+	    fpStackOffset--;
+	  } else if (s.operator().isFpPush()) {
+	    fpStackOffset++;
+	  }
+	  if (VM.VerifyAssertions) VM._assert(fpStackOffset >= 0);
+	}
+      }
+    }
+
+    /**
      *  @param ir the IR
      */
     public void perform(IR ir) {
@@ -2443,13 +2523,13 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
 
       // Generate spill code if necessary
       if (ir.hasSysCall() || ir.MIRInfo.linearScanState.spilledSomething) {
-        StackManager stackMan = (StackManager) ir.stackManager;
+        GenericStackManager stackMan = (GenericStackManager) ir.stackManager;
         stackMan.insertSpillCode(ir.MIRInfo.linearScanState.active);
         //      stackMan.insertSpillCode();
       }
 
       if (VM.BuildForIA32 && !VM.BuildForSSE2Full) {
-        Operators.helper.rewriteFPStack(ir);
+        rewriteFPStack(ir);
       }
     }
 

@@ -46,10 +46,10 @@ public class TempRegisters implements RegisterConstants {
     objs = new Object[NUM_GPRS];
 
     for (int i = 0; i < NUM_GPRS; i++) {
-      gprs.set(i, contextRegisters.gprs.get(i));
+      gprs.set(i, contextRegisters.getGPRs().get(i));
     }
-    System.arraycopy(contextRegisters.fprs, 0, fprs, 0, NUM_FPRS);
-    ip = contextRegisters.ip;
+    System.arraycopy(contextRegisters.getFPRs(), 0, fprs, 0, NUM_FPRS);
+    ip = contextRegisters.getIP();
   }
 
   public void dumpContents() {

@@ -13,8 +13,9 @@
 package org.jikesrvm.classloader;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.SizeConstants;
 import static org.jikesrvm.classloader.BytecodeConstants.*;
+
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.runtime.Statics;
 import org.vmmagic.pragma.Inline;
 import org.vmmagic.unboxed.Offset;

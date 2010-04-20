@@ -31,7 +31,7 @@ import org.vmmagic.unboxed.ObjectReference;
  * Common debugging utility functions used by various garbage collectors
  */
 @Uninterruptible
-public class DebugUtil implements org.mmtk.utility.Constants, org.jikesrvm.Constants {
+public class DebugUtil implements org.mmtk.utility.Constants, org.jikesrvm.architecture.Constants {
 
   private static TIB tibForArrayType;
   private static TIB tibForClassType;

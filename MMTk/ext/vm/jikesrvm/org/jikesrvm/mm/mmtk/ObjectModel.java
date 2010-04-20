@@ -29,7 +29,7 @@ import org.vmmagic.unboxed.*;
 import org.vmmagic.pragma.*;
 
 @Uninterruptible public final class ObjectModel extends org.mmtk.vm.ObjectModel implements org.mmtk.utility.Constants,
-                                                                                           org.jikesrvm.Constants {
+                                                                                           org.jikesrvm.architecture.Constants {
 
   protected Offset getArrayBaseOffset() { return JavaHeaderConstants.ARRAY_BASE_OFFSET; }
 

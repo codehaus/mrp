@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.mm.mminterface;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
+import org.jikesrvm.architecture.StackFrameLayout;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.mm.mmtk.Collection;
 import org.jikesrvm.mm.mmtk.MMTk_Events;
@@ -230,7 +230,7 @@ public final class CollectorThread extends RVMThread {
    */
   @Interruptible
   public static CollectorThread createActiveCollectorThread() {
-    byte[] stack = MemoryManager.newStack(ArchitectureSpecific.StackframeLayoutConstants.STACK_SIZE_COLLECTOR);
+    byte[] stack = MemoryManager.newStack(StackFrameLayout.getStackSizeCollector());
     return new CollectorThread(stack);
   }
 

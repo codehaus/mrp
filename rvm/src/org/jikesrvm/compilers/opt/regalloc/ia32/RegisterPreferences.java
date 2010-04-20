@@ -12,7 +12,7 @@
  */
 package org.jikesrvm.compilers.opt.regalloc.ia32;
 
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
@@ -21,7 +21,10 @@ import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.regalloc.GenericRegisterPreferences;
 
-public class RegisterPreferences extends GenericRegisterPreferences implements Operators {
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
+
+public class RegisterPreferences extends GenericRegisterPreferences {
 
   /**
    * Set up register preferences based on instructions in an IR.

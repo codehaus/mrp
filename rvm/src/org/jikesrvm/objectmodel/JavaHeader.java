@@ -12,10 +12,9 @@
  */
 package org.jikesrvm.objectmodel;
 
-import org.jikesrvm.ArchitectureSpecific.Assembler;
 import org.jikesrvm.VM;
 import org.jikesrvm.Configuration;
-import org.jikesrvm.SizeConstants;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.RVMType;
@@ -928,18 +927,5 @@ public class JavaHeader implements JavaHeaderConstants {
     // TIB dumped in ObjectModel
     VM.sysWrite(" STATUS=");
     VM.sysWriteHex(Magic.getWordAtOffset(ref, STATUS_OFFSET).toAddress());
-  }
-
-  /**
-   * The following method will emit code that moves a reference to an
-   * object's TIB into a destination register.
-   *
-   * @param asm the assembler object to emit code with
-   * @param dest the number of the destination register
-   * @param object the number of the register holding the object reference
-   */
-  @Interruptible
-  public static void baselineEmitLoadTIB(Assembler asm, int dest, int object) {
-    Configuration.archHelper.baselineEmitLoadTIB(asm, dest, object, TIB_OFFSET);
   }
 }

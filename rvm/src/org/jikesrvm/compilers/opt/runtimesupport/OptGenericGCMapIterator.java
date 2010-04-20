@@ -12,10 +12,9 @@
  */
 package org.jikesrvm.compilers.opt.runtimesupport;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
-import org.jikesrvm.ArchitectureSpecificOpt.OptGCMapIteratorConstants;
+import org.jikesrvm.architecture.ArchConstants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;
 import org.jikesrvm.mm.mminterface.GCMapIterator;
@@ -24,7 +23,9 @@ import org.jikesrvm.runtime.Magic;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
-import org.vmmagic.unboxed.WordArray;
+import org.vmmagic.unboxed.AddressArray;
+import static org.jikesrvm.compilers.opt.runtimesupport.OptGCMap.FIRST_GCMAP_REG;
+import static org.jikesrvm.compilers.opt.runtimesupport.OptGCMap.LAST_GCMAP_REG;
 
 /**
  * This class contains its architecture-independent code for iteration
@@ -33,8 +34,7 @@ import org.vmmagic.unboxed.WordArray;
  * @see org.jikesrvm.ArchitectureSpecificOpt.OptGCMapIterator
  */
 @Uninterruptible
-public abstract class OptGenericGCMapIterator extends GCMapIterator
-    implements OptGCMapIteratorConstants, Constants {
+public abstract class OptGenericGCMapIterator extends GCMapIterator implements Constants {
 
   /**
    * The compiled method
@@ -83,9 +83,8 @@ public abstract class OptGenericGCMapIterator extends GCMapIterator
   static final boolean lookForMissedReferencesInSpills = false;
 
   // Constructor
-  protected OptGenericGCMapIterator(WordArray registerLocations) {
-    super();
-    this.registerLocations = registerLocations;
+  protected OptGenericGCMapIterator(AddressArray registerLocations) {
+    super(registerLocations);
   }
 
   /**
@@ -119,8 +118,7 @@ public abstract class OptGenericGCMapIterator extends GCMapIterator
                       instructionOffset);
       } else {
         Offset possibleLen =
-            Offset.fromIntZeroExtend(cm.numberOfInstructions() << ArchitectureSpecific.RegisterConstants
-                .LG_INSTRUCTION_WIDTH);
+            Offset.fromIntZeroExtend(cm.numberOfInstructions() << ArchConstants.getLogInstructionWidth());
         if (possibleLen.sLT(instructionOffset)) {
           VM.sysWriteln("OptGenericGCMapIterator.setupIterator called with too big of an instructionOffset");
           VM.sysWriteln("offset is", instructionOffset);
@@ -213,7 +211,7 @@ public abstract class OptGenericGCMapIterator extends GCMapIterator
       if (currentRegisterIsValid()) {
         Address regLocation;
         // currentRegister contains a reference, return that location
-        regLocation = registerLocations.get(getCurrentRegister()).toAddress();
+        regLocation = registerLocations.get(getCurrentRegister());
         if (DEBUG) {
           VM.sysWrite(" *** Ref found in reg#");
           VM.sysWrite(getCurrentRegister());
@@ -412,7 +410,7 @@ public abstract class OptGenericGCMapIterator extends GCMapIterator
    */
   final void checkRegistersForMissedReferences(int firstReg, int lastReg) {
     for (int i = firstReg; i <= lastReg; i++) {
-      Address regLocation = registerLocations.get(i).toAddress();
+      Address regLocation = registerLocations.get(i);
       Address regValue = regLocation.loadAddress();
       if (MemoryManager.addressInVM(regValue)) {
         VM.sysWrite("  reg#", getCurrentRegister());

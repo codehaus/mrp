@@ -87,9 +87,9 @@ public class Entrypoints {
 
   public static final RVMField sysWriteLockField = getField(org.jikesrvm.VM.class, "sysWriteLock", int.class);
   public static final RVMField intBufferLockField =
-      getField(org.jikesrvm.Services.class, "intBufferLock", int.class);
+      getField(org.jikesrvm.util.Services.class, "intBufferLock", int.class);
   public static final RVMField dumpBufferLockField =
-      getField(org.jikesrvm.Services.class, "dumpBufferLock", int.class);
+      getField(org.jikesrvm.util.Services.class, "dumpBufferLock", int.class);
 
   public static final NormalMethod unexpectedAbstractMethodCallMethod =
       getMethod(org.jikesrvm.runtime.RuntimeEntrypoints.class, "unexpectedAbstractMethodCall", "()V");
@@ -113,7 +113,7 @@ public class Entrypoints {
   public static final NormalMethod invokeInterfaceMethod =
       getMethod(org.jikesrvm.classloader.InterfaceInvocation.class,
                 "invokeInterface",
-                "(Ljava/lang/Object;I)Lorg/jikesrvm/ArchitectureSpecific$CodeArray;");
+                "(Ljava/lang/Object;I)Lorg/jikesrvm/compilers/common/CodeArray;");
   public static final NormalMethod findItableMethod =
       getMethod(org.jikesrvm.classloader.InterfaceInvocation.class,
                 "findITable",
@@ -241,15 +241,15 @@ public class Entrypoints {
   public static final RVMField threadContextRegistersField =
       getField(org.jikesrvm.scheduler.RVMThread.class,
                "contextRegisters",
-               org.jikesrvm.ArchitectureSpecific.Registers.class);
+               org.jikesrvm.architecture.AbstractRegisters.class);
   public static final RVMField threadContextRegistersSaveField =
       getField(org.jikesrvm.scheduler.RVMThread.class,
                "contextRegistersSave",
-               org.jikesrvm.ArchitectureSpecific.Registers.class);
+               org.jikesrvm.architecture.AbstractRegisters.class);
   public static final RVMField threadExceptionRegistersField =
       getField(org.jikesrvm.scheduler.RVMThread.class,
                "exceptionRegisters",
-               org.jikesrvm.ArchitectureSpecific.Registers.class);
+               org.jikesrvm.architecture.AbstractRegisters.class);
 
   public static final RVMField tracePrevAddressField =
       getField(org.jikesrvm.objectmodel.MiscHeader.class, "prevAddress", org.vmmagic.unboxed.Word.class);
@@ -454,7 +454,7 @@ public class Entrypoints {
       specializedMethodsField =
           getField(org.jikesrvm.compilers.opt.specialization.SpecializedMethodPool.class,
                    "specializedMethods",
-                   org.jikesrvm.ArchitectureSpecific.CodeArray[].class);
+                   org.jikesrvm.compilers.common.CodeArray[].class);
       optThreadSwitchFromOsrOptMethod =
           getMethod(org.jikesrvm.compilers.opt.runtimesupport.OptSaveVolatile.class, "yieldpointFromOsrOpt", "()V");
       optThreadSwitchFromPrologueMethod =

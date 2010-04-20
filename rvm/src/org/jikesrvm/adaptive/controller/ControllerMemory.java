@@ -15,7 +15,7 @@ package org.jikesrvm.adaptive.controller;
 import java.io.PrintStream;
 import java.util.LinkedList;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;

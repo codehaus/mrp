@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.classloader;
 
-import org.jikesrvm.Constants;
 import org.jikesrvm.VM;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.objectmodel.TIB;
 import org.vmmagic.pragma.NonMoving;
 import org.vmmagic.pragma.Pure;

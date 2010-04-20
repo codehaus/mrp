@@ -13,7 +13,7 @@
 package org.jikesrvm.osr.ia32;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.compilers.baseline.BaselineCompiledMethod;
 import org.jikesrvm.compilers.baseline.ia32.BaselineCompilerImpl;
@@ -37,7 +37,7 @@ import org.vmmagic.unboxed.Word;
  * baseline compiler.
  */
 
-public abstract class BaselineExecutionStateExtractor extends ExecutionStateExtractor
+public final class BaselineExecutionStateExtractor extends ExecutionStateExtractor
     implements Constants, ArchConstants, OSRConstants, PhysicalRegisterConstants {
 
   /**

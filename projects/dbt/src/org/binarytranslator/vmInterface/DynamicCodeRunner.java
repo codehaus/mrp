@@ -13,13 +13,13 @@
 package org.binarytranslator.vmInterface;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.runtime.Magic;
 import org.vmmagic.pragma.DynamicBridge;
 import org.vmmagic.pragma.NoInline;
 import org.binarytranslator.DBT_Options;
 import org.binarytranslator.generic.os.process.ProcessSpace;
 import org.binarytranslator.generic.fault.BadInstructionException;
+import org.jikesrvm.compilers.common.CodeArray;
 
 /**
  * This class provides the bridge between the Java compiled world and the world

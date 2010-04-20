@@ -14,6 +14,7 @@ package org.jikesrvm.compilers.opt.ir.ia32;
 
 import java.util.Enumeration;
 import org.jikesrvm.VM;
+import org.jikesrvm.architecture.MachineRegister;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.Register;
@@ -24,13 +25,14 @@ import org.jikesrvm.compilers.opt.util.EmptyEnumerator;
 import org.jikesrvm.compilers.opt.util.ReverseEnumerator;
 import org.jikesrvm.ia32.ArchConstants;
 import org.jikesrvm.ia32.RegisterConstants;
+import static org.jikesrvm.ia32.RegisterConstants.*;
+import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.*;
 
 /**
  * This class represents a set of Registers corresponding to the
  * IA32 register set.
  */
-public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
-    implements RegisterConstants, PhysicalRegisterConstants {
+public final class PhysicalRegisterSet extends GenericPhysicalRegisterSet {
 
   /**
    * This array holds a pool of objects representing physical registers
@@ -116,7 +118,7 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
   /**
    * Constructor: set up a pool of physical registers.
    */
-  protected PhysicalRegisterSet() {
+  public PhysicalRegisterSet() {
 
     // 1. Create all the physical registers in the pool.
     for (int i = 0; i < reg.length; i++) {
@@ -344,7 +346,7 @@ public abstract class PhysicalRegisterSet extends GenericPhysicalRegisterSet
   /**
    * @return the nth physical GPR
    */
-  public Register getGPR(GPR n) {
+  public Register getGPR(MachineRegister n) {
     return reg[FIRST_INT + n.value()];
   }
 

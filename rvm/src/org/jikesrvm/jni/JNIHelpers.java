@@ -13,8 +13,10 @@
 package org.jikesrvm.jni;
 
 import org.jikesrvm.VM;
-import static org.jikesrvm.SizeConstants.BYTES_IN_ADDRESS;
-import static org.jikesrvm.SizeConstants.BYTES_IN_LONG;
+
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_ADDRESS;
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_LONG;
+
 import org.jikesrvm.classloader.MemberReference;
 import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.RVMMethod;

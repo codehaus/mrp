@@ -35,7 +35,7 @@ import org.vmmagic.unboxed.WordArray;
  * @see JNICompiler
  */
 @Uninterruptible
-public abstract class JNIGCMapIterator extends GCMapIterator implements BaselineConstants {
+public final class JNIGCMapIterator extends GCMapIterator implements BaselineConstants {
 
   // Java to Native C transition frame...(see JNICompiler)
   //
@@ -60,8 +60,8 @@ public abstract class JNIGCMapIterator extends GCMapIterator implements Baseline
   int jniNextRef;
   int jniFramePtr;
 
-  public JNIGCMapIterator(WordArray registerLocations) {
-    this.registerLocations = registerLocations;
+  public JNIGCMapIterator(AddressArray registerLocations) {
+    super(registerLocations);
   }
 
   // Override newStackWalk() in parent class GCMapIterator to
@@ -117,9 +117,9 @@ public abstract class JNIGCMapIterator extends GCMapIterator implements Baseline
     // the JNI transition frame at a fixed negative offset from the callers FP.
     // the save non-volatiles are EBX EBP and EDI.
     //
-    registerLocations.set(EDI.value(), framePtr.plus(JNICompiler.EDI_SAVE_OFFSET).toWord());
-    registerLocations.set(EBX.value(), framePtr.plus(JNICompiler.EBX_SAVE_OFFSET).toWord());
-    registerLocations.set(EBP.value(), framePtr.plus(JNICompiler.EBP_SAVE_OFFSET).toWord());
+    registerLocations.set(EDI.value(), framePtr.plus(JNICompiler.EDI_SAVE_OFFSET));
+    registerLocations.set(EBX.value(), framePtr.plus(JNICompiler.EBX_SAVE_OFFSET));
+    registerLocations.set(EBP.value(), framePtr.plus(JNICompiler.EBP_SAVE_OFFSET));
 
     return Address.zero();  // no more refs to report
   }

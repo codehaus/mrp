@@ -12,21 +12,21 @@
  */
 package org.jikesrvm.compilers.opt;
 
-import static org.jikesrvm.SizeConstants.BITS_IN_ADDRESS;
-import static org.jikesrvm.SizeConstants.BITS_IN_INT;
-import static org.jikesrvm.SizeConstants.BITS_IN_LONG;
-import static org.jikesrvm.SizeConstants.LOG_BYTES_IN_ADDRESS;
+import static org.jikesrvm.architecture.SizeConstants.BITS_IN_ADDRESS;
+import static org.jikesrvm.architecture.SizeConstants.BITS_IN_INT;
+import static org.jikesrvm.architecture.SizeConstants.BITS_IN_LONG;
+import static org.jikesrvm.architecture.SizeConstants.LOG_BYTES_IN_ADDRESS;
 import static org.jikesrvm.compilers.opt.ir.Operators.*;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.classloader.RVMField;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.RVMType;
 import org.jikesrvm.classloader.TypeReference;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.opt.driver.OptConstants;
 import org.jikesrvm.compilers.opt.inlining.InlineSequence;
 import org.jikesrvm.compilers.opt.ir.AbstractRegisterPool;
@@ -47,7 +47,6 @@ import org.jikesrvm.compilers.opt.ir.Load;
 import org.jikesrvm.compilers.opt.ir.Move;
 import org.jikesrvm.compilers.opt.ir.NullCheck;
 import org.jikesrvm.compilers.opt.ir.Operator;
-import org.jikesrvm.compilers.opt.ir.OperatorNames;
 import org.jikesrvm.compilers.opt.ir.StoreCheck;
 import org.jikesrvm.compilers.opt.ir.Trap;
 import org.jikesrvm.compilers.opt.ir.TrapIf;
@@ -534,7 +533,7 @@ public abstract class Simplifier extends IRTools {
                      "RHS of move " +
                      s +
                      " should be constant during simplification of " +
-                     OperatorNames.operatorName[opcode]);
+                     s.operator());
           break;
         case MOVE_REDUCED:
           // Check move has non-constant RHS
@@ -542,7 +541,7 @@ public abstract class Simplifier extends IRTools {
                      "RHS of move " +
                      s +
                      " shouldn't be constant during simplification of " +
-                     OperatorNames.operatorName[opcode]);
+                     s.operator());
           break;
         default:
           // Nothing to check

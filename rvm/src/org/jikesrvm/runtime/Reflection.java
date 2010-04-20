@@ -12,10 +12,9 @@
  */
 package org.jikesrvm.runtime;
 
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
-import org.jikesrvm.ArchitectureSpecific.MachineReflection;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
+import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.TypeReference;
@@ -110,7 +109,8 @@ public class Reflection implements Constants {
 
     // decide how to pass parameters
     //
-    int triple = MachineReflection.countParameters(method);
+    int triple = VM.BuildForIA32 ? org.jikesrvm.ia32.MachineReflection.countParameters(method)
+                                 : org.jikesrvm.ppc.MachineReflection.countParameters(method);
     int gprs = triple & REFLECTION_GPRS_MASK;
     WordArray GPRs = (gprs > 0) ? WordArray.create(gprs) : emptyWordArray;
     int fprs = (triple >> REFLECTION_GPRS_BITS) & 0x1F;
@@ -179,7 +179,11 @@ public class Reflection implements Constants {
     RVMThread.getCurrentThread().disableYieldpoints();
 
     CodeArray code = cm.getEntryCodeArray();
-    MachineReflection.packageParameters(method, thisArg, otherArgs, GPRs, FPRs, FPRmeta, Spills);
+    if (VM.BuildForIA32) {
+      org.jikesrvm.ia32.MachineReflection.packageParameters(method, thisArg, otherArgs, GPRs, FPRs, FPRmeta, Spills);
+    } else {
+      org.jikesrvm.ppc.MachineReflection.packageParameters(method, thisArg, otherArgs, GPRs, FPRs, FPRmeta, Spills);
+    }
 
     // critical: no yieldpoints/GCpoints between here and the invoke of code!
     //           We may have references hidden in the GPRs and Spills arrays!!!

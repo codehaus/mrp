@@ -17,7 +17,6 @@ import org.mmtk.plan.CollectorContext;
 import org.mmtk.plan.MutatorContext;
 import org.mmtk.utility.options.Options;
 
-import org.jikesrvm.ArchitectureSpecific;
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.RVMMethod;
@@ -36,8 +35,7 @@ import org.vmmagic.pragma.Unpreemptible;
 import org.vmmagic.unboxed.Address;
 
 @Uninterruptible
-public class Collection extends org.mmtk.vm.Collection implements org.mmtk.utility.Constants,
-                                                                  org.jikesrvm.Constants {
+public class Collection extends org.mmtk.vm.Collection implements org.mmtk.utility.Constants {
 
   /****************************************************************************
    *
@@ -270,7 +268,10 @@ public class Collection extends org.mmtk.vm.Collection implements org.mmtk.utili
     while (true) {
       Address caller_ip = Magic.getReturnAddress(fp);
       Address caller_fp = Magic.getCallerFramePointer(fp);
-      if (Magic.getCallerFramePointer(caller_fp).EQ(ArchitectureSpecific.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP))
+      Address STACKFRAME_SENTINEL_FP = VM.BuildForIA32
+	? org.jikesrvm.ia32.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP 
+	: org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP;
+      if (Magic.getCallerFramePointer(caller_fp).EQ(STACKFRAME_SENTINEL_FP))
         VM.sysFail("prepareMutator (participating): Could not locate CollectorThread.run");
       int compiledMethodId = Magic.getCompiledMethodID(caller_fp);
       CompiledMethod compiledMethod = CompiledMethods.getCompiledMethod(compiledMethodId);

@@ -12,11 +12,9 @@
  */
 package org.jikesrvm.runtime;
 
-import static org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants.INVISIBLE_METHOD_ID;
-import static org.jikesrvm.ArchitectureSpecific.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP;
-
 import org.jikesrvm.VM;
 import org.jikesrvm.Options;
+import org.jikesrvm.architecture.StackFrameLayout;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.MemberReference;
 import org.jikesrvm.classloader.RVMMethod;
@@ -105,9 +103,9 @@ public class StackTrace {
     /* Stack trace for a sleeping thread */
     fp = stackTraceThread.contextRegisters.getInnermostFramePointer();
     ip = stackTraceThread.contextRegisters.getInnermostInstructionAddress();
-    while (Magic.getCallerFramePointer(fp).NE(STACKFRAME_SENTINEL_FP)) {
+    while (Magic.getCallerFramePointer(fp).NE(StackFrameLayout.getStackFrameSentinelFP())) {
       int compiledMethodId = Magic.getCompiledMethodID(fp);
-      if (compiledMethodId != INVISIBLE_METHOD_ID) {
+      if (compiledMethodId != StackFrameLayout.getInvisibleMethodID()) {
         CompiledMethod compiledMethod =
           CompiledMethods.getCompiledMethod(compiledMethodId);
         if ((compiledMethod.getCompilerType() != CompiledMethod.TRAP) &&
@@ -137,10 +135,10 @@ public class StackTrace {
     /* Stack trace for a sleeping thread */
     fp = stackTraceThread.contextRegisters.getInnermostFramePointer();
     ip = stackTraceThread.contextRegisters.getInnermostInstructionAddress();
-    while (Magic.getCallerFramePointer(fp).NE(STACKFRAME_SENTINEL_FP)) {
+    while (Magic.getCallerFramePointer(fp).NE(StackFrameLayout.getStackFrameSentinelFP())) {
       int compiledMethodId = Magic.getCompiledMethodID(fp);
       compiledMethods[stackFrameCount] = compiledMethodId;
-      if (compiledMethodId != INVISIBLE_METHOD_ID) {
+      if (compiledMethodId != StackFrameLayout.getInvisibleMethodID()) {
         CompiledMethod compiledMethod =
           CompiledMethods.getCompiledMethod(compiledMethodId);
         if (compiledMethod.getCompilerType() != CompiledMethod.TRAP) {
@@ -176,9 +174,9 @@ public class StackTrace {
     fp = Magic.getFramePointer();
     ip = Magic.getReturnAddress(fp);
     fp = Magic.getCallerFramePointer(fp);
-    while (Magic.getCallerFramePointer(fp).NE(STACKFRAME_SENTINEL_FP)) {
+    while (Magic.getCallerFramePointer(fp).NE(StackFrameLayout.getStackFrameSentinelFP())) {
       int compiledMethodId = Magic.getCompiledMethodID(fp);
-      if (compiledMethodId != INVISIBLE_METHOD_ID) {
+      if (compiledMethodId != StackFrameLayout.getInvisibleMethodID()) {
         CompiledMethod compiledMethod =
           CompiledMethods.getCompiledMethod(compiledMethodId);
         if ((compiledMethod.getCompilerType() != CompiledMethod.TRAP) &&
@@ -211,11 +209,11 @@ public class StackTrace {
     fp = Magic.getFramePointer();
     ip = Magic.getReturnAddress(fp);
     fp = Magic.getCallerFramePointer(fp);
-    while (Magic.getCallerFramePointer(fp).NE(STACKFRAME_SENTINEL_FP)) {
+    while (Magic.getCallerFramePointer(fp).NE(StackFrameLayout.getStackFrameSentinelFP())) {
       //VM.sysWriteln("at stackFrameCount = ",stackFrameCount);
       int compiledMethodId = Magic.getCompiledMethodID(fp);
       compiledMethods[stackFrameCount] = compiledMethodId;
-      if (compiledMethodId != INVISIBLE_METHOD_ID) {
+      if (compiledMethodId != StackFrameLayout.getInvisibleMethodID()) {
         CompiledMethod compiledMethod =
           CompiledMethods.getCompiledMethod(compiledMethodId);
         if (compiledMethod.getCompilerType() != CompiledMethod.TRAP) {
@@ -327,7 +325,7 @@ public class StackTrace {
   private CompiledMethod getCompiledMethod(int element) {
     if ((element >= 0) && (element < compiledMethods.length)) {
       int mid = compiledMethods[element];
-      if (mid != INVISIBLE_METHOD_ID) {
+      if (mid != StackFrameLayout.getInvisibleMethodID()) {
         return CompiledMethods.getCompiledMethod(mid);
       }
     }
@@ -560,7 +558,7 @@ public class StackTrace {
     } else {
       // Start at end of array and elide a frame unless we find a place to stop
       for (int i=max; i >= first; i--) {
-        if (compiledMethods[i] == INVISIBLE_METHOD_ID) {
+        if (compiledMethods[i] == StackFrameLayout.getInvisibleMethodID()) {
           // we found an invisible method, assume next method if this is sane
           if (i-1 >= 0) {
             return i-1;

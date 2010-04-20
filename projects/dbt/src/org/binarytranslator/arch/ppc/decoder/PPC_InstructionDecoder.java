@@ -38,12 +38,13 @@ import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.ppc.Disassembler;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
 /**
  * This class is the super class of all instruction translators, it implements
  * default methods that just throw errors
  */
-public class PPC_InstructionDecoder implements
-    Operators {
+public class PPC_InstructionDecoder {
   /* Different instruction formats */
 
   /** Invalid opcode */

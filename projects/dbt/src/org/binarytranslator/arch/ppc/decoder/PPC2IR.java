@@ -42,13 +42,15 @@ import org.jikesrvm.compilers.opt.ir.operand.LocationOperand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.compilers.opt.ir.operand.TrueGuardOperand;
 
+import static org.jikesrvm.compilers.opt.driver.OptConstants.*;
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+
 /**
  * Translation from PPC machine code to HIR.
  * 
  * @author Richard Matley, Ian Rogers
  */
-public final class PPC2IR extends CodeTranslator implements HIRGenerator,
-    Operators, OptConstants {
+public final class PPC2IR extends CodeTranslator {
 
   // -oO Caches of references to process space entities Oo-
 

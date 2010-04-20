@@ -15,11 +15,11 @@ package org.jikesrvm.mm.mmtk;
 import org.vmmagic.pragma.*;
 import org.vmmagic.unboxed.*;
 
-import org.jikesrvm.SizeConstants;
 import org.jikesrvm.VM;
+import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.mm.mminterface.Selected;
 import org.jikesrvm.runtime.Magic;
-import org.jikesrvm.Services;
+import org.jikesrvm.util.Services;
 import org.mmtk.plan.TraceLocal;
 
 /**

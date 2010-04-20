@@ -25,10 +25,14 @@ import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
 import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.ia32.ArchConstants;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
+import static org.jikesrvm.ia32.ArchConstants.SSE2_FULL;
+
 /**
  * Reduce the number of ALU operators considered by BURS
  */
-public class ConvertALUOperators extends CompilerPhase implements Operators, ArchConstants {
+public class ConvertALUOperators extends CompilerPhase {
 
   @Override
   public final String getName() { return "ConvertALUOps"; }

@@ -1,0 +1,250 @@
+/*
+ *  This file is part of the Jikes RVM project (http://jikesrvm.org).
+ *
+ *  This file is licensed to You under the Eclipse Public License (EPL);
+ *  You may not use this file except in compliance with the License. You
+ *  may obtain a copy of the License at
+ *
+ *      http://www.opensource.org/licenses/eclipse-1.0.php
+ *
+ *  See the COPYRIGHT.txt file distributed with this work for information
+ *  regarding copyright ownership.
+ */
+package ARCHINSTRSCHEDPKG;
+
+import org.jikesrvm.*;
+import org.jikesrvm.compilers.opt.ir.*;
+import org.jikesrvm.compilers.opt.instrsched.OperatorClass;
+import org.jikesrvm.compilers.opt.instrsched.ResourceReservation;
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ARCHITECTURE.ArchOperators.*;
+
+/**
+ * Generated from a template.
+ * Consists of an operator class and information about resource usage
+ * There is only one instance of each OperatorClass, which is stored
+ * as a static final field in OperatorClass.  You can compare
+ * OperatorClasses using ==.
+ * Every Operator contains one of these.
+ *
+ * @see Operator
+ * @see Operators
+ */
+public final class ArchOperatorClass extends OperatorClass {
+
+   /**
+    * All Resources Mask
+    */
+   static final int ALL;
+
+   /** Used to build ALL mask*/
+   private static int all_temp=0;
+
+   // Generates an array of resource masks, and updating the static field
+   // ALL to contain all of the masks.
+   // For internal use only.
+   private static int M = 1;    // current mask
+   private static int[] genMasks(int number) {
+      int[] rs = new int[number + 1];
+      int rall = 0;
+      for (int i = 0; i < number; i++) {
+         if (VM.VerifyAssertions && M == 0)
+            throw new InternalError("Exceeded 32 resources");
+         //System.err.println("Scheduler: Resource "+M);
+         rs[i] = M;
+         all_temp |= M;
+         rall |= M;
+         M <<= 1;
+      }
+      rs[number] = rall;
+      return rs;
+   }
+
+   public ArchOperatorClass(int _id) {
+     super(_id);
+   }
+
+   ArchOperatorClass(int _id, ResourceReservation[] pat) {
+     super(_id, pat);
+   }
+
+   /**
+    * Resource Masks
+    */
+   private static final int[][] resources = {
+$$$$ FOREACH RESOURCE ARCHITECTURE_IR_DIR/ResourceList.dat
+      genMasks(RESOURCE.NUMBER),    // RESOURCE.NAME
+$$$$ END FOREACH
+      null
+   };
+   static {
+     // assign now masks are generated
+     ALL = all_temp;
+   }
+
+   /**
+    * Total number of resources
+    */
+   static final int N = resources.length - 1;
+
+   /**
+    * Resource Names
+    */
+   private static final String[] resource_names = {
+$$$$ FOREACH RESOURCE ARCHITECTURE_IR_DIR/ResourceList.dat
+      "RESOURCE.STRING",    // RESOURCE.NAME
+$$$$ END FOREACH
+      null
+   };
+
+   /**
+    * Resources
+    */
+
+$$$$ FOREACH RESOURCE ARCHITECTURE_IR_DIR/ResourceList.dat
+   /**
+    * RESOURCE.STRING
+    * The architecture contains RESOURCE.NUMBER of them
+    * RESOURCE.COMMENT
+    */
+   static final int RESOURCE.NAME = RESOURCE.INDEX;
+   // Combined instances of RESOURCE.NAME
+   static final int RESOURCE.NAME_ALL = RESOURCE.NAME | 0x80000000;
+
+$$$$ END FOREACH
+
+   /*
+    * Operator Classes
+    */
+
+$$$$ FOREACH RESOURCE ARCHITECTURE_IR_DIR/ResourceList.dat
+   /** Global class embodying all operator classes using RESOURCE.NAME. */
+   private static final OperatorClass
+   RESOURCE.NAME_insn = new ArchOperatorClass(RESOURCE.INDEX+1);
+
+$$$$ END FOREACH
+
+   /**
+    * Map from resource to operator class representing that resource
+    */
+   private static OperatorClass[] res2class = {
+$$$$ FOREACH RESOURCE ARCHITECTURE_IR_DIR/ResourceList.dat
+     RESOURCE.NAME_insn,
+$$$$ END FOREACH
+     null
+   };
+
+$$$$ FOREACH CLASS  ARCHITECTURE_IR_DIR/OperatorClassList.dat
+   private static final OperatorClass
+     CLASS.NAME = new ArchOperatorClass(
+       CLASS.INDEX+N+1,
+       new ResourceReservation[] {
+$$$$ LOOP RES CLASS.RESOURCES
+         new ResourceReservation(RES),
+$$$$ END LOOP
+      }
+   );
+   static {
+  $$$$ LOOP OPERATOR CLASS.OPERATORS_Common
+     OPERATOR.setOpClass(CLASS.NAME);
+  $$$$ END LOOP
+     if(VM.BuildFor64Addr) {
+  $$$$ LOOP OPERATOR64 CLASS.OPERATORS_64
+       OPERATOR64.setOpClass(CLASS.NAME);
+  $$$$ END LOOP
+     }
+
+$$$$ LOOP LATENCY CLASS.LATENCIES
+     CLASS.NAME.setLatency(LATENCY);
+$$$$ END LOOP
+
+$$$$ LOOP LATENCY CLASS.REVERSELAT
+     CLASS.NAME.setRevLatency(LATENCY);
+$$$$ END LOOP
+   }
+$$$$ END FOREACH
+
+  @Override
+  protected void allocateMasks(ResourceReservation[] pat) {
+    ResourceReservation.sort(pat);
+    int maxlen = 0;
+    int size = 1;
+    ResourceReservation r = new ResourceReservation(-1, -1, -1000);
+    int len = -1;
+    OperatorClass[] rss = new OperatorClass[N];
+    for (ResourceReservation p : pat) {
+      rss[p.rclass()] = res2class[p.rclass()];
+      boolean same = p.equals(r);
+      if (!p.conflicts(r)) {
+	r = p;
+	if (r.isGlobal())
+	  len = 1;
+	else
+	  len = resources[r.rclass()].length - 1;
+      } else if (r.isGlobal()) {
+	throw new InternalError("Insufficient Resources");
+      } else {
+	len--;
+      }
+      size *= len;
+      if (same)
+	size /= 2;
+      if (p.getStart() + p.getDuration() > maxlen)
+	maxlen = p.getStart() + p.getDuration();
+    }
+    rclasses.add(any_insn);
+    for (int i = 0; i < N; i++)
+      if (rss[i] != null)
+	rclasses.add(rss[i]);
+    masks = new int[size][];
+    for (int i = 0; i < size; i++)
+      masks[i] = new int[maxlen];
+  }
+
+  @Override
+  protected int fillMasks(ResourceReservation[] pat, int[] assign,
+		   	  int all, int rrq, int comb, int depth) {
+    if (rrq == pat.length) {
+      for (int i = 0; i < masks[comb].length; i++)
+	masks[comb][i] = 0;
+      StringBuffer dbSB;
+      if (verbose >= 1) dbSB = new StringBuffer();
+      for (int i = 0; i < pat.length; i++) {
+	ResourceReservation pi = pat[i];
+	int rc = pi.rclass();
+	int mask = resources[rc][assign[i]];
+	if (verbose >= 1) dbSB.append(toBinaryPad32(mask)).append(" ");
+	for (int j = 0; j < pi.getDuration(); j++)
+	  masks[comb][pi.getStart() + j] |= mask;
+	if (maxlat < pi.getDuration())
+	  maxlat = pi.getDuration();
+      }
+      if (verbose >= 1) debug(dbSB.toString());
+      return comb + 1;
+    }
+    int rc = pat[rrq].rclass();
+    int start = 0;
+    int end = resources[rc].length - 1;
+    if (rrq != 0 && pat[rrq].equals(pat[rrq-1]))
+      start = assign[rrq-1] + 1;
+    boolean ignore = ((rrq != 0 && !pat[rrq].conflicts(pat[rrq-1])) ||
+		      pat[rrq].isGlobal());
+    if (pat[rrq].isGlobal()) {
+      start = end;
+      end++;
+    }
+
+    for (int i = start; i < end; i++)
+      if (ignore || (resources[rc][i] & all) == 0) {
+	if (verbose >= 2) debug(depth, rrq+": Res#"+rc+"; Trying "+i+
+				"; reserved='"+toBinaryPad32(all)+"'");
+
+	depth++;
+	assign[rrq] = i;
+	comb = fillMasks(pat, assign, all | resources[rc][i], rrq+1, comb, depth);
+	depth--;
+      }
+
+    return comb;
+  }
+}

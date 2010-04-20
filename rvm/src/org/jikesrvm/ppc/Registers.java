@@ -12,103 +12,47 @@
  */
 package org.jikesrvm.ppc;
 
-import org.jikesrvm.mm.mminterface.MemoryManager;
+import org.jikesrvm.VM;
+import org.jikesrvm.architecture.AbstractRegisters;
 import org.jikesrvm.runtime.ArchEntrypoints;
 import org.jikesrvm.runtime.Magic;
-import org.jikesrvm.scheduler.RVMThread;
-import org.jikesrvm.VM;
+import org.jikesrvm.runtime.Memory;
 import org.vmmagic.pragma.Uninterruptible;
-import org.vmmagic.pragma.Untraced;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
-import org.vmmagic.unboxed.WordArray;
-import org.vmmagic.unboxed.Word;
+import static org.jikesrvm.ppc.RegisterConstants.FRAME_POINTER;
 
 /**
  * The machine state comprising a thread's execution context.
  */
 @Uninterruptible
-public abstract class Registers implements ArchConstants {
-  // The following are used both for thread context switching
-  // and for hardware exception reporting/delivery.
-  //
-  @Untraced
-  public final WordArray gprs; // word size general purpose registers (either 32 or 64 bit)
-  @Untraced
-  public final double[] fprs; // 64-bit floating point registers
-  public final WordArray gprsShadow;
-  public final double[] fprsShadow;
-  public Address ip; // instruction address register
-
+public final class Registers extends AbstractRegisters {
   // The following are used by exception delivery.
   // They are set by either Runtime.athrow or the C hardware exception
   // handler and restored by "Magic.restoreHardwareExceptionState".
   // They are not used for context switching.
   //
   public Address lr;     // link register
-  public boolean inuse; // do exception registers currently contain live values?
 
   private static final Address invalidIP = Address.max();
 
   public Registers() {
-    gprs = gprsShadow = MemoryManager.newNonMovingWordArray(NUM_GPRS);
-    fprs = fprsShadow = MemoryManager.newNonMovingDoubleArray(NUM_FPRS);
     ip = invalidIP;
   }
 
+  @Override
   public final void clear() {
-    for (int i=0;i<NUM_GPRS;++i) {
-      gprs.set(i,Word.zero());
-    }
-    for (int i=0;i<NUM_FPRS;++i) {
-      fprs[i]=0.;
-    }
-    ip=Address.zero();
     lr=Address.zero();
+    super.clear();
   }
-
-  public final void copyFrom(Registers other) {
-    for (int i=0;i<NUM_GPRS;++i) {
-      gprs.set(i,other.gprs.get(i));
-    }
-    for (int i=0;i<NUM_FPRS;++i) {
-      fprs[i]=other.fprs[i];
-    }
-    ip=other.ip;
-    lr=other.lr;
-  }
-
-  public final void assertSame(Registers other) {
-    boolean fail=false;
-    for (int i=0;i<NUM_GPRS;++i) {
-      if (gprs.get(i).NE(other.gprs.get(i))) {
-        VM.sysWriteln("Registers not equal: GPR #",i);
-        fail=true;
-      }
-    }
-    for (int i=0;i<NUM_FPRS;++i) {
-      if (fprs[i]!=other.fprs[i]) {
-        VM.sysWriteln("Registers not equal: FPR #",i);
-        fail=true;
-      }
-    }
-    if (ip.NE(other.ip)) {
-      VM.sysWriteln("Registers not equal: IP");
-      fail=true;
-    }
-    if (lr.NE(other.lr)) {
-      VM.sysWriteln("Registers not equal: LR");
-      fail=true;
-    }
-    if (fail) {
-      RVMThread.dumpStack();
-      VM.sysFail("Registers.assertSame() failed");
-    }
+  public final void dump() {
+    super.dump();
+    VM.sysWriteln("lr = ",lr);
   }
 
   /** @return framepointer for the deepest stackframe */
   public final Address getInnermostFramePointer() {
-    return gprs.get(FRAME_POINTER).toAddress();
+    return getGPRs().get(FRAME_POINTER.value()).toAddress();
   }
 
   /** @return next instruction address for the deepest stackframe */
@@ -120,7 +64,7 @@ public abstract class Registers implements ArchConstants {
   /** Update the machine state to unwind the deepest stackframe. */
   public final void unwindStackFrame() {
     ip = invalidIP; // if there was a valid value in ip, it ain't valid anymore
-    gprs.set(FRAME_POINTER, Magic.getCallerFramePointer(getInnermostFramePointer()).toWord());
+    getGPRs().set(FRAME_POINTER.value(), Magic.getCallerFramePointer(getInnermostFramePointer()).toWord());
   }
 
   /**
@@ -130,7 +74,7 @@ public abstract class Registers implements ArchConstants {
    */
   public final void setInnermost(Address newip, Address newfp) {
     ip = newip;
-    gprs.set(FRAME_POINTER, newfp.toWord());
+    getGPRs().set(FRAME_POINTER.value(), newfp.toWord());
   }
 
   /**
@@ -141,12 +85,35 @@ public abstract class Registers implements ArchConstants {
   public final void setInnermost() {
     Address fp = Magic.getFramePointer();
     ip = Magic.getReturnAddress(fp);
-    gprs.set(FRAME_POINTER, Magic.getCallerFramePointer(fp).toWord());
+    getGPRs().set(FRAME_POINTER.value(), Magic.getCallerFramePointer(fp).toWord());
   }
 
-  public final Address getIPLocation() {
-    Offset ipOffset = ArchEntrypoints.registersIPField.getOffset();
-    return Magic.objectAsAddress(this).plus(ipOffset);
+ /**
+   * The following method initializes a thread stack as if
+   * "startoff" method had been called by an empty baseline-compiled
+   *  "sentinel" frame with one local variable
+   *
+   * @param contextRegisters The context registers for this thread
+   * @param ip The instruction pointer for the "startoff" method
+   * @param sp The base of the stack
+   */
+  @Uninterruptible
+  public final void initializeStack(Address ip, Address sp) {
+    Address fp;
+    // align stack frame
+    int INITIAL_FRAME_SIZE = StackframeLayoutConstants.STACKFRAME_HEADER_SIZE;
+    fp = Memory.alignDown(sp.minus(INITIAL_FRAME_SIZE), StackframeLayoutConstants.STACKFRAME_ALIGNMENT);
+    fp.plus(StackframeLayoutConstants.STACKFRAME_FRAME_POINTER_OFFSET).store(StackframeLayoutConstants.STACKFRAME_SENTINEL_FP);
+    fp.plus(StackframeLayoutConstants.STACKFRAME_NEXT_INSTRUCTION_OFFSET).store(ip); // need to fix
+    fp.plus(StackframeLayoutConstants.STACKFRAME_METHOD_ID_OFFSET).store(StackframeLayoutConstants.INVISIBLE_METHOD_ID);
+
+    getGPRs().set(FRAME_POINTER.value(), fp.toWord());
+    this.ip = ip;
   }
 
+  @Override
+  public void adjustESP(Offset delta, boolean traceAdjustments) {
+    // TODO Auto-generated method stub
+    throw new Error("TODO");
+  }
 }

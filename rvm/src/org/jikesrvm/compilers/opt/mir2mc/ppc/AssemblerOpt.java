@@ -12,34 +12,31 @@
  */
 package org.jikesrvm.compilers.opt.mir2mc.ppc;
 
-import org.jikesrvm.ArchitectureSpecific;
-import org.jikesrvm.ArchitectureSpecificOpt;
-import org.jikesrvm.ArchitectureSpecific.CodeArray;
 import org.jikesrvm.VM;
-import org.jikesrvm.Constants;
-import org.jikesrvm.Services;
+import org.jikesrvm.architecture.Constants;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.opt.OperationNotImplementedException;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.driver.OptimizingCompiler;
 import org.jikesrvm.compilers.opt.ir.InlineGuard;
-import org.jikesrvm.compilers.opt.ir.MIR_Binary;
-import org.jikesrvm.compilers.opt.ir.MIR_Branch;
-import org.jikesrvm.compilers.opt.ir.MIR_CacheOp;
-import org.jikesrvm.compilers.opt.ir.MIR_Call;
-import org.jikesrvm.compilers.opt.ir.MIR_CondBranch;
-import org.jikesrvm.compilers.opt.ir.MIR_CondCall;
-import org.jikesrvm.compilers.opt.ir.MIR_Condition;
-import org.jikesrvm.compilers.opt.ir.MIR_DataInt;
-import org.jikesrvm.compilers.opt.ir.MIR_DataLabel;
-import org.jikesrvm.compilers.opt.ir.MIR_Load;
-import org.jikesrvm.compilers.opt.ir.MIR_LoadUpdate;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.MIR_RotateAndMask;
-import org.jikesrvm.compilers.opt.ir.MIR_Store;
-import org.jikesrvm.compilers.opt.ir.MIR_StoreUpdate;
-import org.jikesrvm.compilers.opt.ir.MIR_Ternary;
-import org.jikesrvm.compilers.opt.ir.MIR_Trap;
-import org.jikesrvm.compilers.opt.ir.MIR_Unary;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Binary;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_CacheOp;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Call;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_CondCall;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Condition;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_DataInt;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_DataLabel;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Load;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_LoadUpdate;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_RotateAndMask;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Store;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_StoreUpdate;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Ternary;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Trap;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Unary;
 import org.jikesrvm.compilers.opt.ir.NullCheck;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
@@ -50,11 +47,17 @@ import org.jikesrvm.compilers.opt.ir.operand.ppc.PowerPCTrapOperand;
 import org.jikesrvm.compilers.opt.ir.ppc.PhysicalRegisterSet;
 import org.jikesrvm.ppc.ArchConstants;
 import org.jikesrvm.ppc.Disassembler;
+import org.jikesrvm.util.Services;
+
+import static org.jikesrvm.compilers.opt.ir.Operators.*;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.*;
+import static org.jikesrvm.architecture.Constants.*;
+import static org.jikesrvm.ppc.ArchConstants.*;
 
 /**
  * Assemble PowerPC MIR into binary code.
  */
-public abstract class AssemblerOpt implements Operators, Constants, ArchConstants {
+public class AssemblerOpt {
 
   private static final boolean DEBUG = false;
   private static final boolean DEBUG_CODE_PATCH = false;
@@ -93,18 +96,18 @@ public abstract class AssemblerOpt implements Operators, Constants, ArchConstant
    * @return the number of machinecode instructions generated
    */
   public static int generateCode(IR ir, boolean shouldPrint) {
-    ir.MIRInfo.machinecode = ArchitectureSpecific.CodeArray.Factory.create(ir.MIRInfo.mcSizeEstimate, true);
-    return new ArchitectureSpecificOpt.AssemblerOpt().genCode(ir, shouldPrint);
+    ir.MIRInfo.machinecode = CodeArray.Factory.create(ir.MIRInfo.mcSizeEstimate, true);
+    return new AssemblerOpt().genCode(ir, shouldPrint);
   }
 
   protected final int genCode(IR ir, boolean shouldPrint) {
     int mi = 0;
     CodeArray machinecodes = ir.MIRInfo.machinecode;
-    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
+    PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet().asPPC();
     boolean unsafeCondDispl = machinecodes.length() > MAX_COND_DISPL;
     //boolean unsafeDispl = machinecodes.length() > MAX_DISPL;
     for (Instruction p = ir.firstInstructionInCodeOrder(); p != null; p = p.nextInstructionInCodeOrder()) {
-      int inst = p.operator().instTemplate;
+      int inst = p.operator().instTemplate();
       switch (p.getOpcode()) {
         case LABEL_opcode:
           // Back-patch any forward branches to it.
@@ -367,7 +370,7 @@ public abstract class AssemblerOpt implements Operators, Constants, ArchConstant
           int op0 = PowerPCTrapOperand.LOWER;
           int op1 = ((RegisterOperand) NullCheck.getRef(p)).getRegister().number & REG_MASK;
           int op2 = 1;
-          inst = VM.BuildFor64Addr ? PPC64_TDI.instTemplate : PPC_TWI.instTemplate;
+          inst = VM.BuildFor64Addr ? PPC64_TDI.instTemplate() : PPC_TWI.instTemplate();
           machinecodes.set(mi++, (inst | (op0 << 21) | (op1 << 16) | op2));
           p.setmcOffset(mi << LG_INSTRUCTION_WIDTH);
         }

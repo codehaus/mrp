@@ -39,7 +39,7 @@ import org.vmmagic.unboxed.WordArray;
  * OptExecutionStateExtractor is a subclass of ExecutionStateExtractor.
  * It extracts the execution state of a optimized activation.
  */
-public abstract class OptExecutionStateExtractor extends ExecutionStateExtractor
+public final class OptExecutionStateExtractor extends ExecutionStateExtractor
     implements ArchConstants, OSRConstants, PhysicalRegisterConstants {
 
   public ExecutionState extractState(RVMThread thread, Offset osrFPoff, Offset methFPoff, int cmid) {
@@ -183,14 +183,14 @@ public abstract class OptExecutionStateExtractor extends ExecutionStateExtractor
 
     // recover volatile GPRs.
     Offset lastVoffset = nvArea;
-    for (int i = LAST_SCRATCH_GPR; i >= FIRST_VOLATILE_GPR; i--) {
+    for (int i = LAST_SCRATCH_GPR.value(); i >= FIRST_VOLATILE_GPR.value(); i--) {
       lastVoffset = lastVoffset.minus(BYTES_IN_STACKSLOT);
       gprs.set(i, Magic.objectAsAddress(stack).loadWord(lastVoffset));
     }
 
     // recover nonvolatile GPRs
     if (firstGPR != -1) {
-      for (int i = firstGPR; i <= LAST_NONVOLATILE_GPR; i++) {
+      for (int i = firstGPR; i <= LAST_NONVOLATILE_GPR.value(); i++) {
         gprs.set(i, Magic.objectAsAddress(stack).loadWord(nvArea));
         nvArea = nvArea.plus(BYTES_IN_STACKSLOT);
       }
@@ -213,7 +213,7 @@ public abstract class OptExecutionStateExtractor extends ExecutionStateExtractor
     */
 
     // recover all volatile FPRs
-    for (int i = FIRST_SCRATCH_FPR; i <= LAST_VOLATILE_FPR; i++) {
+    for (int i = FIRST_SCRATCH_FPR.value(); i <= LAST_VOLATILE_FPR.value(); i++) {
       long lbits = Magic.getLongAtOffset(stack, nvArea);
       fprs[i] = Magic.longBitsAsDouble(lbits);
       nvArea = nvArea.plus(BYTES_IN_DOUBLE);

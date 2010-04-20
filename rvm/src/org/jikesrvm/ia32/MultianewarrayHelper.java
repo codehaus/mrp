@@ -18,7 +18,8 @@ import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.RuntimeEntrypoints;
 import org.vmmagic.unboxed.Address;
-import static org.jikesrvm.SizeConstants.BYTES_IN_WORD;
+
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_WORD;
 
 /**
  * Helper routine to pull the parameters to multianewarray off the

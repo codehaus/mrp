@@ -40,7 +40,7 @@ import org.vmmagic.unboxed.WordArray;
  * these regs, and the transition return code does not do the restore.
  */
 @Uninterruptible
-public abstract class JNIGCMapIterator extends GCMapIterator
+public final class JNIGCMapIterator extends GCMapIterator
     implements BaselineConstants, JNIStackframeLayoutConstants {
 
   // non-volitile regs are saved at the end of the transition frame,
@@ -72,8 +72,8 @@ public abstract class JNIGCMapIterator extends GCMapIterator
   private int jniNextRef;
   private int jniFramePtr;
 
-  public JNIGCMapIterator(WordArray registerLocations) {
-    this.registerLocations = registerLocations;
+  public JNIGCMapIterator(AddressArray registerLocations) {
+    super(registerLocations);
   }
 
   // Override newStackWalk() in parent class GCMapIterator to
@@ -131,8 +131,8 @@ public abstract class JNIGCMapIterator extends GCMapIterator
     // the JNI transition frame at a fixed negative offset from the callers FP.
     Address registerLocation = this.framePtr.loadAddress().minus(JNI_RVM_NONVOLATILE_OFFSET);
 
-    for (int i = LAST_NONVOLATILE_GPR; i >= FIRST_NONVOLATILE_GPR - 1; --i) {
-      registerLocations.set(i, registerLocation.toWord());
+    for (int i = LAST_NONVOLATILE_GPR.value(); i >= FIRST_NONVOLATILE_GPR.value() - 1; --i) {
+      registerLocations.set(i, registerLocation);
       registerLocation = registerLocation.minus(BYTES_IN_ADDRESS);
     }
 
