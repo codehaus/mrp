@@ -211,6 +211,19 @@ stm:	IR_PROLOGUE
 EMIT_INSTRUCTION
 PROLOGUE(P(p));
 
+###########
+# Rules for exceptions
+###########
+r:      GET_CAUGHT_EXCEPTION
+11
+EMIT_INSTRUCTION
+GET_EXCEPTION_OBJECT(P(p));
+
+stm:    SET_CAUGHT_EXCEPTION(r)
+11
+EMIT_INSTRUCTION
+SET_EXCEPTION_OBJECT(P(p));
+
 ##################################
 # Trap operations
 ##################################

@@ -25,6 +25,10 @@ final class BURS_IntConstantTreeNode extends AbstractBURS_TreeNode {
   /** The int constant value associated with this tree node */
   final int value;
 
+  /** Where costs and rules are stored */
+  private final AbstractBURS_TreeNode delegate =
+    AbstractBURS_TreeNode.create(Operators.INT_CONSTANT_opcode);
+
   /**
    * Constructor for interior node.
    */
@@ -47,30 +51,30 @@ final class BURS_IntConstantTreeNode extends AbstractBURS_TreeNode {
   */
   @Override
   public int rule(int goalNT) {
-    throw new Error("TODO");
+    return delegate.rule(goalNT);
   }
 
   @Override
   public char getCost(int goalNT) {
-    throw new Error("TODO");
+    return delegate.getCost(goalNT);
   }
 
   @Override
   public void setCost(int goalNT, char cost) {
-    throw new Error("TODO");
+    delegate.setCost(goalNT, cost);
   }
 
   @Override
   public void initCost() {
-    throw new Error("TODO");
+    delegate.initCost();
   }
 
   @Override
   public void writePacked(int word, int mask, int shiftedValue) {
-    throw new Error("TODO");
+    delegate.writePacked(word, mask, shiftedValue);
   }
   @Override
   public int readPacked(int word, int shift, int mask) {
-    throw new Error("TODO");
+    return delegate.readPacked(word, shift, mask);
   }
 }

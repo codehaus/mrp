@@ -97,6 +97,14 @@ public abstract class AbstractBURS_TreeNode {
      return dg_node._instr;
   }
 
+  public final String getInstructionString() {
+    if(dg_node != null) {
+      return dg_node._instr.toString();
+    } else {
+      return "";
+    }
+  }
+
   /**
    * Constructor for interior node.
    */

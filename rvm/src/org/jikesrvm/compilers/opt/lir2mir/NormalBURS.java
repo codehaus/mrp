@@ -340,7 +340,7 @@ final class NormalBURS extends BURS {
     for (int i = 0; i < numTreeRoots; i++) {
       AbstractBURS_TreeNode n = treeRoots[i];
       label(n);
-      mark(n, /* goalnt */(byte) 1);
+      mark(n, /* goalnt -stm_NT */ (byte)1);
     }
   }
 

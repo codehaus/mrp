@@ -18,7 +18,6 @@
 
 static const char *prefix = ""; /* prefix for any Java symbols */
 static const char *arch = ""; /* arch name for packages & directories */
-static int Tflag = 0;
 static int ntnumber = 0;
 static Nonterm start = 0;
 static Term terms;
@@ -83,9 +82,7 @@ int main(int argc, char *argv[])
 
     Me = argv[0];
     for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-T") == 0) {
-            Tflag = 1;
-        } else if (strncmp(argv[i], "-p", 2) == 0 && argv[i][2]) {
+        if (strncmp(argv[i], "-p", 2) == 0 && argv[i][2]) {
             prefix = &argv[i][2];
         } else if (strncmp(argv[i], "-p", 2) == 0 && i + 1 < argc) {
             prefix = argv[++i];
@@ -304,7 +301,7 @@ static void writePacked(Nonterm term_, int value)
     int x= ((1 << term_->number_bits) - 1) << shift;
     char temp[256];
     snprintf(temp, sizeof temp, "p.writePacked(%d, 0x%X, 0x%X);",
-            term_->word_number, term_->word_number, ~x, (value << shift));
+            term_->word_number, ~x, (value << shift));
     if (oneterminal)
         print("p.writePacked(0, -1, %d); // p.%S = %d", value, term_, value);
     else
@@ -517,10 +514,9 @@ static void emitsortedtounsortedmap(Rule rules_)
 /* emitrecord - emit code that tests for a winning match of rule r */
 static void emitrecord(const char *pre, Rule r, const char *c, int cost)
 {
-    if (Tflag) {
-        print("%strace(a, %d, %s + %d, p.getCost(%d) /* %S */);\n",
-              pre, r->sorted_ern, c, cost, r->lhs->number, r->lhs);
-    }
+    print("%sif(BURS.DEBUG) trace(p, %d, %s + %d, p.getCost(%d) /* %S */);\n",
+          pre, r->sorted_ern, c, cost, r->lhs->number, r->lhs);
+
     print("%sif (", pre);
     if (cost != 0)
       print("%s + %d < p.getCost(%d) /* %S */) {\n",c,cost,r->lhs->number,r->lhs);
@@ -850,8 +846,6 @@ static void emitcase(Term p)
     if (p->arity == -1) return;
     print("%1/** Label %S tree node */\n", p);
     print("%1private static void label_%S(AbstractBURS_TreeNode p) {\n", p);
-    print("%2p.initCost();\n");
- 
     switch (p->arity) {
     case 0:
 	break;
@@ -1145,7 +1139,7 @@ emitstruct(Nonterm nts_)
                 print("%2case %S_NT:  ",ntsc);
             else
                 print("%2default:     ");
-            print("  cost_%S = cost;\n",ntsc);
+            print("  cost_%S = cost; break;\n",ntsc);
         }
         print("%2}\n%1}\n");
     } else { /* only one terminal */

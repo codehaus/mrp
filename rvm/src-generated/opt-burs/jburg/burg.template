@@ -72,10 +72,10 @@ public class BURS_STATE extends BURS_Helpers implements BURS_StateCoder {
     *    from the file gen.c, from the LCC compiler.
     *
     ************************************************************************/
-   void trace(AbstractBURS_TreeNode p, int rule, int cost, int bestcost) {
+   private static void trace(AbstractBURS_TreeNode p, int rule, int cost, int bestcost) {
      if (BURS.DEBUG) {
-       VM.sysWrite(p+" matched "+BURS_Debug.string[rule]+" with cost "+
-		   cost+"vs. "+bestcost);
+       VM.sysWriteln(p+" matched "+BURS_Debug.string[rule]+" with cost "+
+		     cost+" vs. "+bestcost);
      }
    }
 
@@ -134,8 +134,11 @@ public class BURS_STATE extends BURS_Helpers implements BURS_StateCoder {
        p.setNonTerminal(goalnt);
      }
      if (rule == 0) {
+       if (BURS.DEBUG) {
+         VM.sysWrite("marking "+p+" with a goalnt of "+goalnt+" failed as the rule "+rule+" has no action");
+       }
        throw new OptimizingCompilerException("BURS","rule missing in ",
-						 p.getInstruction().toString(), dumpTree("",p,1));
+						 p.getInstructionString(), dumpTree("",p,1));
      }
      mark_kids(p,rule);
    }
