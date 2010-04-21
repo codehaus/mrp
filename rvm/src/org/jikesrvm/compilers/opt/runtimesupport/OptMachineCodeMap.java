@@ -676,9 +676,9 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
         RVMMethod meth = MemberReference.getMemberRef(mid).asMethodReference().getResolvedMember();
         if (first) {
           first = false;
-          VM.sysWrite("\n\tIn method    " + meth + " at bytecode " + bci);
+          VM.sysWrite("\n\tIn method    " + meth + "("+mid+") at bytecode " + bci);
         } else {
-          VM.sysWrite("\n\tInlined into " + meth + " at bytecode " + bci);
+          VM.sysWrite("\n\tInlined into " + meth + "("+mid+") at bytecode " + bci);
         }
         if (iei > 0) {
           bci = OptEncodedCallSiteTree.getByteCodeOffset(iei, inlineEncoding);

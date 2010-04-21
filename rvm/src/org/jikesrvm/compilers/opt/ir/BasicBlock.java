@@ -31,6 +31,7 @@ import org.jikesrvm.compilers.opt.util.SpaceEffGraphEdge;
 import org.jikesrvm.compilers.opt.util.SpaceEffGraphNode;
 import org.jikesrvm.runtime.Entrypoints;
 import org.vmmagic.pragma.NoInline;
+import static org.jikesrvm.compilers.opt.OptimizingCompilerException.opt_assert;
 
 /**
  * A basic block in the
@@ -1235,7 +1236,7 @@ public class BasicBlock extends SortedGraphNode {
    * @return the BasicBlock containing target
    */
   public final BasicBlock segregateInstruction(Instruction target, IR ir) {
-    if (IR.PARANOID) VM._assert(this == target.getBasicBlock());
+    if (IR.PARANOID) opt_assert(this == target.getBasicBlock());
 
     BasicBlock BB1 = splitNodeAt(target.getPrev(), ir);
     this.insertOut(BB1);
@@ -1269,7 +1270,7 @@ public class BasicBlock extends SortedGraphNode {
    * @return the newly created basic block which is the successor to this
    */
   public final BasicBlock splitNodeAt(Instruction last_instr_BB1, IR ir) {
-    if (IR.PARANOID) VM._assert(this == last_instr_BB1.getBasicBlock());
+    if (IR.PARANOID) opt_assert(this == last_instr_BB1.getBasicBlock());
 
     BasicBlock BB1 = this;
     BasicBlock BB2 = new BasicBlock(last_instr_BB1.bcIndex, last_instr_BB1.position, ir.cfg);
@@ -1289,7 +1290,7 @@ public class BasicBlock extends SortedGraphNode {
     // Update code ordering (see header comment above)
     if (BB3 == null) {
       ir.cfg.addLastInCodeOrder(BB2);
-      if (IR.PARANOID) VM._assert(BB1.next == BB2 && BB2.prev == BB1);
+      if (IR.PARANOID) opt_assert(BB1.next == BB2 && BB2.prev == BB1);
       ir.cfg.breakCodeOrder(BB1, BB2);
     } else {
       ir.cfg.breakCodeOrder(BB1, BB3);
@@ -1335,7 +1336,7 @@ public class BasicBlock extends SortedGraphNode {
    */
   public final BasicBlock splitNodeWithLinksAt(Instruction last_instr_BB1, IR ir) {
 
-    if (IR.PARANOID) VM._assert(this == last_instr_BB1.getBasicBlock());
+    if (IR.PARANOID) opt_assert(this == last_instr_BB1.getBasicBlock());
 
     BasicBlock BB2 = splitNodeAt(last_instr_BB1, ir);
     this.insertOut(BB2);
@@ -1608,7 +1609,9 @@ public class BasicBlock extends SortedGraphNode {
         BasicBlockEnumeration targets = e.next().getBranchTargets();
         while (targets.hasMoreElements()) {
           BasicBlock target = targets.next();
-          VM._assert(target == succBB);
+          if(target != succBB) {
+	    opt_assert(false,"target ("+target+") != successor ("+succBB+") in block"+toString());
+	  }
         }
       }
     }

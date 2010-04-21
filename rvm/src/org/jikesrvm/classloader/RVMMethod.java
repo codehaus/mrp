@@ -105,6 +105,7 @@ public abstract class RVMMethod extends RVMMember {
         annotationDefaults.put(this, annotationDefault);
       }
     }
+    memRef.asMethodReference().setResolvedMember(this);
   }
 
   /**

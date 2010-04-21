@@ -13,6 +13,7 @@
 package org.jikesrvm.compilers.opt.inlining;
 
 import org.jikesrvm.compilers.opt.util.TreeNode;
+import static org.jikesrvm.compilers.opt.OptimizingCompilerException.opt_assert;
 
 /**
  * The nodes of an CallSiteTree.  They represent inlined call
@@ -47,6 +48,7 @@ public class CallSiteTreeNode extends TreeNode {
    * @param   seq an inlined call site
    */
   public CallSiteTreeNode(InlineSequence seq) {
+    opt_assert(seq.getMethod() != null);
     callSite = seq;
   }
 }

@@ -3649,8 +3649,8 @@ class X86_Call_OpcodeDecoder extends X86_OpcodeDecoder {
         temp, new IntConstantOperand(pc + length)));
     stack.writeValue(translationHelper, lazy, temp.copyRO());
     
-    // Branch
-    translationHelper.appendBranch(destOp.copyRO(), lazy, BranchType.CALL);
+    // Call
+    translationHelper.appendCall(destOp.copyRO(), lazy, pc+length);
     return -1;
   }
 
@@ -4032,6 +4032,7 @@ class X86_Jcc_OpcodeDecoder extends X86_OpcodeDecoder {
     translationHelper.appendInstruction(boolcmp);
     translationHelper.appendInstruction(IfCmp.create(INT_IFCMP, translationHelper.getTempValidation(0), temp.copyRO(), new IntConstantOperand(0), ConditionOperand.NOT_EQUAL(), executeBranch.makeJumpTarget(), likelyOp));
     
+    translationHelper.getCurrentBlock().insertOut(executeBranch);
     Instruction gotoInstr = Goto.create(GOTO, fallThrough.makeJumpTarget());
     translationHelper.appendInstruction(gotoInstr);
     

@@ -1067,7 +1067,6 @@ public abstract class CodeTranslator implements HIRGenerator {
     s.position = gc.inlineSequence;
     s.bcIndex = DBT_Trace.DO_SYSCALL;
     appendInstruction(s);
-
     // Fill all registers again following system call
     fillAllRegisters();
   }

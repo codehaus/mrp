@@ -24,6 +24,7 @@ import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.RVMClass;
 import org.jikesrvm.classloader.MemberReference;
+import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.BytecodeStream;
 import org.jikesrvm.classloader.TypeReference;
@@ -107,7 +108,7 @@ public final class DBT_Trace extends NormalMethod {
   /** 
    * In order to allow arbitrary calls within a trace, we have to store at which bytecode index
    * a method is called in which way. This class stores the necessary information. */
-  private class CustomCallInformation {
+  private static class CustomCallInformation {
     public final MethodReference methodRef;
     public final int callType;
     
@@ -161,17 +162,26 @@ public final class DBT_Trace extends NormalMethod {
 
     Atom memName = Atom.findOrCreateAsciiAtom("invokeCode");
     invokeCodeDescriptor = Atom
-        .findOrCreateAsciiAtom("(Lorg/jikesrvm/ArchitectureSpecific$CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
+        .findOrCreateAsciiAtom("(Lorg/jikesrvm/compilers/common/CodeArray;Lorg/binarytranslator/generic/os/process/ProcessSpace;)I");
     invokeCode = (NormalMethod) dummyRunner.findDeclaredMethod(memName,
         invokeCodeDescriptor);
     if (invokeCode == null) {
       throw new Error("Failed to find method " + memName + invokeCodeDescriptor
           + " in " + dummyRunner);
     }
+    // force CustomCallInformation to be linked
+    new CustomCallInformation(null, 0);
   }
 
   /** Only create a single zero length int array object */
   private static final int[] zeroLengthIntArray = new int[0];
+
+  private static MethodReference getMethodReference(int startPC) {
+    MethodReference m = MemberReference.findOrCreate(dummyRunner.getTypeRef(),
+						     Atom.findOrCreateAsciiAtom("invokeCode"+"_PC_0x"+Integer.toHexString(startPC)),
+						     invokeCodeDescriptor).asMethodReference();
+    return m;
+  }
 
   /**
    * Constructor
@@ -183,9 +193,7 @@ public final class DBT_Trace extends NormalMethod {
    */
   public DBT_Trace(ProcessSpace ps, int startPC) {
     super(dummyRunner.getTypeRef(),
-          MemberReference.findOrCreate(dummyRunner.getTypeRef(),
-                                       Atom.findOrCreateAsciiAtom("invokeCode"+"_PC_0x"+Integer.toHexString(startPC)),
-                                       invokeCodeDescriptor),
+	  getMethodReference(startPC),
           (short)invokeCode.getModifiers(),
           invokeCode.getExceptionTypes(),
           (short) invokeCode.getLocalWords(),
@@ -204,7 +212,6 @@ public final class DBT_Trace extends NormalMethod {
 
     this.ps = ps;
     pc = startPC;
-
   }
 
   protected void computeSummary(int[] constantPool) {
