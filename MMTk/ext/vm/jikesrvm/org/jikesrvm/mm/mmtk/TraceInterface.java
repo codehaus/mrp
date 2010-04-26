@@ -153,7 +153,7 @@ public final class TraceInterface extends org.mmtk.vm.TraceInterface {
     fp = Magic.getCallerFramePointer(fp);
     // This code borrows heavily from RVMThread.dumpStack
     Address STACKFRAME_SENTINEL_FP = VM.BuildForIA32
-      ? org.jikesrvm.ia32.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP 
+      ? org.jikesrvm.ia32.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP
       : org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP;
     int INVISIBLE_METHOD_ID = VM.BuildForIA32
       ? org.jikesrvm.ia32.StackframeLayoutConstants.INVISIBLE_METHOD_ID
@@ -193,9 +193,9 @@ public final class TraceInterface extends org.mmtk.vm.TraceInterface {
             if (!isAllocCall(m.getName().getBytes())) {
               BaselineCompiledMethod baseInfo =
                 (BaselineCompiledMethod)compiledMethod;
-	      int INSTRUCTION_WIDTH = VM.BuildForIA32
-		? org.jikesrvm.ia32.RegisterConstants.INSTRUCTION_WIDTH
-		: org.jikesrvm.ppc.RegisterConstants.INSTRUCTION_WIDTH;
+              int INSTRUCTION_WIDTH = VM.BuildForIA32
+                ? org.jikesrvm.ia32.RegisterConstants.INSTRUCTION_WIDTH
+                : org.jikesrvm.ppc.RegisterConstants.INSTRUCTION_WIDTH;
               bci = baseInfo.findBytecodeIndexForInstruction(ipOffset.toWord().lsh(INSTRUCTION_WIDTH).toOffset());
               break;
             }

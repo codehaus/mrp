@@ -79,7 +79,7 @@ public abstract class AbstractBURS_TreeNode {
   }
 
   public final boolean isTreeRoot() {
-     return (treeroot_registersused & 0x80 ) != 0;
+     return (treeroot_registersused & 0x80) != 0;
   }
 
   public final void setTreeRoot() {
@@ -121,15 +121,15 @@ public abstract class AbstractBURS_TreeNode {
   public static AbstractBURS_TreeNode create(DepGraphNode n) {
     if(VM.BuildForIA32) {
       if(VM.BuildFor32Addr) {
-	return new org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_TreeNode(n);
+        return new org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_TreeNode(n);
       } else {
-	return new org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_TreeNode(n);
+        return new org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_TreeNode(n);
       }
     } else {
       if(VM.BuildFor32Addr) {
-	return new org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_TreeNode(n);
+        return new org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_TreeNode(n);
       } else {
-	return new org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_TreeNode(n);
+        return new org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_TreeNode(n);
       }
     }
   }
@@ -148,15 +148,15 @@ public abstract class AbstractBURS_TreeNode {
   public static AbstractBURS_TreeNode create(char Opcode) {
     if(VM.BuildForIA32) {
       if(VM.BuildFor32Addr) {
-	return new org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_TreeNode(Opcode);
+        return new org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_TreeNode(Opcode);
       } else {
-	return new org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_TreeNode(Opcode);
+        return new org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_TreeNode(Opcode);
       }
     } else {
       if(VM.BuildFor32Addr) {
-	return new org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_TreeNode(Opcode);
+        return new org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_TreeNode(Opcode);
       } else {
-	return new org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_TreeNode(Opcode);
+        return new org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_TreeNode(Opcode);
       }
     }
   }
@@ -166,7 +166,7 @@ public abstract class AbstractBURS_TreeNode {
   }
 
   public final boolean isSuperNodeRoot() {
-    return (getNonTerminal() > 0 );
+    return (getNonTerminal() > 0);
   }
 
   public final boolean isREGISTERNode() {

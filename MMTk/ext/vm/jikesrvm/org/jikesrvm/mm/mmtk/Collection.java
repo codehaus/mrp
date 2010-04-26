@@ -269,8 +269,8 @@ public class Collection extends org.mmtk.vm.Collection implements org.mmtk.utili
       Address caller_ip = Magic.getReturnAddress(fp);
       Address caller_fp = Magic.getCallerFramePointer(fp);
       Address STACKFRAME_SENTINEL_FP = VM.BuildForIA32
-	? org.jikesrvm.ia32.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP 
-	: org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP;
+        ? org.jikesrvm.ia32.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP
+        : org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_SENTINEL_FP;
       if (Magic.getCallerFramePointer(caller_fp).EQ(STACKFRAME_SENTINEL_FP))
         VM.sysFail("prepareMutator (participating): Could not locate CollectorThread.run");
       int compiledMethodId = Magic.getCompiledMethodID(caller_fp);

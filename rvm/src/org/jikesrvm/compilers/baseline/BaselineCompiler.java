@@ -18,8 +18,6 @@ import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.classloader.FieldReference;
 import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.NormalMethod;
-import org.jikesrvm.compilers.common.assembler.AbstractAssembler;
-import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
 import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.common.CompiledMethod;
 import org.jikesrvm.compilers.common.CompiledMethods;

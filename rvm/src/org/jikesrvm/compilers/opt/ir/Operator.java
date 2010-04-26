@@ -13,9 +13,7 @@
 package org.jikesrvm.compilers.opt.ir;
 
 import org.jikesrvm.*;
-import org.jikesrvm.compilers.opt.ir.GenericPhysicalDefUse;
 import org.jikesrvm.compilers.opt.*;
-import org.jikesrvm.compilers.opt.util.Bits;
 import org.jikesrvm.compilers.opt.instrsched.OperatorClass;
 
 /**
@@ -161,7 +159,7 @@ public abstract class Operator {
    * Get the operator for the opcode
    */
   public static Operator lookupOpcode(int opcode) {
-    return VM.BuildForIA32                                     
+    return VM.BuildForIA32
       ? org.jikesrvm.compilers.opt.ir.ia32.ArchOperator.lookupOpcode(opcode)
       : org.jikesrvm.compilers.opt.ir.ppc.ArchOperator.lookupOpcode(opcode);
   }
@@ -172,7 +170,7 @@ public abstract class Operator {
    * @return the name of the operator
    */
   public String toString() {
-    return VM.BuildForIA32                                     
+    return VM.BuildForIA32
       ? org.jikesrvm.compilers.opt.ir.ia32.ArchOperatorNames.toString(this)
       : org.jikesrvm.compilers.opt.ir.ppc.ArchOperatorNames.toString(this);
   }

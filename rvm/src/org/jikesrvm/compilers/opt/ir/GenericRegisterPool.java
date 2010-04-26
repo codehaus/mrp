@@ -38,8 +38,8 @@ public abstract class GenericRegisterPool extends AbstractRegisterPool {
    * @param meth the RVMMethod of the outermost method
    */
   protected GenericRegisterPool(RVMMethod meth) {
-	physical = VM.BuildForIA32 ? new org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet()
-	                           : new org.jikesrvm.compilers.opt.ir.ppc.PhysicalRegisterSet();
+        physical = VM.BuildForIA32 ? new org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet()
+                                   : new org.jikesrvm.compilers.opt.ir.ppc.PhysicalRegisterSet();
     // currentNum is assigned an initial value to avoid overlap of
     // physical and symbolic registers.
     currentNum = physical.getNumberOfPhysicalRegisters();
@@ -82,7 +82,7 @@ public abstract class GenericRegisterPool extends AbstractRegisterPool {
     trOp.setPreciseType();
     return trOp;
   }
-  
+
   /**
    * Get a temporary that represents the JTOC register (as an Address)
    *

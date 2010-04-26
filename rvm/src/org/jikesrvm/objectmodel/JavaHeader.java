@@ -13,7 +13,6 @@
 package org.jikesrvm.objectmodel;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.Configuration;
 import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.RVMClass;

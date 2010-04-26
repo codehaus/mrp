@@ -86,7 +86,7 @@
     </module>
 -->
     <module name="OperatorWrap">
-      <property name="tokens" value="ASSIGN, BAND, BOR, BSR, BXOR, COLON, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, PLUS, QUESTION, SL, SR, STAR"/>
+      <property name="tokens" value="ASSIGN, BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, PLUS, SL, SR, STAR"/>
       <property name="option" value="eol"/>
     </module>
     <module name="ParenPad"/>

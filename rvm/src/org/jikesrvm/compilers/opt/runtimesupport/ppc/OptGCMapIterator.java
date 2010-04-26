@@ -14,7 +14,6 @@ package org.jikesrvm.compilers.opt.runtimesupport.ppc;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.runtimesupport.OptGenericGCMapIterator;
-import org.jikesrvm.ppc.ArchConstants;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.AddressArray;

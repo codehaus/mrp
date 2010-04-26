@@ -15,7 +15,6 @@ package org.jikesrvm.compilers.opt.lir2mir;
 import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterTools;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
-import org.jikesrvm.compilers.opt.ir.IRTools;
 import org.jikesrvm.compilers.opt.ir.operand.AddressConstantOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ConditionOperand;
 import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;

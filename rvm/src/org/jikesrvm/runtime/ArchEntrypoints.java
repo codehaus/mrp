@@ -24,10 +24,10 @@ public interface ArchEntrypoints {
   String arch = VM.BuildForIA32 ? "ia32" : "ppc";
   NormalMethod newArrayArrayMethod = (NormalMethod)
       EntrypointHelper.getMethod(VM.BuildForIA32
-				 ? org.jikesrvm.ia32.MultianewarrayHelper.class
-				 : org.jikesrvm.ppc.MultianewarrayHelper.class,
-				 Atom.findOrCreateAsciiAtom("newArrayArray"),
-				 int.class, int.class, int.class, int.class, Object.class);
+                                 ? org.jikesrvm.ia32.MultianewarrayHelper.class
+                                 : org.jikesrvm.ppc.MultianewarrayHelper.class,
+                                 Atom.findOrCreateAsciiAtom("newArrayArray"),
+                                 int.class, int.class, int.class, int.class, Object.class);
   String ArchCodeArrayName = "Lorg/jikesrvm/compilers/common/CodeArray;";
   RVMField reflectiveMethodInvokerInstructionsField =
       EntrypointHelper.getField("Lorg/jikesrvm/" + arch + "/OutOfLineMachineCode;",

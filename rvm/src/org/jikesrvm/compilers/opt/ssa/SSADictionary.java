@@ -35,7 +35,6 @@ import org.jikesrvm.compilers.opt.ir.BasicBlockEnumeration;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
-import org.jikesrvm.compilers.opt.ir.Operators;
 import static org.jikesrvm.compilers.opt.ir.Operators.ARRAYLENGTH_opcode;
 import static org.jikesrvm.compilers.opt.ir.Operators.ATTEMPT_ADDR_opcode;
 import static org.jikesrvm.compilers.opt.ir.Operators.ATTEMPT_INT_opcode;
@@ -905,7 +904,6 @@ public final class SSADictionary {
         return true;
       default:
         return false;
-	
       }
     }
   }

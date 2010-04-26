@@ -178,7 +178,7 @@ public abstract class CallingConvention extends IRTools {
                      null);         // TODO: valid location?
     s.insertBefore(s2);
     if (VM.BuildForPowerOpenABI) {
-	s2 = Load.create(REF_LOAD, (RegisterOperand)ir.regpool.makeJTOCOp(), ip, AC(Offset.fromIntZeroExtend(BYTES_IN_ADDRESS)), null);
+        s2 = Load.create(REF_LOAD, (RegisterOperand)ir.regpool.makeJTOCOp(), ip, AC(Offset.fromIntZeroExtend(BYTES_IN_ADDRESS)), null);
       s.insertBefore(s2);
       RegisterOperand iptmp = ir.regpool.makeTempAddress();
       s2 = Load.create(REF_LOAD, iptmp, ip, AC(Offset.zero()), null);
@@ -187,7 +187,7 @@ public abstract class CallingConvention extends IRTools {
     }
     Call.mutate0(s, SYSCALL, Call.getClearResult(s), ip, null);
     s2 = Load.create(REF_LOAD,
-		     (RegisterOperand)ir.regpool.makeJTOCOp(),
+                     (RegisterOperand)ir.regpool.makeJTOCOp(),
                      ir.regpool.makeFPOp(),
                      AC(Offset.fromIntSignExtend(5 * BYTES_IN_ADDRESS)),
                      null);         // TODO: valid location?

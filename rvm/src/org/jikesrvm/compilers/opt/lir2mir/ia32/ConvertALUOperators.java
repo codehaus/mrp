@@ -22,8 +22,6 @@ import org.jikesrvm.compilers.opt.ir.CondMove;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
-import org.jikesrvm.compilers.opt.ir.Operators;
-import org.jikesrvm.ia32.ArchConstants;
 
 import static org.jikesrvm.compilers.opt.ir.Operators.*;
 import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;

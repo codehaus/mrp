@@ -17,7 +17,7 @@ public class GenericPhysicalDefUse {
     if (VM.BuildForIA32) {
       return org.jikesrvm.compilers.opt.ir.ia32.PhysicalDefUse.maskTSPUses;
     } else {
-      return org.jikesrvm.compilers.opt.ir.ppc.PhysicalDefUse.maskTSPUses;      
+      return org.jikesrvm.compilers.opt.ir.ppc.PhysicalDefUse.maskTSPUses;
     }
   }
   public static int getMaskTSPDefs(){

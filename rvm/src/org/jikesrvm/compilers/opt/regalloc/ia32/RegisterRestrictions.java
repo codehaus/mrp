@@ -30,7 +30,6 @@ import org.jikesrvm.compilers.opt.ir.BasicBlock;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
 import org.jikesrvm.compilers.opt.ir.OperandEnumeration;
-import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.operand.MemoryOperand;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
@@ -152,7 +151,7 @@ public final class RegisterRestrictions extends GenericRegisterRestrictions {
   /**
    * Does instruction s contain an 8-bit memory operand?
    */
-  final boolean has8BitMemoryOperand(Instruction s) {
+  boolean has8BitMemoryOperand(Instruction s) {
     for (OperandEnumeration me = s.getMemoryOperands(); me.hasMoreElements();) {
       MemoryOperand mop = (MemoryOperand) me.next();
       if (mop.size == 1) {
@@ -167,7 +166,7 @@ public final class RegisterRestrictions extends GenericRegisterRestrictions {
    * all of its register operands are in 8 bit registers.
    * @param s the instruction to restrict
    */
-  final void handle8BitRestrictions(Instruction s) {
+  void handle8BitRestrictions(Instruction s) {
     for (OperandEnumeration me = s.getMemoryOperands(); me.hasMoreElements();) {
       MemoryOperand mop = (MemoryOperand) me.next();
       if (mop.size == 1) {
@@ -185,7 +184,7 @@ public final class RegisterRestrictions extends GenericRegisterRestrictions {
    * Ensure that a particular register is only assigned to AL, BL, CL, or
    * DL, since these are the only 8-bit registers we normally address.
    */
-  final void restrictTo8Bits(Register r) {
+  void restrictTo8Bits(Register r) {
     PhysicalRegisterSet phys = (PhysicalRegisterSet)this.phys;
     Register ESP = phys.getESP();
     Register EBP = phys.getEBP();

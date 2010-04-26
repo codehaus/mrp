@@ -226,7 +226,7 @@ public final class IR {
    * The {@link GenericStackManager stack manager}.
    */
   public final GenericStackManager stackManager =
-	VM.BuildForIA32 ? new org.jikesrvm.compilers.opt.regalloc.ia32.StackManager()
+        VM.BuildForIA32 ? new org.jikesrvm.compilers.opt.regalloc.ia32.StackManager()
                     : new org.jikesrvm.compilers.opt.regalloc.ppc.StackManager();
 
   /**
@@ -1037,14 +1037,14 @@ public final class IR {
           case REF_IFCMP_opcode:
             instruction = instructions.next();
             if (!Goto.conforms(instruction) && !BBend.conforms(instruction)) {
-	      if((VM.BuildForIA32 && !org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(instruction))||
-		 (VM.BuildForPowerPC && !org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(instruction))) {
-		verror(where, "Unexpected instruction after IFCMP " + instruction);
-	      }
+              if((VM.BuildForIA32 && !org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(instruction))||
+                 (VM.BuildForPowerPC && !org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(instruction))) {
+                verror(where, "Unexpected instruction after IFCMP " + instruction);
+              }
             }
             if (Goto.conforms(instruction) ||
-	        ((VM.BuildForIA32 && org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(instruction))||
-		 (VM.BuildForPowerPC && org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(instruction)))) {
+                ((VM.BuildForIA32 && org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(instruction))||
+                 (VM.BuildForPowerPC && org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(instruction)))) {
               instruction = instructions.next();
               if (!BBend.conforms(instruction)) {
                 verror(where, "Unexpected instruction after GOTO/MIR_BRANCH " + instruction);

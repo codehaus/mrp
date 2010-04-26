@@ -912,7 +912,7 @@ public abstract class GenericStackManager extends IRTools {
       }
     }
     if (VM.BuildForIA32 && r.isFloatingPoint() &&
-	(s.operator.isFNInit() || s.operator.isFClear())) {
+        (s.operator.isFNInit() || s.operator.isFClear())) {
       return true;
     }
 

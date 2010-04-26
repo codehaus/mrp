@@ -818,10 +818,10 @@ public class BasicBlock extends SortedGraphNode {
     }
     MethodOperand mop = null;
     if (VM.BuildForIA32 &&
-	org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.conforms(s)) {
+        org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.conforms(s)) {
       mop = org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.getMethod(s);
     } else if (VM.BuildForPowerPC &&
-	org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.conforms(s)) {
+        org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.conforms(s)) {
       mop = org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.getMethod(s);
     } else if (Call.conforms(s)) {
       mop = Call.getMethod(s);
@@ -1610,8 +1610,8 @@ public class BasicBlock extends SortedGraphNode {
         while (targets.hasMoreElements()) {
           BasicBlock target = targets.next();
           if(target != succBB) {
-	    opt_assert(false,"target ("+target+") != successor ("+succBB+") in block"+toString());
-	  }
+            opt_assert(false,"target ("+target+") != successor ("+succBB+") in block"+toString());
+          }
         }
       }
     }

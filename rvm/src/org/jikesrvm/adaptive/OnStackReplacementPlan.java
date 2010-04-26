@@ -94,7 +94,7 @@ public class OnStackReplacementPlan implements Constants {
       boolean invalidate = true;
       if (cm.getCompilerType() == CompiledMethod.BASELINE) {
         extractor = VM.BuildForIA32 ? new org.jikesrvm.osr.ia32.BaselineExecutionStateExtractor()
-        		            : new org.jikesrvm.osr.ppc.BaselineExecutionStateExtractor();
+                                    : new org.jikesrvm.osr.ppc.BaselineExecutionStateExtractor();
         // don't need to invalidate when transitioning from baseline
         invalidate = false;
       } else if (cm.getCompilerType() == CompiledMethod.OPT) {

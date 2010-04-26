@@ -65,10 +65,10 @@ public final class OProfileListener {
       });
     Callbacks.methodCompileObsoleteCallbacks.addCallback(
       new Callback() {
-    	public void notify(Object... args) {
-    	  CompiledMethod cm = (CompiledMethod)args[0];
-    	  if (cm != null && cm.isCompiled()) singleton.removeCompiledMethod(cm);
-    	}
+        public void notify(Object... args) {
+          CompiledMethod cm = (CompiledMethod)args[0];
+          if (cm != null && cm.isCompiled()) singleton.removeCompiledMethod(cm);
+        }
       });
   }
 

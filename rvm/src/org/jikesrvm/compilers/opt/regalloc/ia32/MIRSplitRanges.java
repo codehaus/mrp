@@ -20,7 +20,6 @@ import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_LowTableSwitch;
 import org.jikesrvm.compilers.opt.ir.OperandEnumeration;
-import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterTools;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;

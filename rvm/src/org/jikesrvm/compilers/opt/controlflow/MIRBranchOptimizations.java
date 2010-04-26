@@ -16,7 +16,6 @@ import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.ir.BasicBlock;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
-import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
 
 import static org.jikesrvm.compilers.opt.ir.Operators.BBEND;
@@ -66,7 +65,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       return (BranchOperand)org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.getTarget(x);
     } else {
       return (BranchOperand)org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.getTarget(x);
-    }    
+    }
   }
 
   private static void MIR_Branch_setTarget(Instruction x, BranchOperand y) {
@@ -74,7 +73,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.setTarget(x, y);
     } else {
       org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.setTarget(x, y);
-    }    
+    }
   }
 
   private static void MIR_CondBranch_setTarget(Instruction x, BranchOperand y) {
@@ -82,7 +81,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.setTarget(x, y);
     } else {
       org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.setTarget(x, y);
-    }    
+    }
   }
 
   private static BranchOperand MIR_CondBranch2_getTarget1(Instruction x) {
@@ -90,7 +89,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       return (BranchOperand)org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getTarget1(x);
     } else {
       return (BranchOperand)org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget1(x);
-    }    
+    }
   }
 
   private static BranchOperand MIR_CondBranch2_getTarget2(Instruction x) {
@@ -98,7 +97,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       return (BranchOperand)org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getTarget2(x);
     } else {
       return (BranchOperand)org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget2(x);
-    }    
+    }
   }
 
   private static void MIR_CondBranch2_setTarget1(Instruction x, BranchOperand y) {
@@ -106,7 +105,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.setTarget1(x, y);
     } else {
       org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.setTarget1(x, y);
-    }    
+    }
   }
 
   private static void MIR_CondBranch2_setTarget2(Instruction x, BranchOperand y) {
@@ -114,7 +113,7 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.setTarget2(x, y);
     } else {
       org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.setTarget2(x, y);
-    }    
+    }
   }
 
   /**
@@ -346,20 +345,20 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
       if ((target2Label == nextLabel) && endsBlock) {
         // found a conditional branch to the next instruction.
         // Reduce to MIR_BranchCond
-	if(VM.BuildForPowerPC) {
-	  org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.mutate(cb,
+        if(VM.BuildForPowerPC) {
+          org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.mutate(cb,
             org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.PPC_BCOND,
-	    org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getValue(cb),
-	    org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getCond1(cb),
-	    org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget1(cb),
+            org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getValue(cb),
+            org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getCond1(cb),
+            org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget1(cb),
             org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getBranchProfile1(cb));
-	} else {
-	  org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.mutate(cb,
+        } else {
+          org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.mutate(cb,
             org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_JCC,
             org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getCond1(cb),
             org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getTarget1(cb),
             org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getBranchProfile1(cb));
-	}
+        }
         return true;
       }
       BasicBlock target2Block = target2Label.getBasicBlock();
@@ -427,10 +426,10 @@ public final class MIRBranchOptimizations extends BranchOptimizationDriver {
     // now flip the test and set the new target
     if(VM.BuildForIA32) {
       org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.setCond(cb,
-	org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.getCond(cb).flipCode());
+        org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.getCond(cb).flipCode());
     } else {
       org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.setCond(cb,
-	org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.getCond(cb).flipCode());
+        org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.getCond(cb).flipCode());
     }
     MIR_CondBranch_setTarget(cb, gTarget);
     // Remove the trailing GOTO instruction

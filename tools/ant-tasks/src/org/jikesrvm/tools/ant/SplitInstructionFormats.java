@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
 
@@ -53,10 +52,10 @@ public class SplitInstructionFormats extends Task {
         String matchStart = "##NEW_FILE_STARTS_HERE ";
         String matchEnd = "##";
         if(line.startsWith(matchStart) && line.endsWith(matchEnd)) {
-	  String curFileName = line.substring(matchStart.length(),
+          String curFileName = line.substring(matchStart.length(),
                                               line.length()-matchEnd.length());
           curFile = new File(dest, curFileName);
-	  if(writer != null) {
+          if(writer != null) {
             writer.close();
           }
           writer = new FileWriter(curFile);

@@ -12,12 +12,7 @@
  */
 package org.jikesrvm.compilers.common.assembler;
 
-import org.vmmagic.unboxed.Offset;
 import org.jikesrvm.architecture.MachineRegister;
-import org.jikesrvm.classloader.FieldReference;
-import org.jikesrvm.classloader.MethodReference;
-import org.jikesrvm.classloader.RVMMethod;
-import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.common.CodeArray;
 import org.vmmagic.pragma.NoInline;
 

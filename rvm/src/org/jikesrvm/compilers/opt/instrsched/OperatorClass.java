@@ -57,7 +57,7 @@ public abstract class OperatorClass {
     id = _id;
     allocateMasks(pat);
     if (verbose >= 2) debug(masks.length+" masks allocated for "+pat.length+
-			    " requests");
+                            " requests");
     int[] assign = new int[pat.length];
     int comb = fillMasks(pat, assign, 0, 0, 0, 0);
     if (false && comb != masks.length)
@@ -124,10 +124,9 @@ public abstract class OperatorClass {
     int latencies_size = latencies.size();
     if (opclass.id < latencies_size) {
       latencies.set(opclass.id, latency);
-    }
-    else {
+    } else {
       for(; latencies_size < opclass.id; latencies_size++) {
-	latencies.add(null);
+        latencies.add(null);
       }
       latencies.add(latency);
     }
@@ -150,7 +149,7 @@ public abstract class OperatorClass {
     sb.append(masks.length).append('\n');
     for (int[] mask : masks) {
       for (int v : mask)
-	sb.append(toBinaryPad32(v)).append('\n');
+        sb.append(toBinaryPad32(v)).append('\n');
       sb.append('\n');
     }
     return sb.toString();
@@ -159,7 +158,7 @@ public abstract class OperatorClass {
   protected abstract void allocateMasks(ResourceReservation[] pat);
 
   protected abstract int fillMasks(ResourceReservation[] pat, int[] assign,
-				   int all, int rrq, int comb, int depth);
+                                   int all, int rrq, int comb, int depth);
 
   /** Returns a special resource type embodying all resources of a given class. */
   protected static int all_units(int rclass) {

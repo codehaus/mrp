@@ -13,10 +13,8 @@
 package org.jikesrvm.compilers.opt.ir;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.compilers.opt.LocalCSE;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
-import org.jikesrvm.compilers.opt.driver.OptConstants;
 import org.jikesrvm.compilers.opt.inlining.InlineSequence;
 import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
 import org.jikesrvm.compilers.opt.ir.operand.IntConstantOperand;
@@ -832,21 +830,9 @@ public final class Instruction {
    */
   public boolean isTwoWayBranch() {
     // Is there a cleaner way to answer this question?
-    if(isConditionalBranch()) {
-      if(IfCmp2.conforms(this)) {
-	return false;
-      } else if(VM.BuildForIA32 &&
-		org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.conforms(this)) {
-	return false;
-      } else if(VM.BuildForPowerPC &&
-		org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.conforms(this)) {
-	return false;
-      } else {
-	return true;
-      }
-    } else {
-      return false;
-    }
+    return isConditionalBranch() && !IfCmp2.conforms(this) &&
+           !(VM.BuildForIA32 && org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.conforms(this)) &&
+           !(VM.BuildForPowerPC && org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.conforms(this));
   }
 
   /**
@@ -1318,22 +1304,22 @@ public final class Instruction {
         return InlineGuard.getTarget(this).target.getBasicBlock();
 
       default:
-	if(VM.BuildForIA32) {
-	  if (org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(this)) {
-	    return org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.getTarget(this).target.getBasicBlock();
-	  } else if (org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.conforms(this)) {
-	    return org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.getTarget(this).target.getBasicBlock();
-	  }
-	} else {
-	  if (org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(this)) {
-	    return org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.getTarget(this).target.getBasicBlock();
-	  } else if (org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.conforms(this)) {
-	    return org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.getTarget(this).target.getBasicBlock();
-	  }
-	}
-	throw new OptimizingCompilerException("getBranchTarget()",
-					      "operator not implemented",
-					      operator.toString());
+        if(VM.BuildForIA32) {
+          if (org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(this)) {
+            return org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.getTarget(this).target.getBasicBlock();
+          } else if (org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.conforms(this)) {
+            return org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.getTarget(this).target.getBasicBlock();
+          }
+        } else {
+          if (org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(this)) {
+            return org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.getTarget(this).target.getBasicBlock();
+          } else if (org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.conforms(this)) {
+            return org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.getTarget(this).target.getBasicBlock();
+          }
+        }
+        throw new OptimizingCompilerException("getBranchTarget()",
+                                              "operator not implemented",
+                                              operator.toString());
     }
   }
 
@@ -1394,37 +1380,36 @@ public final class Instruction {
         break;
 
       default:
-	
         if (VM.BuildForIA32 &&
-	    org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(this)) {
+            org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.conforms(this)) {
           e.addElement(org.jikesrvm.compilers.opt.ir.ia32.MIR_Branch.getTarget(this).target.getBasicBlock());
         } else if (VM.BuildForPowerPC &&
-		   org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(this)) {
+                   org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.conforms(this)) {
           e.addElement(org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch.getTarget(this).target.getBasicBlock());
         } else if (VM.BuildForIA32 &&
-		   org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.conforms(this)) {
+                   org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.conforms(this)) {
           e.addElement(org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch.getTarget(this).target.getBasicBlock());
         } else if (VM.BuildForPowerPC &&
-		   org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.conforms(this)) {
+                   org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.conforms(this)) {
           e.addElement(org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch.getTarget(this).target.getBasicBlock());
         } else if (VM.BuildForIA32 &&
-		   org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.conforms(this)) {
+                   org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.conforms(this)) {
           e.addElement(org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getTarget1(this).target.getBasicBlock());
           e.addPossiblyDuplicateElement(org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.getTarget2(this).target.getBasicBlock());
         } else if (VM.BuildForPowerPC &&
-		   org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.conforms(this)) {
+                   org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.conforms(this)) {
           e.addElement(org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget1(this).target.getBasicBlock());
           e.addPossiblyDuplicateElement(org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.getTarget2(this).target.getBasicBlock());
         } else if (VM.BuildForIA32 &&
-		   org.jikesrvm.compilers.opt.ir.ia32.MIR_LowTableSwitch.conforms(this)) {
+                   org.jikesrvm.compilers.opt.ir.ia32.MIR_LowTableSwitch.conforms(this)) {
           for (int i = 0; i < org.jikesrvm.compilers.opt.ir.ia32.MIR_LowTableSwitch.getNumberOfTargets(this); i++) {
             e.addPossiblyDuplicateElement(org.jikesrvm.compilers.opt.ir.ia32.MIR_LowTableSwitch.getTarget(this, i).
                 target.getBasicBlock());
           }
         } else if ((VM.BuildForIA32 &&
-		    org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.conforms(this))||
-		   (VM.BuildForPowerPC &&
-		    org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.conforms(this))) {
+                    org.jikesrvm.compilers.opt.ir.ia32.MIR_CondBranch2.conforms(this))||
+                   (VM.BuildForPowerPC &&
+                    org.jikesrvm.compilers.opt.ir.ppc.MIR_CondBranch2.conforms(this))) {
           throw new OptimizingCompilerException("getBranchTargets()",
                                                     "operator not implemented",
                                                     operator().toString());
@@ -2021,7 +2006,7 @@ public final class Instruction {
     return false;
   }
 
-  public final boolean canFoldNullCheckAndLoad() {
+  public boolean canFoldNullCheckAndLoad() {
     if(VM.ExplicitlyGuardLowMemory) return true;
     if(VM.BuildForPowerPC &&
        org.jikesrvm.compilers.opt.ir.ppc.MIR_Load.conforms(this)) {

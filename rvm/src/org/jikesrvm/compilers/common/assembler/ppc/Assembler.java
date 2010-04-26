@@ -117,7 +117,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
    * Return a copy of the generated code as a CodeArray.
    * @return a copy of the generated code as a CodeArray.
    */
-  public final CodeArray getMachineCodes () {
+  public CodeArray getMachineCodes() {
     int len = getMachineCodeIndex();
     CodeArray trimmed = CodeArray.Factory.create(len, isHot);
     for (int i=0; i<len; i++) {
@@ -140,37 +140,37 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
   ForwardReference forwardRefs = null;
 
   /* call before emiting code for the branch */
-  final void reserveForwardBranch(int where) {
+  void reserveForwardBranch(int where) {
     ForwardReference fr = new ForwardReference.UnconditionalBranch(mIP, where);
     forwardRefs = ForwardReference.enqueue(forwardRefs, fr);
   }
 
   /* call before emiting code for the branch */
-  final void reserveForwardConditionalBranch(int where) {
+  void reserveForwardConditionalBranch(int where) {
     emitNOP();
     ForwardReference fr = new ForwardReference.ConditionalBranch(mIP, where);
     forwardRefs = ForwardReference.enqueue(forwardRefs, fr);
   }
 
   /* call before emiting code for the branch */
-  final void reserveShortForwardConditionalBranch(int where) {
+  void reserveShortForwardConditionalBranch(int where) {
     ForwardReference fr = new ForwardReference.ConditionalBranch(mIP, where);
     forwardRefs = ForwardReference.enqueue(forwardRefs, fr);
   }
 
   /* call before emiting data for the case branch */
-  final void reserveForwardCase(int where) {
+  void reserveForwardCase(int where) {
     ForwardReference fr = new ForwardReference.SwitchCase(mIP, where);
     forwardRefs = ForwardReference.enqueue(forwardRefs, fr);
   }
 
   /* call before emiting code for the target */
-  public final void resolveForwardReferences(int label) {
+  public void resolveForwardReferences(int label) {
     if (forwardRefs == null) return;
     forwardRefs = ForwardReference.resolveMatching(this, forwardRefs, label);
   }
 
-  public final void patchUnconditionalBranch(int sourceMachinecodeIndex) {
+  public void patchUnconditionalBranch(int sourceMachinecodeIndex) {
     int delta = mIP - sourceMachinecodeIndex;
     int instr = machineCodes[sourceMachinecodeIndex];
     if (VM.VerifyAssertions) VM._assert((delta >>> 23) == 0); // delta (positive) fits in 24 bits
@@ -178,7 +178,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     machineCodes[sourceMachinecodeIndex] = instr;
   }
 
-  public final void patchConditionalBranch(int sourceMachinecodeIndex) {
+  public void patchConditionalBranch(int sourceMachinecodeIndex) {
     final int Btemplate = 18 << 26;
     int delta = mIP - sourceMachinecodeIndex;
     int instr = machineCodes[sourceMachinecodeIndex];
@@ -193,7 +193,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void patchShortBranch(int sourceMachinecodeIndex) {
+  public void patchShortBranch(int sourceMachinecodeIndex) {
     int delta = mIP - sourceMachinecodeIndex;
     int instr = machineCodes[sourceMachinecodeIndex];
     if ((delta >>> 13) == 0) { // delta (positive) fits in 14 bits
@@ -204,7 +204,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void registerLoadReturnAddress(int bReturn) {
+  public void registerLoadReturnAddress(int bReturn) {
     ForwardReference r = new ForwardReference.LoadReturnAddress(mIP, bReturn);
     forwardRefs = ForwardReference.enqueue(forwardRefs, r);
   }
@@ -220,24 +220,24 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
   * The third instruction should be patched with accurate relative address.
   * It is computed by (mIP - sourceIndex + 1)*4;
   */
-  public final void patchLoadReturnAddress(int sourceIndex) {
+  public void patchLoadReturnAddress(int sourceIndex) {
     int offset = (mIP - sourceIndex + 1) * 4;
     int mi = ADDI(T1, offset, T1);
     machineCodes[sourceIndex] = mi;
   }
 
-  final int ADDI(GPR RT, int D, GPR RA) {
+  int ADDI(GPR RT, int D, GPR RA) {
     final int ADDItemplate = 14 << 26;
     return ADDItemplate | RT.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
   }
 
-  public final ForwardReference generatePendingJMP(int bTarget) {
+  public ForwardReference generatePendingJMP(int bTarget) {
     return this.emitForwardB();
   }
 
   /************ OSR Support */
 
-  public final void patchSwitchCase(int sourceMachinecodeIndex) {
+  public void patchSwitchCase(int sourceMachinecodeIndex) {
     int delta = (mIP - sourceMachinecodeIndex) << 2;
     // correction is number of bytes of source off switch base
     int correction = (int) machineCodes[sourceMachinecodeIndex];
@@ -247,48 +247,48 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
 
   /* machine instructions */
 
-  public final void emitADD(GPR RT, GPR RA, GPR RB) {
+  public void emitADD(GPR RT, GPR RA, GPR RB) {
     final int ADDtemplate = 31 << 26 | 10 << 1;
     int mi = ADDtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitADDE(GPR RT, GPR RA, GPR RB) {
+  public void emitADDE(GPR RT, GPR RA, GPR RB) {
     final int ADDEtemplate = 31 << 26 | 138 << 1;
     int mi = ADDEtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitADDICr(GPR RT, GPR RA, int SI) {
+  public void emitADDICr(GPR RT, GPR RA, int SI) {
     final int ADDICrtemplate = 13 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(SI, 16));
     int mi = ADDICrtemplate | RT.value() << 21 | RA.value() << 16 | (SI & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitAND(GPR RA, GPR RS, GPR RB) {
+  public void emitAND(GPR RA, GPR RS, GPR RB) {
     final int ANDtemplate = 31 << 26 | 28 << 1;
     int mi = ANDtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitANDI(GPR RA, GPR RS, int U) {
+  public void emitANDI(GPR RA, GPR RS, int U) {
     final int ANDItemplate = 28 << 26;
     if (VM.VerifyAssertions) VM._assert((U >>> 16) == 0);
     int mi = ANDItemplate | RS.value() << 21 | RA.value() << 16 | U;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitANDIS(GPR RA, GPR RS, int U) {
+  public void emitANDIS(GPR RA, GPR RS, int U) {
     final int ANDIStemplate = 29 << 26;
     if (VM.VerifyAssertions) VM._assert((U & 0xffff) == 0);
     int mi = ANDIStemplate | RS.value() << 21 | RA.value() << 16 | (U >>> 16);
-    
+
     appendInstruction(mi);
   }
 
@@ -296,11 +296,11 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int Btemplate = 18 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(relative_address, 24));
     int mi = Btemplate | (relative_address & 0xFFFFFF) << 2;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitB(int relative_address, int label) {
+  public void emitB(int relative_address, int label) {
     if (relative_address == 0) {
       reserveForwardBranch(label);
     } else {
@@ -309,13 +309,13 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     _emitB(relative_address);
   }
 
-  public final void emitB(int relative_address) {
+  public void emitB(int relative_address) {
     relative_address -= mIP;
     if (VM.VerifyAssertions) VM._assert(relative_address < 0);
     _emitB(relative_address);
   }
 
-  public final ForwardReference emitForwardB() {
+  public ForwardReference emitForwardB() {
     ForwardReference fr;
     if (compiler != null) {
       fr = new AssemblerShortBranch(mIP, compiler.spTopOffset);
@@ -326,11 +326,11 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     return fr;
   }
 
-  public final void emitBLA(int address) {
+  public void emitBLA(int address) {
     final int BLAtemplate = 18 << 26 | 3;
     if (VM.VerifyAssertions) VM._assert(fits(address, 24));
     int mi = BLAtemplate | (address & 0xFFFFFF) << 2;
-    
+
     appendInstruction(mi);
   }
 
@@ -338,11 +338,11 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int BLtemplate = 18 << 26 | 1;
     if (VM.VerifyAssertions) VM._assert(fits(relative_address, 24));
     int mi = BLtemplate | (relative_address & 0xFFFFFF) << 2;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitBL(int relative_address, int label) {
+  public void emitBL(int relative_address, int label) {
     if (relative_address == 0) {
       reserveForwardBranch(label);
     } else {
@@ -351,7 +351,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     _emitBL(relative_address);
   }
 
-  public final ForwardReference emitForwardBL() {
+  public ForwardReference emitForwardBL() {
     ForwardReference fr;
     if (compiler != null) {
       fr = new AssemblerShortBranch(mIP, compiler.spTopOffset);
@@ -385,7 +385,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int BCtemplate = 16 << 26;
     if (fits(relative_address, 14)) {
       int mi = BCtemplate | cc | (relative_address & 0x3FFF) << 2;
-      
+
       appendInstruction(mi);
     } else {
       _emitBC(flipCode(cc), 2);
@@ -393,7 +393,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitBC(int cc, int relative_address, int label) {
+  public void emitBC(int cc, int relative_address, int label) {
     if (relative_address == 0) {
       reserveForwardConditionalBranch(label);
     } else {
@@ -402,7 +402,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     _emitBC(cc, relative_address);
   }
 
-  public final void emitShortBC(int cc, int relative_address, int label) {
+  public void emitShortBC(int cc, int relative_address, int label) {
     if (relative_address == 0) {
       reserveShortForwardConditionalBranch(label);
     } else {
@@ -411,13 +411,13 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     _emitBC(cc, relative_address);
   }
 
-  public final void emitBC(int cc, int relative_address) {
+  public void emitBC(int cc, int relative_address) {
     relative_address -= mIP;
     if (VM.VerifyAssertions) VM._assert(relative_address < 0);
     _emitBC(cc, relative_address);
   }
 
-  public final ForwardReference emitForwardBC(int cc) {
+  public ForwardReference emitForwardBC(int cc) {
     ForwardReference fr;
     if (compiler != null) {
       fr = new AssemblerShortBranch(mIP, compiler.spTopOffset);
@@ -429,46 +429,46 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
   }
 
   // delta i: difference between address of case i and of delta 0
-  public final void emitSwitchCase(int i, int relative_address, int bTarget) {
+  public void emitSwitchCase(int i, int relative_address, int bTarget) {
     int data = i << 2;
     if (relative_address == 0) {
       reserveForwardCase(bTarget);
     } else {
       data += ((relative_address - mIP) << 2);
     }
-    
+
     appendInstruction(data);
   }
 
-  public final void emitBCLR() {
+  public void emitBCLR() {
     final int BCLRtemplate = 19 << 26 | 0x14 << 21 | 16 << 1;
     int mi = BCLRtemplate;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitBCLRL() {
+  public void emitBCLRL() {
     final int BCLRLtemplate = 19 << 26 | 0x14 << 21 | 16 << 1 | 1;
     int mi = BCLRLtemplate;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitBCCTR() {
+  public void emitBCCTR() {
     final int BCCTRtemplate = 19 << 26 | 0x14 << 21 | 528 << 1;
     int mi = BCCTRtemplate;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitBCCTRL() {
+  public void emitBCCTRL() {
     final int BCCTRLtemplate = 19 << 26 | 0x14 << 21 | 528 << 1 | 1;
     int mi = BCCTRLtemplate;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitADDI(GPR RT, int D, GPR RA) {
+  public void emitADDI(GPR RT, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     _emitADDI(RT, D & 0xFFFF, RA);
   }
@@ -477,16 +477,16 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int ADDItemplate = 14 << 26;
     //D has already been masked
     int mi = ADDItemplate | RT.value() << 21 | RA.value() << 16 | D;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitADDI(GPR RT, Offset off, GPR RA) {
+  public void emitADDI(GPR RT, Offset off, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(off, 16));
     _emitADDI(RT, maskLower16(off), RA);
   }
 
-  public final void emitADDIS(GPR RT, GPR RA, int UI) {
+  public void emitADDIS(GPR RT, GPR RA, int UI) {
     if (VM.VerifyAssertions) VM._assert(UI == (UI & 0xFFFF));
     _emitADDIS(RT, RA, UI);
   }
@@ -495,11 +495,11 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int ADDIStemplate = 15 << 26;
     //UI has already been masked
     int mi = ADDIStemplate | RT.value() << 21 | RA.value() << 16 | UI;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitADDIS(GPR RT, int UI) {
+  public void emitADDIS(GPR RT, int UI) {
     if (VM.VerifyAssertions) VM._assert(UI == (UI & 0xFFFF));
     _emitADDIS(RT, UI);
   }
@@ -508,216 +508,216 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int ADDIStemplate = 15 << 26;
     //UI has already been masked
     int mi = ADDIStemplate | RT.value() << 21 | UI;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMP(int BF, GPR RA, GPR RB) {
+  public void emitCMP(int BF, GPR RA, GPR RB) {
     final int CMPtemplate = 31 << 26;
     int mi = CMPtemplate | BF << 23 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMP(GPR RA, GPR RB) {
+  public void emitCMP(GPR RA, GPR RB) {
     final int CMPtemplate = 31 << 26;
     int mi = CMPtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMPD(GPR RA, GPR RB) {
+  public void emitCMPD(GPR RA, GPR RB) {
     final int CMPtemplate = 31 << 26;
     final int CMPDtemplate = CMPtemplate | 1 << 21;
     int mi = CMPDtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMPI(int BF, GPR RA, int V) {
+  public void emitCMPI(int BF, GPR RA, int V) {
     final int CMPItemplate = 11 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(V, 16));
     int mi = CMPItemplate | BF << 23 | RA.value() << 16 | (V & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMPI(GPR RA, int V) {
+  public void emitCMPI(GPR RA, int V) {
     final int CMPItemplate = 11 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(V, 16));
     int mi = CMPItemplate | RA.value() << 16 | (V & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMPDI(GPR RA, int V) {
+  public void emitCMPDI(GPR RA, int V) {
     final int CMPItemplate = 11 << 26;
     final int CMPDItemplate = CMPItemplate | 1 << 21;
     if (VM.VerifyAssertions) VM._assert(fits(V, 16));
     int mi = CMPDItemplate | RA.value() << 16 | (V & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMPL(int BF, GPR RA, GPR RB) {
+  public void emitCMPL(int BF, GPR RA, GPR RB) {
     final int CMPLtemplate = 31 << 26 | 32 << 1;
     int mi = CMPLtemplate | BF << 23 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMPL(GPR RA, GPR RB) {
+  public void emitCMPL(GPR RA, GPR RB) {
     final int CMPLtemplate = 31 << 26 | 32 << 1;
     int mi = CMPLtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCMPLD(GPR RA, GPR RB) {
+  public void emitCMPLD(GPR RA, GPR RB) {
     final int CMPLtemplate = 31 << 26 | 32 << 1;
     final int CMPLDtemplate = CMPLtemplate | 1 << 21;
     int mi = CMPLDtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCRAND(CR BT, CR BA, CR BB) {
+  public void emitCRAND(CR BT, CR BA, CR BB) {
     final int CRANDtemplate = 19 << 26 | 257 << 1;
     int mi = CRANDtemplate | BT.value() << 21 | BA.value() << 16 | BB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCRANDC(CR BT, CR BA, CR BB) {
+  public void emitCRANDC(CR BT, CR BA, CR BB) {
     final int CRANDCtemplate = 19 << 26 | 129 << 1;
     int mi = CRANDCtemplate | BT.value() << 21 | BA.value() << 16 | BB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCROR(CR BT, CR BA, CR BB) {
+  public void emitCROR(CR BT, CR BA, CR BB) {
     final int CRORtemplate = 19 << 26 | 449 << 1;
     int mi = CRORtemplate | BT.value() << 21 | BA.value() << 16 | BB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitCRORC(CR BT, CR BA, CR BB) {
+  public void emitCRORC(CR BT, CR BA, CR BB) {
     final int CRORCtemplate = 19 << 26 | 417 << 1;
     int mi = CRORCtemplate | BT.value() << 21 | BA.value() << 16 | BB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFADD(FPR FRT, FPR FRA, FPR FRB) {
+  public void emitFADD(FPR FRT, FPR FRA, FPR FRB) {
     final int FADDtemplate = 63 << 26 | 21 << 1;
     int mi = FADDtemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFADDS(FPR FRT, FPR FRA, FPR FRB) {
+  public void emitFADDS(FPR FRT, FPR FRA, FPR FRB) {
     final int FADDStemplate = 59 << 26 | 21 << 1; // single-percision add
     int mi = FADDStemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFABS(FPR FRT, FPR FRB) {
+  public void emitFABS(FPR FRT, FPR FRB) {
     final int FABStemplate = 63 << 26 | 264 << 1;
     int mi = FABStemplate | FRT.value() << 21 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFCMPU(FPR FRA, FPR FRB) {
+  public void emitFCMPU(FPR FRA, FPR FRB) {
     final int FCMPUtemplate = 63 << 26;
     int mi = FCMPUtemplate | FRA.value() << 16 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFDIV(FPR FRT, FPR FRA, FPR FRB) {
+  public void emitFDIV(FPR FRT, FPR FRA, FPR FRB) {
     final int FDIVtemplate = 63 << 26 | 18 << 1;
     int mi = FDIVtemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFDIVS(FPR FRT, FPR FRA, FPR FRB) {
+  public void emitFDIVS(FPR FRT, FPR FRA, FPR FRB) {
     final int FDIVStemplate = 59 << 26 | 18 << 1; // single-precision divide
     int mi = FDIVStemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFMUL(FPR FRT, FPR FRA, FPR FRB) {
+  public void emitFMUL(FPR FRT, FPR FRA, FPR FRB) {
     final int FMULtemplate = 63 << 26 | 25 << 1;
     int mi = FMULtemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 6;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFMULS(FPR FRT, FPR FRA, FPR FRB) {
+  public void emitFMULS(FPR FRT, FPR FRA, FPR FRB) {
     final int FMULStemplate = 59 << 26 | 25 << 1; // single-precision fm
     int mi = FMULStemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 6;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFMADD(FPR FRT, FPR FRA, FPR FRC, FPR FRB) {
+  public void emitFMADD(FPR FRT, FPR FRA, FPR FRC, FPR FRB) {
     final int FMADDtemplate = 63 << 26 | 29 << 1;
     int mi = FMADDtemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11 | FRC.value() << 6;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFNMSUB(FPR FRT, FPR FRA, FPR FRC, FPR FRB) {
+  public void emitFNMSUB(FPR FRT, FPR FRA, FPR FRC, FPR FRB) {
     final int FNMSUBtemplate = 63 << 26 | 30 << 1;
     int mi = FNMSUBtemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11 | FRC.value() << 6;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFNEG(FPR FRT, FPR FRB) {
+  public void emitFNEG(FPR FRT, FPR FRB) {
     final int FNEGtemplate = 63 << 26 | 40 << 1;
     int mi = FNEGtemplate | FRT.value() << 21 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFSQRT(FPR FRT, FPR FRB) {
+  public void emitFSQRT(FPR FRT, FPR FRB) {
     final int FSQRTtemplate = 63 << 26 | 22 << 1;
     int mi = FSQRTtemplate | FRT.value() << 21 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFSQRTS(FPR FRT, FPR FRB) {
+  public void emitFSQRTS(FPR FRT, FPR FRB) {
     final int FSQRTStemplate = 59 << 26 | 22 << 1;
     int mi = FSQRTStemplate | FRT.value() << 21 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFSUB(FPR FRT, FPR FRA, FPR FRB) {
+  public void emitFSUB(FPR FRT, FPR FRA, FPR FRB) {
     final int FSUBtemplate = 63 << 26 | 20 << 1;
     int mi = FSUBtemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFSUBS(FPR FRT, FPR FRA, FPR FRB) {
+  public void emitFSUBS(FPR FRT, FPR FRA, FPR FRB) {
     final int FSUBStemplate = 59 << 26 | 20 << 1;
     int mi = FSUBStemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFSEL(FPR FRT, FPR FRA, FPR FRC, FPR FRB) {
+  public void emitFSEL(FPR FRT, FPR FRA, FPR FRC, FPR FRB) {
     final int FSELtemplate = 63 << 26 | 23 << 1;
     int mi = FSELtemplate | FRT.value() << 21 | FRA.value() << 16 | FRB.value() << 11 | FRC.value() << 6;
-    
+
     appendInstruction(mi);
   }
 
@@ -727,24 +727,24 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
   // (the Assembler Language Reference seems ambiguous)
   //
 
-  public final void emitLMW(GPR RT, int D, GPR RA) {
+  public void emitLMW(GPR RT, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = (46 << 26) | RT.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
   // TODO!! verify that D is sign extended
   // (the Assembler Language Reference seems ambiguous)
   //
-  public final void emitSTMW(GPR RT, int D, GPR RA) {
+  public void emitSTMW(GPR RT, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = (47 << 26) | RT.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLWZ(GPR RT, int D, GPR RA) {
+  public void emitLWZ(GPR RT, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     _emitLWZ(RT, D & 0xFFFF, RA);
   }
@@ -753,66 +753,66 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int LWZtemplate = 32 << 26;
     //D has already been masked
     int mi = LWZtemplate | RT.value() << 21 | RA.value() << 16 | D;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLBZ(GPR RT, int D, GPR RA) {
+  public void emitLBZ(GPR RT, int D, GPR RA) {
     final int LBZtemplate = 34 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LBZtemplate | RT.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLBZoffset(GPR RT, GPR RA, Offset D) {
+  public void emitLBZoffset(GPR RT, GPR RA, Offset D) {
     final int LBZtemplate = 34 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LBZtemplate | RT.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLBZX(GPR RT, GPR RA, GPR RB) {
+  public void emitLBZX(GPR RT, GPR RA, GPR RB) {
     final int LBZXtemplate = 31 << 26 | 87 << 1;
     int mi = LBZXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLHA(GPR RT, int D, GPR RA) {
+  public void emitLHA(GPR RT, int D, GPR RA) {
     final int LHAtemplate = 42 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LHAtemplate | RT.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLHAoffset(GPR RT, GPR RA, Offset D) {
+  public void emitLHAoffset(GPR RT, GPR RA, Offset D) {
     final int LHAtemplate = 42 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LHAtemplate | RT.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLHZ(GPR RT, int D, GPR RA) {
+  public void emitLHZ(GPR RT, int D, GPR RA) {
     final int LHZtemplate = 40 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LHZtemplate | RT.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLHZoffset(GPR RT, GPR RA, Offset D) {
+  public void emitLHZoffset(GPR RT, GPR RA, Offset D) {
     final int LHZtemplate = 40 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LHZtemplate | RT.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLFD(FPR FRT, int D, GPR RA) {
+  public void emitLFD(FPR FRT, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     _emitLFD(FRT, D & 0xFFFF, RA);
   }
@@ -821,34 +821,34 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int LFDtemplate = 50 << 26;
     //D has already been masked
     int mi = LFDtemplate | FRT.value() << 21 | RA.value() << 16 | D;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLFDoffset(FPR FRT, GPR RA, Offset D) {
+  public void emitLFDoffset(FPR FRT, GPR RA, Offset D) {
     final int LFDtemplate = 50 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LFDtemplate | FRT.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLFDU(FPR FRT, int D, GPR RA) {
+  public void emitLFDU(FPR FRT, int D, GPR RA) {
     final int LFDUtemplate = 51 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LFDUtemplate | FRT.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLFDX(FPR FRT, GPR RA, GPR RB) {
+  public void emitLFDX(FPR FRT, GPR RA, GPR RB) {
     final int LFDXtemplate = 31 << 26 | 599 << 1;
     int mi = LFDXtemplate | FRT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLFS(FPR FRT, int D, GPR RA) {
+  public void emitLFS(FPR FRT, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     _emitLFS(FRT, D & 0xFFFF, RA);
   }
@@ -857,7 +857,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int LFStemplate = 48 << 26;
     //D has already been masked
     int mi = LFStemplate | FRT.value() << 21 | RA.value() << 16 | D;
-    
+
     appendInstruction(mi);
   }
 
@@ -865,24 +865,24 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     return 31 << 26 | FRT.value() << 21 | RA.value() << 16 | RB.value() << 11 | 535 << 1;
   }
 
-  public final void emitLFSX(FPR FRT, GPR RA, GPR RB) {
+  public void emitLFSX(FPR FRT, GPR RA, GPR RB) {
     final int LFSXtemplate = 31 << 26 | 535 << 1;
     int mi = LFSXtemplate | FRT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLHAX(GPR RT, GPR RA, GPR RB) {
+  public void emitLHAX(GPR RT, GPR RA, GPR RB) {
     final int LHAXtemplate = 31 << 26 | 343 << 1;
     int mi = LHAXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLHZX(GPR RT, GPR RA, GPR RB) {
+  public void emitLHZX(GPR RT, GPR RA, GPR RB) {
     final int LHZXtemplate = 31 << 26 | 279 << 1;
     int mi = LHZXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
@@ -890,230 +890,230 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int ADDItemplate = 14 << 26;
     //D has already been masked
     int mi = ADDItemplate | RT.value() << 21 | D;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLWZU(GPR RT, int D, GPR RA) {
+  public void emitLWZU(GPR RT, int D, GPR RA) {
     final int LWZUtemplate = 33 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = LWZUtemplate | RT.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLWZX(GPR RT, GPR RA, GPR RB) {
+  public void emitLWZX(GPR RT, GPR RA, GPR RB) {
     final int LWZXtemplate = 31 << 26 | 23 << 1;
     int mi = LWZXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLWZUX(GPR RT, GPR RA, GPR RB) {
+  public void emitLWZUX(GPR RT, GPR RA, GPR RB) {
     final int LWZUXtemplate = 31 << 26 | 55 << 1;
     int mi = LWZUXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLWARX(GPR RT, GPR RA, GPR RB) {
+  public void emitLWARX(GPR RT, GPR RA, GPR RB) {
     final int LWARXtemplate = 31 << 26 | 20 << 1;
     int mi = LWARXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMFLR(GPR RT) {
+  public void emitMFLR(GPR RT) {
     final int MFLRtemplate = 31 << 26 | 0x08 << 16 | 339 << 1;
     int mi = MFLRtemplate | RT.value() << 21;
-    
+
     appendInstruction(mi);
   }
 
-  final void emitMFSPR(GPR RT, int SPR) {
+  void emitMFSPR(GPR RT, int SPR) {
     final int MFSPRtemplate = 31 << 26 | 339 << 1;
     int mi = MFSPRtemplate | RT.value() << 21 | SPR << 16;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMTLR(GPR RS) {
+  public void emitMTLR(GPR RS) {
     final int MTLRtemplate = 31 << 26 | 0x08 << 16 | 467 << 1;
     int mi = MTLRtemplate | RS.value() << 21;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMTCTR(GPR RS) {
+  public void emitMTCTR(GPR RS) {
     final int MTCTRtemplate = 31 << 26 | 0x09 << 16 | 467 << 1;
     int mi = MTCTRtemplate | RS.value() << 21;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFMR(FPR RA, FPR RB) {
+  public void emitFMR(FPR RA, FPR RB) {
     final int FMRtemplate = 63 << 26 | 72 << 1;
     int mi = FMRtemplate | RA.value() << 21 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFRSP(FPR RT, FPR RB) {
+  public void emitFRSP(FPR RT, FPR RB) {
     final int FRSPtemplate = 63 << 26 | 12 << 1;
     int mi = FRSPtemplate | RT.value() << 21 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMULHWU(GPR RT, GPR RA, GPR RB) {
+  public void emitMULHWU(GPR RT, GPR RA, GPR RB) {
     final int MULHWUtemplate = 31 << 26 | 11 << 1;
     int mi = MULHWUtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitDIVW(GPR RT, GPR RA, GPR RB) {
+  public void emitDIVW(GPR RT, GPR RA, GPR RB) {
     final int DIVWtemplate = 31 << 26 | 491 << 1;
     int mi = DIVWtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMULLW(GPR RT, GPR RA, GPR RB) {
+  public void emitMULLW(GPR RT, GPR RA, GPR RB) {
     final int MULLWtemplate = 31 << 26 | 235 << 1;
     int mi = MULLWtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitNEG(GPR RT, GPR RA) {
+  public void emitNEG(GPR RT, GPR RA) {
     final int NEGtemplate = 31 << 26 | 104 << 1;
     int mi = NEGtemplate | RT.value() << 21 | RA.value() << 16;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitOR(GPR RA, GPR RS, GPR RB) {
+  public void emitOR(GPR RA, GPR RS, GPR RB) {
     final int ORtemplate = 31 << 26 | 444 << 1;
     int mi = ORtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
   // move register RT <- RS
-  public final void emitMR(GPR RT, GPR RS) {
+  public void emitMR(GPR RT, GPR RS) {
     emitOR(RT, RS, RS);
   }
 
-  public final void emitORI(GPR RA, GPR RS, int UI) {
+  public void emitORI(GPR RA, GPR RS, int UI) {
     final int ORItemplate = 24 << 26;
     if (VM.VerifyAssertions) VM._assert(UI == (UI & 0xFFFF));
     int mi = ORItemplate | RS.value() << 21 | RA.value() << 16 | (UI & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitORIS(GPR RA, GPR RS, int UI) {
+  public void emitORIS(GPR RA, GPR RS, int UI) {
     final int ORIStemplate = 25 << 26;
     if (VM.VerifyAssertions) VM._assert(UI == (UI & 0xFFFF));
     int mi = ORIStemplate | RS.value() << 21 | RA.value() << 16 | (UI & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitRLWINM(GPR RA, GPR RS, int SH, int MB, int ME) {
+  public void emitRLWINM(GPR RA, GPR RS, int SH, int MB, int ME) {
     final int RLWINM_template = 21 << 26;
     int mi = RLWINM_template | RS.value() << 21 | RA.value() << 16 | SH << 11 | MB << 6 | ME << 1;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSUBFCr(GPR RT, GPR RA, GPR RB) {
+  public void emitSUBFCr(GPR RT, GPR RA, GPR RB) {
     final int SUBFCrtemplate = 31 << 26 | 8 << 1 | 1;
     int mi = SUBFCrtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSUBFC(GPR RT, GPR RA, GPR RB) {
+  public void emitSUBFC(GPR RT, GPR RA, GPR RB) {
     final int SUBFCtemplate = 31 << 26 | 8 << 1;
     int mi = SUBFCtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSUBFIC(GPR RA, GPR RS, int S) {
+  public void emitSUBFIC(GPR RA, GPR RS, int S) {
     final int SUBFICtemplate = 8 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(S, 16));
     int mi = SUBFICtemplate | RS.value() << 21 | RA.value() << 16 | S;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSUBFEr(GPR RT, GPR RA, GPR RB) {
+  public void emitSUBFEr(GPR RT, GPR RA, GPR RB) {
     final int SUBFErtemplate = 31 << 26 | 136 << 1 | 1;
     int mi = SUBFErtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSUBFE(GPR RT, GPR RA, GPR RB) {
+  public void emitSUBFE(GPR RT, GPR RA, GPR RB) {
     final int SUBFEtemplate = 31 << 26 | 136 << 1;
     int mi = SUBFEtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSUBFZE(GPR RT, GPR RA) {
+  public void emitSUBFZE(GPR RT, GPR RA) {
     final int SUBFZEtemplate = 31 << 26 | 200 << 1;
     int mi = SUBFZEtemplate | RT.value() << 21 | RA.value() << 16;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSLW(GPR RA, GPR RS, GPR RB) {
+  public void emitSLW(GPR RA, GPR RS, GPR RB) {
     final int SLWtemplate = 31 << 26 | 24 << 1;
     int mi = SLWtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSLWI(GPR RA, GPR RS, int N) {
+  public void emitSLWI(GPR RA, GPR RS, int N) {
     final int SLWItemplate = 21 << 26;
     int mi = SLWItemplate | RS.value() << 21 | RA.value() << 16 | N << 11 | (31 - N) << 1;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSRW(GPR RA, GPR RS, GPR RB) {
+  public void emitSRW(GPR RA, GPR RS, GPR RB) {
     final int SRWtemplate = 31 << 26 | 536 << 1;
     int mi = SRWtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSRAW(GPR RA, GPR RS, GPR RB) {
+  public void emitSRAW(GPR RA, GPR RS, GPR RB) {
     final int SRAWtemplate = 31 << 26 | 792 << 1;
     int mi = SRAWtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSRAWI(GPR RA, GPR RS, int SH) {
+  public void emitSRAWI(GPR RA, GPR RS, int SH) {
     final int SRAWItemplate = 31 << 26 | 824 << 1;
     int mi = SRAWItemplate | RS.value() << 21 | RA.value() << 16 | SH << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSRAWIr(GPR RA, GPR RS, int SH) {
+  public void emitSRAWIr(GPR RA, GPR RS, int SH) {
     final int SRAWIrtemplate = 31 << 26 | 824 << 1 | 1;
     int mi = SRAWIrtemplate | RS.value() << 21 | RA.value() << 16 | SH << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTW(GPR RS, int D, GPR RA) {
+  public void emitSTW(GPR RS, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     _emitSTW(RS, D & 0xFFFF, RA);
   }
@@ -1122,79 +1122,79 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int STWtemplate = 36 << 26;
     //D has already been masked
     int mi = STWtemplate | RS.value() << 21 | RA.value() << 16 | D;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTWoffset(GPR RS, GPR RA, Offset D) {
+  public void emitSTWoffset(GPR RS, GPR RA, Offset D) {
     final int STWtemplate = 36 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STWtemplate | RS.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTB(GPR RS, int D, GPR RA) {
+  public void emitSTB(GPR RS, int D, GPR RA) {
     final int STBtemplate = 38 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STBtemplate | RS.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTBoffset(GPR RS, GPR RA, Offset D) {
+  public void emitSTBoffset(GPR RS, GPR RA, Offset D) {
     final int STBtemplate = 38 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STBtemplate | RS.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTH(GPR RS, int D, GPR RA) {
+  public void emitSTH(GPR RS, int D, GPR RA) {
     final int STHtemplate = 44 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STHtemplate | RS.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTHoffset(GPR RS, GPR RA, Offset D) {
+  public void emitSTHoffset(GPR RS, GPR RA, Offset D) {
     final int STHtemplate = 44 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STHtemplate | RS.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTBX(GPR RS, GPR RA, GPR RB) {
+  public void emitSTBX(GPR RS, GPR RA, GPR RB) {
     final int STBXtemplate = 31 << 26 | 215 << 1;
     int mi = STBXtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTHX(GPR RS, GPR RA, GPR RB) {
+  public void emitSTHX(GPR RS, GPR RA, GPR RB) {
     final int STHXtemplate = 31 << 26 | 407 << 1;
     int mi = STHXtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTWX(GPR RS, GPR RA, GPR RB) {
+  public void emitSTWX(GPR RS, GPR RA, GPR RB) {
     final int STWXtemplate = 31 << 26 | 151 << 1;
     int mi = STWXtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTFSX(FPR FRS, GPR RA, GPR RB) {
+  public void emitSTFSX(FPR FRS, GPR RA, GPR RB) {
     final int STFSXtemplate = 31 << 26 | 663 << 1;
     int mi = STFSXtemplate | FRS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTFD(FPR FRS, int D, GPR RA) {
+  public void emitSTFD(FPR FRS, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     _emitSTFD(FRS, D & 0xFFFF, RA);
   }
@@ -1203,34 +1203,34 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int STFDtemplate = 54 << 26;
     //D has already been masked
     int mi = STFDtemplate | FRS.value() << 21 | RA.value() << 16 | D;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTFDoffset(FPR FRS, GPR RA, Offset D) {
+  public void emitSTFDoffset(FPR FRS, GPR RA, Offset D) {
     final int STFDtemplate = 54 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STFDtemplate | FRS.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTFDU(FPR FRS, int D, GPR RA) {
+  public void emitSTFDU(FPR FRS, int D, GPR RA) {
     final int STFDUtemplate = 55 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STFDUtemplate | FRS.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTFDX(FPR FRS, GPR RA, GPR RB) {
+  public void emitSTFDX(FPR FRS, GPR RA, GPR RB) {
     final int STFDXtemplate = 31 << 26 | 727 << 1;
     int mi = STFDXtemplate | FRS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTFS(FPR FRS, int D, GPR RA) {
+  public void emitSTFS(FPR FRS, int D, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     _emitSTFS(FRS, D & 0xFFFF, RA);
   }
@@ -1239,123 +1239,123 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int STFStemplate = 52 << 26;
     //D has already been masked
     int mi = STFStemplate | FRS.value() << 21 | RA.value() << 16 | D;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTFSoffset(FPR FRS, GPR RA, Offset D) {
+  public void emitSTFSoffset(FPR FRS, GPR RA, Offset D) {
     final int STFStemplate = 52 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STFStemplate | FRS.value() << 21 | RA.value() << 16 | maskLower16(D);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTFSU(FPR FRS, int D, GPR RA) {
+  public void emitSTFSU(FPR FRS, int D, GPR RA) {
     final int STFSUtemplate = 53 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STFSUtemplate | FRS.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTWU(GPR RS, int D, GPR RA) {
+  public void emitSTWU(GPR RS, int D, GPR RA) {
     final int STWUtemplate = 37 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(D, 16));
     int mi = STWUtemplate | RS.value() << 21 | RA.value() << 16 | (D & 0xFFFF);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTWUX(GPR RS, GPR RA, GPR RB) {
+  public void emitSTWUX(GPR RS, GPR RA, GPR RB) {
     final int STWUXtemplate = 31 << 26 | 183 << 1;
     int mi = STWUXtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTWCXr(GPR RS, GPR RA, GPR RB) {
+  public void emitSTWCXr(GPR RS, GPR RA, GPR RB) {
     final int STWCXrtemplate = 31 << 26 | 150 << 1 | 1;
     int mi = STWCXrtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTWLE(GPR RA, GPR RB) {
+  public void emitTWLE(GPR RA, GPR RB) {
     final int TWtemplate = 31 << 26 | 4 << 1;
     final int TWLEtemplate = TWtemplate | 0x14 << 21;
     int mi = TWLEtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTWLT(GPR RA, GPR RB) {
+  public void emitTWLT(GPR RA, GPR RB) {
     final int TWtemplate = 31 << 26 | 4 << 1;
     final int TWLTtemplate = TWtemplate | 0x10 << 21;
     int mi = TWLTtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTWNE(GPR RA, GPR RB) {
+  public void emitTWNE(GPR RA, GPR RB) {
     final int TWtemplate = 31 << 26 | 4 << 1;
     final int TWNEtemplate = TWtemplate | 0x18 << 21;
     int mi = TWNEtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTWLLE(GPR RA, GPR RB) {
+  public void emitTWLLE(GPR RA, GPR RB) {
     final int TWtemplate = 31 << 26 | 4 << 1;
     final int TWLLEtemplate = TWtemplate | 0x6 << 21;
     int mi = TWLLEtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTWI(int TO, GPR RA, int SI) {
+  public void emitTWI(int TO, GPR RA, int SI) {
     final int TWItemplate = 3 << 26;
     int mi = TWItemplate | TO << 21 | RA.value() << 16 | SI & 0xFFFF;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTWEQ0(GPR RA) {
+  public void emitTWEQ0(GPR RA) {
     final int TWItemplate = 3 << 26;
     final int TWEQItemplate = TWItemplate | 0x4 << 21;
     int mi = TWEQItemplate | RA.value() << 16;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTWWI(int imm) {
+  public void emitTWWI(int imm) {
     final int TWItemplate = 3 << 26;
     final int TWWItemplate = TWItemplate | 0x3EC << 16;      // RA == 12
     int mi = TWWItemplate | imm;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitXOR(GPR RA, GPR RS, GPR RB) {
+  public void emitXOR(GPR RA, GPR RS, GPR RB) {
     final int XORtemplate = 31 << 26 | 316 << 1;
     int mi = XORtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitXORI(GPR RA, GPR RS, int V) {
+  public void emitXORI(GPR RA, GPR RS, int V) {
     final int XORItemplate = 26 << 26;
     if (VM.VerifyAssertions) VM._assert(fits(V, 16));
     int mi = XORItemplate | RS.value() << 21 | RA.value() << 16 | V & 0xFFFF;
-    
+
     appendInstruction(mi);
   }
 
   /* macro instructions */
 
-  public final void emitNOP() {
+  public void emitNOP() {
     int mi = 24 << 26; //ORI 0,0,0
-    
+
     appendInstruction(mi);
   }
 
@@ -1392,7 +1392,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSTDtoc(GPR RT, Offset offset, GPR Rz) {
+  public void emitSTDtoc(GPR RT, Offset offset, GPR Rz) {
     if (fits(offset, 16)) {
       _emitSTD(RT, maskLower16(offset), JTOC);
     } else {
@@ -1402,7 +1402,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSTWtoc(GPR RT, Offset offset, GPR Rz) {
+  public void emitSTWtoc(GPR RT, Offset offset, GPR Rz) {
     if (fits(offset, 16)) {
       _emitSTW(RT, maskLower16(offset), JTOC);
     } else {
@@ -1412,7 +1412,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLFDtoc(FPR FRT, Offset offset, GPR Rz) {
+  public void emitLFDtoc(FPR FRT, Offset offset, GPR Rz) {
     if (fits(offset, 16)) {
       _emitLFD(FRT, maskLower16(offset), JTOC);
     } else {
@@ -1422,7 +1422,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSTFDtoc(FPR FRT, Offset offset, GPR Rz) {
+  public void emitSTFDtoc(FPR FRT, Offset offset, GPR Rz) {
     if (fits(offset, 16)) {
       _emitSTFD(FRT, maskLower16(offset), JTOC);
     } else {
@@ -1432,7 +1432,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLFStoc(FPR FRT, Offset offset, GPR Rz) {
+  public void emitLFStoc(FPR FRT, Offset offset, GPR Rz) {
     if (fits(offset, 16)) {
       _emitLFS(FRT, maskLower16(offset), JTOC);
     } else {
@@ -1442,7 +1442,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSTFStoc(FPR FRT, Offset offset, GPR Rz) {
+  public void emitSTFStoc(FPR FRT, Offset offset, GPR Rz) {
     if (fits(offset, 16)) {
       _emitSTFS(FRT, maskLower16(offset), JTOC);
     } else {
@@ -1452,11 +1452,11 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLVALAddr(GPR RT, Offset off) {
+  public void emitLVALAddr(GPR RT, Offset off) {
     emitLVALAddr(RT, off.toWord().toAddress());
   }
 
-  public final void emitLVALAddr(GPR RT, Address addr) {
+  public void emitLVALAddr(GPR RT, Address addr) {
     Offset val = addr.toWord().toOffset();
     if (VM.BuildFor64Addr) {
       if (!fits(val, 48)) {
@@ -1490,7 +1490,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLVAL(GPR RT, int val) {
+  public void emitLVAL(GPR RT, int val) {
     if (fits(val, 16)) {
       _emitLI(RT, val & 0xFFFF);
     } else {
@@ -1515,7 +1515,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
    * Append a CodeArray to the current machine code
    */
   public void appendInstructions(CodeArray instructionSegment) {
-    for (int i = 0; i < instructionSegment.length(); i++) {      
+    for (int i = 0; i < instructionSegment.length(); i++) {
       appendInstruction(instructionSegment.get(i));
     }
   }
@@ -1527,134 +1527,134 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
    * implement SYNC.  On older arhictectures, there is no problem but the weaker semantics
    * of lwsync means that there are memory consistency bugs we might need to flush out.
    */
-  public final void emitSYNC() {
+  public void emitSYNC() {
     //final int SYNCtemplate = 31<<26 | 598<<1;
     final int LWSYNCtemplate = 31<<26 | 1 << 21 | 598<<1;
     int mi = LWSYNCtemplate;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitICBI(GPR RA, GPR RB) {
+  public void emitICBI(GPR RA, GPR RB) {
     final int ICBItemplate = 31 << 26 | 982 << 1;
     int mi = ICBItemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitISYNC() {
+  public void emitISYNC() {
     final int ISYNCtemplate = 19 << 26 | 150 << 1;
     int mi = ISYNCtemplate;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitDCBF(GPR RA, GPR RB) {
+  public void emitDCBF(GPR RA, GPR RB) {
     final int DCBFtemplate = 31 << 26 | 86 << 1;
     int mi = DCBFtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitDCBST(GPR RA, GPR RB) {
+  public void emitDCBST(GPR RA, GPR RB) {
     final int DCBSTtemplate = 31 << 26 | 54 << 1;
     int mi = DCBSTtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitDCBT(GPR RA, GPR RB) {
+  public void emitDCBT(GPR RA, GPR RB) {
     final int DCBTtemplate = 31 << 26 | 278 << 1;
     int mi = DCBTtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitDCBTST(GPR RA, GPR RB) {
+  public void emitDCBTST(GPR RA, GPR RB) {
     final int DCBTSTtemplate = 31 << 26 | 246 << 1;
     int mi = DCBTSTtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitDCBZ(GPR RA, GPR RB) {
+  public void emitDCBZ(GPR RA, GPR RB) {
     final int DCBZtemplate = 31 << 26 | 1014 << 1;
     int mi = DCBZtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitDCBZL(GPR RA, GPR RB) {
+  public void emitDCBZL(GPR RA, GPR RB) {
     final int DCBZLtemplate = 31 << 26 | 1 << 21 | 1014 << 1;
     int mi = DCBZLtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMFTB(GPR RT) {
+  public void emitMFTB(GPR RT) {
     final int MFTBtemplate = 31 << 26 | 392 << 11 | 371 << 1;
     int mi = MFTBtemplate | RT.value() << 21;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMFTBU(GPR RT) {
+  public void emitMFTBU(GPR RT) {
     final int MFTBUtemplate = 31 << 26 | 424 << 11 | 371 << 1;
     int mi = MFTBUtemplate | RT.value() << 21;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFCTIWZ(FPR FRT, FPR FRB) {
+  public void emitFCTIWZ(FPR FRT, FPR FRB) {
     final int FCTIWZtemplate = 63 << 26 | 15 << 1;
     int mi = FCTIWZtemplate | FRT.value() << 21 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitEXTSB(GPR RA, GPR RS) {
+  public void emitEXTSB(GPR RA, GPR RS) {
     final int EXTSBtemplate = 31 << 26 | 954 << 1;
     int mi = EXTSBtemplate | RS.value() << 21 | RA.value() << 16;
-    
+
     appendInstruction(mi);
   }
 
   // PowerPC 64-bit instuctions
 
-  public final void emitDIVD(GPR RT, GPR RA, GPR RB) {
+  public void emitDIVD(GPR RT, GPR RA, GPR RB) {
     final int DIVDtemplate = 31 << 26 | 489 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = DIVDtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
 
-  public final void emitEXTSW(GPR RA, GPR RS) {
+  public void emitEXTSW(GPR RA, GPR RS) {
     final int EXTSWtemplate = 31 << 26 | 986 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = EXTSWtemplate | RS.value() << 21 | RA.value() << 16;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFCTIDZ(FPR FRT, FPR FRB) {
+  public void emitFCTIDZ(FPR FRT, FPR FRB) {
     final int FCTIDZtemplate = 63 << 26 | 815 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = FCTIDZtemplate | FRT.value() << 21 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitFCFID(FPR FRT, FPR FRB) {
+  public void emitFCFID(FPR FRT, FPR FRB) {
     final int FCFIDtemplate = 63 << 26 | 846 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = FCFIDtemplate | FRT.value() << 21 | FRB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLD(GPR RT, int DS, GPR RA) {
+  public void emitLD(GPR RT, int DS, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(DS, 16));
     _emitLD(RT, DS, RA);
   }
@@ -1664,44 +1664,44 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     //DS is already checked to fit 16 bits
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = LDtemplate | RT.value() << 21 | RA.value() << 16 | (DS & 0xFFFC);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLDARX(GPR RT, GPR RA, GPR RB) {
+  public void emitLDARX(GPR RT, GPR RA, GPR RB) {
     final int LDARXtemplate = 31 << 26 | 84 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = LDARXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLDU(GPR RT, int DS, GPR RA) {
+  public void emitLDU(GPR RT, int DS, GPR RA) {
     final int LDUtemplate = 58 << 26 | 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     if (VM.VerifyAssertions) VM._assert(fits(DS, 16));
     int mi = LDUtemplate | RT.value() << 21 | RA.value() << 16 | (DS & 0xFFFC);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLDUX(GPR RT, GPR RA, GPR RB) {
+  public void emitLDUX(GPR RT, GPR RA, GPR RB) {
     final int LDUXtemplate = 31 << 26 | 53 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = LDUXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLDX(GPR RT, GPR RA, GPR RB) {
+  public void emitLDX(GPR RT, GPR RA, GPR RB) {
     final int LDXtemplate = 31 << 26 | 21 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = LDXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLWA(GPR RT, int DS, GPR RA) {
+  public void emitLWA(GPR RT, int DS, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(DS, 16));
     _emitLWA(RT, DS, RA);
   }
@@ -1711,35 +1711,35 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     //DS is already checked to fit 16 bits
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = LWAtemplate | RT.value() << 21 | RA.value() << 16 | (DS & 0xFFFC);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitLWAX(GPR RT, GPR RA, GPR RB) {
+  public void emitLWAX(GPR RT, GPR RA, GPR RB) {
     final int LWAXtemplate = 31 << 26 | 341 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = LWAXtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMULHDU(GPR RT, GPR RA, GPR RB) {
+  public void emitMULHDU(GPR RT, GPR RA, GPR RB) {
     final int MULHDUtemplate = 31 << 26 | 9 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = MULHDUtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitMULLD(GPR RT, GPR RA, GPR RB) {
+  public void emitMULLD(GPR RT, GPR RA, GPR RB) {
     final int MULLDtemplate = 31 << 26 | 233 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = MULLDtemplate | RT.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSLDI(GPR RA, GPR RS, int N) {
+  public void emitSLDI(GPR RA, GPR RS, int N) {
     final int SLDItemplate = 30 << 26 | 1 << 2;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi =
@@ -1750,56 +1750,56 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
         ((63 - N) & 0x1F) << 6 |
         ((63 - N) & 0x20) |
         (N & 0x20) >> 4;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitRLDINM(GPR RA, GPR RS, int SH, int MB, int ME) {
+  public void emitRLDINM(GPR RA, GPR RS, int SH, int MB, int ME) {
     VM._assert(false, "PLEASE IMPLEMENT ME");
   }
 
-  public final void emitSLD(GPR RA, GPR RS, GPR RB) {
+  public void emitSLD(GPR RA, GPR RS, GPR RB) {
     final int SLDtemplate = 31 << 26 | 27 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = SLDtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSRAD(GPR RA, GPR RS, GPR RB) {
+  public void emitSRAD(GPR RA, GPR RS, GPR RB) {
     final int SRADtemplate = 31 << 26 | 794 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = SRADtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSRADI(GPR RA, GPR RS, int SH) {
+  public void emitSRADI(GPR RA, GPR RS, int SH) {
     final int SRADItemplate = 31 << 26 | 413 << 2;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = SRADItemplate | RS.value() << 21 | RA.value() << 16 | (SH & 0x1F) << 11 | (SH & 0x20) >> 4;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSRADIr(GPR RA, GPR RS, int SH) {
+  public void emitSRADIr(GPR RA, GPR RS, int SH) {
     final int SRADItemplate = 31 << 26 | 413 << 2;
     final int SRADIrtemplate = SRADItemplate | 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = SRADIrtemplate | RS.value() << 21 | RA.value() << 16 | (SH & 0x1F) << 11 | (SH & 0x20) >> 4;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSRD(GPR RA, GPR RS, GPR RB) {
+  public void emitSRD(GPR RA, GPR RS, GPR RB) {
     final int SRDtemplate = 31 << 26 | 539 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = SRDtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTD(GPR RS, int DS, GPR RA) {
+  public void emitSTD(GPR RS, int DS, GPR RA) {
     if (VM.VerifyAssertions) VM._assert(fits(DS, 16));
     _emitSTD(RS, DS, RA);
   }
@@ -1809,7 +1809,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     //DS is already checked to fit 16 bits
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = STDtemplate | RS.value() << 21 | RA.value() << 16 | (DS & 0xFFFC);
-    
+
     appendInstruction(mi);
   }
 
@@ -1820,100 +1820,100 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     if (VM.VerifyAssertions) VM._assert(fits(Dis, 16));
     int DS = maskLower16(Dis);
     int mi = STDtemplate | RS.value() << 21 | RA.value() << 16 | (DS & 0xFFFC);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTDCXr(GPR RS, GPR RA, GPR RB) {
+  public void emitSTDCXr(GPR RS, GPR RA, GPR RB) {
     final int STDCXrtemplate = 31 << 26 | 214 << 1 | 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = STDCXrtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTDU(GPR RS, int DS, GPR RA) {
+  public void emitSTDU(GPR RS, int DS, GPR RA) {
     final int STDUtemplate = 62 << 26 | 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     if (VM.VerifyAssertions) VM._assert(fits(DS, 16));
     int mi = STDUtemplate | RS.value() << 21 | RA.value() << 16 | (DS & 0xFFFC);
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTDUX(GPR RS, GPR RA, GPR RB) {
+  public void emitSTDUX(GPR RS, GPR RA, GPR RB) {
     final int STDUXtemplate = 31 << 26 | 181 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = STDUXtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitSTDX(GPR RS, GPR RA, GPR RB) {
+  public void emitSTDX(GPR RS, GPR RA, GPR RB) {
     final int STDXtemplate = 31 << 26 | 149 << 1;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = STDXtemplate | RS.value() << 21 | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTDLE(GPR RA, GPR RB) {
+  public void emitTDLE(GPR RA, GPR RB) {
     final int TDtemplate = 31 << 26 | 68 << 1;
     final int TDLEtemplate = TDtemplate | 0x14 << 21;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = TDLEtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTDLT(GPR RA, GPR RB) {
+  public void emitTDLT(GPR RA, GPR RB) {
     final int TDtemplate = 31 << 26 | 68 << 1;
     final int TDLTtemplate = TDtemplate | 0x10 << 21;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = TDLTtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTDLLE(GPR RA, GPR RB) {
+  public void emitTDLLE(GPR RA, GPR RB) {
     final int TDtemplate = 31 << 26 | 68 << 1;
     final int TDLLEtemplate = TDtemplate | 0x6 << 21;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = TDLLEtemplate | RA.value() << 16 | RB.value() << 11;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTDI(int TO, GPR RA, int SI) {
+  public void emitTDI(int TO, GPR RA, int SI) {
     final int TDItemplate = 2 << 26;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = TDItemplate | TO << 21 | RA.value() << 16 | SI & 0xFFFF;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTDEQ0(GPR RA) {
+  public void emitTDEQ0(GPR RA) {
     final int TDItemplate = 2 << 26;
     final int TDEQItemplate = TDItemplate | 0x4 << 21;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = TDEQItemplate | RA.value() << 16;
-    
+
     appendInstruction(mi);
   }
 
-  public final void emitTDWI(int SI) {
+  public void emitTDWI(int SI) {
     final int TDItemplate = 2 << 26;
     final int TDWItemplate = TDItemplate | 0x1F << 21 | 0xC << 16;
     if (!VM.BuildFor64Addr && VM.VerifyAssertions) VM._assert(false);
     int mi = TDWItemplate | SI & 0xFFFF;
-    
+
     appendInstruction(mi);
   }
 
   // -------------------------------------------------------------- //
   // The following section contains macros to handle address values //
   // -------------------------------------------------------------- //
-  public final void emitCMPLAddr(GPR reg1, GPR reg2) {
+  public void emitCMPLAddr(GPR reg1, GPR reg2) {
     if (VM.BuildFor64Addr) {
       emitCMPLD(reg1, reg2);
     } else {
@@ -1921,7 +1921,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitCMPAddr(GPR reg1, GPR reg2) {
+  public void emitCMPAddr(GPR reg1, GPR reg2) {
 
     if (VM.BuildFor64Addr) {
       emitCMPD(reg1, reg2);
@@ -1930,7 +1930,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitCMPAddrI(GPR RA, int V) {
+  public void emitCMPAddrI(GPR RA, int V) {
     if (VM.BuildFor64Addr) {
       emitCMPDI(RA, V);
     } else {
@@ -1938,7 +1938,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSRAddr(GPR RA, GPR RS, GPR RB) {
+  public void emitSRAddr(GPR RA, GPR RS, GPR RB) {
     if (VM.BuildFor64Addr) {
       emitSRD(RA, RS, RB);
     } else {
@@ -1946,7 +1946,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSRA_Addr(GPR RA, GPR RS, GPR RB) {
+  public void emitSRA_Addr(GPR RA, GPR RS, GPR RB) {
     if (VM.BuildFor64Addr) {
       emitSRAD(RA, RS, RB);
     } else {
@@ -1954,7 +1954,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSRA_AddrI(GPR RA, GPR RS, int SH) {
+  public void emitSRA_AddrI(GPR RA, GPR RS, int SH) {
     if (VM.BuildFor64Addr) {
       emitSRADI(RA, RS, SH);
     } else {
@@ -1962,7 +1962,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSLAddr(GPR RA, GPR RS, GPR RB) {
+  public void emitSLAddr(GPR RA, GPR RS, GPR RB) {
     if (VM.BuildFor64Addr) {
       emitSLD(RA, RS, RB);
     } else {
@@ -1970,7 +1970,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSLAddrI(GPR RA, GPR RS, int N) {
+  public void emitSLAddrI(GPR RA, GPR RS, int N) {
     if (VM.BuildFor64Addr) {
       emitSLDI(RA, RS, N);
     } else {
@@ -1978,7 +1978,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitTAddrLT(GPR RA, GPR RB) {
+  public void emitTAddrLT(GPR RA, GPR RB) {
     if (VM.BuildFor64Addr) {
       emitTDLT(RA, RB);
     } else {
@@ -1986,7 +1986,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitTAddrLE(GPR RA, GPR RB) {
+  public void emitTAddrLE(GPR RA, GPR RB) {
     if (VM.BuildFor64Addr) {
       emitTDLE(RA, RB);
     } else {
@@ -1994,7 +1994,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitTAddrLLE(GPR RA, GPR RB) {
+  public void emitTAddrLLE(GPR RA, GPR RB) {
     if (VM.BuildFor64Addr) {
       emitTDLLE(RA, RB);
     } else {
@@ -2002,7 +2002,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitTAddrI(int TO, GPR RA, int SI) {
+  public void emitTAddrI(int TO, GPR RA, int SI) {
     if (VM.BuildFor64Addr) {
       emitTDI(TO, RA, SI);
     } else {
@@ -2010,7 +2010,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitTAddrEQ0(GPR RA) {
+  public void emitTAddrEQ0(GPR RA) {
     if (VM.BuildFor64Addr) {
       emitTDEQ0(RA);
     } else {
@@ -2018,7 +2018,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitTAddrWI(int SI) {
+  public void emitTAddrWI(int SI) {
     if (VM.BuildFor64Addr) {
       emitTDWI(SI);
     } else {
@@ -2026,7 +2026,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSTAddr(GPR src_reg, int offset, GPR dest_reg) {
+  public void emitSTAddr(GPR src_reg, int offset, GPR dest_reg) {
 
     if (VM.BuildFor64Addr) {
       emitSTD(src_reg, offset, dest_reg);
@@ -2035,7 +2035,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSTAddrOffset(GPR src_reg, GPR dest_reg, Offset offset) {
+  public void emitSTAddrOffset(GPR src_reg, GPR dest_reg, Offset offset) {
 
     if (VM.BuildFor64Addr) {
       emitSTDoffset(src_reg, dest_reg, offset);
@@ -2044,7 +2044,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSTAddrX(GPR src_reg, GPR offset_reg, GPR dest_reg) {
+  public void emitSTAddrX(GPR src_reg, GPR offset_reg, GPR dest_reg) {
 
     if (VM.BuildFor64Addr) {
       emitSTDX(src_reg, offset_reg, dest_reg);
@@ -2053,7 +2053,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitSTAddrU(GPR src_reg, int offset, GPR dest_reg) {
+  public void emitSTAddrU(GPR src_reg, int offset, GPR dest_reg) {
 
     if (VM.BuildFor64Addr) {
       emitSTDU(src_reg, offset, dest_reg);
@@ -2062,7 +2062,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLAddr(GPR dest_reg, int offset, GPR src_reg) {
+  public void emitLAddr(GPR dest_reg, int offset, GPR src_reg) {
 
     if (VM.BuildFor64Addr) {
       emitLD(dest_reg, offset, src_reg);
@@ -2071,7 +2071,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLAddrX(GPR dest_reg, GPR offset_reg, GPR src_reg) {
+  public void emitLAddrX(GPR dest_reg, GPR offset_reg, GPR src_reg) {
 
     if (VM.BuildFor64Addr) {
       emitLDX(dest_reg, offset_reg, src_reg);
@@ -2080,7 +2080,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLAddrU(GPR dest_reg, int offset, GPR src_reg) {
+  public void emitLAddrU(GPR dest_reg, int offset, GPR src_reg) {
 
     if (VM.BuildFor64Addr) {
       emitLDU(dest_reg, offset, src_reg);
@@ -2089,7 +2089,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLAddrToc(GPR dest_reg, Offset TOCoffset) {
+  public void emitLAddrToc(GPR dest_reg, Offset TOCoffset) {
     if (VM.BuildFor64Addr) {
       emitLDoffset(dest_reg, JTOC, TOCoffset);
     } else {
@@ -2097,7 +2097,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  final void emitRLAddrINM(GPR RA, GPR RS, int SH, int MB, int ME) {
+  void emitRLAddrINM(GPR RA, GPR RS, int SH, int MB, int ME) {
 
     if (VM.BuildFor64Addr) {
       emitRLDINM(RA, RS, SH, MB, ME);
@@ -2106,7 +2106,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLInt(GPR dest_reg, int offset, GPR src_reg) {
+  public void emitLInt(GPR dest_reg, int offset, GPR src_reg) {
 
     if (VM.BuildFor64Addr) {
       emitLWA(dest_reg, offset, src_reg);
@@ -2115,7 +2115,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLIntX(GPR dest_reg, GPR offset_reg, GPR src_reg) {
+  public void emitLIntX(GPR dest_reg, GPR offset_reg, GPR src_reg) {
 
     if (VM.BuildFor64Addr) {
       emitLWAX(dest_reg, offset_reg, src_reg);
@@ -2124,7 +2124,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLIntToc(GPR dest_reg, Offset TOCoffset) {
+  public void emitLIntToc(GPR dest_reg, Offset TOCoffset) {
     if (VM.BuildFor64Addr) {
       emitLWAoffset(dest_reg, JTOC, TOCoffset);
     } else {
@@ -2132,7 +2132,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLIntOffset(GPR RT, GPR RA, Offset offset) {
+  public void emitLIntOffset(GPR RT, GPR RA, Offset offset) {
     if (VM.BuildFor64Addr) {
       emitLWAoffset(RT, RA, offset);
     } else {
@@ -2140,7 +2140,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
-  public final void emitLAddrOffset(GPR RT, GPR RA, Offset offset) {
+  public void emitLAddrOffset(GPR RT, GPR RA, Offset offset) {
     if (VM.BuildFor64Addr) {
       emitLDoffset(RT, RA, offset);
     } else {
@@ -2177,7 +2177,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     final int TDItemplate = 2 << 26;
     final int TWItemplate = 3 << 26;
     int mi = (VM.BuildFor64Addr ? TDItemplate : TWItemplate) | 0x2 << 21 | RA.value() << 16 | 1;
-    
+
     appendInstruction(mi);
   }
 
@@ -2319,7 +2319,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
    * @param dest the number of the destination register
    * @param object the number of the register holding the object reference
    */
-  public final void baselineEmitLoadTIB(MachineRegister dest, MachineRegister object) {
+  public void baselineEmitLoadTIB(MachineRegister dest, MachineRegister object) {
     Offset tibOffset = JavaHeader.getTibOffset();
     emitLAddrOffset((GPR)dest, (GPR)object, tibOffset);
   }

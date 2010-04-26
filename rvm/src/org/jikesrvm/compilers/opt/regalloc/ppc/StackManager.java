@@ -108,7 +108,7 @@ public final class StackManager extends GenericStackManager {
    * Return the size of the fixed portion of the stack.
    * @return size in bytes of the fixed portion of the stackframe
    */
-  public final int getFrameFixedSize() {
+  public int getFrameFixedSize() {
     return frameSize;
   }
 
@@ -119,7 +119,7 @@ public final class StackManager extends GenericStackManager {
    * @param type the type to spill
    * @return the spill location
    */
-  public final int allocateNewSpillLocation(int type) {
+  public int allocateNewSpillLocation(int type) {
     int spillSize = PhysicalRegisterSet.getSpillSize(type);
 
     // Naturally align the spill pointer
@@ -189,7 +189,7 @@ public final class StackManager extends GenericStackManager {
    *                    CONDITION_VALUE
    * @param location the spill location
    */
-  public final void insertSpillBefore(Instruction s, Register r, byte type, int location) {
+  public void insertSpillBefore(Instruction s, Register r, byte type, int location) {
 
     Register FP = ir.regpool.getPhysicalRegisterSet().getFP();
     if (type == FLOAT_VALUE) {
@@ -206,7 +206,7 @@ public final class StackManager extends GenericStackManager {
   /**
    * Create an MIR instruction to move rhs into lhs
    */
-  final Instruction makeMoveInstruction(Register lhs, Register rhs) {
+  Instruction makeMoveInstruction(Register lhs, Register rhs) {
     if (rhs.isFloatingPoint() && lhs.isFloatingPoint()) {
       return MIR_Move.create(PPC_FMR, D(lhs), D(rhs));
       //} else if (rhs.isInteger() && lhs.isInteger()) { // integer
@@ -227,7 +227,7 @@ public final class StackManager extends GenericStackManager {
    *                    CONDITION_VALUE
    * @param location the spill location
    */
-  public final void insertUnspillBefore(Instruction s, Register r, byte type, int location) {
+  public void insertUnspillBefore(Instruction s, Register r, byte type, int location) {
 
     PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet().asPPC();
     Register FP = phys.getFP();
@@ -471,7 +471,7 @@ public final class StackManager extends GenericStackManager {
   /**
    * Schedule prologue for 'normal' case (see above)
    */
-  public final void insertNormalPrologue() {
+  public void insertNormalPrologue() {
     PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet().asPPC();
     Register FP = phys.getFP();
     Register TR = phys.getTR();
@@ -548,7 +548,7 @@ public final class StackManager extends GenericStackManager {
    * (1) R0 is the only available scratch register.
    * (2) stack overflow check has to come first.
    */
-  final void insertExceptionalPrologue() {
+  void insertExceptionalPrologue() {
     if (VM.VerifyAssertions) {
       VM._assert((frameSize & (STACKFRAME_ALIGNMENT - 1)) == 0, "Stack frame alignment error");
     }
@@ -824,7 +824,7 @@ public final class StackManager extends GenericStackManager {
    * Initializes the "tmp" regs for this object
    * @param ir the governing ir
    */
-  public final void initForArch(IR ir) {
+  public void initForArch(IR ir) {
     PhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet().asPPC();
     phys.getJTOC().reserveRegister();
     phys.getFirstConditionRegister().reserveRegister();

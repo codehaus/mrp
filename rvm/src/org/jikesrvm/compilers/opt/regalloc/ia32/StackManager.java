@@ -121,7 +121,7 @@ public final class StackManager extends GenericStackManager {
    * the stackpointer after the prologue of the method completes).
    * @return size in bytes of the fixed portion of the stackframe
    */
-  public final int getFrameFixedSize() {
+  public int getFrameFixedSize() {
     return frameSize - WORDSIZE;
   }
 
@@ -172,7 +172,7 @@ public final class StackManager extends GenericStackManager {
    * @param type the type to spill
    * @return the spill location
    */
-  public final int allocateNewSpillLocation(int type) {
+  public int allocateNewSpillLocation(int type) {
 
     // increment by the spill size
     spillPointer += PhysicalRegisterSet.getSpillSize(type);
@@ -193,7 +193,7 @@ public final class StackManager extends GenericStackManager {
    * @param location the spill location, as an offset from the frame
    * pointer
    */
-  public final void insertSpillBefore(Instruction s, Register r, byte type, int location) {
+  public void insertSpillBefore(Instruction s, Register r, byte type, int location) {
 
     Operator move = getMoveOperator(type);
     byte size = getSizeOfType(type);
@@ -223,7 +223,7 @@ public final class StackManager extends GenericStackManager {
    *                    CONDITION_VALUE
    * @param location the spill location
    */
-  public final void insertUnspillBefore(Instruction s, Register r, byte type, int location) {
+  public void insertUnspillBefore(Instruction s, Register r, byte type, int location) {
     Operator move = getMoveOperator(type);
     byte size = getSizeOfType(type);
     RegisterOperand rOp;

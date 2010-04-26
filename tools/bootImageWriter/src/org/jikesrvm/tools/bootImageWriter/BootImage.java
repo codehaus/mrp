@@ -22,7 +22,6 @@ import org.jikesrvm.VM;
 import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.RVMClass;
-import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.mm.mmtk.ScanBootImage;
 import org.jikesrvm.objectmodel.BootImageInterface;

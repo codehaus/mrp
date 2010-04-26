@@ -15,7 +15,6 @@ package org.jikesrvm.compilers.opt.ir.ia32;
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterTools;
-import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;

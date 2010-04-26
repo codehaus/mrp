@@ -16,7 +16,6 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.Configuration;
 import org.jikesrvm.adaptive.OnStackReplacementEvent;
 import org.jikesrvm.adaptive.measurements.RuntimeMeasurements;
 import org.jikesrvm.architecture.AbstractRegisters;

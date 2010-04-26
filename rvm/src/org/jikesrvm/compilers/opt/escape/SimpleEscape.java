@@ -37,7 +37,6 @@ import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
 import org.jikesrvm.compilers.opt.ir.OperandEnumeration;
-import org.jikesrvm.compilers.opt.ir.Operators;
 import static org.jikesrvm.compilers.opt.ir.Operators.*;
 import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
 import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.*;
@@ -476,25 +475,25 @@ class SimpleEscape extends CompilerPhase {
         // we do not know exactly, so be conservative
         return true;
       default:
-	if(VM.BuildForPowerPC) {
-	  switch(inst.getOpcode()) {
-	  case DCBST_opcode:
-	  case DCBT_opcode:
-	  case DCBTST_opcode:
-	  case DCBZ_opcode:
-	  case DCBZL_opcode:
-	  case ICBI_opcode:
-	    return false;
-	  }
-	} else {
-	  switch(inst.getOpcode()) {
-	  case PREFETCH_opcode:
-	    return false;
-	  case GET_CURRENT_PROCESSOR_opcode:
-	    return true;
-	  }
-	}
-	throw new OptimizingCompilerException("SimpleEscapge: Unexpected " + inst);
+        if(VM.BuildForPowerPC) {
+          switch(inst.getOpcode()) {
+          case DCBST_opcode:
+          case DCBT_opcode:
+          case DCBTST_opcode:
+          case DCBZ_opcode:
+          case DCBZL_opcode:
+          case ICBI_opcode:
+            return false;
+          }
+        } else {
+          switch(inst.getOpcode()) {
+          case PREFETCH_opcode:
+            return false;
+          case GET_CURRENT_PROCESSOR_opcode:
+            return true;
+          }
+        }
+        throw new OptimizingCompilerException("SimpleEscapge: Unexpected " + inst);
     }
   }
 
@@ -686,25 +685,25 @@ class SimpleEscape extends CompilerPhase {
         // TODO: add more smarts
         return true;
       default:
-	if(VM.BuildForPowerPC) {
-	  switch(inst.getOpcode()) {
-	  case DCBST_opcode:
-	  case DCBT_opcode:
-	  case DCBTST_opcode:
-	  case DCBZ_opcode:
-	  case DCBZL_opcode:
-	  case ICBI_opcode:
-	    return false;
-	  }
-	} else {
-	  switch(inst.getOpcode()) {
-	  case PREFETCH_opcode:
-	    return false;
-	  case GET_CURRENT_PROCESSOR_opcode:
-	    return true;
-	  }
-	}
-	throw new OptimizingCompilerException("SimpleEscapge: Unexpected " + inst);
+        if(VM.BuildForPowerPC) {
+          switch(inst.getOpcode()) {
+          case DCBST_opcode:
+          case DCBT_opcode:
+          case DCBTST_opcode:
+          case DCBZ_opcode:
+          case DCBZL_opcode:
+          case ICBI_opcode:
+            return false;
+          }
+        } else {
+          switch(inst.getOpcode()) {
+          case PREFETCH_opcode:
+            return false;
+          case GET_CURRENT_PROCESSOR_opcode:
+            return true;
+          }
+        }
+        throw new OptimizingCompilerException("SimpleEscapge: Unexpected " + inst);
       }
     } catch (Exception e) {
       OptimizingCompilerException oe = new OptimizingCompilerException("Error handling use ("+ use +") of: "+ inst);

@@ -1876,21 +1876,21 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
     private boolean mutateFMOVs(LiveIntervalElement live, Register register, int dfnbegin, int dfnend) {
       Instruction end = live.getEnd();
       if (end != null && end.operator == org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV) {
-	if (dfnend == dfnbegin) {
-	  // if end, an FMOV, both begins and ends the live range,
-	  // then end is dead.  Change it to a NOP and return null.
-	  Empty.mutate(end, NOP);
-	  return false;
-	} else {
-	  if (!end.isPEI()) {
-	    if (VM.VerifyAssertions) {
-	      Operand value = org.jikesrvm.compilers.opt.ir.ia32.MIR_Move.getValue(end);
-	      VM._assert(value.isRegister());
-	      VM._assert(org.jikesrvm.compilers.opt.ir.ia32.MIR_Move.getValue(end).asRegister().getRegister() == register);
-	    }
-	    end.operator = org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV_ENDING_LIVE_RANGE;
-	  }
-	}
+        if (dfnend == dfnbegin) {
+          // if end, an FMOV, both begins and ends the live range,
+          // then end is dead.  Change it to a NOP and return null.
+          Empty.mutate(end, NOP);
+          return false;
+        } else {
+          if (!end.isPEI()) {
+            if (VM.VerifyAssertions) {
+              Operand value = org.jikesrvm.compilers.opt.ir.ia32.MIR_Move.getValue(end);
+              VM._assert(value.isRegister());
+              VM._assert(org.jikesrvm.compilers.opt.ir.ia32.MIR_Move.getValue(end).asRegister().getRegister() == register);
+            }
+            end.operator = org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV_ENDING_LIVE_RANGE;
+          }
+        }
       }
       return true;
     }
@@ -2473,45 +2473,45 @@ public final class LinearScan extends OptimizationPlanCompositeElement {
     private void rewriteFPStack(IR ir) {
       GenericPhysicalRegisterSet phys = ir.regpool.getPhysicalRegisterSet();
       for (BasicBlockEnumeration b = ir.getBasicBlocks(); b.hasMoreElements();) {
-	BasicBlock bb = b.nextElement();
+        BasicBlock bb = b.nextElement();
 
-	// The following holds the floating point stack offset from its
-	// 'normal' position.
-	int fpStackOffset = 0;
+        // The following holds the floating point stack offset from its
+        // 'normal' position.
+        int fpStackOffset = 0;
 
-	for (InstructionEnumeration inst = bb.forwardInstrEnumerator(); inst.hasMoreElements();) {
-	  Instruction s = inst.next();
-	  for (OperandEnumeration ops = s.getOperands(); ops.hasMoreElements();) {
-	    Operand op = ops.next();
-	    if (op.isRegister()) {
-	      RegisterOperand rop = op.asRegister();
-	      Register r = rop.getRegister();
+        for (InstructionEnumeration inst = bb.forwardInstrEnumerator(); inst.hasMoreElements();) {
+          Instruction s = inst.next();
+          for (OperandEnumeration ops = s.getOperands(); ops.hasMoreElements();) {
+            Operand op = ops.next();
+            if (op.isRegister()) {
+              RegisterOperand rop = op.asRegister();
+              Register r = rop.getRegister();
 
-	      // Update MIR state for every physical FPR we see
-	      if (r.isPhysical() && r.isFloatingPoint() &&
+              // Update MIR state for every physical FPR we see
+              if (r.isPhysical() && r.isFloatingPoint() &&
                       s.operator() != org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.DUMMY_DEF &&
                       s.operator() != org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.DUMMY_USE) {
-		int n = PhysicalRegisterSet.getFPRIndex(r);
-		if (fpStackOffset != 0) {
-		  n += fpStackOffset;
-		  rop.setRegister(phys.getFPR(n));
-		}
-		ir.MIRInfo.fpStackHeight = Math.max(ir.MIRInfo.fpStackHeight, n + 1);
-	      }
-	    } else if (op instanceof BURSManagedFPROperand) {
-	      int regNum = ((BURSManagedFPROperand) op).regNum;
-	      s.replaceOperand(op, new RegisterOperand(phys.getFPR(regNum), TypeReference.Double));
-	    }
-	  }
-	  // account for any effect s has on the floating point stack
-	  // position.
-	  if (s.operator().isFpPop()) {
-	    fpStackOffset--;
-	  } else if (s.operator().isFpPush()) {
-	    fpStackOffset++;
-	  }
-	  if (VM.VerifyAssertions) VM._assert(fpStackOffset >= 0);
-	}
+                int n = PhysicalRegisterSet.getFPRIndex(r);
+                if (fpStackOffset != 0) {
+                  n += fpStackOffset;
+                  rop.setRegister(phys.getFPR(n));
+                }
+                ir.MIRInfo.fpStackHeight = Math.max(ir.MIRInfo.fpStackHeight, n + 1);
+              }
+            } else if (op instanceof BURSManagedFPROperand) {
+              int regNum = ((BURSManagedFPROperand) op).regNum;
+              s.replaceOperand(op, new RegisterOperand(phys.getFPR(regNum), TypeReference.Double));
+            }
+          }
+          // account for any effect s has on the floating point stack
+          // position.
+          if (s.operator().isFpPop()) {
+            fpStackOffset--;
+          } else if (s.operator().isFpPush()) {
+            fpStackOffset++;
+          }
+          if (VM.VerifyAssertions) VM._assert(fpStackOffset >= 0);
+        }
       }
     }
 

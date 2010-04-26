@@ -23,7 +23,6 @@ import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.AddressArray;
 import org.vmmagic.unboxed.Offset;
-import org.vmmagic.unboxed.WordArray;
 
 /**
  * Iterator for stack frames inserted at the transition from Java to

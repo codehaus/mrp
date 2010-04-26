@@ -18,13 +18,11 @@ import org.jikesrvm.architecture.MachineRegister;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.Register;
-import org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants;
 import org.jikesrvm.compilers.opt.util.BitSet;
 import org.jikesrvm.compilers.opt.util.CompoundEnumerator;
 import org.jikesrvm.compilers.opt.util.EmptyEnumerator;
 import org.jikesrvm.compilers.opt.util.ReverseEnumerator;
 import org.jikesrvm.ia32.ArchConstants;
-import org.jikesrvm.ia32.RegisterConstants;
 import static org.jikesrvm.ia32.RegisterConstants.*;
 import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.*;
 
@@ -59,7 +57,7 @@ public final class PhysicalRegisterSet extends GenericPhysicalRegisterSet {
   /**
    * Return the total number of physical registers.
    */
-  public final int getNumberOfPhysicalRegisters() {
+  public int getNumberOfPhysicalRegisters() {
     return getSize();
   }
 
@@ -87,7 +85,7 @@ public final class PhysicalRegisterSet extends GenericPhysicalRegisterSet {
   /**
    * Return the (zero-based indexed) nth GPR that may hold a parameter.
    */
-  public final Register getGPRParam(int n) {
+  public Register getGPRParam(int n) {
     if (VM.VerifyAssertions) VM._assert(n < 2);
     if (n == 0) {
       return getEAX();
@@ -99,7 +97,7 @@ public final class PhysicalRegisterSet extends GenericPhysicalRegisterSet {
   /**
    * Return the (zero-based indexed) nth FPR that may hold a parameter.
    */
-  public final Register getFPRParam(int n) {
+  public Register getFPRParam(int n) {
     return getFPR(VOLATILE_FPRS[n]);
   }
 

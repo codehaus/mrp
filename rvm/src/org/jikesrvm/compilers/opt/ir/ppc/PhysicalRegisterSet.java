@@ -89,7 +89,7 @@ public final class PhysicalRegisterSet extends GenericPhysicalRegisterSet
   /**
    * Return the total number of physical registers.
    */
-  public final int getNumberOfPhysicalRegisters() {
+  public int getNumberOfPhysicalRegisters() {
     return getSize();
   }
 
@@ -501,7 +501,7 @@ public final class PhysicalRegisterSet extends GenericPhysicalRegisterSet
    * denotes the PowerPC Special Purpose Register (SPR) in the PPC
    * instruction set.  See p.129 of PPC ISA book
    */
-  public final byte getSPR(Register r) {
+  public byte getSPR(Register r) {
     if (VM.VerifyAssertions) {
       VM._assert((r == getXER()) || (r == getLR()) || (r == getCTR()));
     }

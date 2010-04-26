@@ -54,15 +54,15 @@ public abstract class BURS {
   BURS_StateCoder makeCoder() {
     if(VM.BuildForIA32) {
       if(VM.BuildFor32Addr) {
-	return new org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE(this);
+        return new org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE(this);
       } else {
-	return new org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE(this);
+        return new org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE(this);
       }
     } else {
       if(VM.BuildFor32Addr) {
-	return new org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE(this);
+        return new org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE(this);
       } else {
-	return new org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE(this);
+        return new org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE(this);
       }
     }
   }
@@ -71,15 +71,15 @@ public abstract class BURS {
   static void label(AbstractBURS_TreeNode tn) {
     if(VM.BuildForIA32) {
       if(VM.BuildFor32Addr) {
-	org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.label(tn);
+        org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.label(tn);
       } else {
-	org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.label(tn);
+        org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.label(tn);
       }
     } else {
       if(VM.BuildFor32Addr) {
-	org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.label(tn);
+        org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.label(tn);
       } else {
-	org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.label(tn);
+        org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.label(tn);
       }
     }
   }
@@ -88,15 +88,15 @@ public abstract class BURS {
   static void mark(AbstractBURS_TreeNode tn, byte goalnt) {
     if(VM.BuildForIA32) {
       if(VM.BuildFor32Addr) {
-	org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.mark(tn, goalnt);
+        org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.mark(tn, goalnt);
       } else {
-	org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.mark(tn, goalnt);
+        org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.mark(tn, goalnt);
       }
     } else {
       if(VM.BuildFor32Addr) {
-	org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.mark(tn, goalnt);
+        org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.mark(tn, goalnt);
       } else {
-	org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.mark(tn, goalnt);
+        org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.mark(tn, goalnt);
       }
     }
   }
@@ -105,15 +105,15 @@ public abstract class BURS {
   static byte action(int rule) {
     if(VM.BuildForIA32) {
       if(VM.BuildFor32Addr) {
-	return org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.action(rule);
+        return org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.action(rule);
       } else {
-	return org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.action(rule);
+        return org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.action(rule);
       }
     } else {
       if(VM.BuildFor32Addr) {
-	return org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.action(rule);
+        return org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.action(rule);
       } else {
-	return org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.action(rule);
+        return org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.action(rule);
       }
     }
   }
@@ -122,15 +122,15 @@ public abstract class BURS {
   static void dumpTree(AbstractBURS_TreeNode tn) {
     if(VM.BuildForIA32) {
       if(VM.BuildFor32Addr) {
-	org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.dumpTree(tn);
+        org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_STATE.dumpTree(tn);
       } else {
-	org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.dumpTree(tn);
+        org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_STATE.dumpTree(tn);
       }
     } else {
       if(VM.BuildFor32Addr) {
-	org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.dumpTree(tn);
+        org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_STATE.dumpTree(tn);
       } else {
-	org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.dumpTree(tn);
+        org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_STATE.dumpTree(tn);
       }
     }
   }
@@ -139,15 +139,15 @@ public abstract class BURS {
   static String debug(int rule) {
     if(VM.BuildForIA32) {
       if(VM.BuildFor32Addr) {
-	return org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_Debug.string[rule];
+        return org.jikesrvm.compilers.opt.lir2mir.ia32_32.BURS_Debug.string[rule];
       } else {
-	return org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_Debug.string[rule];
+        return org.jikesrvm.compilers.opt.lir2mir.ia32_64.BURS_Debug.string[rule];
       }
     } else {
       if(VM.BuildFor32Addr) {
-	return org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_Debug.string[rule];
+        return org.jikesrvm.compilers.opt.lir2mir.ppc_32.BURS_Debug.string[rule];
       } else {
-	return org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_Debug.string[rule];
+        return org.jikesrvm.compilers.opt.lir2mir.ppc_64.BURS_Debug.string[rule];
       }
     }
   }

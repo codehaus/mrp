@@ -7,7 +7,7 @@ public final class ArchitectureFactory {
     if (VM.BuildForIA32) {
       return new org.jikesrvm.ia32.Registers();
     } else {
-      return new org.jikesrvm.ppc.Registers();      
+      return new org.jikesrvm.ppc.Registers();
     }
   }
 

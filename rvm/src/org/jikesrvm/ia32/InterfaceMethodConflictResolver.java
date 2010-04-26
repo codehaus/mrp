@@ -17,7 +17,6 @@ import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
 import org.jikesrvm.compilers.common.assembler.ia32.AssemblerConstants;
 import org.jikesrvm.compilers.common.CodeArray;
-import org.jikesrvm.objectmodel.ObjectModel;
 import org.jikesrvm.runtime.ArchEntrypoints;
 import org.jikesrvm.runtime.Magic;
 import org.vmmagic.unboxed.Offset;

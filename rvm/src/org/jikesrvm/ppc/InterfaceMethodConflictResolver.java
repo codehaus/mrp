@@ -17,7 +17,6 @@ import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.compilers.common.assembler.ppc.Assembler;
 import org.jikesrvm.compilers.common.assembler.ppc.AssemblerConstants;
 import org.jikesrvm.compilers.common.CodeArray;
-import org.jikesrvm.objectmodel.ObjectModel;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Memory;
 

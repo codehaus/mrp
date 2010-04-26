@@ -37,7 +37,7 @@ public final class Registers extends AbstractRegisters {
   public Registers() { }
 
   @Override
-  public final void clear() {
+  public void clear() {
     fp=Address.zero();
     super.clear();
   }
@@ -45,21 +45,21 @@ public final class Registers extends AbstractRegisters {
   /**
    * Return framepointer for the deepest stackframe
    */
-  public final Address getInnermostFramePointer() {
+  public Address getInnermostFramePointer() {
     return fp;
   }
 
   /**
    * Return next instruction address for the deepest stackframe
    */
-  public final Address getInnermostInstructionAddress() {
+  public Address getInnermostInstructionAddress() {
     return ip;
   }
 
   /**
    * update the machine state as if the stackframe were unwound.
    */
-  public final void unwindStackFrame() {
+  public void unwindStackFrame() {
     ip = Magic.getReturnAddress(fp);
     fp = Magic.getCallerFramePointer(fp);
   }
@@ -69,7 +69,7 @@ public final class Registers extends AbstractRegisters {
    * the stack during GC will start, for ex., the top java frame for
    * a thread that is blocked in native code during GC.
    */
-  public final void setInnermost(Address newip, Address newfp) {
+  public void setInnermost(Address newip, Address newfp) {
     ip = newip;
     fp = newfp;
   }
@@ -79,7 +79,7 @@ public final class Registers extends AbstractRegisters {
    * sigwait to set fp & ip so that GC will scan the threads stack
    * starting at the frame of the method that called sigwait.
    */
-  public final void setInnermost() {
+  public void setInnermost() {
     Address current_fp = Magic.getFramePointer();
     ip = Magic.getReturnAddress(current_fp);
     fp = Magic.getCallerFramePointer(current_fp);
@@ -95,7 +95,7 @@ public final class Registers extends AbstractRegisters {
    * @param sp The base of the stack
    */
   @Uninterruptible
-  public final void initializeStack(Address ip, Address sp) {
+  public void initializeStack(Address ip, Address sp) {
     Address fp;
     sp = sp.minus(StackframeLayoutConstants.STACKFRAME_HEADER_SIZE);                   // last word of header
     fp = sp.minus(SizeConstants.BYTES_IN_ADDRESS).minus(StackframeLayoutConstants.STACKFRAME_BODY_OFFSET);
@@ -118,7 +118,7 @@ public final class Registers extends AbstractRegisters {
    */
   @Uninterruptible
   @Override
-  public final void adjustESP( Offset delta, boolean traceAdjustments) {
+  public void adjustESP(Offset delta, boolean traceAdjustments) {
     Word old = getGPRs().get(ESP.value());
     getGPRs().set(ESP.value(), old.plus(delta));
     if (traceAdjustments) {
@@ -128,7 +128,7 @@ public final class Registers extends AbstractRegisters {
   }
 
   @Override
-  public final void dump() {
+  public void dump() {
     super.dump();
     VM.sysWriteln("fp = ",fp);
   }

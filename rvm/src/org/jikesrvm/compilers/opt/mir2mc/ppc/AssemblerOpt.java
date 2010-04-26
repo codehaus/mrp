@@ -13,7 +13,6 @@
 package org.jikesrvm.compilers.opt.mir2mc.ppc;
 
 import org.jikesrvm.VM;
-import org.jikesrvm.architecture.Constants;
 import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.opt.OperationNotImplementedException;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
@@ -40,12 +39,10 @@ import org.jikesrvm.compilers.opt.ir.ppc.MIR_Unary;
 import org.jikesrvm.compilers.opt.ir.NullCheck;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
-import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
 import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ppc.PowerPCTrapOperand;
 import org.jikesrvm.compilers.opt.ir.ppc.PhysicalRegisterSet;
-import org.jikesrvm.ppc.ArchConstants;
 import org.jikesrvm.ppc.Disassembler;
 import org.jikesrvm.util.Services;
 

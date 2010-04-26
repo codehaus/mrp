@@ -14,7 +14,6 @@ package org.jikesrvm.ppc;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.architecture.AbstractRegisters;
-import org.jikesrvm.runtime.ArchEntrypoints;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Memory;
 import org.vmmagic.pragma.Uninterruptible;
@@ -41,28 +40,28 @@ public final class Registers extends AbstractRegisters {
   }
 
   @Override
-  public final void clear() {
+  public void clear() {
     lr=Address.zero();
     super.clear();
   }
-  public final void dump() {
+  public void dump() {
     super.dump();
     VM.sysWriteln("lr = ",lr);
   }
 
   /** @return framepointer for the deepest stackframe */
-  public final Address getInnermostFramePointer() {
+  public Address getInnermostFramePointer() {
     return getGPRs().get(FRAME_POINTER.value()).toAddress();
   }
 
   /** @return next instruction address for the deepest stackframe */
-  public final Address getInnermostInstructionAddress() {
+  public Address getInnermostInstructionAddress() {
     if (ip.NE(invalidIP)) return ip; // ip set by hardware exception handler or Magic.threadSwitch
     return Magic.getNextInstructionAddress(getInnermostFramePointer()); // ip set to -1 because we're unwinding
   }
 
   /** Update the machine state to unwind the deepest stackframe. */
-  public final void unwindStackFrame() {
+  public void unwindStackFrame() {
     ip = invalidIP; // if there was a valid value in ip, it ain't valid anymore
     getGPRs().set(FRAME_POINTER.value(), Magic.getCallerFramePointer(getInnermostFramePointer()).toWord());
   }
@@ -72,7 +71,7 @@ public final class Registers extends AbstractRegisters {
    * the stack during GC will start, for ex., the top java frame for
    * a thread that is blocked in native code during GC.
    */
-  public final void setInnermost(Address newip, Address newfp) {
+  public void setInnermost(Address newip, Address newfp) {
     ip = newip;
     getGPRs().set(FRAME_POINTER.value(), newfp.toWord());
   }
@@ -82,7 +81,7 @@ public final class Registers extends AbstractRegisters {
    * sigwait to set fp &amp; ip so that GC will scan the threads stack
    * starting at the frame of the method that called sigwait.
    */
-  public final void setInnermost() {
+  public void setInnermost() {
     Address fp = Magic.getFramePointer();
     ip = Magic.getReturnAddress(fp);
     getGPRs().set(FRAME_POINTER.value(), Magic.getCallerFramePointer(fp).toWord());
@@ -98,7 +97,7 @@ public final class Registers extends AbstractRegisters {
    * @param sp The base of the stack
    */
   @Uninterruptible
-  public final void initializeStack(Address ip, Address sp) {
+  public void initializeStack(Address ip, Address sp) {
     Address fp;
     // align stack frame
     int INITIAL_FRAME_SIZE = StackframeLayoutConstants.STACKFRAME_HEADER_SIZE;

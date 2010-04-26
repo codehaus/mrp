@@ -338,12 +338,12 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
       numEntries++;
       Instruction instr = irMapElem.getInstruction();
       if (instr.position == null && instr.bcIndex != INSTRUMENTATION_BCI) {
-	if ((VM.BuildForIA32 &&
+        if ((VM.BuildForIA32 &&
              org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.conforms(instr) &&
-	     org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.hasMethod(instr))||
+             org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.hasMethod(instr))||
             (VM.BuildForPowerPC &&
              org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.conforms(instr) &&
-	     org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.hasMethod(instr))) {
+             org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.hasMethod(instr))) {
           throw new OptimizingCompilerException("position required for all call instructions " + instr);
         }
       } else {
@@ -377,12 +377,12 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
       int bci = instr.getBytecodeIndex();
       if (bci < 0) {
         if ((bci == UNKNOWN_BCI) &&
-	    ((VM.BuildForIA32 &&
+            ((VM.BuildForIA32 &&
               org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.conforms(instr) &&
-	      org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.hasMethod(instr))||
+              org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.hasMethod(instr))||
              (VM.BuildForPowerPC &&
               org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.conforms(instr) &&
-	      org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.hasMethod(instr)))) {
+              org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.hasMethod(instr)))) {
           throw new OptimizingCompilerException("valid bytecode index required for all calls " + instr);
         }
         bci = -1;
@@ -397,8 +397,8 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
       if ((VM.BuildForIA32 && org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.conforms(instr)) ||
           (VM.BuildForPowerPC && org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.conforms(instr))) {
         MethodOperand mo = VM.BuildForIA32
-	    ? org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.getMethod(instr)
-	    : org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.getMethod(instr);
+            ? org.jikesrvm.compilers.opt.ir.ia32.MIR_Call.getMethod(instr)
+            : org.jikesrvm.compilers.opt.ir.ppc.MIR_Call.getMethod(instr);
         if (mo != null && mo.isGuardedInlineOffBranch()) {
           cm = IS_GUARDED_CALL;
         } else {
