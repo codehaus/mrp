@@ -13,19 +13,20 @@
 package org.jikesrvm.compilers.opt.regalloc.ppc;
 
 import org.jikesrvm.compilers.opt.regalloc.GenericRegisterPreferences;
-import org.jikesrvm.compilers.opt.ir.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ppc.MIR_Move;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
-import org.jikesrvm.compilers.opt.ir.Operators;
 import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
+
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.*;
 
 /**
  * An instance of this class provides a mapping from symbolic register to
  * physical register, representing a preferred register assignment.
  */
-public abstract class RegisterPreferences extends GenericRegisterPreferences implements Operators {
+public abstract class RegisterPreferences extends GenericRegisterPreferences {
 
   /**
    * If the following is set, we use a heuristic optimization as follows:

@@ -12,8 +12,8 @@
  */
 package org.jikesrvm.compilers.opt.regalloc.ppc;
 
-import org.jikesrvm.compilers.opt.CompilerPhase;
-import org.jikesrvm.compilers.opt.Options;
+import org.jikesrvm.Options;
+import org.jikesrvm.compilers.opt.driver.CompilerPhase;
 import org.jikesrvm.compilers.opt.ir.IR;
 
 /**
