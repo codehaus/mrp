@@ -69,8 +69,6 @@
   <property name="generated.config.java" location="${generated.config.dir}/java"/>
 
   <property name="generated.java" location="${generated.dir}/main/java"/>
-  <property name="generated.ia32.java" location="${generated.dir}/ia32-${target.address.size}/main/java"/>
-  <property name="generated.arch.java" location="${generated.dir}/${target.arch}-${target.address.size}/main/java"/>
   <property name="generated.vmmagic.arch.java" location="${generated.dir}/vmmagic/${target.address.size}/java"/>
 
   <property name="generated.asm" location="${generated.dir}/asm/java"/>
@@ -846,18 +844,18 @@ Check to make sure all required properties are specified. This includes properti
   </target>
 
   <target name="gen-ia32-assembler" depends="check-properties,compile-vmmagic-stub">
-    <mkdir dir="${generated.ia32.java}/org/jikesrvm/compilers/common/assembler/ia32"/>
+    <mkdir dir="${generated.java}/org/jikesrvm/compilers/common/assembler/ia32"/>
     <property name="build.ia32-assembler.dir" location="${basedir}/rvm/src-generated/ia32-assembler"/>
     <exec executable="${bash.exe}" failonerror="true" dir="${build.ia32-assembler.dir}">
       <arg value="genAssembler.sh"/>
-      <arg path="${generated.ia32.java}/org/jikesrvm/compilers/common/assembler/ia32/Assembler.java"/>
+      <arg path="${generated.java}/org/jikesrvm/compilers/common/assembler/ia32/Assembler.java"/>
       <arg value="Assembler.in"/>
     </exec>
 
     <property name="build.ia32-assembler-opt.dir" location="${build.dir}/ia32-assembler-opt"/>
     <property name="ia32-assembler-opt.dir" location="${basedir}/rvm/src-generated/ia32-assembler-opt"/>
 
-    <mkdir dir="${generated.ia32.java}/org/jikesrvm/compilers/opt/mir2mc/ia32"/>
+    <mkdir dir="${generated.java}/org/jikesrvm/compilers/opt/mir2mc/ia32"/>
     <mkdir dir="${build.ia32-assembler-opt.dir}"/>
     <GenerateFromTemplate>
       <args>
@@ -891,7 +889,7 @@ Check to make sure all required properties are specified. This includes properti
           tofile="${build.ia32-assembler-opt.dir}/org/jikesrvm/compilers/common/assembler/ForwardReference.java"/>
     <copy file="${main.java}/org/jikesrvm/compilers/common/assembler/AbstractAssembler.java"
           tofile="${build.ia32-assembler-opt.dir}/org/jikesrvm/compilers/common/assembler/AbstractAssembler.java"/>
-    <copy file="${generated.ia32.java}/org/jikesrvm/compilers/common/assembler/ia32/Assembler.java"
+    <copy file="${generated.java}/org/jikesrvm/compilers/common/assembler/ia32/Assembler.java"
           tofile="${build.ia32-assembler-opt.dir}/org/jikesrvm/compilers/common/assembler/ia32/Assembler.java"/>
 
     <javac srcdir="${build.ia32-assembler-opt.dir}" destdir="${build.ia32-assembler-opt.dir}" debug="true"
@@ -906,7 +904,7 @@ Check to make sure all required properties are specified. This includes properti
         <pathelement location="${build.vmmagic-stub.classes}"/>
         <pathelement location="${build.ia32-assembler-opt.dir}"/>
       </classpath>
-      <jvmarg value="-DgenerateToDir=${generated.ia32.java}/org/jikesrvm/compilers/opt/mir2mc/ia32"/>
+      <jvmarg value="-DgenerateToDir=${generated.java}/org/jikesrvm/compilers/opt/mir2mc/ia32"/>
     </java>
   </target>
 
@@ -1140,7 +1138,7 @@ Check to make sure all required properties are specified. This includes properti
                source="1.5"
                target="1.5"
                srcdir="${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.cpl.java}:${classlib.library-interface.non-cpl.java}:${classlib.library-interface.non-cpl2.java}:${mmtk-vm-rvm.java}:${tuningforklib.java}"
-               sourcepath="${mmtk.java}:${options.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:${main.java}:${mmtk-vm-rvm.java}:${tuningforklib.java}">
+               sourcepath="${mmtk.java}:${options.java}:${generated.java}:${generated.config.java}:${main.java}:${mmtk-vm-rvm.java}:${tuningforklib.java}">
           <bootclasspath>
             <pathelement location="${classpath.lib.dir}/classpath.jar"/>
           </bootclasspath>
@@ -1174,7 +1172,7 @@ Check to make sure all required properties are specified. This includes properti
                source="1.5"
                target="1.5"
                srcdir="${main.java}:${classlib.library-interface.common.java}:${classlib.library-interface.non-cpl.java}:${classlib.library-interface.cpl.java}:${mmtk-vm-rvm.java}:${tuningforklib.java}"
-               sourcepath="${mmtk.java}:${options.java}:${generated.java}:${generated.config.java}:${generated.arch.java}:${main.java}:${mmtk-vm-rvm.java}:${tuningforklib.java}">
+               sourcepath="${mmtk.java}:${options.java}:${generated.java}:${generated.config.java}:${main.java}:${mmtk-vm-rvm.java}:${tuningforklib.java}">
           <bootclasspath>
             <pathelement location="${harmony.lib.dir}/luni-kernel-stubs.jar"/>
             <pathelement location="${harmony.lib.dir}/luni.jar"/>
@@ -2391,9 +2389,6 @@ target.jni-suffix=${target.jni-suffix}
       <fileset dir="${generated.java}">
         <include name="**/*.java"/>
       </fileset>
-      <fileset dir="${generated.arch.java}">
-        <include name="**/*.java"/>
-      </fileset>
       <fileset dir="${generated.config.java}">
         <include name="**/*.java"/>
       </fileset>
@@ -2436,7 +2431,6 @@ target.jni-suffix=${target.jni-suffix}
       <src path="${mmtk.java}"/>
       <src path="${mmtk-vm-rvm.java}"/>
       <src path="${generated.java}"/>
-      <src path="${generated.arch.java}"/>
       <src path="${generated.config.java}"/>
       <src path="${generated.vmmagic.arch.java}"/>
     </javac>
@@ -2482,7 +2476,6 @@ target.jni-suffix=${target.jni-suffix}
       <packageset dir="${mmtk.java}" defaultexcludes="yes" includes="org/**"/>
       <packageset dir="${mmtk-vm-rvm.java}" defaultexcludes="yes" includes="org/**"/>
       <packageset dir="${generated.java}" includes="org/**"/>
-      <packageset dir="${generated.arch.java}" includes="org/**"/>
       <packageset dir="${generated.config.java}" includes="org/**"/>
       <packageset dir="${generated.vmmagic.arch.java}" includes="org/**"/>
 
@@ -2532,7 +2525,6 @@ target.jni-suffix=${target.jni-suffix}
       <packageset dir="${mmtk.java}" defaultexcludes="yes" includes="org/**"/>
       <packageset dir="${mmtk-vm-rvm.java}" defaultexcludes="yes" includes="org/**"/>
       <packageset dir="${generated.java}" includes="org/**"/>
-      <packageset dir="${generated.arch.java}" includes="org/**"/>
       <packageset dir="${generated.config.java}" includes="org/**"/>
       <packageset dir="${generated.vmmagic.arch.java}" includes="org/**"/>
 
@@ -2583,9 +2575,6 @@ target.jni-suffix=${target.jni-suffix}
     </copy>
     <copy todir="eclipse/gen-config">
       <fileset dir="${generated.config.java}"><include name="**/*.*"/></fileset>
-    </copy>
-    <copy todir="eclipse/gen-arch">
-      <fileset dir="${generated.arch.java}"><include name="**/*.*"/></fileset>
     </copy>
     <copy todir="eclipse/gen-arch">
       <fileset dir="${generated.vmmagic.arch.java}"><include name="**/*.*"/></fileset>
