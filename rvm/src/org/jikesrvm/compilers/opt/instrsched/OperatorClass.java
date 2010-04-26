@@ -1,6 +1,5 @@
 package org.jikesrvm.compilers.opt.instrsched;
 
-import org.jikesrvm.VM;
 import java.util.ArrayList;
 
 /**
@@ -18,11 +17,6 @@ public abstract class OperatorClass {
    * Empty Resources Mask
    */
   static int NONE = 0;
-
-  /** Global class embodying all operator classes */
-  protected static final OperatorClass any_insn = VM.BuildForIA32
-    ? new org.jikesrvm.compilers.opt.instrsched.ia32.ArchOperatorClass(0)
-    : new org.jikesrvm.compilers.opt.instrsched.ppc.ArchOperatorClass(0);
 
   /**
    * Resource Usage Masks

@@ -32,6 +32,9 @@ import static org.jikesrvm.compilers.opt.ir.ARCHITECTURE.ArchOperators.*;
  */
 public final class ArchOperatorClass extends OperatorClass {
 
+   /** Global class embodying all operator classes */
+   private static final OperatorClass any_insn = new ArchOperatorClass(0);
+
    /**
     * All Resources Mask
     */
