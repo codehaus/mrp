@@ -69,7 +69,6 @@
   <property name="generated.config.java" location="${generated.config.dir}/java"/>
 
   <property name="generated.java" location="${generated.dir}/main/java"/>
-  <property name="generated.vmmagic.arch.java" location="${generated.dir}/vmmagic/${target.address.size}/java"/>
 
   <property name="generated.asm" location="${generated.dir}/asm/java"/>
   <property name="build.asm.classes" location="${generated.dir}/asm/classes"/>
@@ -496,26 +495,6 @@ Check to make sure all required properties are specified. This includes properti
   <!-- *            Section for generating source prior to build occuring         * -->
   <!-- *                                                                          * -->
   <!-- **************************************************************************** -->
-
-  <!-- build baseclass for vmmagic -->
-  <target name="gen-vmmagic-word" depends="check-properties">
-    <mkdir dir="${generated.dir}/vmmagic/32/java/org/vmmagic/unboxed"/>
-    <mkdir dir="${generated.dir}/vmmagic/64/java/org/vmmagic/unboxed"/>
-    <copy file="${basedir}/tools/bootImageWriter/vmmagic/src/org/vmmagic/unboxed/ArchitecturalWord.template"
-          tofile="${generated.dir}/vmmagic/32/java/org/vmmagic/unboxed/ArchitecturalWord.java">
-      <filterset>
-        <filter token="32MASK" value=""/>
-        <filter token="64MASK" value="//"/>
-      </filterset>
-    </copy>
-    <copy file="${basedir}/tools/bootImageWriter/vmmagic/src/org/vmmagic/unboxed/ArchitecturalWord.template"
-          tofile="${generated.dir}/vmmagic/64/java/org/vmmagic/unboxed/ArchitecturalWord.java">
-      <filterset>
-        <filter token="32MASK" value="//"/>
-        <filter token="64MASK" value=""/>
-      </filterset>
-    </copy>
-  </target>
 
   <!-- Macro to build operators and instruction formats for opt compiler -->
   <macrodef name="generate-ir">
@@ -1036,7 +1015,7 @@ Check to make sure all required properties are specified. This includes properti
 
   <!-- Control targets for the source generation -->
   <target name="do-gen-source"
-          depends="gen-vmmagic-word,gen-options,gen-opt-ir,gen-ia32-assembler,gen-config-source">
+          depends="gen-options,gen-opt-ir,gen-ia32-assembler,gen-config-source">
     <touch file="${generated.dir}/SourceGenerated"/>
   </target>
 
@@ -1236,7 +1215,6 @@ Check to make sure all required properties are specified. This includes properti
     <mkdir dir="${build.vmmagic.classes}"/>
     <javac srcdir="${vmmagic.java}" destdir="${build.vmmagic.classes}" debug="true" debugLevel="lines,source"
            source="1.5" target="1.5">
-      <src path="${generated.vmmagic.arch.java}"/>
       <classpath>
         <pathelement location="${build.classes}"/>
         <pathelement location="${build.vmmagic-stub.classes}"/>
@@ -2392,9 +2370,6 @@ target.jni-suffix=${target.jni-suffix}
       <fileset dir="${generated.config.java}">
         <include name="**/*.java"/>
       </fileset>
-      <fileset dir="${generated.vmmagic.arch.java}">
-        <include name="**/*.java"/>
-      </fileset>
     </pmd>
   </target>
 
@@ -2432,7 +2407,6 @@ target.jni-suffix=${target.jni-suffix}
       <src path="${mmtk-vm-rvm.java}"/>
       <src path="${generated.java}"/>
       <src path="${generated.config.java}"/>
-      <src path="${generated.vmmagic.arch.java}"/>
     </javac>
     <record name="${build.dir}/javadoc/JavadocReport.txt" action="stop"/>
   </target>
@@ -2477,7 +2451,6 @@ target.jni-suffix=${target.jni-suffix}
       <packageset dir="${mmtk-vm-rvm.java}" defaultexcludes="yes" includes="org/**"/>
       <packageset dir="${generated.java}" includes="org/**"/>
       <packageset dir="${generated.config.java}" includes="org/**"/>
-      <packageset dir="${generated.vmmagic.arch.java}" includes="org/**"/>
 
       <link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
     </javadoc>
@@ -2526,7 +2499,6 @@ target.jni-suffix=${target.jni-suffix}
       <packageset dir="${mmtk-vm-rvm.java}" defaultexcludes="yes" includes="org/**"/>
       <packageset dir="${generated.java}" includes="org/**"/>
       <packageset dir="${generated.config.java}" includes="org/**"/>
-      <packageset dir="${generated.vmmagic.arch.java}" includes="org/**"/>
 
       <link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
     </javadoc>
@@ -2575,9 +2547,6 @@ target.jni-suffix=${target.jni-suffix}
     </copy>
     <copy todir="eclipse/gen-config">
       <fileset dir="${generated.config.java}"><include name="**/*.*"/></fileset>
-    </copy>
-    <copy todir="eclipse/gen-arch">
-      <fileset dir="${generated.vmmagic.arch.java}"><include name="**/*.*"/></fileset>
     </copy>
     <copy file="build/eclipse/project.template" tofile=".project">
       <filterset>

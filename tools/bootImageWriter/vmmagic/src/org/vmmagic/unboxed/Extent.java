@@ -48,7 +48,7 @@ public final class Extent extends ArchitecturalWord {
 
   public boolean equals(Object o) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (o instanceof Extent) && ((Extent) o).value == value;
+    return (o instanceof Extent) && ((Extent) o).getValue() == getValue();
   }
 
   @UninterruptibleNoWarn
@@ -89,58 +89,58 @@ public final class Extent extends ArchitecturalWord {
 
   public int toInt() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (int)value;
+    return (int)getValue();
   }
 
   public long toLong() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
     if (VM.BuildFor64Addr) {
-      return value;
+      return getValue();
     } else {
-      return 0x00000000ffffffffL & ((long) value);
+      return 0x00000000ffffffffL & ((long) getValue());
     }
   }
 
   @UninterruptibleNoWarn
   public Word toWord() {
-    return new Word(value);
+    return new Word(getValue());
   }
 
   @UninterruptibleNoWarn
   public Extent plus(int byteSize) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Extent(value + byteSize);
+    return new Extent(getValue() + byteSize);
   }
 
   @UninterruptibleNoWarn
   public Extent plus(Extent byteSize) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Extent(value + byteSize.value);
+    return new Extent(getValue() + byteSize.getValue());
   }
 
   @UninterruptibleNoWarn
   public Extent minus(int byteSize) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Extent(value - byteSize);
+    return new Extent(getValue() - byteSize);
   }
 
   @UninterruptibleNoWarn
   public Extent minus(Extent byteSize) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Extent(value - byteSize.value);
+    return new Extent(getValue() - byteSize.getValue());
   }
 
   public boolean LT(Extent extent2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
-    if (value >= 0 && extent2.value >= 0) return value < extent2.value;
-    if (value < 0 && extent2.value < 0) return value < extent2.value;
-    if (value < 0) return false;
+    if (getValue() >= 0 && extent2.getValue() >= 0) return getValue() < extent2.getValue();
+    if (getValue() < 0 && extent2.getValue() < 0) return getValue() < extent2.getValue();
+    if (getValue() < 0) return false;
     return true;
   }
 
   public boolean LE(Extent extent2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
-    return (value == extent2.value) || LT(extent2);
+    return (getValue() == extent2.getValue()) || LT(extent2);
   }
 
   public boolean GT(Extent extent2) {
@@ -155,7 +155,7 @@ public final class Extent extends ArchitecturalWord {
 
   public boolean EQ(Extent extent2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);  // call site should have been hijacked by magic in compiler
-    return value == extent2.value;
+    return getValue() == extent2.getValue();
   }
 
   public boolean NE(Extent extent2) {

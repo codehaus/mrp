@@ -49,7 +49,7 @@ public final class Word extends ArchitecturalWord {
 
   public boolean equals(Object o) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (o instanceof Word) && ((Word) o).value == value;
+    return (o instanceof Word) && ((Word) o).getValue() == getValue();
   }
 
   @UninterruptibleNoWarn
@@ -89,69 +89,69 @@ public final class Word extends ArchitecturalWord {
 
   public int toInt() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (int) value;
+    return (int) getValue();
   }
 
   @UninterruptibleNoWarn
   public long toLong() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
     if (VM.BuildFor64Addr) {
-      return value;
+      return getValue();
     } else {
-      return 0x00000000ffffffffL & ((long) value);
+      return 0x00000000ffffffffL & ((long) getValue());
     }
   }
 
   @UninterruptibleNoWarn
   public Address toAddress() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Address(value);
+    return new Address(getValue());
   }
 
   @UninterruptibleNoWarn
   public Offset toOffset() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Offset(value);
+    return new Offset(getValue());
   }
 
   @UninterruptibleNoWarn
   public Extent toExtent() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Extent(value);
+    return new Extent(getValue());
   }
 
   @UninterruptibleNoWarn
   public Word plus(Word w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value + w2.value);
+    return new Word(getValue() + w2.getValue());
   }
 
   @UninterruptibleNoWarn
   public Word plus(Offset w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value + w2.toWord().value);
+    return new Word(getValue() + w2.toWord().getValue());
   }
 
   @UninterruptibleNoWarn
   public Word plus(Extent w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value + w2.toWord().value);
+    return new Word(getValue() + w2.toWord().getValue());
   }
 
   @UninterruptibleNoWarn
   public Word minus(Word w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value - w2.value);
+    return new Word(getValue() - w2.getValue());
   }
   @UninterruptibleNoWarn
   public Word minus(Offset w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value - w2.toWord().value);
+    return new Word(getValue() - w2.toWord().getValue());
   }
   @UninterruptibleNoWarn
   public Word minus(Extent w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value - w2.toWord().value);
+    return new Word(getValue() - w2.toWord().getValue());
   }
 
   public boolean isZero() {
@@ -166,15 +166,15 @@ public final class Word extends ArchitecturalWord {
 
   public boolean LT(Word addr2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    if (value >= 0 && addr2.value >= 0) return value < addr2.value;
-    if (value < 0 && addr2.value < 0) return value < addr2.value;
-    if (value < 0) return true;
+    if (getValue() >= 0 && addr2.getValue() >= 0) return getValue() < addr2.getValue();
+    if (getValue() < 0 && addr2.getValue() < 0) return getValue() < addr2.getValue();
+    if (getValue() < 0) return true;
     return false;
   }
 
   public boolean LE(Word w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (value == w2.value) || LT(w2);
+    return (getValue() == w2.getValue()) || LT(w2);
   }
 
   public boolean GT(Word w2) {
@@ -189,7 +189,7 @@ public final class Word extends ArchitecturalWord {
 
   public boolean EQ(Word w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return value == w2.value;
+    return getValue() == w2.getValue();
   }
 
   public boolean NE(Word w2) {
@@ -200,42 +200,47 @@ public final class Word extends ArchitecturalWord {
   @UninterruptibleNoWarn
   public Word and(Word w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value & w2.value);
+    return new Word(getValue() & w2.getValue());
   }
 
   @UninterruptibleNoWarn
   public Word or(Word w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value | w2.value);
+    return new Word(getValue() | w2.getValue());
   }
 
   @UninterruptibleNoWarn
   public Word not() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(~value);
+    return new Word(~getValue());
   }
 
   @UninterruptibleNoWarn
   public Word xor(Word w2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value ^ w2.value);
+    return new Word(getValue() ^ w2.getValue());
   }
 
   @UninterruptibleNoWarn
   public Word lsh(int amt) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value << amt);
+    return new Word(getValue() << amt);
   }
 
   @UninterruptibleNoWarn
   public Word rshl(int amt) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value >>> amt);
+    if (VM.BuildFor64Addr) {
+      return new Word(getValue() >>> amt);
+    } else {
+      int val = (int)getValue() >>> amt;
+      return new Word(val);
+    }
   }
 
   @UninterruptibleNoWarn
   public Word rsha(int amt) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value >> amt);
+    return new Word(getValue() >> amt);
   }
 }

@@ -194,7 +194,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
    */
   public int toInt() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (int) value;
+    return (int) getValue();
   }
 
   /**
@@ -207,9 +207,9 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
   public long toLong() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
     if (VM.BuildFor64Addr) {
-      return value;
+      return getValue();
     } else {
-      return 0x00000000ffffffffL & ((long) value);
+      return 0x00000000ffffffffL & ((long) getValue());
     }
   }
 
@@ -222,7 +222,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
    */
   public Word toWord() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value);
+    return new Word(getValue());
   }
 
   /****************************************************************************
@@ -240,7 +240,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
   @UninterruptibleNoWarn
   public Address plus(int v) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Address(value + v);
+    return new Address(getValue() + v);
   }
 
   /**
@@ -254,7 +254,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
   @UninterruptibleNoWarn
   public Address plus(Offset offset) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Address(value + offset.toWord().toAddress().value);
+    return new Address(getValue() + offset.toWord().toAddress().getValue());
   }
 
   /**
@@ -269,7 +269,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
   @UninterruptibleNoWarn
   public Address plus(Extent extent) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Address(value + extent.toWord().toAddress().value);
+    return new Address(getValue() + extent.toWord().toAddress().getValue());
   }
 
   /**
@@ -284,7 +284,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
   @UninterruptibleNoWarn
   public Address minus(int v) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Address(value - v);
+    return new Address(getValue() - v);
   }
 
   /**
@@ -299,7 +299,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
   @UninterruptibleNoWarn
   public Address minus(Offset offset) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Address(value - offset.toWord().toAddress().value);
+    return new Address(getValue() - offset.toWord().toAddress().getValue());
   }
 
   /**
@@ -314,7 +314,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
   @UninterruptibleNoWarn
   public Address minus(Extent extent) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Address(value - extent.toWord().toAddress().value);
+    return new Address(getValue() - extent.toWord().toAddress().getValue());
   }
 
   /**
@@ -329,7 +329,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
   @UninterruptibleNoWarn
   public Offset diff(Address addr2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Offset(value - addr2.value);
+    return new Offset(getValue() - addr2.getValue());
   }
 
 
@@ -349,9 +349,9 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
    */
  public boolean LT(Address addr2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    if (value >= 0 && addr2.value >= 0) return value < addr2.value;
-    if (value < 0 && addr2.value < 0) return value < addr2.value;
-    if (value < 0) return false;
+    if (getValue() >= 0 && addr2.getValue() >= 0) return getValue() < addr2.getValue();
+    if (getValue() < 0 && addr2.getValue() < 0) return getValue() < addr2.getValue();
+    if (getValue() < 0) return false;
     return true;
   }
 
@@ -366,7 +366,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
    */
   public boolean LE(Address addr2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (value == addr2.value) || LT(addr2);
+    return (getValue() == addr2.getValue()) || LT(addr2);
   }
 
   /**
@@ -408,7 +408,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
    */
   public boolean EQ(Address addr2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return value == addr2.value;
+    return getValue() == addr2.getValue();
   }
 
   /**
@@ -427,7 +427,7 @@ public final class Address extends ArchitecturalWord implements SizeConstants {
 
 //   public boolean equals(Object o) {
 //     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-//     return (o instanceof Address) && ((Address) o).value == value;
+//     return (o instanceof Address) && ((Address) o).getValue() == getValue();
 //   }
 
 

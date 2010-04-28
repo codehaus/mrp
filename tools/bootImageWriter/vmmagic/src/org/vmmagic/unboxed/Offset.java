@@ -50,7 +50,7 @@ public final class Offset extends ArchitecturalWord {
 
   public boolean equals(Object o) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (o instanceof Offset) && ((Offset) o).value == value;
+    return (o instanceof Offset) && ((Offset) o).getValue() == getValue();
   }
 
   @UninterruptibleNoWarn
@@ -85,76 +85,76 @@ public final class Offset extends ArchitecturalWord {
 
   public int toInt() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return (int) value;
+    return (int) getValue();
   }
 
   public long toLong() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
     if (VM.BuildFor64Addr) {
-      return value;
+      return getValue();
     } else {
-      return 0x00000000ffffffffL & ((long) value);
+      return 0x00000000ffffffffL & ((long) getValue());
     }
   }
 
   @UninterruptibleNoWarn
   public Word toWord() {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Word(value);
+    return new Word(getValue());
   }
 
   @UninterruptibleNoWarn
   public Offset plus(int byteSize) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Offset(value + byteSize);
+    return new Offset(getValue() + byteSize);
   }
 
   @UninterruptibleNoWarn
   public Offset plus(Offset off2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Offset(value + off2.value);
+    return new Offset(getValue() + off2.getValue());
   }
 
   @UninterruptibleNoWarn
   public Offset minus(int byteSize) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Offset(value - byteSize);
+    return new Offset(getValue() - byteSize);
   }
 
   @UninterruptibleNoWarn
   public Offset minus(Offset off2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return new Offset(value - off2.value);
+    return new Offset(getValue() - off2.getValue());
   }
 
   public boolean EQ(Offset off2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return value == off2.value;
+    return getValue() == off2.getValue();
   }
 
   public boolean NE(Offset off2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return value != off2.value;
+    return getValue() != off2.getValue();
   }
 
   public boolean sLT(Offset off2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return value < off2.value;
+    return getValue() < off2.getValue();
   }
 
   public boolean sLE(Offset off2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return value <= off2.value;
+    return getValue() <= off2.getValue();
   }
 
   public boolean sGT(Offset off2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return value > off2.value;
+    return getValue() > off2.getValue();
   }
 
   public boolean sGE(Offset off2) {
     if (VM.VerifyAssertions && VM.runningVM) VM._assert(VM.NOT_REACHED);
-    return value >= off2.value;
+    return getValue() >= off2.getValue();
   }
 
   public boolean isZero() {

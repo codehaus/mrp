@@ -443,9 +443,12 @@ public final class Lock implements Constants {
     }
     if (VM.VerifyAssertions) {
       // check that each potential lock is addressable
-      VM._assert(((MAX_LOCKS - 1) <=
-                  ThinLockConstants.TL_LOCK_ID_MASK.rshl(ThinLockConstants.TL_LOCK_ID_SHIFT).toInt()) ||
-                  ThinLockConstants.TL_LOCK_ID_MASK.EQ(Word.fromIntSignExtend(-1)));
+      if(((MAX_LOCKS - 1) > ThinLockConstants.TL_LOCK_ID_MASK.rshl(ThinLockConstants.TL_LOCK_ID_SHIFT).toInt()) &&
+         ThinLockConstants.TL_LOCK_ID_MASK.NE(Word.fromIntSignExtend(-1))) {
+        VM._assert(false, "Object model doesn't allow all locks to be addressable "+
+                   "(max locks - "+MAX_LOCKS+", thin lock mask - "+ThinLockConstants.TL_LOCK_ID_MASK.toInt()+
+                   ", thin lock shift"+ThinLockConstants.TL_LOCK_ID_SHIFT+")");
+      }
     }
   }
 
