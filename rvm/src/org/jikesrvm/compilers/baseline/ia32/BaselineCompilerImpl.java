@@ -732,32 +732,6 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
    */
 
   /**
-   * Emit code to store to an int array
-   */
-  @Override
-  protected void emit_iastore() {
-    Barriers.compileModifyCheck(asm, 8);
-    asm.emitPOP_Reg(T1); // T1 is the value
-    asm.emitPOP_Reg(T0); // T0 is array index
-    asm.emitPOP_Reg(S0); // S0 is array ref
-    if (VM.BuildFor64Addr) {
-      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
-    }
-    genBoundsCheck(asm, T0, S0);                // T0 is index, S0 is address of array
-    asm.emitMOV_RegIdx_Reg(S0, T0, AssemblerConstants.WORD, NO_SLOT, T1); // [S0 + T0<<2] <- T1
-  }
-
-  /**
-   * Emit code to store to a float array
-   */
-  @Override
-  protected void emit_fastore() {
-    // identical to iastore
-    emit_iastore();
-  }
-
-
-  /**
    * Emit code to store to a reference array
    */
   @Override
@@ -773,20 +747,89 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
   }
 
   /**
+   * Generate primitive array store for the given size
+   *
+   * @param size in bytes of the array store to generate
+   */
+  private void primArrayStoreHelper(int size) {
+    Barriers.compileModifyCheck(asm, (size == 8) ? 3*WORDSIZE : 2*WORDSIZE);
+    if (VM.BuildFor32Addr) {
+      if(size == 8) {
+        asm.emitPOP_Reg(S1);       // S1 is the low value
+      }
+      asm.emitPOP_Reg(T1);         // T1 is the value/high value
+      asm.emitPOP_Reg(T0);         // T0 is array index
+      asm.emitPOP_Reg(S0);         // S0 is array ref
+    } else {
+      asm.emitPOP_Reg(T1);         // T1 is the value
+      if(size == 8) {
+        adjustStack(WORDSIZE, true); // throw away slot
+      }
+      asm.emitPOP_Reg(T0);         // T0 is array index
+      asm.emitPOP_Reg(S0);         // S0 is array ref
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
+    }
+    genBoundsCheck(asm, T0, S0);   // T0 is index, S0 is address of array
+    switch(size) {
+    case 8:
+      if (VM.BuildFor32Addr) {
+        asm.emitMOV_RegIdx_Reg(S0, T0, AssemblerConstants.LONG, NO_SLOT, S1);  // [S0+T0<<<3] <- S1
+        asm.emitMOV_RegIdx_Reg(S0, T0, AssemblerConstants.LONG, ONE_SLOT, T1); // [4+S0+T0<<<3] <- T1
+      } else {
+        asm.emitMOV_RegIdx_Reg_Quad(S0, T0, AssemblerConstants.LONG, NO_SLOT, T1); // [S0+T0<<<3] <- T1
+      }
+      break;
+    case 4:
+      asm.emitMOV_RegIdx_Reg(S0, T0, AssemblerConstants.WORD, NO_SLOT, T1); // [S0 + T0<<2] <- T1
+      break;
+    case 2:
+      // store halfword element into array i.e. [S0 +T0] <- T1 (halfword)
+      asm.emitMOV_RegIdx_Reg_Word(S0, T0, AssemblerConstants.SHORT, NO_SLOT, T1);
+      break;
+    case 1:
+      asm.emitMOV_RegIdx_Reg_Byte(S0, T0, AssemblerConstants.BYTE, NO_SLOT, T1); // [S0 + T0<<2] <- T1
+      break;
+    }
+  }
+
+
+  /**
+   * Emit code to store to an int array
+   */
+  @Override
+  protected void emit_iastore() {
+    if (NEEDS_INT_ASTORE_BARRIER) {
+      genBoundsCheck(ONE_SLOT, TWO_SLOTS);
+      Barriers.compileArrayStoreBarrierInt(asm, this);
+    } else {
+      primArrayStoreHelper(4);
+    }
+  }
+
+  /**
+   * Emit code to store to a float array
+   */
+  @Override
+  protected void emit_fastore() {
+    if (NEEDS_FLOAT_ASTORE_BARRIER) {
+      genBoundsCheck(ONE_SLOT, TWO_SLOTS);
+      Barriers.compileArrayStoreBarrierFloat(asm, this);
+    } else {
+      primArrayStoreHelper(4);
+    }
+  }
+
+  /**
    * Emit code to store to a char array
    */
   @Override
   protected void emit_castore() {
-    Barriers.compileModifyCheck(asm, 8);
-    asm.emitPOP_Reg(T1); // T1 is the value
-    asm.emitPOP_Reg(T0); // T0 is array index
-    asm.emitPOP_Reg(S0); // S0 is array ref
-    if (VM.BuildFor64Addr) {
-      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
+    if (NEEDS_CHAR_ASTORE_BARRIER) {
+      genBoundsCheck(ONE_SLOT, TWO_SLOTS);
+      Barriers.compileArrayStoreBarrierChar(asm, this);
+    } else {
+      primArrayStoreHelper(2);
     }
-    genBoundsCheck(asm, T0, S0);        // T0 is index, S0 is address of array
-    // store halfword element into array i.e. [S0 +T0] <- T1 (halfword)
-    asm.emitMOV_RegIdx_Reg_Word(S0, T0, AssemblerConstants.SHORT, NO_SLOT, T1);
   }
 
   /**
@@ -794,8 +837,12 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
    */
   @Override
   protected void emit_sastore() {
-    // identical to castore
-    emit_castore();
+    if (NEEDS_SHORT_ASTORE_BARRIER) {
+      genBoundsCheck(ONE_SLOT, TWO_SLOTS);
+      Barriers.compileArrayStoreBarrierShort(asm, this);
+    } else {
+      primArrayStoreHelper(2);
+    }
   }
 
   /**
@@ -803,15 +850,12 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
    */
   @Override
   protected void emit_bastore() {
-    Barriers.compileModifyCheck(asm, 8);
-    asm.emitPOP_Reg(T1); // T1 is the value
-    asm.emitPOP_Reg(T0); // T0 is array index
-    asm.emitPOP_Reg(S0); // S0 is array ref
-    if (VM.BuildFor64Addr) {
-      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
+    if (NEEDS_BYTE_ASTORE_BARRIER) {
+      genBoundsCheck(ONE_SLOT, TWO_SLOTS);
+      Barriers.compileArrayStoreBarrierByte(asm, this);
+    } else {
+      primArrayStoreHelper(1);
     }
-    genBoundsCheck(asm, T0, S0);         // T0 is index, S0 is address of array
-    asm.emitMOV_RegIdx_Reg_Byte(S0, T0, AssemblerConstants.BYTE, NO_SLOT, T1); // [S0 + T0<<2] <- T1
   }
 
   /**
@@ -819,25 +863,11 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
    */
   @Override
   protected void emit_lastore() {
-    Barriers.compileModifyCheck(asm, 12);
-    if (VM.BuildFor32Addr) {
-      asm.emitPOP_Reg(S1);         // S1 is the low value
-      asm.emitPOP_Reg(T1);         // T1 is the high value
-      asm.emitPOP_Reg(T0);         // T0 is array index
-      asm.emitPOP_Reg(S0);         // S0 is array ref
+    if (NEEDS_LONG_ASTORE_BARRIER) {
+      genBoundsCheck(TWO_SLOTS, THREE_SLOTS);
+      Barriers.compileArrayStoreBarrierLong(asm, this);
     } else {
-      asm.emitPOP_Reg(T1);         // T1 is the value
-      adjustStack(WORDSIZE, true); // throw away slot
-      asm.emitPOP_Reg(T0);         // T0 is array index
-      asm.emitPOP_Reg(S0);         // S0 is array ref
-      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
-    }
-    genBoundsCheck(asm, T0, S0);                   // T0 is index, S0 is address of array
-    if (VM.BuildFor32Addr) {
-      asm.emitMOV_RegIdx_Reg(S0, T0, AssemblerConstants.LONG, NO_SLOT, S1);  // [S0+T0<<<3] <- S1
-      asm.emitMOV_RegIdx_Reg(S0, T0, AssemblerConstants.LONG, ONE_SLOT, T1); // [4+S0+T0<<<3] <- T1
-    } else {
-      asm.emitMOV_RegIdx_Reg_Quad(S0, T0, AssemblerConstants.LONG, NO_SLOT, T1); // [S0+T0<<<3] <- T1
+      primArrayStoreHelper(8);
     }
   }
 
@@ -846,8 +876,12 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
    */
   @Override
   protected void emit_dastore() {
-    // identical to lastore
-    emit_lastore();
+    if (NEEDS_DOUBLE_ASTORE_BARRIER) {
+      genBoundsCheck(TWO_SLOTS, THREE_SLOTS);
+      Barriers.compileArrayStoreBarrierDouble(asm, this);
+    } else {
+      primArrayStoreHelper(8);
+    }
   }
 
   /*
@@ -2705,7 +2739,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
       asm.emitMOVZX_Reg_RegIdx_Word(T1, S0, T0, AssemblerConstants.BYTE, NO_SLOT); // T1 is field value
       asm.emitPUSH_Reg(T1);                                               // place value on stack
     } else if (fieldType.isIntType() || fieldType.isFloatType() ||
-               (VM.BuildFor32Addr && fieldType.isWordType())) {
+               (VM.BuildFor32Addr && fieldType.isWordLikeType())) {
       // 32bit load
       asm.emitPOP_Reg(S0);                                  // S0 is object reference
       asm.emitPUSH_RegIdx(S0, T0, AssemblerConstants.BYTE, NO_SLOT); // place field value on stack
@@ -2713,14 +2747,14 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
       // 64bit load
       if (VM.VerifyAssertions) {
         VM._assert(fieldType.isLongType() || fieldType.isDoubleType() ||
-                   (VM.BuildFor64Addr && fieldType.isWordType()));
+                   (VM.BuildFor64Addr && fieldType.isWordLikeType()));
       }
       asm.emitPOP_Reg(T1);           // T1 is object reference
       if (VM.BuildFor32Addr) {
         asm.emitPUSH_RegIdx(T1, T0, AssemblerConstants.BYTE, ONE_SLOT); // place high half on stack
         asm.emitPUSH_RegIdx(T1, T0, AssemblerConstants.BYTE, NO_SLOT);  // place low half on stack
       } else {
-        if (!fieldType.isWordType()) {
+        if (!fieldType.isWordLikeType()) {
           adjustStack(-WORDSIZE, true); // add empty slot
         }
         asm.emitPUSH_RegIdx(T1, T0, AssemblerConstants.BYTE, NO_SLOT); // place value on stack
@@ -2766,7 +2800,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
       asm.emitMOVZX_Reg_RegDisp_Word(T0, S0, fieldOffset); // T0 is field value
       asm.emitPUSH_Reg(T0);                                // place value on stack
     } else if (fieldType.isIntType() || fieldType.isFloatType() ||
-               (VM.BuildFor32Addr && fieldType.isWordType())) {
+               (VM.BuildFor32Addr && fieldType.isWordLikeType())) {
       // 32bit load
       asm.emitPOP_Reg(S0);                   // S0 is object reference
       asm.emitPUSH_RegDisp(S0, fieldOffset); // T0 is field value
@@ -2774,14 +2808,14 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
       // 64bit load
       if (VM.VerifyAssertions) {
         VM._assert(fieldType.isLongType() || fieldType.isDoubleType() ||
-                   (VM.BuildFor64Addr && fieldType.isWordType()));
+                   (VM.BuildFor64Addr && fieldType.isWordLikeType()));
       }
       asm.emitPOP_Reg(T0); // T0 is object reference
       if (VM.BuildFor32Addr) {
         asm.emitPUSH_RegDisp(T0, fieldOffset.plus(ONE_SLOT)); // place high half on stack
         asm.emitPUSH_RegDisp(T0, fieldOffset);                // place low half on stack
       } else {
-        if (!fieldType.isWordType()) {
+        if (!fieldType.isWordLikeType()) {
           adjustStack(-WORDSIZE, true); // add empty slot
         }
         asm.emitPUSH_RegDisp(T0, fieldOffset); // place value on stack
@@ -2879,7 +2913,31 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
           asm.emitMOV_RegIdx_Reg_Quad(S0, T0, AssemblerConstants.BYTE, NO_SLOT, T1); // [S0+T0] <- T1
         }
       }
-    } else if (fieldType.isBooleanType() || fieldType.isByteType()) {
+    } else if (NEEDS_BOOLEAN_PUTFIELD_BARRIER && fieldType.isBooleanType()) {
+      Barriers.compilePutfieldBarrierBoolean(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_BYTE_PUTFIELD_BARRIER &&  fieldType.isByteType()) {
+      Barriers.compilePutfieldBarrierByte(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_CHAR_PUTFIELD_BARRIER && fieldType.isCharType()) {
+      Barriers.compilePutfieldBarrierChar(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_DOUBLE_PUTFIELD_BARRIER && fieldType.isDoubleType()) {
+      Barriers.compilePutfieldBarrierDouble(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_FLOAT_PUTFIELD_BARRIER && fieldType.isFloatType()) {
+      Barriers.compilePutfieldBarrierFloat(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_INT_PUTFIELD_BARRIER && fieldType.isIntType()) {
+      Barriers.compilePutfieldBarrierInt(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_LONG_PUTFIELD_BARRIER && fieldType.isLongType()) {
+      Barriers.compilePutfieldBarrierLong(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_SHORT_PUTFIELD_BARRIER && fieldType.isShortType()) {
+      Barriers.compilePutfieldBarrierShort(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_WORD_PUTFIELD_BARRIER && fieldType.isWordType()) {
+      Barriers.compilePutfieldBarrierWord(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_ADDRESS_PUTFIELD_BARRIER && fieldType.isAddressType()) {
+      Barriers.compilePutfieldBarrierAddress(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_OFFSET_PUTFIELD_BARRIER && fieldType.isOffsetType()) {
+      Barriers.compilePutfieldBarrierOffset(asm, T0, fieldRef.getId(), this);
+    } else if (NEEDS_EXTENT_PUTFIELD_BARRIER && fieldType.isExtentType()) {
+      Barriers.compilePutfieldBarrierExtent(asm, T0, fieldRef.getId(), this);
+    } else if (fieldType.isBooleanType() || fieldType.isByteType()) { // no need for primitive write barriers
       // 8bit store
       asm.emitPOP_Reg(T1);  // T1 is the value to be stored
       asm.emitPOP_Reg(S0);  // S0 is the object reference
@@ -2890,7 +2948,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
       asm.emitPOP_Reg(S0);  // S0 is the object reference
       asm.emitMOV_RegIdx_Reg_Word(S0, T0, AssemblerConstants.BYTE, NO_SLOT, T1); // [S0+T0] <- T1
     } else if (fieldType.isIntType() || fieldType.isFloatType() ||
-               (VM.BuildFor32Addr && fieldType.isWordType())) {
+               (VM.BuildFor32Addr && fieldType.isWordLikeType())) {
       // 32bit store
       asm.emitPOP_Reg(T1);  // T1 is the value to be stored
       asm.emitPOP_Reg(S0);  // S0 is the object reference
@@ -2899,7 +2957,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
       // 64bit store
       if (VM.VerifyAssertions) {
         VM._assert(fieldType.isLongType() || fieldType.isDoubleType() ||
-                   (VM.BuildFor64Addr && fieldType.isWordType()));
+                   (VM.BuildFor64Addr && fieldType.isWordLikeType()));
       }
       if (VM.BuildFor32Addr) {
         // NB this is a 64bit copy from the stack to memory so implement
@@ -2912,14 +2970,14 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
           asm.emitFLD_Reg_RegInd_Quad(FP0, SP); // FP0 is the value to be stored
           asm.emitFSTP_RegIdx_Reg_Quad(S0, T0, AssemblerConstants.BYTE, NO_SLOT, FP0); // [S0+T0] <- FP0
         }
-        if (!fieldType.isWordType()) {
+        if (!fieldType.isWordLikeType()) {
           adjustStack(WORDSIZE*3, true); // complete popping the values and reference
         } else {
           adjustStack(WORDSIZE*2, true); // complete popping the values and reference
         }
       } else {
         asm.emitPOP_Reg(T1);  // T1 is the value to be stored
-        if (!fieldType.isWordType()) {
+        if (!fieldType.isWordLikeType()) {
           adjustStack(WORDSIZE, true); // throw away slot
         }
         asm.emitPOP_Reg(S0);  // S0 is the object reference
@@ -2936,6 +2994,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
   protected void emit_resolved_putfield(FieldReference fieldRef) {
     Barriers.compileModifyCheck(asm, fieldRef.getNumberOfStackSlots() * WORDSIZE);
     RVMField field = fieldRef.peekResolvedField();
+    TypeReference fieldType = fieldRef.getFieldContentsType();
     Offset fieldOffset = field.getOffset();
     if (field.isReferenceType()) {
       // 32/64bit reference store
@@ -2951,7 +3010,31 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
           asm.emitMOV_RegDisp_Reg_Quad(S0, fieldOffset, T0);
         }
       }
-    } else if (field.getSize() == BYTES_IN_BYTE) {
+    } else if (NEEDS_BOOLEAN_PUTFIELD_BARRIER && fieldType.isBooleanType()) {
+      Barriers.compilePutfieldBarrierBooleanImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_BYTE_PUTFIELD_BARRIER &&  fieldType.isByteType()) {
+      Barriers.compilePutfieldBarrierByteImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_CHAR_PUTFIELD_BARRIER && fieldType.isCharType()) {
+      Barriers.compilePutfieldBarrierCharImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_DOUBLE_PUTFIELD_BARRIER && fieldType.isDoubleType()) {
+      Barriers.compilePutfieldBarrierDoubleImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_FLOAT_PUTFIELD_BARRIER && fieldType.isFloatType()) {
+      Barriers.compilePutfieldBarrierFloatImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_INT_PUTFIELD_BARRIER && fieldType.isIntType()) {
+      Barriers.compilePutfieldBarrierIntImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_LONG_PUTFIELD_BARRIER && fieldType.isLongType()) {
+      Barriers.compilePutfieldBarrierLongImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_SHORT_PUTFIELD_BARRIER && fieldType.isShortType()) {
+      Barriers.compilePutfieldBarrierShortImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_WORD_PUTFIELD_BARRIER && fieldType.isWordType()) {
+      Barriers.compilePutfieldBarrierWordImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_ADDRESS_PUTFIELD_BARRIER && fieldType.isAddressType()) {
+      Barriers.compilePutfieldBarrierAddressImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_OFFSET_PUTFIELD_BARRIER && fieldType.isOffsetType()) {
+      Barriers.compilePutfieldBarrierOffsetImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (NEEDS_EXTENT_PUTFIELD_BARRIER && fieldType.isExtentType()) {
+      Barriers.compilePutfieldBarrierExtentImm(asm, fieldOffset, fieldRef.getId(), this);
+    } else if (field.getSize() == BYTES_IN_BYTE) {  // no need for primitive write barriers
       // 8bit store
       asm.emitPOP_Reg(T0);  // T0 is the value to be stored
       asm.emitPOP_Reg(S0);  // S0 is the object reference
@@ -2988,7 +3071,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
         adjustStack(WORDSIZE*3, true); // complete popping the values and reference
       } else {
         asm.emitPOP_Reg(T1);           // T1 is the value to be stored
-        if (!field.getType().isWordType()) {
+        if (!field.getType().isWordLikeType()) {
           adjustStack(WORDSIZE, true); // throw away slot
         }
         asm.emitPOP_Reg(S0);           // S0 is the object reference
@@ -3971,6 +4054,20 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
   }
 
   /**
+   * Generate array bounds check for values on the stack
+   * @param index offset from current SP to the array index
+   * @param arrayRef offset from current SP to the array reference
+   */
+  private void genBoundsCheck(Offset index, Offset arrayRef) {
+    stackMoveHelper(T0, index);    // T0 is array index
+    if (VM.BuildFor64Addr) {
+      asm.emitAND_Reg_Reg(T0, T0); // clear MSBs
+    }
+    stackMoveHelper(S0, arrayRef); // S0 is array ref
+    genBoundsCheck(asm, T0, S0);   // T0 is index, S0 is address of array
+  }
+
+  /**
    * Emit a conditional branch on the given condition and bytecode target.
    * The caller has just emitted the instruction sequence to set the condition codes.
    */
@@ -4048,7 +4145,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
    * @param method is the method to be called.
    * @param hasThisParam is the method virtual?
    */
-  private void genParameterRegisterLoad(MethodReference method, boolean hasThisParam) {
+  protected void genParameterRegisterLoad(MethodReference method, boolean hasThisParam) {
     int max = NUM_PARAMETER_GPRS + NUM_PARAMETER_FPRS;
     if (max == 0) return; // quit looking when all registers are full
     int gpr = 0;  // number of general purpose registers filled
@@ -4111,7 +4208,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
           max--;
         }
         offset = offset.minus(2 * WORDSIZE);
-      } else if (t.isReferenceType() || t.isWordType()) {
+      } else if (t.isReferenceType() || t.isWordLikeType()) {
         if (gpr < NUM_PARAMETER_GPRS) {
           stackMoveHelper(T, offset);
           T = T1; // at most 2 parameters can be passed in general purpose registers
@@ -4396,7 +4493,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
               asm.emitMOV_Reg_RegDisp_Quad(NATIVE_PARAMETER_GPRS[gpRegistersInUse], SP, offsetToJavaArg);
               gpRegistersInUse++;
             }
-          } else if (arg.isWordType() || arg.isReferenceType()) {
+          } else if (arg.isWordLikeType() || arg.isReferenceType()) {
             if (gpRegistersInUse < NATIVE_PARAMETER_GPRS.length) {
               inRegister[i] = true;
               offsetToJavaArg = offsetToJavaArg.minus(WORDSIZE);

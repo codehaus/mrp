@@ -536,7 +536,13 @@ public abstract class SegregatedFreeListSpace extends Space implements Constants
    */
   protected final void consumeBlocks() {
     for (int sizeClass = 0; sizeClass < sizeClassCount(); sizeClass++) {
-      while (!getAllocationBlock(sizeClass, null).isZero());
+      while (!availableBlockHead.get(sizeClass).isZero()) {
+        Address block = availableBlockHead.get(sizeClass);
+        availableBlockHead.set(sizeClass, BlockAllocator.getNext(block));
+        advanceToBlock(block, sizeClass);
+        BlockAllocator.setNext(block, consumedBlockHead.get(sizeClass));
+        consumedBlockHead.set(sizeClass, block);
+      }
     }
   }
 

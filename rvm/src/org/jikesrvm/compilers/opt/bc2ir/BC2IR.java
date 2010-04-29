@@ -2221,7 +2221,7 @@ public final class BC2IR implements HIRGenerator {
           TypeReference typeRef = bcodes.getTypeReference();
           boolean classLoading = couldCauseClassLoading(typeRef);
           Operand op2 = pop();
-          if (typeRef.isWordType()) {
+          if (typeRef.isWordLikeType()) {
             op2 = op2.copy();
             if (op2 instanceof RegisterOperand) {
               ((RegisterOperand) op2).setType(typeRef);
@@ -4735,7 +4735,7 @@ public final class BC2IR implements HIRGenerator {
           ltypes[i] = ReturnAddressTypeCode;
         } else {
           TypeReference typ = op.getType();
-          if (typ.isWordType() || (typ == TypeReference.NULL_TYPE)) {
+          if (typ.isWordLikeType() || (typ == TypeReference.NULL_TYPE)) {
             ltypes[i] = WordTypeCode;
           } else {
             ltypes[i] = typ.getName().parseForTypeCode();
@@ -4768,7 +4768,7 @@ public final class BC2IR implements HIRGenerator {
           stypes[i] = ReturnAddressTypeCode;
         } else {
           TypeReference typ = op.getType();
-          if (typ.isWordType() || (typ == TypeReference.NULL_TYPE)) {
+          if (typ.isWordLikeType() || (typ == TypeReference.NULL_TYPE)) {
             stypes[i] = WordTypeCode;
           } else {
             /* for stack operand, reverse the order for long and double */

@@ -302,10 +302,14 @@ public class GenerateMagic implements TIBLayoutConstants  {
       bc2ir.appendInstruction(Load.create(INT_LOAD, val, object, offset, null));
       bc2ir.push(val.copyD2U());
     } else if (methodName == MagicNames.setIntAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 4) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
       Operand val = bc2ir.popInt();
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
-      bc2ir.appendInstruction(Store.create(INT_STORE, val, object, offset, null));
+      bc2ir.appendInstruction(Store.create(INT_STORE, val, object, offset, loc));
     } else if (methodName == MagicNames.getFloatAtOffset) {
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
@@ -313,10 +317,14 @@ public class GenerateMagic implements TIBLayoutConstants  {
       bc2ir.appendInstruction(Load.create(FLOAT_LOAD, val, object, offset, null));
       bc2ir.push(val.copyD2U());
     } else if (methodName == MagicNames.setFloatAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 4) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
       Operand val = bc2ir.popFloat();
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
-      bc2ir.appendInstruction(Store.create(FLOAT_STORE, val, object, offset, null));
+      bc2ir.appendInstruction(Store.create(FLOAT_STORE, val, object, offset, loc));
     } else if (methodName == MagicNames.getWordAtOffset) {
       LocationOperand loc = null;
       if (meth.getParameterTypes().length == 3) {
@@ -327,7 +335,40 @@ public class GenerateMagic implements TIBLayoutConstants  {
       RegisterOperand val = gc.temps.makeTemp(TypeReference.Word);
       bc2ir.appendInstruction(Load.create(REF_LOAD, val, object, offset, loc));
       bc2ir.push(val.copyD2U());
-    } else if (methodName == MagicNames.setWordAtOffset) {
+    } else if (methodName == MagicNames.getAddressAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 3) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
+      Operand offset = bc2ir.popAddress();
+      Operand object = bc2ir.popRef();
+      RegisterOperand val = gc.temps.makeTemp(TypeReference.Address);
+      bc2ir.appendInstruction(Load.create(REF_LOAD, val, object, offset, loc));
+      bc2ir.push(val.copyD2U());
+    } else if (methodName == MagicNames.getExtentAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 3) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
+      Operand offset = bc2ir.popAddress();
+      Operand object = bc2ir.popRef();
+      RegisterOperand val = gc.temps.makeTemp(TypeReference.Extent);
+      bc2ir.appendInstruction(Load.create(REF_LOAD, val, object, offset, loc));
+      bc2ir.push(val.copyD2U());
+    } else if (methodName == MagicNames.getOffsetAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 3) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
+      Operand offset = bc2ir.popAddress();
+      Operand object = bc2ir.popRef();
+      RegisterOperand val = gc.temps.makeTemp(TypeReference.Offset);
+      bc2ir.appendInstruction(Load.create(REF_LOAD, val, object, offset, loc));
+      bc2ir.push(val.copyD2U());
+    } else if (methodName == MagicNames.setWordAtOffset ||
+        methodName == MagicNames.setAddressAtOffset ||
+        methodName == MagicNames.setOffsetAtOffset ||
+        methodName == MagicNames.setExtentAtOffset) {
       LocationOperand loc = null;
       if (meth.getParameterTypes().length == 4) {
         loc = mapToMetadata(bc2ir.popInt());
@@ -343,10 +384,14 @@ public class GenerateMagic implements TIBLayoutConstants  {
       bc2ir.appendInstruction(Load.create(LONG_LOAD, val, object, offset, null));
       bc2ir.pushDual(val.copyD2U());
     } else if (methodName == MagicNames.setLongAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 4) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
       Operand val = bc2ir.popLong();
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
-      bc2ir.appendInstruction(Store.create(LONG_STORE, val, object, offset, null));
+      bc2ir.appendInstruction(Store.create(LONG_STORE, val, object, offset, loc));
     } else if (methodName == MagicNames.getDoubleAtOffset) {
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
@@ -354,10 +399,14 @@ public class GenerateMagic implements TIBLayoutConstants  {
       bc2ir.appendInstruction(Load.create(DOUBLE_LOAD, val, object, offset, null));
       bc2ir.pushDual(val.copyD2U());
     } else if (methodName == MagicNames.setDoubleAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 4) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
       Operand val = bc2ir.popDouble();
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
-      bc2ir.appendInstruction(Store.create(DOUBLE_STORE, val, object, offset, null));
+      bc2ir.appendInstruction(Store.create(DOUBLE_STORE, val, object, offset, loc));
     } else if (methodName == MagicNames.getObjectAtOffset) {
       LocationOperand loc = null;
       if (meth.getParameterTypes().length == 3) {
@@ -395,11 +444,15 @@ public class GenerateMagic implements TIBLayoutConstants  {
       RegisterOperand val = gc.temps.makeTemp(TypeReference.Byte);
       bc2ir.appendInstruction(Load.create(UBYTE_LOAD, val, object, offset, null));
       bc2ir.push(val.copyD2U());
-    } else if (methodName == MagicNames.setByteAtOffset) {
+    } else if (methodName == MagicNames.setByteAtOffset || methodName == MagicNames.setBooleanAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 4) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
       Operand val = bc2ir.popInt();
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
-      bc2ir.appendInstruction(Store.create(BYTE_STORE, val, object, offset, null));
+      bc2ir.appendInstruction(Store.create(BYTE_STORE, val, object, offset, loc));
     } else if (methodName == MagicNames.getShortAtOffset) {
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
@@ -413,10 +466,14 @@ public class GenerateMagic implements TIBLayoutConstants  {
       bc2ir.appendInstruction(Load.create(USHORT_LOAD, val, object, offset, null));
       bc2ir.push(val.copyD2U());
     } else if (methodName == MagicNames.setCharAtOffset || methodName == MagicNames.setShortAtOffset) {
+      LocationOperand loc = null;
+      if (meth.getParameterTypes().length == 4) {
+        loc = mapToMetadata(bc2ir.popInt());
+      }
       Operand val = bc2ir.popInt();
       Operand offset = bc2ir.popAddress();
       Operand object = bc2ir.popRef();
-      bc2ir.appendInstruction(Store.create(SHORT_STORE, val, object, offset, null));
+      bc2ir.appendInstruction(Store.create(SHORT_STORE, val, object, offset, loc));
     } else if (methodName == MagicNames.getMemoryInt) {
       Operand memAddr = bc2ir.popAddress();
       RegisterOperand val = gc.temps.makeTempInt();
@@ -972,7 +1029,7 @@ public class GenerateMagic implements TIBLayoutConstants  {
       if (type == TypeReference.Offset) return REF_STORE;
       if (type == TypeReference.Extent) return REF_STORE;
       if (type == TypeReference.Int) return INT_STORE;
-      if (type == TypeReference.Byte) return BYTE_STORE;
+      if (type == TypeReference.Byte || type == TypeReference.Boolean) return BYTE_STORE;
       if (type == TypeReference.Short) return SHORT_STORE;
       if (type == TypeReference.Char) return SHORT_STORE;
       if (type == TypeReference.Float) return FLOAT_STORE;

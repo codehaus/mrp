@@ -742,7 +742,7 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
         if (NEEDS_SHORT_ASTORE_BARRIER || NEEDS_SHORT_ALOAD_BARRIER) {
           Offset srcOffset = Offset.fromIntZeroExtend(srcIdx<<LOG_BYTES_IN_SHORT);
           Offset dstOffset = Offset.fromIntZeroExtend(dstIdx<<LOG_BYTES_IN_SHORT);
-          Barriers.shortBulkCopy(src, srcOffset, dst, dstOffset, len);
+          Barriers.shortBulkCopy(src, srcOffset, dst, dstOffset, len << LOG_BYTES_IN_SHORT);
         } else {
           Memory.arraycopy16Bit(src, srcIdx, dst, dstIdx, len);
         }
@@ -803,7 +803,7 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
         if (NEEDS_CHAR_ASTORE_BARRIER || NEEDS_CHAR_ALOAD_BARRIER) {
           Offset srcOffset = Offset.fromIntZeroExtend(srcIdx<<LOG_BYTES_IN_CHAR);
           Offset dstOffset = Offset.fromIntZeroExtend(dstIdx<<LOG_BYTES_IN_CHAR);
-          Barriers.charBulkCopy(src, srcOffset, dst, dstOffset, len);
+          Barriers.charBulkCopy(src, srcOffset, dst, dstOffset, len << LOG_BYTES_IN_CHAR);
         } else {
           Memory.arraycopy16Bit(src, srcIdx, dst, dstIdx, len);
         }
@@ -864,7 +864,7 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
         if (NEEDS_INT_ASTORE_BARRIER || NEEDS_INT_ALOAD_BARRIER) {
           Offset srcOffset = Offset.fromIntZeroExtend(srcIdx<<LOG_BYTES_IN_INT);
           Offset dstOffset = Offset.fromIntZeroExtend(dstIdx<<LOG_BYTES_IN_INT);
-          Barriers.intBulkCopy(src, srcOffset, dst, dstOffset, len);
+          Barriers.intBulkCopy(src, srcOffset, dst, dstOffset, len << LOG_BYTES_IN_INT);
         } else {
           Memory.arraycopy32Bit(src, srcIdx, dst, dstIdx, len);
         }
@@ -921,11 +921,11 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
         (srcIdx + len) <= src.length &&
         (dstIdx + len) >= 0 &&
         (dstIdx + len) <= dst.length) {
-      if (src != dst || srcIdx > dstIdx && FLOAT_BULK_COPY_SUPPORTED) {
+      if ((src != dst || srcIdx > dstIdx) && FLOAT_BULK_COPY_SUPPORTED) {
         if (NEEDS_FLOAT_ASTORE_BARRIER || NEEDS_FLOAT_ALOAD_BARRIER) {
           Offset srcOffset = Offset.fromIntZeroExtend(srcIdx<<LOG_BYTES_IN_FLOAT);
           Offset dstOffset = Offset.fromIntZeroExtend(dstIdx<<LOG_BYTES_IN_FLOAT);
-          Barriers.floatBulkCopy(src, srcOffset, dst, dstOffset, len);
+          Barriers.floatBulkCopy(src, srcOffset, dst, dstOffset, len << LOG_BYTES_IN_FLOAT);
         } else {
           Memory.arraycopy32Bit(src, srcIdx, dst, dstIdx, len);
         }
@@ -986,7 +986,7 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
         if (NEEDS_LONG_ASTORE_BARRIER || NEEDS_LONG_ALOAD_BARRIER) {
           Offset srcOffset = Offset.fromIntZeroExtend(srcIdx<<LOG_BYTES_IN_LONG);
           Offset dstOffset = Offset.fromIntZeroExtend(dstIdx<<LOG_BYTES_IN_LONG);
-          Barriers.longBulkCopy(src, srcOffset, dst, dstOffset, len);
+          Barriers.longBulkCopy(src, srcOffset, dst, dstOffset, len << LOG_BYTES_IN_LONG);
         } else {
           Memory.arraycopy64Bit(src, srcIdx, dst, dstIdx, len);
         }
@@ -1047,7 +1047,7 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
         if (NEEDS_DOUBLE_ASTORE_BARRIER || NEEDS_DOUBLE_ALOAD_BARRIER) {
           Offset srcOffset = Offset.fromIntZeroExtend(srcIdx<<LOG_BYTES_IN_DOUBLE);
           Offset dstOffset = Offset.fromIntZeroExtend(dstIdx<<LOG_BYTES_IN_DOUBLE);
-          Barriers.doubleBulkCopy(src, srcOffset, dst, dstOffset, len);
+          Barriers.doubleBulkCopy(src, srcOffset, dst, dstOffset, len << LOG_BYTES_IN_DOUBLE);
         } else {
           Memory.arraycopy64Bit(src, srcIdx, dst, dstIdx, len);
         }
@@ -1175,12 +1175,12 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
     // perform the copy
     while (len-- != 0) {
       Object value;
-      if (NEEDS_OBJECT_GETFIELD_BARRIER) {
+      if (NEEDS_OBJECT_ALOAD_BARRIER) {
         value = Barriers.objectArrayRead(src, srcOffset.toInt() >> LOG_BYTES_IN_ADDRESS);
       } else {
         value = Magic.getObjectAtOffset(src, srcOffset);
       }
-      if (NEEDS_OBJECT_PUTFIELD_BARRIER) {
+      if (NEEDS_OBJECT_ASTORE_BARRIER) {
         Barriers.objectArrayWrite(dst, dstOffset.toInt() >> LOG_BYTES_IN_ADDRESS, value);
       } else {
         Magic.setObjectAtOffset(dst, dstOffset, value);
@@ -1205,24 +1205,15 @@ public final class RVMArray extends RVMType implements Constants, ClassLoaderCon
    * @param len The number of array elements to be copied
    */
   private static void arraycopyPiecemeal(Object[] src, int srcIdx, Object[] dst, int dstIdx, int len) {
-    // must perform copy in correct order
-    if ((src != dst) || srcIdx > dstIdx) {
-      // non-overlapping case: straightforward
+    if ((src != dst) || srcIdx >= dstIdx) {
       while (len-- != 0) {
         dst[dstIdx++] = src[srcIdx++];
       }
     } else {
-      // the arrays overlap: must use temp array
-      RVMArray ary = Magic.getObjectType(src).asArray();
-      Object[] temp = (Object[]) RuntimeEntrypoints.resolvedNewArray(len, ary);
-      int cnt = len;
-      int tempIdx = 0;
-      while (cnt-- != 0) {
-        temp[tempIdx++] = src[srcIdx++];
-      }
-      tempIdx = 0;
+      srcIdx += len;
+      dstIdx += len;
       while (len-- != 0) {
-        dst[dstIdx++] = temp[tempIdx++];
+        dst[--dstIdx] = src[--srcIdx];
       }
     }
   }
