@@ -16,11 +16,12 @@ package mrp.debug;
 
 import org.jikesrvm.classloader.Atom;
 import org.jikesrvm.compilers.common.CompiledMethod;
-import org.jikesrvm.compilers.common.CompiledMethod.DebugInformationVisitor;
 import org.jikesrvm.compilers.common.CompiledMethods;
+import org.jikesrvm.compilers.common.CompiledMethod.DebugInformationVisitor;
 import org.jikesrvm.runtime.Callbacks;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Callbacks.Callback;
+import org.jikesrvm.util.StringUtilities;
 import org.jikesrvm.VM;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
@@ -33,6 +34,9 @@ import static org.jikesrvm.runtime.SysCall.sysCall;
 public final class OProfileListener {
   /** Debug messages */
   private static final boolean DEBUG = false;
+
+  /** Profile boot image compiled methods */
+  private static final boolean profileBootImage = false;
 
   /** Only instance of this class */
   private static OProfileListener singleton;
@@ -56,6 +60,7 @@ public final class OProfileListener {
       CompiledMethod cm = CompiledMethods.getCompiledMethod(i);
       if (cm != null && cm.isCompiled()) singleton.describeCompiledMethod(cm);
     }
+
     Callbacks.methodCompileCompleteCallbacks.addCallback(
       new Callback() {
         public void notify(Object... args) {
@@ -93,24 +98,32 @@ public final class OProfileListener {
     if (DEBUG) VM.sysWriteln("Describing compiled method: "+cm);
     String stringSymbolName = cm.symbolName();
     if (DEBUG) VM.sysWriteln("  symbol name: "+stringSymbolName);
-    Atom symbolName =  Atom.findOrCreateUnicodeAtom(stringSymbolName);
+    final byte[] symbolName =  StringUtilities.stringToBytesNullTerminated(stringSymbolName);
     final Address codeAddress = Magic.objectAsAddress(cm.getEntryCodeArray());
     int codeLength = cm.getEntryCodeArray().length();
-    sysCall.sysOProfileWriteNativeCode(opHandle, symbolName.toByteArray(), codeAddress, codeLength);
+    sysCall.sysOProfileWriteNativeCode(opHandle, symbolName, codeAddress, codeLength);
 
     final class CompileMapVisitor extends DebugInformationVisitor {
       final Address cmap = sysCall.sysOProfileStartCompileMap(opHandle, codeAddress);
       public void visit(Offset offs, Atom fileName, int lineNumber) {
         if (VM.VerifyAssertions) VM._assert(!cmap.isZero());
-        sysCall.sysOProfileAddToCompileMap(cmap, codeAddress.plus(offs), fileName.toByteArray(), lineNumber);
+        byte[] fileNameBA;
+        if(fileName == null) {
+          fileNameBA = symbolName;
+        } else {
+          fileNameBA = StringUtilities.stringToBytesNullTerminated(fileName.toString());
+        }
+        sysCall.sysOProfileAddToCompileMap(cmap, codeAddress.plus(offs), fileNameBA, lineNumber);
       }
       void finish() {
         sysCall.sysOProfileFinishCompileMap(cmap);
       }
     }
-    CompileMapVisitor visitor = new CompileMapVisitor();
-    cm.walkDebugInformation(visitor);
-    visitor.finish();
+    if(profileBootImage || !cm.getMethod().getDeclaringClass().isInBootImage()) {
+      CompileMapVisitor visitor = new CompileMapVisitor();
+      cm.walkDebugInformation(visitor);
+      visitor.finish();
+    }
   }
 
   /**

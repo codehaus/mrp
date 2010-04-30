@@ -39,7 +39,6 @@ import org.jikesrvm.compilers.common.assembler.ForwardReference;
 import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
 import org.jikesrvm.compilers.common.assembler.ia32.AssemblerConstants;
 import org.jikesrvm.ia32.BaselineConstants;
-import org.jikesrvm.ia32.ThreadLocalState;
 import org.jikesrvm.jni.ia32.JNICompiler;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.objectmodel.JavaHeader;
@@ -3255,7 +3254,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
       InterfaceMethodSignature sig = InterfaceMethodSignature.findOrCreate(methodRef);
 
       // squirrel away signature ID
-      ThreadLocalState.emitMoveImmToField(asm, ArchEntrypoints.hiddenSignatureIdField.getOffset(), sig.getId());
+      asm.emitMOV_RegDisp_Imm(THREAD_REGISTER, ArchEntrypoints.hiddenSignatureIdField.getOffset(), sig.getId());
       // T1 = "this" object
       stackMoveHelper(T1, Offset.fromIntZeroExtend((count - 1) << LG_WORDSIZE));
       asm.baselineEmitLoadTIB(S0, T1);
@@ -3775,10 +3774,14 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
        * point of the caller.
        * The third word of the header contains the compiled method id of the called method.
        */
-      asm.emitPUSH_RegDisp(TR, ArchEntrypoints.framePointerField.getOffset());        // store caller's frame pointer
-      ThreadLocalState.emitMoveRegToField(asm,
-                                          ArchEntrypoints.framePointerField.getOffset(),
-                                          SP); // establish new frame
+      // store caller's frame pointer
+      asm.emitPUSH_RegDisp(TR, ArchEntrypoints.framePointerField.getOffset());
+      // establish new frame
+      if(VM.BuildFor32Addr) {
+        asm.emitMOV_RegDisp_Reg(THREAD_REGISTER, ArchEntrypoints.framePointerField.getOffset(), SP);
+      } else {
+        asm.emitMOV_RegDisp_Reg_Quad(THREAD_REGISTER, ArchEntrypoints.framePointerField.getOffset(), SP);
+      }
       /*
        * NOTE: until the end of the prologue SP holds the framepointer.
        */
@@ -3896,12 +3899,14 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
     if (VM.VerifyAssertions) VM._assert(method.isForOsrSpecialization());
 
     if (isInterruptible) {
-      // S0<-limit
-      ThreadLocalState.emitMoveFieldToReg(asm, S0, Entrypoints.stackLimitField.getOffset());
       if (VM.BuildFor32Addr) {
+        // S0<-limit
+        asm.emitMOV_Reg_RegDisp(S0, THREAD_REGISTER,Entrypoints.stackLimitField.getOffset());
         asm.emitSUB_Reg_Reg(S0, SP);
         asm.emitADD_Reg_Imm(S0, method.getOperandWords() << LG_WORDSIZE);
       } else {
+        // S0<-limit
+        asm.emitMOV_Reg_RegDisp_Quad(S0, THREAD_REGISTER,Entrypoints.stackLimitField.getOffset());
         asm.emitSUB_Reg_Reg_Quad(S0, SP);
         asm.emitADD_Reg_Imm_Quad(S0, method.getOperandWords() << LG_WORDSIZE);
       }
@@ -4047,7 +4052,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
     asm.emitBranchLikelyNextInstruction();
     ForwardReference fr = asm.forwardJcc(AssemblerConstants.LGT);
     // "pass" index param to C trap handler
-    ThreadLocalState.emitMoveRegToField(asm, ArchEntrypoints.arrayIndexTrapParamField.getOffset(), indexReg);
+    asm.emitMOV_RegDisp_Reg(THREAD_REGISTER, ArchEntrypoints.arrayIndexTrapParamField.getOffset(), indexReg);
     // trap
     asm.emitINT_Imm(RuntimeEntrypoints.TRAP_ARRAY_BOUNDS + RVM_TRAP_BASE);
     fr.resolve(asm);
@@ -4410,7 +4415,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler implements Base
     }
 
     // thread switch requested ??
-    ThreadLocalState.emitCompareFieldWithImm(asm, Entrypoints.takeYieldpointField.getOffset(), 0);
+    asm.emitCMP_RegDisp_Imm(THREAD_REGISTER, Entrypoints.takeYieldpointField.getOffset(), 0);
     ForwardReference fr1;
     if (whereFrom == RVMThread.PROLOGUE) {
       // Take yieldpoint if yieldpoint flag is non-zero (either 1 or -1)

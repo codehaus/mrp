@@ -521,8 +521,8 @@ public abstract class CompiledMethod implements SizeConstants {
   /**
    * Name for use in debuggers
    */
-  public String symbolName() {
-    return toString();
+  public final String symbolName() {
+    return method.getDeclaringClass().toString()+"."+method.getName().toString()+method.getDescriptor().toString();
   }
 
   /**

@@ -129,14 +129,6 @@ public final class OptCompiledMethod extends CompiledMethod {
   }
 
   /**
-   * Name for use in debuggers
-   */
-  @Interruptible
-  public String symbolName() {
-    return method.toString();
-  }
-
-  /**
    * Get handler to deal with stack unwinding and exception delivery
    * for this method's stackframes.
    */

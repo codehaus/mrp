@@ -23,7 +23,7 @@
 EXTERNAL Address sysOProfileOpenAgent()
 {
   Address result = NULL;
-SYS_START();
+  SYS_START();
   TRACE_PRINTF("%s: sysOProfileOpenAgent\n", Me);
 #ifdef RVM_WITH_OPROFILE
   result = op_open_agent();
@@ -92,7 +92,7 @@ EXTERNAL Address sysOProfileStartCompileMap(Address opHandle, Address codeAddres
   cmap->code = codeAddress;
   cmap->entries_count = 0;
   cmap->entries_length = 16;
-  cmap->entries = (struct debug_line_info *)sysMalloc(sizeof(struct debug_line_info[16]));
+  cmap->entries = (struct debug_line_info *)sysCalloc(sizeof(struct debug_line_info[16]));
   result = cmap;
 #endif
   return result;
@@ -107,7 +107,7 @@ EXTERNAL void sysOProfileAddToCompileMap(Address _cmap, Address offs,
   struct compileMap *cmap = (struct compileMap *)_cmap;
   if (cmap->entries_count+1 == cmap->entries_length) {
     struct debug_line_info *newEntries = (struct debug_line_info *)
-      sysMalloc(sizeof(struct debug_line_info[cmap->entries_length+16]));
+      sysCalloc(sizeof(struct debug_line_info[cmap->entries_length+16]));
     int i;
     for (i=0; i < cmap->entries_length; i++) {
       newEntries[i].vma = cmap->entries[i].vma;

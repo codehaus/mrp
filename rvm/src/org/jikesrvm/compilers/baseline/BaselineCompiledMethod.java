@@ -183,13 +183,6 @@ public final class BaselineCompiledMethod extends CompiledMethod {
   }
 
   /**
-   * Name for use in debuggers
-   */
-  public String symbolName() {
-    return method.toString();
-  }
-
-  /**
    * Get the exception deliverer for this kind of compiled method
    */
   @Uninterruptible
