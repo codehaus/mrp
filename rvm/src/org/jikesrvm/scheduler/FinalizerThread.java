@@ -34,7 +34,6 @@ public class FinalizerThread extends RVMThread {
 
   private static final int verbose = 0; // currently goes up to 2
 
-  private final Object[] none = new Object[0];
   private static boolean shouldRun;
   private static Monitor schedLock;
   public static void boot() {

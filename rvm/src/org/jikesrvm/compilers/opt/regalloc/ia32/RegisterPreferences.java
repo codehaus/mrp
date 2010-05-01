@@ -12,16 +12,15 @@
  */
 package org.jikesrvm.compilers.opt.regalloc.ia32;
 
-import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOV_opcode;
+
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
 import org.jikesrvm.compilers.opt.ir.Register;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
 import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.regalloc.GenericRegisterPreferences;
-
-import static org.jikesrvm.compilers.opt.ir.Operators.*;
-import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
 
 public class RegisterPreferences extends GenericRegisterPreferences {
 

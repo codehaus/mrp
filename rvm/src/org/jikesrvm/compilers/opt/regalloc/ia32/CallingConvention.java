@@ -13,26 +13,41 @@
 package org.jikesrvm.compilers.opt.regalloc.ia32;
 
 
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_ADDRESS;
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_DOUBLE;
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_FLOAT;
+import static org.jikesrvm.compilers.opt.ir.Operators.IR_PROLOGUE;
+import static org.jikesrvm.compilers.opt.ir.Operators.SYSCALL;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.ADVISE_ESP;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CALL;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FCLEAR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FSTP;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVSD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVSS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_PUSH;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SYSCALL;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.REQUIRE_ESP;
+
 import java.util.Enumeration;
+
 import org.jikesrvm.VM;
-
-import static org.jikesrvm.architecture.SizeConstants.*;
-
 import org.jikesrvm.classloader.InterfaceMethodSignature;
 import org.jikesrvm.classloader.TypeReference;
 import org.jikesrvm.compilers.opt.DefUse;
 import org.jikesrvm.compilers.opt.ir.Call;
-import org.jikesrvm.compilers.opt.ir.ia32.MIR_Call;
-import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
-import org.jikesrvm.compilers.opt.ir.ia32.MIR_Return;
-import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryNoRes;
 import org.jikesrvm.compilers.opt.ir.GenericPhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.IRTools;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.OperandEnumeration;
-import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.Prologue;
+import org.jikesrvm.compilers.opt.ir.Register;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Call;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Move;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_Return;
+import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryNoRes;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterTools;
 import org.jikesrvm.compilers.opt.ir.operand.LocationOperand;
@@ -44,10 +59,6 @@ import org.jikesrvm.compilers.opt.ir.operand.StackLocationOperand;
 import org.jikesrvm.ia32.ArchConstants;
 import org.jikesrvm.runtime.ArchEntrypoints;
 import org.jikesrvm.runtime.Entrypoints;
-
-import static org.jikesrvm.compilers.opt.ir.Operators.*;
-import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
-import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants.*;
 
 /**
  * This class contains IA32 calling conventions

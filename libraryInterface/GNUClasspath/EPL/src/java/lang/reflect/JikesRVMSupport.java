@@ -12,7 +12,8 @@
  */
 package java.lang.reflect;
 
-import org.jikesrvm.classloader.*;
+import org.jikesrvm.classloader.RVMField;
+import org.jikesrvm.classloader.RVMMethod;
 
 /**
  * Library support interface of Jikes RVM

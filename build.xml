@@ -2551,26 +2551,8 @@ target.jni-suffix=${target.jni-suffix}
     <copy file="build/eclipse/project.template" tofile=".project">
       <filterset>
         <filter token="TITLE" value="${eclipse.project.name}"/>
-        <filter token="TARGET" value="${target.name}"/>
-        <filter token="CONFIG" value="${config.name}"/>
       </filterset>
     </copy>
-    <if>
-      <conditions>
-        <or>
-          <equals arg1="${target.arch}" arg2="ppc"/>
-        </or>
-      </conditions>
-      <sequential>
-        <property name="other.arch" value="ia32"/>
-      </sequential>
-    </if>
-    <property name="other.arch" value="ppc"/>
-    <copy file="build/eclipse/${classpath.template.name}" tofile=".classpath">
-      <filterset>
-        <filter token="OTHER_ARCH" value="${other.arch}"/>
-        <filter token="ARCH" value="${target.arch}"/>
-      </filterset>
-    </copy>
+    <copy file="build/eclipse/${classpath.template.name}" tofile=".classpath"/>
   </target>
 </project>

@@ -67,6 +67,7 @@ public abstract class OutOfLineMachineCode
   @SuppressWarnings("unused")
   // Accessed via EntryPoints
   private static CodeArray saveVolatilesInstructions;
+  @SuppressWarnings("unused")
   // Accessed via EntryPoints
   private static CodeArray restoreVolatilesInstructions;
 

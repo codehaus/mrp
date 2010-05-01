@@ -15,11 +15,11 @@ package java.lang;
 import java.io.File;
 import java.io.IOException;
 
-import org.jikesrvm.*;
+import org.jikesrvm.VM;
+import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.runtime.DynamicLibrary;
 import org.jikesrvm.scheduler.RVMThread;
 import org.jikesrvm.util.UnimplementedError;
-import org.jikesrvm.mm.mminterface.*;
 
 /**
  * Jikes RVM implementation of GNU Classpath's java.lang.VMRuntime.

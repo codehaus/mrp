@@ -12,8 +12,7 @@
  */
 package org.jikesrvm.compilers.opt.ir;
 
-import org.jikesrvm.*;
-import org.jikesrvm.compilers.opt.*;
+import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.instrsched.OperatorClass;
 
 /**

@@ -12,11 +12,83 @@
  */
 package org.jikesrvm.compilers.baseline.ia32;
 
-import static org.jikesrvm.mm.mminterface.Barriers.*;
+import static org.jikesrvm.ia32.ArchConstants.SSE2_BASE;
+import static org.jikesrvm.ia32.ArchConstants.SSE2_FULL;
+import static org.jikesrvm.ia32.BaselineConstants.EBP_SAVE_OFFSET;
+import static org.jikesrvm.ia32.BaselineConstants.EBX_SAVE_OFFSET;
+import static org.jikesrvm.ia32.BaselineConstants.EDI_SAVE_OFFSET;
+import static org.jikesrvm.ia32.BaselineConstants.FPU_SAVE_OFFSET;
+import static org.jikesrvm.ia32.BaselineConstants.LG_WORDSIZE;
+import static org.jikesrvm.ia32.BaselineConstants.S0;
+import static org.jikesrvm.ia32.BaselineConstants.S1;
+import static org.jikesrvm.ia32.BaselineConstants.SAVED_GPRS;
+import static org.jikesrvm.ia32.BaselineConstants.SAVED_GPRS_FOR_SAVE_LS_REGISTERS;
+import static org.jikesrvm.ia32.BaselineConstants.SP;
+import static org.jikesrvm.ia32.BaselineConstants.T0;
+import static org.jikesrvm.ia32.BaselineConstants.T0_SAVE_OFFSET;
+import static org.jikesrvm.ia32.BaselineConstants.T1;
+import static org.jikesrvm.ia32.BaselineConstants.T1_SAVE_OFFSET;
+import static org.jikesrvm.ia32.BaselineConstants.TR;
+import static org.jikesrvm.ia32.BaselineConstants.WORDSIZE;
+import static org.jikesrvm.ia32.BaselineConstants.XMM_SAVE_OFFSET;
+import static org.jikesrvm.ia32.RegisterConstants.EAX;
+import static org.jikesrvm.ia32.RegisterConstants.EBP;
+import static org.jikesrvm.ia32.RegisterConstants.EBX;
+import static org.jikesrvm.ia32.RegisterConstants.ECX;
+import static org.jikesrvm.ia32.RegisterConstants.EDI;
+import static org.jikesrvm.ia32.RegisterConstants.EDX;
+import static org.jikesrvm.ia32.RegisterConstants.ESI;
+import static org.jikesrvm.ia32.RegisterConstants.ESP;
+import static org.jikesrvm.ia32.RegisterConstants.FP0;
+import static org.jikesrvm.ia32.RegisterConstants.FP1;
+import static org.jikesrvm.ia32.RegisterConstants.NATIVE_PARAMETER_FPRS;
+import static org.jikesrvm.ia32.RegisterConstants.NATIVE_PARAMETER_GPRS;
+import static org.jikesrvm.ia32.RegisterConstants.NONVOLATILE_GPRS;
+import static org.jikesrvm.ia32.RegisterConstants.NUM_PARAMETER_FPRS;
+import static org.jikesrvm.ia32.RegisterConstants.NUM_PARAMETER_GPRS;
+import static org.jikesrvm.ia32.RegisterConstants.THREAD_REGISTER;
+import static org.jikesrvm.ia32.RegisterConstants.XMM0;
+import static org.jikesrvm.ia32.RegisterConstants.XMM1;
+import static org.jikesrvm.ia32.RegisterConstants.XMM2;
+import static org.jikesrvm.ia32.RegisterConstants.XMM3;
+import static org.jikesrvm.ia32.StackframeLayoutConstants.FPU_STATE_SIZE;
+import static org.jikesrvm.ia32.StackframeLayoutConstants.STACKFRAME_BODY_OFFSET;
+import static org.jikesrvm.ia32.StackframeLayoutConstants.STACKFRAME_HEADER_SIZE;
+import static org.jikesrvm.ia32.StackframeLayoutConstants.STACKFRAME_METHOD_ID_OFFSET;
+import static org.jikesrvm.ia32.StackframeLayoutConstants.XMM_STATE_SIZE;
+import static org.jikesrvm.ia32.TrapConstants.RVM_TRAP_BASE;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_ADDRESS_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_BOOLEAN_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_BYTE_ASTORE_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_BYTE_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_CHAR_ASTORE_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_CHAR_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_DOUBLE_ASTORE_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_DOUBLE_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_EXTENT_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_FLOAT_ASTORE_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_FLOAT_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_INT_ASTORE_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_INT_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_LONG_ASTORE_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_LONG_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_OBJECT_ALOAD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_OBJECT_GETFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_OBJECT_GETSTATIC_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_OBJECT_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_OBJECT_PUTSTATIC_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_OFFSET_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_SHORT_ASTORE_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_SHORT_PUTFIELD_BARRIER;
+import static org.jikesrvm.mm.mminterface.Barriers.NEEDS_WORD_PUTFIELD_BARRIER;
+import static org.jikesrvm.objectmodel.TIBLayoutConstants.NEEDS_DYNAMIC_LINK;
+import static org.jikesrvm.objectmodel.TIBLayoutConstants.TIB_DOES_IMPLEMENT_INDEX;
+import static org.jikesrvm.objectmodel.TIBLayoutConstants.TIB_INTERFACE_DISPATCH_TABLE_INDEX;
+import static org.jikesrvm.objectmodel.TIBLayoutConstants.TIB_SUPERCLASS_IDS_INDEX;
+
 import org.jikesrvm.VM;
 import org.jikesrvm.adaptive.AosEntrypoints;
 import org.jikesrvm.adaptive.recompilation.InvocationCounts;
-import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.classloader.DynamicTypeCheck;
 import org.jikesrvm.classloader.FieldReference;
 import org.jikesrvm.classloader.InterfaceInvocation;
@@ -38,7 +110,8 @@ import org.jikesrvm.compilers.common.assembler.AbstractAssembler;
 import org.jikesrvm.compilers.common.assembler.ForwardReference;
 import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
 import org.jikesrvm.compilers.common.assembler.ia32.AssemblerConstants;
-import org.jikesrvm.ia32.BaselineConstants;
+import org.jikesrvm.ia32.RegisterConstants.GPR;
+import org.jikesrvm.ia32.RegisterConstants.XMM;
 import org.jikesrvm.jni.ia32.JNICompiler;
 import org.jikesrvm.mm.mminterface.MemoryManager;
 import org.jikesrvm.objectmodel.JavaHeader;
@@ -58,7 +131,7 @@ import org.vmmagic.unboxed.Offset;
 /**
  * BaselineCompilerImpl is the baseline compiler implementation for the IA32 architecture.
  */
-public final class BaselineCompilerImpl extends BaselineCompiler implements BaselineConstants, SizeConstants {
+public final class BaselineCompilerImpl extends BaselineCompiler {
 
   private final Assembler asm;
 

@@ -187,7 +187,7 @@ public class Controller  {
   }
 
   /** Constructor */
-  void Controller() {
+  Controller() {
     // make sure the user hasn't explicitly prohibited this functionality
     if (!options.DISABLE_RECOMPILE_ALL_METHODS) {
       Callbacks.recompileAllCallbacks.addCallback(

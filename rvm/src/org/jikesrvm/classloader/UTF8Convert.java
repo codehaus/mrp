@@ -350,7 +350,6 @@ public abstract class UTF8Convert {
    */
   @Inline
   public static void toUTF8(String s, ByteBuffer b) {
-    int result_index = 0;
     for (int i = 0, n = s.length(); i < n; ++i) {
       char c = s.charAt(i);
       // in all shifts below, c is an (unsigned) char,

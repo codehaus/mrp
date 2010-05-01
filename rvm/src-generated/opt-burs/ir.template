@@ -100,7 +100,6 @@ $$$$ END FOREACH
    * @param n the non-terminal goal of that tree
    * @param ruleno the rule that will generate the tree
    */
-    @Override
   public void code(AbstractBURS_TreeNode p, int  n, int ruleno) {
     switch(unsortedErnMap[ruleno]) {
   $$$$ FOREACH RULE THE_RULE_FILE

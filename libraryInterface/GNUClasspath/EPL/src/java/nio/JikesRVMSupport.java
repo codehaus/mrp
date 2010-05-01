@@ -12,8 +12,9 @@
  */
 package java.nio;
 
-import org.vmmagic.unboxed.*;
 import gnu.classpath.Pointer;
+
+import org.vmmagic.unboxed.Address;
 
 /**
  * Library support interface of Jikes RVM

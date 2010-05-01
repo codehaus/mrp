@@ -12,6 +12,9 @@
  */
 package org.jikesrvm.compilers.opt.regalloc.ia32;
 
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.DUMMY_DEF;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.DUMMY_USE;
+
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.OptOptions;
 import org.jikesrvm.compilers.opt.driver.CompilerPhase;
@@ -22,14 +25,11 @@ import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.IRTools;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.InstructionEnumeration;
+import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_Nullary;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryNoRes;
-import org.jikesrvm.compilers.opt.ir.Register;
 import org.jikesrvm.compilers.opt.ir.ia32.PhysicalRegisterSet;
 import org.jikesrvm.ia32.ArchConstants;
-
-import static org.jikesrvm.compilers.opt.ir.Operators.*;
-import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
 
 /**
  * At the beginning of each basic block, the register allocator expects

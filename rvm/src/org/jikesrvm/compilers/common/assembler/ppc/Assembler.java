@@ -15,16 +15,13 @@ package org.jikesrvm.compilers.common.assembler.ppc;
 import org.jikesrvm.VM;
 import org.jikesrvm.architecture.MachineRegister;
 import org.jikesrvm.compilers.baseline.ppc.BaselineCompilerImpl;
+import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.common.assembler.AbstractAssembler;
 import org.jikesrvm.compilers.common.assembler.ForwardReference;
-import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.objectmodel.JavaHeader;
 import org.jikesrvm.ppc.BaselineConstants;
 import org.jikesrvm.ppc.Disassembler;
 import org.jikesrvm.ppc.RegisterConstants;
-import org.jikesrvm.ppc.RegisterConstants.CR;
-import org.jikesrvm.ppc.RegisterConstants.GPR;
-import org.jikesrvm.ppc.RegisterConstants.FPR;
 import org.jikesrvm.ppc.StackframeLayoutConstants;
 import org.jikesrvm.runtime.Entrypoints;
 import org.jikesrvm.util.Services;
@@ -55,9 +52,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
    */
   private int[] machineCodes;
 
-  /** Debug output? */
-  private final boolean shouldPrint;
-  /**  // Baseline compiler instance for this assembler.  May be null. */
+  /** Baseline compiler instance for this assembler.  May be null. */
   final BaselineCompilerImpl compiler;
   /** current machine code instruction */
   private int mIP;
@@ -69,7 +64,6 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
   }
 
   public Assembler(int length, boolean sp, BaselineCompilerImpl comp) {
-    shouldPrint = sp;
     compiler = comp;
     mIP = 0;
   }

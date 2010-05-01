@@ -42,10 +42,6 @@ final class UnsyncReplacer {
    */
   private final Register reg;
   /**
-   * Controlling compiler options
-   */
-  private final OptOptions options;
-  /**
    * Singleton: a single context representing "specialize this method when
    * the invokee of this method is thread-local"
    */
@@ -57,7 +53,6 @@ final class UnsyncReplacer {
    */
   private UnsyncReplacer(Register r, OptOptions options) {
     reg = r;
-    this.options = options;
   }
 
   /**

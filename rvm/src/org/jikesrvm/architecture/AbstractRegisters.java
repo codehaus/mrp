@@ -25,10 +25,12 @@ public abstract class AbstractRegisters {
   /** General purpose registers */
   @Untraced
   private final WordArray gprs;
+  @SuppressWarnings("unused")
   private final WordArray gprsShadow;
   /** Floating point registers */
   @Untraced
   private final double[] fprs;
+  @SuppressWarnings("unused")
   private final double[] fprsShadow;
   /** Instruction address register */
   protected Address ip;

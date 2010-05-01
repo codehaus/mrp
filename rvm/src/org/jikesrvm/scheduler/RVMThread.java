@@ -596,8 +596,11 @@ public class RVMThread extends ThreadContext {
   private final AbstractRegisters exceptionRegisters;
 
   // evil shadow fields to get the above traced by GC
+  @SuppressWarnings("unused")
   private final AbstractRegisters contextRegistersShadow;
+  @SuppressWarnings("unused")
   private final AbstractRegisters contextRegistersSaveShadow;
+  @SuppressWarnings("unused")
   private final AbstractRegisters exceptionRegistersShadow;
 
   /** Count of recursive uncaught exceptions, we need to bail out at some point */

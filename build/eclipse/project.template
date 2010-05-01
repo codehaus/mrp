@@ -12,7 +12,7 @@
  ~  regarding copyright ownership.
  -->
 <projectDescription>
-	<name>@TITLE@ @TARGET@ @CONFIG@</name>
+	<name>@TITLE@</name>
 	<comment></comment>
 	<projects>
 	</projects>

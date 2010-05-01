@@ -1,10 +1,10 @@
 package org.jikesrvm.compilers.opt.lir2mir;
 
-import org.jikesrvm.*;
-import org.jikesrvm.compilers.opt.*;
+import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.depgraph.DepGraphNode;
-import org.jikesrvm.compilers.opt.ir.*;
-import org.jikesrvm.compilers.opt.ir.operand.*;
+import org.jikesrvm.compilers.opt.ir.Instruction;
+import org.jikesrvm.compilers.opt.ir.Operator;
+import org.jikesrvm.compilers.opt.ir.Operators;
 
 /**
  * An AbstractBURS_TreeNode is a node in a binary tree that is fed
