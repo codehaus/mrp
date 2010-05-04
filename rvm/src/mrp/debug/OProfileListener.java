@@ -35,8 +35,8 @@ public final class OProfileListener {
   /** Debug messages */
   private static final boolean DEBUG = false;
 
-  /** Profile boot image compiled methods */
-  private static final boolean profileBootImage = true;
+  /** Profile boot image compiled methods, can cause serious load on opannotate */
+  private static final boolean profileBootImage = false;
 
   /** Only instance of this class */
   private static OProfileListener singleton;
