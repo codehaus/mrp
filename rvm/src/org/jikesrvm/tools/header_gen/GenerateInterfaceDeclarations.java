@@ -193,6 +193,7 @@ public class GenerateInterfaceDeclarations {
 
     pln("#define DEBUG_DUMP_THREAD " + mrp.debug.DebugEntrypoints.DUMP_THREAD);
     pln("#define DEBUG_DUMP_STACK  " + mrp.debug.DebugEntrypoints.DUMP_STACK);
+    pln("#define DEBUG_DUMP_METHOD " + mrp.debug.DebugEntrypoints.DUMP_METHOD);
     pln();
 
     if (VM.PortableNativeSync) {

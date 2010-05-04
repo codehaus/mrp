@@ -503,7 +503,7 @@ static void emitsortedtounsortedmap(Rule rules_)
 {
     Rule r;
     print("%1/** Sorted rule number to unsorted rule number map */\n");
-    print("%1private static int[] unsortedErnMap = {\n"
+    print("%1private static char[] unsortedErnMap = {\n"
           "%20, /* 0 - no rule */\n");
     for (r = rules_; r->link; r = r->link) {
 		print ("%2%d, /* %d - %R */\n", r->ern, r->sorted_ern, r);

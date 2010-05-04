@@ -131,9 +131,11 @@ EXTERNAL void  sysOProfileFinishCompileMap(Address _cmap)
   TRACE_PRINTF("%s: sysOProfileFinishCompileMap(%p)\n", Me, _cmap);
 #ifdef RVM_WITH_OPROFILE
   struct compileMap *cmap = (struct compileMap *)_cmap;
-  int result = op_write_debug_line_info(cmap->hdl, cmap->code, cmap->entries_count, cmap->entries);
-  if (result != 0) {
-    ERROR_PRINTF("%s: Trouble in OProfile write debug line - %s", Me, strerror(errno));
+  if(cmap->entries_count > 0) {
+    int result = op_write_debug_line_info(cmap->hdl, cmap->code, cmap->entries_count, cmap->entries);
+    if (result != 0) {
+      ERROR_PRINTF("%s: Trouble in OProfile write debug line - %s", Me, strerror(errno));
+    }
   }
   sysFree(cmap->entries);
   sysFree(cmap);

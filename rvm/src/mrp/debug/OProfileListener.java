@@ -36,7 +36,7 @@ public final class OProfileListener {
   private static final boolean DEBUG = false;
 
   /** Profile boot image compiled methods */
-  private static final boolean profileBootImage = false;
+  private static final boolean profileBootImage = true;
 
   /** Only instance of this class */
   private static OProfileListener singleton;
@@ -101,28 +101,28 @@ public final class OProfileListener {
     final byte[] symbolName =  StringUtilities.stringToBytesNullTerminated(stringSymbolName);
     final Address codeAddress = Magic.objectAsAddress(cm.getEntryCodeArray());
     int codeLength = cm.getEntryCodeArray().length();
-    sysCall.sysOProfileWriteNativeCode(opHandle, symbolName, codeAddress, codeLength);
+    synchronized(this) {
+      sysCall.sysOProfileWriteNativeCode(opHandle, symbolName, codeAddress, codeLength);
 
-    final class CompileMapVisitor extends DebugInformationVisitor {
-      final Address cmap = sysCall.sysOProfileStartCompileMap(opHandle, codeAddress);
-      public void visit(Offset offs, Atom fileName, int lineNumber) {
-        if (VM.VerifyAssertions) VM._assert(!cmap.isZero());
-        byte[] fileNameBA;
-        if(fileName == null) {
-          fileNameBA = symbolName;
-        } else {
-          fileNameBA = StringUtilities.stringToBytesNullTerminated(fileName.toString());
+      final class CompileMapVisitor extends DebugInformationVisitor {
+        final Address cmap = sysCall.sysOProfileStartCompileMap(opHandle, codeAddress);
+        public void visit(Offset offs, Atom fileName, int lineNumber) {
+          if (VM.VerifyAssertions) VM._assert(!cmap.isZero());
+          if(fileName != null && lineNumber > 0) {
+            byte[] fileNameBA;
+            fileNameBA = StringUtilities.stringToBytesNullTerminated(fileName.toString());
+            sysCall.sysOProfileAddToCompileMap(cmap, codeAddress.plus(offs), fileNameBA, lineNumber);
+          }
         }
-        sysCall.sysOProfileAddToCompileMap(cmap, codeAddress.plus(offs), fileNameBA, lineNumber);
+        void finish() {
+          sysCall.sysOProfileFinishCompileMap(cmap);
+        }
       }
-      void finish() {
-        sysCall.sysOProfileFinishCompileMap(cmap);
+      if(profileBootImage || !cm.getMethod().getDeclaringClass().isInBootImage()) {
+        CompileMapVisitor visitor = new CompileMapVisitor();
+        cm.walkDebugInformation(visitor);
+        visitor.finish();
       }
-    }
-    if(profileBootImage || !cm.getMethod().getDeclaringClass().isInBootImage()) {
-      CompileMapVisitor visitor = new CompileMapVisitor();
-      cm.walkDebugInformation(visitor);
-      visitor.finish();
     }
   }
 

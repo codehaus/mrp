@@ -16,13 +16,18 @@ package mrp.debug;
 
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Address;
+import org.vmmagic.unboxed.ObjectReference;
+import org.jikesrvm.VM;
 import org.jikesrvm.scheduler.RVMThread;
+import org.jikesrvm.compilers.common.CompiledMethods;
+import org.jikesrvm.compilers.common.CompiledMethod;
 
 @Uninterruptible("No preemption or GC wanted during debug output")
 public class DebugEntrypoints {
   /** Debug methods */
-  public static final int DUMP_THREAD=0;
-  public static final int DUMP_STACK =1;
+  public static final int DUMP_THREAD =0;
+  public static final int DUMP_STACK  =1;
+  public static final int DUMP_METHOD =2;
 
   /** Method to call */
   public static int debugMethod;
@@ -43,6 +48,26 @@ public class DebugEntrypoints {
       RVMThread.dumpStack(t.framePointer);
       break;
     }
+    case DUMP_METHOD: {
+      int cmid = debugArgs.toInt();
+      CompiledMethod cm;
+      if(cmid < CompiledMethods.numCompiledMethods()) {
+        cm = CompiledMethods.getCompiledMethod(cmid);
+      } else {
+        cm = CompiledMethods.findMethodForInstruction(debugArgs);
+        cmid = (cm == null) ? 0 : cm.getId();
+      }
+      if(cm == null) {
+        VM.sysWriteln("Method not found for CMID/IP of ",debugArgs);
+      } else {
+        VM.sysWriteln("CMID: ",cmid);
+        Address code = (ObjectReference.fromObject(cm.getEntryCodeArray())).toAddress();
+        VM.sysWriteln("Start of code: ",code);
+        VM.sysWriteln("Compiler type: ",CompiledMethod.compilerTypeToString(cm.getCompilerType()));
+      }
+      break;
+    }
     }
   }
 }
+

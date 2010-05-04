@@ -343,6 +343,33 @@ Check to make sure all required properties are specified. This includes properti
     <condition property="include.ppc" value="true">
       <equals arg1="${target.arch}" arg2="ppc"/>
     </condition>
+    <condition property="include.ppc_32" value="true">
+      <and>
+        <equals arg1="${target.arch}" arg2="ppc"/>
+        <equals arg1="${target.address.size}" arg2="32"/>
+      </and>
+    </condition>
+    <condition property="include.ppc_64" value="true">
+      <and>
+        <equals arg1="${target.arch}" arg2="ppc"/>
+        <equals arg1="${target.address.size}" arg2="64"/>
+      </and>
+    </condition>
+    <condition property="include.ia32" value="true">
+      <equals arg1="${target.arch}" arg2="ia32"/>
+    </condition>
+    <condition property="include.ia32_32" value="true">
+      <and>
+        <equals arg1="${target.arch}" arg2="ia32"/>
+        <equals arg1="${target.address.size}" arg2="32"/>
+      </and>
+    </condition>
+    <condition property="include.ia32_64" value="true">
+      <and>
+        <equals arg1="${target.arch}" arg2="ia32"/>
+        <equals arg1="${target.address.size}" arg2="64"/>
+      </and>
+    </condition>
     <condition property="include.aos" value="true">
       <and>
         <equals arg1="${config.include.aos}" arg2="true"/>
@@ -891,18 +918,6 @@ Check to make sure all required properties are specified. This includes properti
 
     <mkdir dir="${generated.config.java}/org/jikesrvm/mm/mminterface"/>
 
-    <condition property="pp_RVM_ARCH_HELPER"
-               value="org.jikesrvm.ppc.MachineSpecificPowerPC.PPC${target.address.size}">
-      <equals arg1="${target.arch}" arg2="ppc"/>
-    </condition>
-    <condition property="pp_RVM_ARCH_HELPER"
-               value="org.jikesrvm.ia32.MachineSpecificIA.IA32"
-               else="org.jikesrvm.ia32.MachineSpecificIA.EM64T">
-      <and>
-        <equals arg1="${target.arch}" arg2="ia32"/>
-        <equals arg1="${target.address.size}" arg2="32"/>
-      </and>
-    </condition>
     <condition property="pp_RVM_FOR_POWERPC" value="true" else="false">
       <equals arg1="${target.arch}" arg2="ppc"/>
     </condition>
@@ -1086,16 +1101,6 @@ Check to make sure all required properties are specified. This includes properti
   </target>
 
   <target name="compile" depends="compile-mmtk,compile-options,prepare-source,prepare-config-source,choose-classlib,do-checkstyle">
-
-    <condition property="exclude-arch" value="IA" else="PPC">
-      <equals arg1="${target.arch}" arg2="ppc"/>
-    </condition>
-
-    <condition property="arch-helper-class"
-               value="org/jikesrvm/ia32/MachineSpecificIA.java"
-               else="org/jikesrvm/ppc/MachineSpecificPowerPC.java">
-      <equals arg1="${target.arch}" arg2="ia32"/>
-    </condition>
 
     <!--
      FIXME: When we can capture the primordials based on reachability
@@ -1305,8 +1310,12 @@ Check to make sure all required properties are specified. This includes properti
       <include name="org/mmtk/**/*.class" />
       <include name="org/vmutil/**/*.class" />
       <include name="com/ibm/tuningfork/**/*.class" />
-      <exclude name="**/ppc/*.class" unless="include.ppc"/>
-      <exclude name="**/ia32/*.class" if="include.ppc"/>
+      <exclude name="**/ppc/*.class"     unless="include.ppc"/>
+      <exclude name="**/ppc_32/*.class"  unless="include.ppc_32"/>
+      <exclude name="**/ppc_64/*.class"  unless="include.ppc_64"/>
+      <exclude name="**/ia32/*.class"    unless="include.ia32"/>
+      <exclude name="**/ia32_32/*.class" unless="include.ia32_32"/>
+      <exclude name="**/ia32_64/*.class" unless="include.ia32_64"/>
       <exclude name="org/jikesrvm/adaptive/**/*.class" unless="include.aos"/>
       <exclude name="org/jikesrvm/compilers/opt/**/*.class" unless="include.opt"/>
       <exclude name="org/jikesrvm/${target.arch}/opt/**/*.class" unless="include.opt"/>
@@ -1592,7 +1601,7 @@ const char *rvm_target_configuration = "${target.file}";
       </and>
     </condition>
 
-    <condition property="oprofile.libraries" value="${libpath.specifier}/usr/lib/oprofile ${lib.specifier}opagent${target.lib-ext} ${lib.specifier}bfd${target.lib-ext}" else="">
+    <condition property="oprofile.libraries" value="${libpath.specifier}/usr/local/lib/oprofile ${lib.specifier}opagent${target.lib-ext} ${lib.specifier}bfd${target.lib-ext}" else="">
       <equals arg1="${config.oprofile}" arg2="true"/>
     </condition>
 
@@ -2380,13 +2389,9 @@ target.jni-suffix=${target.jni-suffix}
   <!-- **************************************************************************** -->
 
   <target name="compile-for-apidocs" depends="prepare-source,prepare-config-source,choose-classlib">
-    <condition property="toexclude" value="ppc" else="ia32">
-      <equals arg1="${target.arch}" arg2="ia32"/>
-    </condition>
-
-    <mkdir dir="${build.dir}/javadoc/classes-ia32"/>
+    <mkdir dir="${build.dir}/javadoc/classes"/>
     <record name="${build.dir}/javadoc/JavadocReport.txt" action="start" emacsmode="true"/>
-    <javac destdir="${build.dir}/javadoc/classes-ia32"
+    <javac destdir="${build.dir}/javadoc/classes"
            debug="true"
            debugLevel="lines,source"
            source="1.5"
@@ -2394,7 +2399,6 @@ target.jni-suffix=${target.jni-suffix}
       <bootclasspath>
         <pathelement location="${classpath.lib.dir}/classpath.jar"/>
       </bootclasspath>
-      <exclude name="**/${toexclude}/**"/>
       <src path="${main.java}"/>
       <src path="${classlib.library-interface.common.java}"/>
       <src path="${classlib.library-interface.cpl.java}"/>
@@ -2420,17 +2424,18 @@ target.jni-suffix=${target.jni-suffix}
         version="true"
         use="true"
         breakiterator="true"
-        maxmemory="200M"
+        maxmemory="512M"
         source="1.5"
-        private="true"
-        windowtitle="Jikes RVM API">
+        Private="true"
+        windowtitle="Metacircular Research Platform API">
 
       <classpath>
-        <pathelement location="${build.dir}/javadoc/classes-ia32"/>
+        <pathelement location="${build.dir}/javadoc/classes"/>
         <pathelement location="${classpath.lib.dir}/classpath.jar"/>
       </classpath>
 
-      <group title="RVM" packages="org.jikesrvm*"/>
+      <group title="MRP" packages="mrp.*"/>
+      <group title="RVM" packages="org.jikesrvm.*"/>
       <group title="VM Magic" packages="org.vmmagic.*"/>
       <group title="MMTk" packages="org.mmtk.*"/>
       <group title="GNU Classpath Interface" packages="gnu.*"/>
@@ -2438,7 +2443,6 @@ target.jni-suffix=${target.jni-suffix}
       <arg value="-linksource"/>
       <arg value="-notimestamp"/>
 
-      <packageset dir="${main.java}" defaultexcludes="yes" includes="org/**" excludes="**/ppc/**"/>
       <packageset dir="${classlib.library-interface.common.java}" defaultexcludes="yes" includes="gnu/**"/>
       <packageset dir="${classlib.library-interface.cpl.java}" defaultexcludes="yes" includes="gnu/**"/>
       <packageset dir="${classlib.library-interface.non-cpl.java}" defaultexcludes="yes" includes="gnu/**"/>
@@ -2449,6 +2453,7 @@ target.jni-suffix=${target.jni-suffix}
       <packageset dir="${tuningforklib.java}" defaultexcludes="yes" includes="com/ibm/tuningfork/**"/>
       <packageset dir="${mmtk.java}" defaultexcludes="yes" includes="org/**"/>
       <packageset dir="${mmtk-vm-rvm.java}" defaultexcludes="yes" includes="org/**"/>
+      <packageset dir="${main.java}" includes="**"/>
       <packageset dir="${generated.java}" includes="org/**"/>
       <packageset dir="${generated.config.java}" includes="org/**"/>
 
@@ -2470,7 +2475,7 @@ target.jni-suffix=${target.jni-suffix}
         maxmemory="300M"
         source="1.5"
         private="true"
-        windowtitle="Jikes RVM API">
+        windowtitle="Metacircular Research Platform API">
       <arg value="-docletpath"/>
       <arg value="${jdocs.jar}"/>
       <doclet name="com.dzone.jdocs.doclet.Doclet"/>
@@ -2478,6 +2483,7 @@ target.jni-suffix=${target.jni-suffix}
         <pathelement location="${build.dir}/javadoc/classes-ia32"/>
       </classpath>
 
+      <group title="MRP" packages="mrp.*"/>
       <group title="RVM" packages="org.jikesrvm*"/>
       <group title="VM Magic" packages="org.vmmagic.*"/>
       <group title="MMTk" packages="org.mmtk.*"/>
@@ -2486,7 +2492,6 @@ target.jni-suffix=${target.jni-suffix}
       <arg value="-linksource"/>
       <arg value="-notimestamp"/>
 
-      <packageset dir="${main.java}" defaultexcludes="yes" includes="org/**" excludes="**/ppc/**"/>
       <packageset dir="${classlib.library-interface.common.java}" defaultexcludes="yes" includes="gnu/**"/>
       <packageset dir="${classlib.library-interface.cpl.java}" defaultexcludes="yes" includes="gnu/**"/>
       <packageset dir="${classlib.library-interface.non-cpl.java}" defaultexcludes="yes" includes="gnu/**"/>
@@ -2497,6 +2502,7 @@ target.jni-suffix=${target.jni-suffix}
       <packageset dir="${tuningforklib.java}" defaultexcludes="yes" includes="com/ibm/tuningfork/**"/>
       <packageset dir="${mmtk.java}" defaultexcludes="yes" includes="org/**"/>
       <packageset dir="${mmtk-vm-rvm.java}" defaultexcludes="yes" includes="org/**"/>
+      <packageset dir="${main.java}" includes="**"/>
       <packageset dir="${generated.java}" includes="org/**"/>
       <packageset dir="${generated.config.java}" includes="org/**"/>
 

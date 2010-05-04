@@ -30,3 +30,12 @@ void dumpStack(void *thread) {
   debugFn = (void(*)())bootRecord->debugEntry;
   debugFn();
 }
+
+void dumpMethod(int cmid) {
+  *((Address*)bootRecord->debugArgs)   = (Address)cmid;
+  *((int*)    bootRecord->debugMethod) = DEBUG_DUMP_METHOD;
+  void (*debugFn)();
+  debugFn = (void(*)())bootRecord->debugEntry;
+  debugFn();
+}
+

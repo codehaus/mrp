@@ -12,7 +12,6 @@
  */
 package org.jikesrvm.compilers.common;
 
-import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -291,12 +290,7 @@ public class CompiledMethods implements SizeConstants {
       VM.sysWriteln("    Total size of mapping data (bytes) = " + mapBytes[CompiledMethod.JNI]);
     }
     if (!VM.runningVM) {
-      TreeMap<String, Integer> packageData = new TreeMap<String, Integer>(
-          new Comparator<String>() {
-            public int compare(String a, String b) {
-              return a.compareTo(b);
-            }
-          });
+      TreeMap<String, Integer> packageData = new TreeMap<String, Integer>();
       for (int i = 0; i < numCompiledMethods(); ++i) {
         CompiledMethod compiledMethod = getCompiledMethodUnchecked(i);
         if (compiledMethod != null) {

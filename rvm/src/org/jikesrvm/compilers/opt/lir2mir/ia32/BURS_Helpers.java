@@ -13,8 +13,85 @@
 package org.jikesrvm.compilers.opt.lir2mir.ia32;
 
 import static org.jikesrvm.compilers.opt.OptimizingCompilerException.opt_assert;
-import static org.jikesrvm.compilers.opt.ir.Operators.*;
-import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.*;
+import static org.jikesrvm.compilers.opt.OptimizingCompilerException.UNREACHABLE;
+import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_CMPL;
+import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_CMPL;
+import static org.jikesrvm.compilers.opt.ir.Operators.GUARD_MOVE;
+import static org.jikesrvm.compilers.opt.ir.Operators.IR_PROLOGUE;
+import static org.jikesrvm.compilers.opt.ir.Operators.LONG_SHL;
+import static org.jikesrvm.compilers.opt.ir.Operators.LONG_SHR;
+import static org.jikesrvm.compilers.opt.ir.Operators.LONG_USHR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.CALL_SAVE_VOLATILE;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ADC;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ADD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_AND;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ANDNPD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ANDNPS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ANDPD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ANDPS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_BT;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CALL;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CDQ;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CMOV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CMP;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CMPEQSD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CMPEQSS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CMPLESD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CMPLESS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CMPLTSD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CMPLTSS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_CVTSS2SD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_DIV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FCMOV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FCOMI;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FCOMIP;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FFREE;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FILD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FIST;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FLD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FLD1;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FLDL2E;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FLDL2T;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FLDLG2;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FLDLN2;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FLDPI;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FLDZ;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FMOV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FPREM;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_FSTP;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_IDIV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_IMUL1;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_IMUL2;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_JCC;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_LEA;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_LOCK_CMPXCHG;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_LOCK_CMPXCHG8B;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_METHODSTART;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOV;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVSD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVSS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MOVZX__B;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_MUL;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_NEG;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_NOT;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_OR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ORPD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_ORPS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_RCR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_RDTSC;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SAR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SBB;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SET__B;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SHL;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SHR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SUB;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_SYSCALL;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_TRAPIF;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_XOR;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_XORPD;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.IA32_XORPS;
+import static org.jikesrvm.compilers.opt.ir.ia32.ArchOperators.MIR_LOWTABLESWITCH;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.classloader.TypeReference;
@@ -28,6 +105,15 @@ import org.jikesrvm.compilers.opt.ir.GuardedBinary;
 import org.jikesrvm.compilers.opt.ir.IfCmp;
 import org.jikesrvm.compilers.opt.ir.Instruction;
 import org.jikesrvm.compilers.opt.ir.LowTableSwitch;
+import org.jikesrvm.compilers.opt.ir.Move;
+import org.jikesrvm.compilers.opt.ir.Nullary;
+import org.jikesrvm.compilers.opt.ir.Operator;
+import org.jikesrvm.compilers.opt.ir.OsrPoint;
+import org.jikesrvm.compilers.opt.ir.Prologue;
+import org.jikesrvm.compilers.opt.ir.Register;
+import org.jikesrvm.compilers.opt.ir.RegisterOperandEnumeration;
+import org.jikesrvm.compilers.opt.ir.TrapIf;
+import org.jikesrvm.compilers.opt.ir.Unary;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_BinaryAcc;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_Call;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_Compare;
@@ -47,15 +133,6 @@ import org.jikesrvm.compilers.opt.ir.ia32.MIR_Set;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_TrapIf;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_Unary;
 import org.jikesrvm.compilers.opt.ir.ia32.MIR_UnaryAcc;
-import org.jikesrvm.compilers.opt.ir.Move;
-import org.jikesrvm.compilers.opt.ir.Nullary;
-import org.jikesrvm.compilers.opt.ir.Operator;
-import org.jikesrvm.compilers.opt.ir.OsrPoint;
-import org.jikesrvm.compilers.opt.ir.Prologue;
-import org.jikesrvm.compilers.opt.ir.Register;
-import org.jikesrvm.compilers.opt.ir.RegisterOperandEnumeration;
-import org.jikesrvm.compilers.opt.ir.TrapIf;
-import org.jikesrvm.compilers.opt.ir.Unary;
 import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
 import org.jikesrvm.compilers.opt.ir.operand.BranchProfileOperand;
 import org.jikesrvm.compilers.opt.ir.operand.ConditionOperand;
@@ -82,7 +159,6 @@ import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.RuntimeEntrypoints;
 import org.jikesrvm.runtime.Statics;
 import org.vmmagic.unboxed.Offset;
-import static org.jikesrvm.compilers.opt.ir.IRTools.*;
 
 /**
  * Contains IA32-specific helper functions for BURS.
@@ -358,6 +434,10 @@ public abstract class BURS_Helpers extends BURS_MemOp_Helpers {
    * @return trueCost or INFINITE depending on the given constant
    */
   protected final int is387_FPC(Instruction s, int trueCost) {
+    if(VM.BuildForSSE2) {
+      UNREACHABLE();
+      return INFINITE;
+    }
     Operand val = Binary.getVal2(s);
     if (val instanceof FloatConstantOperand) {
       FloatConstantOperand fc = (FloatConstantOperand) val;
@@ -398,6 +478,10 @@ public abstract class BURS_Helpers extends BURS_MemOp_Helpers {
   }
 
   protected final Operator get387_FPC(Instruction s) {
+    if(VM.BuildForSSE2) {
+      UNREACHABLE();
+      return null;
+    }
     Operand val = Binary.getVal2(s);
     if (val instanceof FloatConstantOperand) {
       FloatConstantOperand fc = (FloatConstantOperand) val;
@@ -641,6 +725,11 @@ Operand value, boolean signExtend) {
    * @param value the second operand
    */
   protected final void FPR_2INT(Instruction s, RegisterOperand result, Operand value) {
+    if(VM.BuildForSSE2) {
+      UNREACHABLE();
+      return;
+    }
+
     MemoryOperand M;
 
     // Step 1: Get value to be converted into myFP0
@@ -2444,9 +2533,13 @@ Operand value, boolean signExtend) {
    */
   protected final void FP_MOV_OP_MOV(Instruction s, Operator op, Operand result, Operand val1,
                                      Operand val2) {
-    EMIT(CPOS(s, MIR_Move.create(IA32_FMOV, D(getFPR(0)), val1)));
-    EMIT(MIR_BinaryAcc.mutate(s, op, D(getFPR(0)), val2));
-    EMIT(CPOS(s, MIR_Move.create(IA32_FMOV, result, D(getFPR(0)))));
+    if(VM.BuildForSSE2) {
+      UNREACHABLE();
+    } else {
+      EMIT(CPOS(s, MIR_Move.create(IA32_FMOV, D(getFPR(0)), val1)));
+      EMIT(MIR_BinaryAcc.mutate(s, op, D(getFPR(0)), val2));
+      EMIT(CPOS(s, MIR_Move.create(IA32_FMOV, result, D(getFPR(0)))));
+    }
   }
 
   /**
@@ -2469,6 +2562,10 @@ Operand value, boolean signExtend) {
    * @param s the compare instruction
    */
   protected final void threeValueFPCmp(Instruction s) {
+    if(VM.BuildForSSE2) {
+      UNREACHABLE();
+      return;
+    }
     // IMPORTANT: FCOMI only sets 3 of the 6 bits in EFLAGS, so
     // we can't quite just translate the condition operand as if it
     // were an integer compare.
@@ -2618,11 +2715,15 @@ Operand value, boolean signExtend) {
    */
   protected final void BOOLEAN_CMP_DOUBLE(Instruction s, RegisterOperand res, ConditionOperand cond,
                                           Operand val1, Operand val2) {
-    RegisterOperand temp = regpool.makeTemp(TypeReference.Boolean);
-    EMIT(CPOS(s, MIR_Move.create(IA32_FMOV, D(getFPR(0)), CondMove.getVal1(s))));
-    EMIT(CPOS(s, MIR_Compare.create(IA32_FCOMI, D(getFPR(0)), CondMove.getVal2(s))));
-    EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, temp, COND(cond))));
-    EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, res, temp.copyD2U()));
+    if(VM.BuildForSSE2) {
+      UNREACHABLE();
+    } else {
+      RegisterOperand temp = regpool.makeTemp(TypeReference.Boolean);
+      EMIT(CPOS(s, MIR_Move.create(IA32_FMOV, D(getFPR(0)), CondMove.getVal1(s))));
+      EMIT(CPOS(s, MIR_Compare.create(IA32_FCOMI, D(getFPR(0)), CondMove.getVal2(s))));
+      EMIT(CPOS(s, MIR_Set.create(IA32_SET__B, temp, COND(cond))));
+      EMIT(MIR_Unary.mutate(s, IA32_MOVZX__B, res, temp.copyD2U()));
+    }
   }
 
   /**
@@ -2896,6 +2997,10 @@ Operand value, boolean signExtend) {
    */
   protected final void CMOV_FMOV(Instruction s, RegisterOperand result, ConditionOperand cond,
                                  Operand trueValue, Operand falseValue) {
+    if(VM.BuildForSSE2) {
+      UNREACHABLE();
+      return;
+    }
     RegisterOperand FP0 = new RegisterOperand(burs.ir.regpool.getPhysicalRegisterSet().getFPR(0), result.getType());
     // need to handle both possible assignments. Unconditionally
     // assign one value then conditionally assign the other.

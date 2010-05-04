@@ -21,8 +21,6 @@ import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.runtime.Magic;
 import org.vmmagic.unboxed.Address;
 
-import static org.jikesrvm.compilers.opt.ir.Operators.*;
-
 /**
  * Pool of symbolic registers.
  * Intel specific implementation where JTOC is stored in the processor object

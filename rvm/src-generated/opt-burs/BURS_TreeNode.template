@@ -12,17 +12,12 @@
  */
 package org.jikesrvm.compilers.opt.lir2mir.@_ARCH_ADDRESS_@;
 
-import org.jikesrvm.*;
-import org.jikesrvm.compilers.opt.*;
+import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.depgraph.DepGraphNode;
-import org.jikesrvm.compilers.opt.ir.*;
-import org.jikesrvm.compilers.opt.ir.operand.*;
-import org.jikesrvm.compilers.opt.ir.operand.@_ARCH_@.*;
 import org.jikesrvm.compilers.opt.lir2mir.AbstractBURS_TreeNode;
+import org.vmmagic.pragma.Inline;
 
 import static org.jikesrvm.compilers.opt.lir2mir.@_ARCH_ADDRESS_@.BURS_Definitions.*;
-
-import org.vmmagic.pragma.Inline;
 
 /**
  * An BURS_TreeNode is a node in a binary tree that is fed

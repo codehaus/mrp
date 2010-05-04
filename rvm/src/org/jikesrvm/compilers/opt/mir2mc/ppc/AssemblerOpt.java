@@ -12,12 +12,29 @@
  */
 package org.jikesrvm.compilers.opt.mir2mc.ppc;
 
+import static org.jikesrvm.compilers.opt.ir.Operators.BBEND_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.GUARD_COMBINE_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.GUARD_MOVE_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.IG_PATCH_POINT_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.LABEL_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.NULL_CHECK_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.UNINT_BEGIN_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.UNINT_END_opcode;
+import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.*;
+import static org.jikesrvm.ppc.RegisterConstants.LG_INSTRUCTION_WIDTH;
+
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.opt.OperationNotImplementedException;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
 import org.jikesrvm.compilers.opt.driver.OptimizingCompiler;
+import org.jikesrvm.compilers.opt.ir.IR;
 import org.jikesrvm.compilers.opt.ir.InlineGuard;
+import org.jikesrvm.compilers.opt.ir.Instruction;
+import org.jikesrvm.compilers.opt.ir.NullCheck;
+import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
+import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
+import org.jikesrvm.compilers.opt.ir.operand.ppc.PowerPCTrapOperand;
 import org.jikesrvm.compilers.opt.ir.ppc.MIR_Binary;
 import org.jikesrvm.compilers.opt.ir.ppc.MIR_Branch;
 import org.jikesrvm.compilers.opt.ir.ppc.MIR_CacheOp;
@@ -36,20 +53,9 @@ import org.jikesrvm.compilers.opt.ir.ppc.MIR_StoreUpdate;
 import org.jikesrvm.compilers.opt.ir.ppc.MIR_Ternary;
 import org.jikesrvm.compilers.opt.ir.ppc.MIR_Trap;
 import org.jikesrvm.compilers.opt.ir.ppc.MIR_Unary;
-import org.jikesrvm.compilers.opt.ir.NullCheck;
-import org.jikesrvm.compilers.opt.ir.IR;
-import org.jikesrvm.compilers.opt.ir.Instruction;
-import org.jikesrvm.compilers.opt.ir.operand.BranchOperand;
-import org.jikesrvm.compilers.opt.ir.operand.RegisterOperand;
-import org.jikesrvm.compilers.opt.ir.operand.ppc.PowerPCTrapOperand;
 import org.jikesrvm.compilers.opt.ir.ppc.PhysicalRegisterSet;
 import org.jikesrvm.ppc.Disassembler;
 import org.jikesrvm.util.Services;
-
-import static org.jikesrvm.compilers.opt.ir.Operators.*;
-import static org.jikesrvm.compilers.opt.ir.ppc.ArchOperators.*;
-import static org.jikesrvm.architecture.Constants.*;
-import static org.jikesrvm.ppc.ArchConstants.*;
 
 /**
  * Assemble PowerPC MIR into binary code.

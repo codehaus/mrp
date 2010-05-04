@@ -12,6 +12,23 @@
  */
 package org.jikesrvm.compilers.opt.ir;
 
+import static org.jikesrvm.compilers.opt.driver.OptConstants.UNKNOWN_BCI;
+import static org.jikesrvm.compilers.opt.ir.Operators.BBEND;
+import static org.jikesrvm.compilers.opt.ir.Operators.DOUBLE_IFCMP_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.FLOAT_IFCMP_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.GOTO_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.IG_CLASS_TEST_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.IG_METHOD_TEST_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.IG_PATCH_POINT_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.INT_IFCMP2_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.INT_IFCMP_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.LABEL;
+import static org.jikesrvm.compilers.opt.ir.Operators.LONG_IFCMP_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.LOOKUPSWITCH_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.LOWTABLESWITCH_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.REF_IFCMP_opcode;
+import static org.jikesrvm.compilers.opt.ir.Operators.TABLESWITCH_opcode;
+
 import org.jikesrvm.VM;
 import org.jikesrvm.compilers.opt.LocalCSE;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
@@ -24,10 +41,6 @@ import org.jikesrvm.compilers.opt.ir.operand.Operand;
 import org.jikesrvm.compilers.opt.ir.operand.StackLocationOperand;
 import org.vmmagic.pragma.Inline;
 import org.vmmagic.pragma.NoInline;
-
-import static org.jikesrvm.architecture.Constants.*;
-import static org.jikesrvm.compilers.opt.ir.Operators.*;
-import static org.jikesrvm.compilers.opt.driver.OptConstants.*;
 
 /**
  * Instructions are the basic atomic unit of the IR.

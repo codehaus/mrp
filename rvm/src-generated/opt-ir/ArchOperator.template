@@ -20,12 +20,11 @@
 
 package ARCHOPERATORSPKG;
 
-import org.jikesrvm.*;
-import org.jikesrvm.compilers.opt.ir.InstructionFormat;
+$$$$ IF ARCHITECTURE == "ppc"
+import org.jikesrvm.VM;
+$$$$ END IF
 import org.jikesrvm.compilers.opt.ir.Operator;
 import org.jikesrvm.compilers.opt.ir.Operators;
-import org.jikesrvm.compilers.opt.*;
-import org.jikesrvm.compilers.opt.util.Bits;
 import org.vmmagic.pragma.Pure;
 
 /**

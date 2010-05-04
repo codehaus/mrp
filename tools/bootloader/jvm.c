@@ -337,12 +337,28 @@ static void* mapImageFile(const char *fileName, const void *targetAddress,
     prot |= PROT_EXEC;
   bootRegion = mmap((void*)targetAddress, *roundedImageSize,
 		    prot,
+#ifndef RVM_WITH_OPROFILE
 		    MAP_FIXED | MAP_PRIVATE | MAP_NORESERVE,
-		    fileno(fin), 0);
+                    fileno(fin), 0);
+#else
+#ifdef MAP_ANONYMOUS
+                    MAP_FIXED | MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS,
+#else
+                    MAP_FIXED | MAP_PRIVATE | MAP_NORESERVE | MAP_ANON,
+#endif
+                    -1, 0);
+#endif
   if (bootRegion == (void *) MAP_FAILED) {
     ERROR_PRINTF("%s: mmap failed (errno=%d): %s\n", Me, errno, strerror(errno));
     return 0;
   }
+#ifdef RVM_WITH_OPROFILE
+  size_t read_len = fread(bootRegion, actualImageSize, 1, fin); 
+  if(read_len != 1) {
+    ERROR_PRINTF("%s: image read failed (errno=%d): %s\n", Me, errno, strerror(errno));
+    return 0;
+  }
+#endif
   /* Quoting from the Linux mmap(2) manual page:
      "closing the file descriptor does not unmap the region."
   */
