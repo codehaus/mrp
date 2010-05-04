@@ -587,7 +587,6 @@ public class GdbController extends
     int count = readHexValFromBuffer(indexOf(2, ',') + 1);
     int start = indexOf(2, ':') + 1;
     try {
-      byte value[] = new byte[2];
       for (int i = 0; i < count; i++) {
         byte byteVal = (byte) ((hexToInt(buffer[start + (i * 2)]) << 4) | (hexToInt(buffer[start
             + (i * 2) + 1])));
