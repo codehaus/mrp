@@ -52,14 +52,19 @@ public class DebugEntrypoints {
       int cmid = debugArgs.toInt();
       CompiledMethod cm;
       if(cmid < CompiledMethods.numCompiledMethods()) {
+    	VM.sysWriteln("Looking up compiled method from CMID: ", cmid);
         cm = CompiledMethods.getCompiledMethod(cmid);
       } else {
+    	VM.sysWriteln("Looking for compiled method associated with IP: ", debugArgs);
         cm = CompiledMethods.findMethodForInstruction(debugArgs);
         cmid = (cm == null) ? 0 : cm.getId();
       }
       if(cm == null) {
-        VM.sysWriteln("Method not found for CMID/IP of ",debugArgs);
+        VM.sysWriteln("Method not found");
       } else {
+        VM.sysWrite(cm.getMethod().getDeclaringClass().getDescriptor());
+        VM.sysWrite(cm.getMethod().getName());
+        VM.sysWriteln(cm.getMethod().getDescriptor());
         VM.sysWriteln("CMID: ",cmid);
         Address code = (ObjectReference.fromObject(cm.getEntryCodeArray())).toAddress();
         VM.sysWriteln("Start of code: ",code);
