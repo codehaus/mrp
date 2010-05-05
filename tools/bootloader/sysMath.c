@@ -25,14 +25,14 @@ const double maxint  = 0.5 + (double)0x7fffffff;
 EXTERNAL double sysLongToDouble(long long a)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysLongToDouble %ld\n", Me, a);
+  TRACE_PRINTF("%s: sysLongToDouble %lld\n", Me, a);
   return (double)a;
 }
 
 EXTERNAL float sysLongToFloat(long long a)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysLongToFloat %ld\n", Me, a);
+  TRACE_PRINTF("%s: sysLongToFloat %lld\n", Me, a);
   return (float)a;
 }
 
@@ -79,7 +79,7 @@ EXTERNAL double sysDoubleRemainder(double a, double b)
 {
   double tmp;
   SYS_START();
-  TRACE_PRINTF("%s: sysDoubleRemainder %f %% %f\n", Me, a);
+  TRACE_PRINTF("%s: sysDoubleRemainder %f %% %f\n", Me, a, b);
 #ifdef _WIN32
   tmp = fmod(a, b);
 #else

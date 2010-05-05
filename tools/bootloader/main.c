@@ -153,7 +153,7 @@ static void nonstandard_usage()
   CONSOLE_PRINTF("          (to execute a class)\n");
   CONSOLE_PRINTF("where options include\n");
   for (;*msgp; ++msgp) {
-    CONSOLE_PRINTF( *msgp);
+    CONSOLE_PRINTF("%s",*msgp);
     CONSOLE_PRINTF("\n");
   }
 }

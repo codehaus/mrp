@@ -18,11 +18,12 @@
 #ifdef RVM_WITH_OPROFILE
 #include <opagent.h>
 #include <errno.h>
+#include <string.h>
 #endif
 
 EXTERNAL Address sysOProfileOpenAgent()
 {
-  Address result = NULL;
+  Address result = (Address)NULL;
   SYS_START();
   TRACE_PRINTF("%s: sysOProfileOpenAgent\n", Me);
 #ifdef RVM_WITH_OPROFILE
@@ -37,7 +38,7 @@ EXTERNAL Address sysOProfileOpenAgent()
 EXTERNAL void sysOProfileCloseAgent(Address opHandle)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysOProfileCloseAgent(%p)\n", Me, opHandle);
+  TRACE_PRINTF("%s: sysOProfileCloseAgent(%p)\n", Me, (void*)opHandle);
 #ifdef RVM_WITH_OPROFILE
   int result = op_close_agent(opHandle);
   if (result != 0) {
@@ -50,7 +51,7 @@ EXTERNAL void sysOProfileWriteNativeCode(Address opHandle, char const * symbolNa
                                          Address codeAddress, int codeLength)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysOProfileWriteNativeCode(%p,%s,%p,%d)\n", Me, opHandle, symbolName, codeAddress, codeLength);
+  TRACE_PRINTF("%s: sysOProfileWriteNativeCode(%p,%s,%p,%d)\n", Me, (void*)opHandle, symbolName, (void*)codeAddress, codeLength);
 #ifdef RVM_WITH_OPROFILE
   int result = op_write_native_code(opHandle, symbolName, codeAddress, codeAddress, codeLength);
   if (result != 0) {
@@ -62,7 +63,7 @@ EXTERNAL void sysOProfileWriteNativeCode(Address opHandle, char const * symbolNa
 EXTERNAL void sysOProfileUnloadNativeCode(Address opHandle, Address codeAddress)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysOProfileUnloadNativeCode(%p,%p)\n", Me, opHandle, codeAddress);
+  TRACE_PRINTF("%s: sysOProfileUnloadNativeCode(%p,%p)\n", Me, (void*)opHandle, (void*)codeAddress);
 #ifdef RVM_WITH_OPROFILE
   int result = op_unload_native_code(opHandle, codeAddress);
   if (result != 0) {
@@ -85,7 +86,7 @@ EXTERNAL Address sysOProfileStartCompileMap(Address opHandle, Address codeAddres
 {
   Address result;
   SYS_START();
-  TRACE_PRINTF("%s: sysOProfileStartCompileMap(%p,%p)\n", Me, opHandle,codeAddress);
+  TRACE_PRINTF("%s: sysOProfileStartCompileMap(%p,%p)\n", Me, (void*)opHandle, (void*)codeAddress);
 #ifdef RVM_WITH_OPROFILE
   struct compileMap *cmap = (struct compileMap *)sysMalloc(sizeof(struct compileMap));
   cmap->hdl = opHandle;
@@ -102,7 +103,7 @@ EXTERNAL void sysOProfileAddToCompileMap(Address _cmap, Address offs,
                                          char const * fileName, int lineNumber)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysOProfileAddToCompileMap(%p,%p,%s,%d)\n", Me, _cmap, offs, fileName, lineNumber);
+  TRACE_PRINTF("%s: sysOProfileAddToCompileMap(%p,%p,%s,%d)\n", Me, (void*)_cmap, (void*)offs, fileName, lineNumber);
 #ifdef RVM_WITH_OPROFILE
   struct compileMap *cmap = (struct compileMap *)_cmap;
   if (cmap->entries_count+1 == cmap->entries_length) {
@@ -128,7 +129,7 @@ EXTERNAL void sysOProfileAddToCompileMap(Address _cmap, Address offs,
 EXTERNAL void  sysOProfileFinishCompileMap(Address _cmap)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysOProfileFinishCompileMap(%p)\n", Me, _cmap);
+  TRACE_PRINTF("%s: sysOProfileFinishCompileMap(%p)\n", Me, (void*)_cmap);
 #ifdef RVM_WITH_OPROFILE
   struct compileMap *cmap = (struct compileMap *)_cmap;
   if(cmap->entries_count > 0) {

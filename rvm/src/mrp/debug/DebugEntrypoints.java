@@ -52,10 +52,10 @@ public class DebugEntrypoints {
       int cmid = debugArgs.toInt();
       CompiledMethod cm;
       if(cmid < CompiledMethods.numCompiledMethods()) {
-    	VM.sysWriteln("Looking up compiled method from CMID: ", cmid);
+        VM.sysWriteln("Looking up compiled method from CMID: ", cmid);
         cm = CompiledMethods.getCompiledMethod(cmid);
       } else {
-    	VM.sysWriteln("Looking for compiled method associated with IP: ", debugArgs);
+        VM.sysWriteln("Looking for compiled method associated with IP: ", debugArgs);
         cm = CompiledMethods.findMethodForInstruction(debugArgs);
         cmid = (cm == null) ? 0 : cm.getId();
       }

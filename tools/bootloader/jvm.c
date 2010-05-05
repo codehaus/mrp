@@ -19,6 +19,7 @@
 
 #include "sys.h"
 #include <stdarg.h>
+#include <string.h>
 
 #ifndef RVM_FOR_HARMONY
 #include <sys/mman.h>
@@ -349,13 +350,15 @@ static void* mapImageFile(const char *fileName, const void *targetAddress,
                     -1, 0);
 #endif
   if (bootRegion == (void *) MAP_FAILED) {
-    ERROR_PRINTF("%s: mmap failed (errno=%d): %s\n", Me, errno, strerror(errno));
+    char *error_msg=strerror(errno);
+    ERROR_PRINTF("%s: mmap failed (errno=%d): %s\n", Me, errno, error_msg);
     return 0;
   }
 #ifdef RVM_WITH_OPROFILE
   size_t read_len = fread(bootRegion, actualImageSize, 1, fin); 
   if(read_len != 1) {
-    ERROR_PRINTF("%s: image read failed (errno=%d): %s\n", Me, errno, strerror(errno));
+    char *error_msg=strerror(errno);
+    ERROR_PRINTF("%s: image read failed (errno=%d): %s\n", Me, errno, error_msg);
     return 0;
   }
 #endif
@@ -388,35 +391,35 @@ static void* mapImageFile(const char *fileName, const void *targetAddress,
 static int createVM(int vmInSeparateThread)
 {
   void *bootDataRegion;
-  unsigned roundedDataRegionSize;
+  long roundedDataRegionSize;
   void *bootCodeRegion;
-  unsigned roundedCodeRegionSize;
+  long roundedCodeRegionSize;
   void *bootRMapRegion;
-  unsigned roundedRMapRegionSize;
+  long roundedRMapRegionSize;
   SYS_START();
 
   bootDataRegion = mapImageFile(bootDataFilename,
-										  (void*)bootImageDataAddress,
-										  JNI_FALSE,
+                                (void*)bootImageDataAddress,
+                                JNI_FALSE,
                                 JNI_TRUE,
-										  &roundedDataRegionSize);
+                                &roundedDataRegionSize);
   if (bootDataRegion != (void*)bootImageDataAddress)
     return 1;
   
 
   bootCodeRegion = mapImageFile(bootCodeFilename,
-										  (void*)bootImageCodeAddress,
-										  JNI_TRUE,
+                               (void*)bootImageCodeAddress,
+                                JNI_TRUE,
                                 JNI_FALSE,
-										  &roundedCodeRegionSize);
+                                &roundedCodeRegionSize);
   if (bootCodeRegion != (void*)bootImageCodeAddress)
     return 1;
 
   bootRMapRegion = mapImageFile(bootRMapFilename,
-										  (void*)bootImageRMapAddress,
-										  JNI_FALSE,
+                                (void*)bootImageRMapAddress,
                                 JNI_FALSE,
-										  &roundedRMapRegionSize);
+                                JNI_FALSE,
+                                &roundedRMapRegionSize);
   if (bootRMapRegion != (void*)bootImageRMapAddress)
     return 1;
 
@@ -426,37 +429,37 @@ static int createVM(int vmInSeparateThread)
 
   if (bootRecord->bootImageDataStart != (Address) bootDataRegion) {
     ERROR_PRINTF("%s: image load error: built for %p but loaded at %p\n",
-					  Me, bootRecord->bootImageDataStart, bootDataRegion);
+                 Me, (void*)bootRecord->bootImageDataStart, bootDataRegion);
     return 1;
   }
 
   if (bootRecord->bootImageCodeStart != (Address) bootCodeRegion) {
     ERROR_PRINTF("%s: image load error: built for %p but loaded at %p\n",
-					  Me, bootRecord->bootImageCodeStart, bootCodeRegion);
+                 Me, (void*)bootRecord->bootImageCodeStart, bootCodeRegion);
     return 1;
   }
 
   if (bootRecord->bootImageRMapStart != (Address) bootRMapRegion) {
     ERROR_PRINTF("%s: image load error: built for %p but loaded at %p\n",
-					  Me, bootRecord->bootImageRMapStart, bootRMapRegion);
+                 Me, (void*)bootRecord->bootImageRMapStart, bootRMapRegion);
     return 1;
   }
 
   if ((bootRecord->spRegister % __SIZEOF_POINTER__) != 0) {
     ERROR_PRINTF("%s: image format error: sp (%p) is not word aligned\n",
-					  Me, bootRecord->spRegister);
+                 Me, (void*)bootRecord->spRegister);
     return 1;
   }
 
   if ((bootRecord->ipRegister % __SIZEOF_POINTER__) != 0) {
     ERROR_PRINTF("%s: image format error: ip (%p) is not word aligned\n",
-					  Me, bootRecord->ipRegister);
+                 Me, (void*)bootRecord->ipRegister);
     return 1;
   }
 
   if (((uint32_t *) bootRecord->spRegister)[-1] != 0xdeadbabe) {
     ERROR_PRINTF("%s: image format error: missing stack sanity check marker (%p)\n",
-					  Me, ((int *) bootRecord->spRegister)[-1]);
+                 Me, (void*)(((int *) bootRecord->spRegister)[-1]));
     return 1;
   }
 
@@ -479,18 +482,18 @@ static int createVM(int vmInSeparateThread)
 
   if (verbose) {
     TRACE_PRINTF("%s: boot record contents:\n", Me);
-    TRACE_PRINTF("   bootImageDataStart:   %p\n", bootRecord->bootImageDataStart);
-    TRACE_PRINTF("   bootImageDataEnd:     %p\n", bootRecord->bootImageDataEnd);
-    TRACE_PRINTF("   bootImageCodeStart:   %p\n", bootRecord->bootImageCodeStart);
-    TRACE_PRINTF("   bootImageCodeEnd:     %p\n", bootRecord->bootImageCodeEnd);
-    TRACE_PRINTF("   bootImageRMapStart:   %p\n", bootRecord->bootImageRMapStart);
-    TRACE_PRINTF("   bootImageRMapEnd:     %p\n", bootRecord->bootImageRMapEnd);
-    TRACE_PRINTF("   initialHeapSize:      %p\n", bootRecord->initialHeapSize);
-    TRACE_PRINTF("   maximumHeapSize:      %p\n", bootRecord->maximumHeapSize);
-    TRACE_PRINTF("   spRegister:           %p\n", bootRecord->spRegister);
-    TRACE_PRINTF("   ipRegister:           %p\n", bootRecord->ipRegister);
-    TRACE_PRINTF("   tocRegister:          %p\n", bootRecord->tocRegister);
-    TRACE_PRINTF("   sysConsoleWriteCharIP:%p\n", bootRecord->sysConsoleWriteCharIP);
+    TRACE_PRINTF("   bootImageDataStart:   %p\n", (void*)bootRecord->bootImageDataStart);
+    TRACE_PRINTF("   bootImageDataEnd:     %p\n", (void*)bootRecord->bootImageDataEnd);
+    TRACE_PRINTF("   bootImageCodeStart:   %p\n", (void*)bootRecord->bootImageCodeStart);
+    TRACE_PRINTF("   bootImageCodeEnd:     %p\n", (void*)bootRecord->bootImageCodeEnd);
+    TRACE_PRINTF("   bootImageRMapStart:   %p\n", (void*)bootRecord->bootImageRMapStart);
+    TRACE_PRINTF("   bootImageRMapEnd:     %p\n", (void*)bootRecord->bootImageRMapEnd);
+    TRACE_PRINTF("   initialHeapSize:      %d\n", bootRecord->initialHeapSize);
+    TRACE_PRINTF("   maximumHeapSize:      %d\n", bootRecord->maximumHeapSize);
+    TRACE_PRINTF("   spRegister:           %p\n", (void*)bootRecord->spRegister);
+    TRACE_PRINTF("   ipRegister:           %p\n", (void*)bootRecord->ipRegister);
+    TRACE_PRINTF("   tocRegister:          %p\n", (void*)bootRecord->tocRegister);
+    TRACE_PRINTF("   sysConsoleWriteCharIP:%p\n", (void*)bootRecord->sysConsoleWriteCharIP);
     TRACE_PRINTF("   ...etc...                   \n");
   }
   

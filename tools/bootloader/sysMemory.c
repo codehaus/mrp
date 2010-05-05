@@ -156,7 +156,7 @@ EXTERNAL void sysSyncCache(void *address, size_t size)
 {
   uintptr_t start, end, addr;
   SYS_START();
-  TRACE_PRINTF("%s: sync %p %d\n", Me, address, size);
+  TRACE_PRINTF("%s: sync %p %zd\n", Me, address, size);
 #ifdef RVM_FOR_HARMONY
   hycpu_flush_icache(address, size);
 #else
@@ -212,7 +212,7 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
   SYS_START();
 #ifdef RVM_FOR_HARMONY
   HyPortVmemIdentifier ident;
-  TRACE_PRINTF("%s: sysMemoryReserve %p %d - %d %d %d %d\n",
+  TRACE_PRINTF("%s: sysMemoryReserve %p %zd - %d %d %d %d\n",
                Me, start, length, read, write, exec, commit);
   ident.pageSize = DefaultPageSize;
   ident.mode = 0;
@@ -245,7 +245,7 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
   int flags = MAP_PRIVATE;
   int fd = -1;
   off_t offset = 0;
-  TRACE_PRINTF("%s: sysMemoryReserve %p %d - %d %d %d %d\n",
+  TRACE_PRINTF("%s: sysMemoryReserve %p %zd - %d %d %d %d\n",
                Me, start, length, read, write, exec, commit);
 #if defined(MAP_ANONYMOUS)
   flags |= MAP_ANONYMOUS;
@@ -268,18 +268,18 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
     protection = PROT_NONE;
     flags |= MAP_NORESERVE;
   }
-  result = mmap(start, (size_t)(length), protection, flags, fd, (off_t)offset);
+  result = mmap(start, (size_t)(length), protection, flags, fd, offset);
 #if !defined(MAP_ANONYMOUS) && !defined(MAP_ANON)
   close(fd);
 #endif
   if (result == (void *) -1){
-    CONSOLE_PRINTF("%s: sysMemoryReserve %p %d %d %d %d %d failed with %d.\n",
-                   Me, start, length, protection, flags, fd, offset, errno);
+    CONSOLE_PRINTF("%s: sysMemoryReserve %p %zd %d %d %d %ld failed with %d.\n",
+                   Me, start, length, protection, flags, fd, (long)offset, errno);
     return (void *) errno;
   }
 #endif // RVM_FOR_HARMONY
   if (result != NULL) {
-    TRACE_PRINTF("MemoryReserve succeeded- region = [0x%x ... 0x%x]    size = %d\n", result, ((size_t)result) + length, length);
+    TRACE_PRINTF("MemoryReserve succeeded- region = [%p ... %p]    size = %zd\n", result, (void*)(((size_t)result) + length), length);
   }
   return result;
 }
@@ -304,7 +304,7 @@ EXTERNAL jboolean sysMemoryFree(char *start, size_t length)
     return JNI_FALSE;
   }
 #else
-  TRACE_PRINTF("%s: sysMemoryFree %p %d\n", Me, start, length);
+  TRACE_PRINTF("%s: sysMemoryFree %p %zd\n", Me, start, length);
   if (munmap(start, length) == 0) {
     return JNI_TRUE;
   } else {
@@ -349,7 +349,7 @@ EXTERNAL jboolean sysMemoryCommit(char *start, size_t length,
   }
 #else
   int protection = 0;
-  TRACE_PRINTF("%s: sysMemoryCommit %p %d - %d %d %d\n",
+  TRACE_PRINTF("%s: sysMemoryCommit %p %zd - %d %d %d\n",
                Me, start, length, read, write, exec);
   if (read) {
     protection |= PROT_READ;
@@ -387,7 +387,7 @@ EXTERNAL jboolean sysMemoryDecommit(char *start, size_t length)
     return JNI_FALSE;
   }
 #else
-  TRACE_PRINTF("%s: sysMemoryDecommit %p %d\n", Me, start, length);
+  TRACE_PRINTF("%s: sysMemoryDecommit %p %zd\n", Me, start, length);
   return JNI_TRUE; // success - unsupported operation for UNIX environments
 #endif // RVM_FOR_HARMONY
 }

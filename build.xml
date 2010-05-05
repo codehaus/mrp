@@ -1579,7 +1579,7 @@ const char *rvm_target_configuration = "${target.file}";
     </condition>
 
     <condition property="classlib.libraries"
-               value="${lib.specifier}pthread ${lib.specifier}dl ${lib.specifier}rt">
+               value="${lib.specifier}pthread ${lib.specifier}dl">
       <not>
         <equals arg1="${classlib.provider}" arg2="Harmony"/>
       </not>
@@ -1698,6 +1698,7 @@ const char *rvm_target_configuration = "${target.file}";
     <attribute name="outdir"/>
     <attribute name="srcdir"/>
     <attribute name="lib" default=""/>
+    <attribute name="suffix" default="${target.dll-ext}"/>
     <element name="ObjectFiles"/>
     <sequential>
     <if>
@@ -1731,15 +1732,32 @@ const char *rvm_target_configuration = "${target.file}";
     </if>
     <if>
       <conditions>
+        <equals arg1="${target.os}" arg2="OSX"/>
+      </conditions>
+      <sequential>
+        <exec executable="${c.exe}" failonerror="true">
+          <arg line="${c.args} -dynamiclib"/>
+          <arg value="-L@{outdir}"/>
+          <arg line="@{lib}"/>
+          <arg line="-o @{outdir}/${target.dll-prefix}@{dllname}@{suffix}"/>
+          <ObjectFiles/>
+        </exec>
+      </sequential>
+    </if>
+    <if>
+      <conditions>
         <not>
-          <equals arg1="${target.os}" arg2="Windows"/>
+          <or>
+            <equals arg1="${target.os}" arg2="Windows"/>
+            <equals arg1="${target.os}" arg2="OSX"/>
+          </or>
         </not>
       </conditions>
       <sequential>
         <exec executable="${c.exe}" failonerror="true">
-          <arg line="${c.args} -shared"/>
+          <arg line="${c.args} ${shld.args}"/>
           <arg line="-Xlinker --version-script=@{srcdir}/${target.dll-prefix}@{dllname}.exp"/>
-          <arg line="-o @{outdir}/${target.dll-prefix}@{dllname}${target.dll-ext}"/>
+          <arg line="-o @{outdir}/${target.dll-prefix}@{dllname}@{suffix}"/>
           <ObjectFiles/>
         </exec>
       </sequential>
@@ -1943,11 +1961,12 @@ const char *rvm_target_configuration = "${target.file}";
     </CreateDLL>
 
     <!-- create jvm_jni shared library -->
-    <echo message="Creating jvm_jni${target.dll-ext}"/>
+    <echo message="Creating jvm_jni${target.jni-suffix}"/>
     <CompileCtoObj cfile="${bl.dir}/jni/org_jikesrvm_runtime_DynamicLibrary.c"
                    objfile="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"
                    cargs="${rvm.c.args}" />
-    <CreateDLL outdir="${build.base}" dllname="jvm_jni" srcdir="${bl.dir}/jni" lib="${lib.specifier}jvm${target.lib-ext}">
+    <CreateDLL outdir="${build.base}" dllname="jvm_jni" srcdir="${bl.dir}/jni" lib="${lib.specifier}jvm${target.lib-ext}"
+               suffix="${target.jni-suffix}">
       <ObjectFiles>
         <arg value="${build.base}/${target.obj-prefix}org_jikesrvm_runtime_DynamicLibrary${target.obj-ext}"/>
       </ObjectFiles>

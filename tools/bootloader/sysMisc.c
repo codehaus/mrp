@@ -105,7 +105,7 @@ static int loadResultBuf(char * dest, int limit, const char *src)
 EXTERNAL int sysGetenv(const char *varName, char *buf, int limit)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysGetenv %d\n", Me, varName);
+  TRACE_PRINTF("%s: sysGetenv %s\n", Me, varName);
   return loadResultBuf(buf, limit, getenv(varName));
 }
 
@@ -138,8 +138,8 @@ EXTERNAL unsigned int parse_memory_size(const char *sizeName, const char *sizeFl
 				 is probably a bug in the specification
 				 of the prototype. */
   const char *factorStr = defaultFactor;
-  long double factor = 0.0;   // 0.0 is a sentinel meaning Unset
-  long double tot_d;
+  double factor = 0.0;   // 0.0 is a sentinel meaning Unset
+  double tot_d;
   unsigned tot;
 
   errno = 0;

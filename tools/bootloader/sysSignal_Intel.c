@@ -363,7 +363,7 @@ EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
   sp = IA32_ESP(context);
   stackLimit = *(Address *)(threadPtr + RVMThread_stackLimit_offset);
   if (sp <= stackLimit - 384) {
-    ERROR_PRINTF("sp (%p)too far below stackLimit (%p)to recover\n", sp, stackLimit);
+    ERROR_PRINTF("sp (%p)too far below stackLimit (%p)to recover\n", (void*)sp, (void*)stackLimit);
     signal(signo, SIG_DFL);
     raise(signo);
     // We should never get here.
@@ -398,9 +398,9 @@ EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
 
   /* store instructionFollowing and fp in Registers.ip and Registers.fp */
   *(Address*)vmr_ip = instructionFollowingPtr;
-  TRACE_PRINTF("%s: set vmr_ip to %p\n", Me, instructionFollowingPtr);
+  TRACE_PRINTF("%s: set vmr_ip to %p\n", Me, (void*)instructionFollowingPtr);
   *(Address*)vmr_fp = framePtr;
-  TRACE_PRINTF("%s: set vmr_fp to %p\n", Me, framePtr);
+  TRACE_PRINTF("%s: set vmr_fp to %p\n", Me, (void*)framePtr);
 
   /* set up context block to look like the artificial stack frame is
    * returning
@@ -456,37 +456,39 @@ EXTERNAL void setupDumpStackAndDie(void *context)
 EXTERNAL void dumpContext(void *context)
 {
   SYS_START();
-  ERROR_PRINTF("eip           %p\n", IA32_EIP(context));
-  ERROR_PRINTF("eax (T0)      %p\n", IA32_EAX(context));
-  ERROR_PRINTF("ebx (ctrs)    %p\n", IA32_EBX(context));
-  ERROR_PRINTF("ecx (S0)      %p\n", IA32_ECX(context));
-  ERROR_PRINTF("edx (T1)      %p\n", IA32_EDX(context));
-  ERROR_PRINTF("esi (TR)      %p\n", IA32_ESI(context));
-  ERROR_PRINTF("edi (S1)      %p\n", IA32_EDI(context));
-  ERROR_PRINTF("ebp           %p\n", IA32_EBP(context));
-  ERROR_PRINTF("esp (SP)      %p\n", IA32_ESP(context));
+  ERROR_PRINTF("eip           %p\n", (void*)IA32_EIP(context));
+  ERROR_PRINTF("eax (T0)      %p\n", (void*)IA32_EAX(context));
+  ERROR_PRINTF("ebx (ctrs)    %p\n", (void*)IA32_EBX(context));
+  ERROR_PRINTF("ecx (S0)      %p\n", (void*)IA32_ECX(context));
+  ERROR_PRINTF("edx (T1)      %p\n", (void*)IA32_EDX(context));
+  ERROR_PRINTF("esi (TR)      %p\n", (void*)IA32_ESI(context));
+  ERROR_PRINTF("edi (S1)      %p\n", (void*)IA32_EDI(context));
+  ERROR_PRINTF("ebp           %p\n", (void*)IA32_EBP(context));
+  ERROR_PRINTF("esp (SP)      %p\n", (void*)IA32_ESP(context));
 #ifdef __x86_64__
-  ERROR_PRINTF("r8            %p\n", IA32_R8(context));
-  ERROR_PRINTF("r9            %p\n", IA32_R9(context));
-  ERROR_PRINTF("r10           %p\n", IA32_R10(context));
-  ERROR_PRINTF("r11           %p\n", IA32_R11(context));
-  ERROR_PRINTF("r12           %p\n", IA32_R12(context));
-  ERROR_PRINTF("r13           %p\n", IA32_R13(context));
-  ERROR_PRINTF("r14           %p\n", IA32_R14(context));
-  ERROR_PRINTF("r15           %p\n", IA32_R15(context));
+  ERROR_PRINTF("r8            %p\n", (void*)IA32_R8(context));
+  ERROR_PRINTF("r9            %p\n", (void*)IA32_R9(context));
+  ERROR_PRINTF("r10           %p\n", (void*)IA32_R10(context));
+  ERROR_PRINTF("r11           %p\n", (void*)IA32_R11(context));
+  ERROR_PRINTF("r12           %p\n", (void*)IA32_R12(context));
+  ERROR_PRINTF("r13           %p\n", (void*)IA32_R13(context));
+  ERROR_PRINTF("r14           %p\n", (void*)IA32_R14(context));
+  ERROR_PRINTF("r15           %p\n", (void*)IA32_R15(context));
 #else
-  ERROR_PRINTF("cs            %p\n", IA32_CS(context));
-  ERROR_PRINTF("ds            %p\n", IA32_DS(context));
-  ERROR_PRINTF("es            %p\n", IA32_ES(context));
-  ERROR_PRINTF("fs            %p\n", IA32_FS(context));
-  ERROR_PRINTF("gs            %p\n", IA32_GS(context));
-  ERROR_PRINTF("ss            %p\n", IA32_SS(context));
+  ERROR_PRINTF("cs            %p\n", (void*)IA32_CS(context));
+  ERROR_PRINTF("ds            %p\n", (void*)IA32_DS(context));
+  ERROR_PRINTF("es            %p\n", (void*)IA32_ES(context));
+  ERROR_PRINTF("fs            %p\n", (void*)IA32_FS(context));
+  ERROR_PRINTF("gs            %p\n", (void*)IA32_GS(context));
+  ERROR_PRINTF("ss            %p\n", (void*)IA32_SS(context));
 #endif
   ERROR_PRINTF("trapno        0x%08x\n", IA32_TRAPNO(context));
   ERROR_PRINTF("err           0x%08x\n", IA32_ERR(context));
   ERROR_PRINTF("eflags        0x%08x\n", IA32_EFLAGS(context));
   /* null if fp registers haven't been used yet */
+#ifndef RVM_FOR_OSX
   ERROR_PRINTF("fpregs        %p\n", IA32_FPREGS(context));
+#endif
 #if !defined(__x86_64__) && defined(RVM_FOR_LINUX)
   ERROR_PRINTF("oldmask       0x%08lx\n", (unsigned long) IA32_OLDMASK(context));
   /* seems to contain mem address that faulting instruction was trying to access */

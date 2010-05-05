@@ -125,7 +125,7 @@ EXTERNAL jlong sysVaArgJlong(va_list *ap)
 {
   SYS_START();
   jlong result = va_arg(*ap, jlong);
-  TRACE_PRINTF("%s: sysVaArgJlong %ld\n", Me, result);
+  TRACE_PRINTF("%s: sysVaArgJlong %lld\n", Me, result);
   return result;
 }
 

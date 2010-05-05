@@ -45,8 +45,10 @@ public class TimerThread extends RVMThread {
     disableYieldpoints();
     if (verbose>=1) trace("TimerThread","run routine entered");
     try {
+      final long sleepNS = 1000L*1000L*(long)VM.interruptQuantum;
+      if(VM.VerifyAssertions) VM._assert(sleepNS >= 0);
       for (;;) {
-        sysCall.sysNanoSleep(1000L*1000L*(long)VM.interruptQuantum);
+        sysCall.sysNanoSleep(sleepNS);
 
         // grab the lock to prevent threads from getting GC'd while we are
         // iterating (since this thread doesn't stop for GC)

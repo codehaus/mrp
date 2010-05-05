@@ -171,7 +171,7 @@ static void setThreadLocal(TLS_KEY_TYPE key, void *value) {
 EXTERNAL void sysStashVMThread(Address vmThread)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysStashVmProcessorInPthread %p\n", Me, vmThread);
+  TRACE_PRINTF("%s: sysStashVmProcessorInPthread %p\n", Me, (void*)vmThread);
   setThreadLocal(VmThreadKey, (void*)vmThread);
 }
 
@@ -194,7 +194,7 @@ static void createThreadSpecificDataKeys()
   // the id of the Processor object with the pthread it is running on.
   VmThreadKey = createThreadLocal();
   TerminateJmpBufKey = createThreadLocal();
-  TRACE_PRINTF("%s: vm processor key=%u\n", Me, VmThreadKey);
+  TRACE_PRINTF("%s: vm processor key=%lu\n", Me, VmThreadKey);
 }
 
 /**
@@ -265,7 +265,7 @@ EXTERNAL int sysNumProcessors()
     numCpus = _system_configuration.ncpus;
     if (numCpus < 0) {
       ERROR_PRINTF("%s: WARNING: _system_configuration.ncpus"
-                   " has the insane value %d\n" , Me, numCpus);
+                   " has the insane value %d\n", Me, numCpus);
     }
   }
 #endif
@@ -273,7 +273,7 @@ EXTERNAL int sysNumProcessors()
 
   if (numCpus < 0) {
     TRACE_PRINTF("%s: WARNING: Can not figure out how many CPUs"
-                               " are online; assuming 1\n");
+                               " are online; assuming 1\n", Me);
     numCpus = 1;            // Default
   }
   TRACE_PRINTF("%s: sysNumProcessors: returning %d\n", Me, numCpus);
@@ -397,7 +397,7 @@ EXTERNAL Address sysThreadCreate(Address ip, Address fp, Address tr, Address jto
 #endif
   int            rc;
   SYS_START();
-  TRACE_PRINTF("%s: sysThreadCreate %p %p %p %p\n", Me, ip, fp, tr, jtoc);
+  TRACE_PRINTF("%s: sysThreadCreate %p %p %p %p\n", Me, (void*)ip, (void*)fp, (void*)tr, (void*)jtoc);
 
   /* create arguments - memory reclaimed in sysThreadStartup */
   sysThreadArguments = (Address *)sysMalloc(sizeof(Address[5]));
@@ -441,7 +441,7 @@ EXTERNAL Address sysThreadCreate(Address ip, Address fp, Address tr, Address jto
     sysExit(EXIT_STATUS_SYSCALL_TROUBLE);
   }
 #endif
-  TRACE_PRINTF("%s: pthread_create %p\n", Me, (Address) sysThreadHandle);
+  TRACE_PRINTF("%s: pthread_create %p\n", Me, (void*)sysThreadHandle);
 
   return (Address)sysThreadHandle;
 }
@@ -470,7 +470,7 @@ static void* sysThreadStartup(void *args)
   jtoc = ((Address *)args)[3];
   threadData = ((Address *)args)[4];
   TRACE_PRINTF("%s: sysThreadStartup: ip=%p fp=%p tr=%p jtoc=%p data=%d\n",
-	       Me, ip, fp, tr, jtoc, (int)threadData);
+	       Me, (void*)ip, (void*)fp, (void*)tr, (void*)jtoc, (int)threadData);
   sysFree(args);
   if (threadData == CHILD_THREAD) {
     sigStack = sysStartChildThreadSignals();
@@ -528,7 +528,7 @@ EXTERNAL int sysThreadBindSupported()
 {
   int result=0;
   SYS_START();
-  TRACE_PRINTF("%s: sysThreadBindSupported");
+  TRACE_PRINTF("%s: sysThreadBindSupported", Me);
 #ifdef RVM_FOR_AIX
   result=1;
 #endif
@@ -546,7 +546,7 @@ EXTERNAL int sysThreadBindSupported()
 EXTERNAL void sysThreadBind(int UNUSED cpuId)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysThreadBind");
+  TRACE_PRINTF("%s: sysThreadBind", Me);
 #ifndef RVM_FOR_HARMONY
 #ifdef RVM_FOR_AIX
   // bindprocessor() seems to be only on AIX
@@ -593,11 +593,13 @@ EXTERNAL Address sysThreadSelf()
 EXTERNAL void sysThreadSetPriority(Address thread, int priority)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysThreadSetPriority: thread %p %d\n", Me, thread, priority);
+  TRACE_PRINTF("%s: sysThreadSetPriority: thread %p %d\n", Me, (void*)thread, priority);
 #ifdef RVM_FOR_HARMONY
   hythread_set_priority((hythread_t)thread, priority);
 #else
-  pthread_setschedprio((pthread_t)thread, priority - 5);
+  struct sched_param param;
+  param.sched_priority = priority;
+  pthread_setschedparam((pthread_t)thread, SCHED_OTHER, &param);
 #endif
 }
 
@@ -638,7 +640,7 @@ EXTERNAL void sysThreadYield()
 EXTERNAL void sysNanoSleep(long long howLongNanos)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysNanosleep %lld\n", Me, howLongNanos);
+  TRACE_PRINTF("%s: sysNanoSleep %lld\n", Me, howLongNanos);
 #ifdef RVM_FOR_HARMONY
   // 2^20 == 1048576 which is nearly 1000000
   hythread_sleep(howLongNanos>>20);
@@ -693,7 +695,7 @@ EXTERNAL void sysMonitorDestroy(Address _monitor)
 EXTERNAL void sysMonitorEnter(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMonitorEnter %p\n", Me, _monitor);
+  TRACE_PRINTF("%s: sysMonitorEnter %p\n", Me, (void*)_monitor);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_enter((hythread_monitor_t)_monitor);
 #else
@@ -705,7 +707,7 @@ EXTERNAL void sysMonitorEnter(Address _monitor)
 EXTERNAL void sysMonitorExit(Address _monitor)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMonitorExit %p\n", Me, _monitor);
+  TRACE_PRINTF("%s: sysMonitorExit %p\n", Me, (void*)_monitor);
 #ifdef RVM_FOR_HARMONY
   hythread_monitor_exit((hythread_monitor_t)_monitor);
 #else
@@ -717,7 +719,7 @@ EXTERNAL void sysMonitorExit(Address _monitor)
 EXTERNAL void sysMonitorTimedWaitAbsolute(Address _monitor, long long whenWakeupNanos)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysMonitorTimedWaitAbsolute %ld\n", Me, whenWakeupNanos);
+  TRACE_PRINTF("%s: sysMonitorTimedWaitAbsolute %lld\n", Me, whenWakeupNanos);
 #ifdef RVM_FOR_HARMONY
   // syscall wait is absolute, but harmony monitor wait is relative.
   whenWakeupNanos -= sysNanoTime();
