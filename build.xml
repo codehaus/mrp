@@ -1601,6 +1601,10 @@ const char *rvm_target_configuration = "${target.file}";
       </and>
     </condition>
 
+    <condition property="bootloader.libraries" value="${lib.specifier}rt${target.lib-ext}" else="">
+       <equals arg1="${target.os}" arg2="Linux"/>
+    </condition>
+
     <condition property="oprofile.libraries" value="${libpath.specifier}/usr/local/lib/oprofile ${lib.specifier}opagent${target.lib-ext} ${lib.specifier}bfd${target.lib-ext}" else="">
       <equals arg1="${config.oprofile}" arg2="true"/>
     </condition>
@@ -1811,7 +1815,7 @@ const char *rvm_target_configuration = "${target.file}";
           <arg value="-L@{outdir}"/>
           <ObjectFiles/>
           <arg line="@{lib} -lm -lc"/>
-          <arg line="${classlib.libraries} ${oprofile.libraries}"/>
+          <arg line="${classlib.libraries} ${oprofile.libraries} ${bootloader.libraries}"/>
         </exec>
       </sequential>
     </if>
