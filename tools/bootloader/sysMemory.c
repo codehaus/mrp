@@ -84,7 +84,7 @@ EXTERNAL void sysFree(void *location)
 EXTERNAL void sysCopy(void *dst, const void *src, Extent cnt)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysCopy %p %p %d\n", Me, dst, src, cnt);
+  TRACE_PRINTF("%s: sysCopy %p %p %d\n", Me, dst, src, (int)cnt);
   memcpy(dst, src, cnt);
 }
 
@@ -92,7 +92,7 @@ EXTERNAL void sysCopy(void *dst, const void *src, Extent cnt)
 EXTERNAL void sysZero(void *dst, Extent cnt)
 {
   SYS_START();
-  TRACE_PRINTF("%s: sysZero %p %d\n", Me, dst, cnt);
+  TRACE_PRINTF("%s: sysZero %p %d\n", Me, dst, (int)cnt);
   memset(dst, 0x00, cnt);
 }
 
@@ -275,7 +275,7 @@ EXTERNAL void * sysMemoryReserve(char *start, size_t length,
   if (result == (void *) -1){
     CONSOLE_PRINTF("%s: sysMemoryReserve %p %zd %d %d %d %ld failed with %d.\n",
                    Me, start, length, protection, flags, fd, (long)offset, errno);
-    return (void *) errno;
+    return (void *)((Address) errno);
   }
 #endif // RVM_FOR_HARMONY
   if (result != NULL) {
@@ -414,9 +414,9 @@ EXTERNAL int sysGetPageSize()
  */
 EXTERNAL void findMappable()
 {
-  int i;
-  int granularity = 1 << 22; // every 4 megabytes
-  int max = (1 << 30) / (granularity >> 2);
+  Address i;
+  Address granularity = 1 << 22; // every 4 megabytes
+  Address max = (1L << ((sizeof(Address)*8)-2)) / (granularity >> 2);
   int pageSize = sysGetPageSize();
   SYS_START();
   CONSOLE_PRINTF("Attempting to find mappable blocks of size %d\n", pageSize);

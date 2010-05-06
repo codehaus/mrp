@@ -458,8 +458,8 @@ static int createVM(int vmInSeparateThread)
   }
 
   if (((uint32_t *) bootRecord->spRegister)[-1] != 0xdeadbabe) {
-    ERROR_PRINTF("%s: image format error: missing stack sanity check marker (%p)\n",
-                 Me, (void*)(((int *) bootRecord->spRegister)[-1]));
+    ERROR_PRINTF("%s: image format error: missing stack sanity check marker (0x%08x)\n",
+                 Me, (((int *) bootRecord->spRegister)[-1]));
     return 1;
   }
 
@@ -488,8 +488,8 @@ static int createVM(int vmInSeparateThread)
     TRACE_PRINTF("   bootImageCodeEnd:     %p\n", (void*)bootRecord->bootImageCodeEnd);
     TRACE_PRINTF("   bootImageRMapStart:   %p\n", (void*)bootRecord->bootImageRMapStart);
     TRACE_PRINTF("   bootImageRMapEnd:     %p\n", (void*)bootRecord->bootImageRMapEnd);
-    TRACE_PRINTF("   initialHeapSize:      %d\n", bootRecord->initialHeapSize);
-    TRACE_PRINTF("   maximumHeapSize:      %d\n", bootRecord->maximumHeapSize);
+    TRACE_PRINTF("   initialHeapSize:      %lld\n", (long long int)bootRecord->initialHeapSize);
+    TRACE_PRINTF("   maximumHeapSize:      %lld\n", (long long int)bootRecord->maximumHeapSize);
     TRACE_PRINTF("   spRegister:           %p\n", (void*)bootRecord->spRegister);
     TRACE_PRINTF("   ipRegister:           %p\n", (void*)bootRecord->ipRegister);
     TRACE_PRINTF("   tocRegister:          %p\n", (void*)bootRecord->tocRegister);
