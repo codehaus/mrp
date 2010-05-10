@@ -1605,7 +1605,7 @@ const char *rvm_target_configuration = "${target.file}";
        <equals arg1="${target.os}" arg2="Linux"/>
     </condition>
 
-    <condition property="oprofile.libraries" value="${libpath.specifier}/usr/local/lib/oprofile ${lib.specifier}opagent${target.lib-ext} ${lib.specifier}bfd${target.lib-ext}" else="">
+    <condition property="oprofile.libraries" value="${libpath.specifier}/usr/local/lib/oprofile ${lib.specifier}opagent${target.lib-ext}" else="">
       <equals arg1="${config.oprofile}" arg2="true"/>
     </condition>
 
