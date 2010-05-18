@@ -79,7 +79,7 @@ import static org.jikesrvm.compilers.opt.regalloc.ppc.PhysicalRegisterConstants.
 import static org.jikesrvm.compilers.opt.regalloc.ppc.PhysicalRegisterConstants.INT_REG;
 import static org.jikesrvm.compilers.opt.regalloc.ppc.PhysicalRegisterConstants.LAST_SCRATCH_GPR;
 import org.jikesrvm.compilers.opt.regalloc.GenericStackManager;
-import org.jikesrvm.compilers.opt.util.Bits;
+import org.jikesrvm.util.Bits;
 import static org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_ALIGNMENT;
 import static org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_METHOD_ID_OFFSET;
 import static org.jikesrvm.ppc.StackframeLayoutConstants.STACKFRAME_NEXT_INSTRUCTION_OFFSET;

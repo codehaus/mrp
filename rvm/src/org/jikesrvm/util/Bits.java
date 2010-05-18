@@ -10,11 +10,12 @@
  *  See the COPYRIGHT.txt file distributed with this work for information
  *  regarding copyright ownership.
  */
-package org.jikesrvm.compilers.opt.util;
+package org.jikesrvm.util;
 
-import org.jikesrvm.VM;
+import org.vmmagic.pragma.Inline;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
+import org.vmmagic.unboxed.Word;
 
 /**
  * Bits.java
@@ -99,32 +100,70 @@ public class Bits {
   }
 
   /**
-   * Does a long literal val fit in bits bits?
+   * Find out whether a given signed value can be represented in a
+   * given number of bits.
+   *
+   * @param val the value to be represented
+   * @param bits the number of bits to use.
+   * @return true if val can be encoded in bits.
    */
-  public static boolean fits(long val, int bits) {
-    val = val >> bits - 1;
-    return (val == 0L || val == -1L);
-  }
-
-  /**
-   * Does an offset literal val fit in bits bits?
-   */
+  @Inline
   public static boolean fits(Offset val, int bits) {
-    return (VM.BuildFor32Addr) ? fits(val.toInt(), bits) : fits(val.toLong(), bits);
+    return fits(val.toWord(), bits);
   }
 
   /**
-   * Does an address literal val fit in bits bits?
+   * Find out whether a given signed value can be represented in a
+   * given number of bits.
+   *
+   * @param val the value to be represented
+   * @param bits the number of bits to use.
+   * @return true if val can be encoded in bits.
    */
+  @Inline
   public static boolean fits(Address val, int bits) {
-    return (VM.BuildFor32Addr) ? fits(val.toInt(), bits) : fits(val.toLong(), bits);
+    return fits(val.toWord(), bits);
   }
 
   /**
-   * Does an int literal val fit in bits bits?
+   * Find out whether a given signed value can be represented in a
+   * given number of bits.
+   *
+   * @param val the value to be represented
+   * @param bits the number of bits to use.
+   * @return true if val can be encoded in bits.
    */
+  @Inline
+  public static boolean fits(Word val, int bits) {
+    Word o = val.rsha(bits-1);
+    return (o.isZero() || o.isMax());
+  }
+
+  /**
+   * Find out whether a given signed value can be represented in a
+   * given number of bits.
+   *
+   * @param val the value to be represented
+   * @param bits the number of bits to use.
+   * @return true if val can be encoded in bits.
+   */
+  @Inline
   public static boolean fits(int val, int bits) {
-    val = val >> bits - 1;
+    val = val >> bits-1;
+    return (val == 0 || val == -1);
+  }
+
+  /**
+   * Find out whether a given signed value can be represented in a
+   * given number of bits.
+   *
+   * @param val the value to be represented
+   * @param bits the number of bits to use.
+   * @return true if val can be encoded in bits.
+   */
+  @Inline
+  public static boolean fits(long val, int bits) {
+    val = val >> bits-1;
     return (val == 0 || val == -1);
   }
 }

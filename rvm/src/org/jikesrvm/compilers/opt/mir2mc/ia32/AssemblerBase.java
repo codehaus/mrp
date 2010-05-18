@@ -95,6 +95,7 @@ import static org.jikesrvm.compilers.opt.regalloc.ia32.PhysicalRegisterConstants
 import static org.jikesrvm.ia32.ArchConstants.SSE2_FULL;
 import static org.jikesrvm.ia32.RegisterConstants.FP0;
 import static org.jikesrvm.ia32.RegisterConstants.FP1;
+import static org.jikesrvm.util.Bits.*;
 
 import java.util.ArrayList;
 

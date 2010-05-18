@@ -28,7 +28,7 @@
 /**
  * Transfer execution from C to Java for thread startup
  */
-void bootThread (void *_ip, void *_tr, void *_sp, void UNUSED *_jtoc)
+void bootThread (void *_ip, void *_tr, void *_sp, void *_jtoc)
 {
   void *saved_ebp;
 #ifndef _WIN32
@@ -42,6 +42,7 @@ void bootThread (void *_ip, void *_tr, void *_sp, void UNUSED *_jtoc)
        "pop   %%esp         \n"
        "mov   %0, %%ebp     \n"
 #else
+       "mov   %4, %%r15     \n"
        "mov   %%rbp, %0     \n"
        "mov   %%rsp, %%rbp  \n"
        "mov   %3, %%rsp     \n"
@@ -51,9 +52,13 @@ void bootThread (void *_ip, void *_tr, void *_sp, void UNUSED *_jtoc)
        "mov   %0, %%rbp     \n"
 #endif
        : "=m"(saved_ebp)
-       : "a"(_ip), // EAX = Instruction Pointer
-	 "S"(_tr), // ESI = Thread Register
+       : "a"(_ip),     // EAX = Instruction Pointer
+	 "S"(_tr),     // ESI = Thread Register
 	 "r"(_sp)
+#ifdef __x86_64__
+        ,"r"(_jtoc)
+       : "r15"
+#endif
        );
 #else
   __asm{

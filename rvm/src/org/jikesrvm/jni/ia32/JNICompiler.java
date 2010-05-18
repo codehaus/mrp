@@ -26,9 +26,9 @@ import org.jikesrvm.compilers.common.assembler.ForwardReference;
 import org.jikesrvm.ia32.BaselineConstants;
 import org.jikesrvm.jni.JNICompiledMethod;
 import org.jikesrvm.runtime.ArchEntrypoints;
+import org.jikesrvm.runtime.BootRecord;
 import org.jikesrvm.runtime.Entrypoints;
 import org.jikesrvm.runtime.Statics;
-import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.scheduler.RVMThread;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
@@ -212,7 +212,11 @@ public abstract class JNICompiler implements BaselineConstants {
     asm.emitPUSH_Reg(EBP); // save nonvolatile EBP register
 
     // Establish EBP as the framepointer for use in the rest of the glue frame
-    asm.emitLEA_Reg_RegDisp(EBP, SP, Offset.fromIntSignExtend(4*WORDSIZE));
+    if(VM.BuildFor32Addr) {
+      asm.emitLEA_Reg_RegDisp(EBP, SP, Offset.fromIntSignExtend(4*WORDSIZE));
+    } else {
+      asm.emitLEA_Reg_RegDisp_Quad(EBP, SP, Offset.fromIntSignExtend(4*WORDSIZE));
+    }
 
     // (2) Set up jniEnv - set up a register to hold JNIEnv and store
     // the Processor in the JNIEnv for easy access
@@ -259,13 +263,14 @@ public abstract class JNICompiler implements BaselineConstants {
       if ((argsOnStack & 1) != 0) {
         // need odd alignment prior to pushes
         asm.emitAND_Reg_Imm_Quad(SP, -16);
+        asm.emitPUSH_Reg(T0);
       } else {
         // need even alignment prior to pushes
         asm.emitAND_Reg_Imm_Quad(SP, -16);
-        asm.emitPUSH_Reg(T0);
       }
     }
     // include this ptr now padding calculation is complete
+    // (we always pass a this or a class but we only pop this)
     if (!method.isStatic()) {
       numGprArgs++;
     }
@@ -347,7 +352,7 @@ public abstract class JNICompiler implements BaselineConstants {
       // push java.lang.Class object for klass
       Offset klassOffset = Offset.fromIntSignExtend(
           Statics.findOrCreateObjectLiteral(method.getDeclaringClass().getClassForType()));
-      asm.emitPUSH_Abs(Magic.getTocPointer().plus(klassOffset));
+      asm.generateJTOCpush(klassOffset);
     } else {
       if (VM.VerifyAssertions) VM._assert(argGpr == 0);
       asm.emitPUSH_Reg(PARAMETER_GPRS[0]);
@@ -374,7 +379,7 @@ public abstract class JNICompiler implements BaselineConstants {
       if (arg.isReferenceType()) {
         if (VM.VerifyAssertions) VM._assert(pos < 32);
         encodedReferenceOffsets |= 1 << pos;
-      } else if (arg.isLongType() || arg.isDoubleType()) {
+      } else if (VM.BuildFor32Addr && (arg.isLongType() || arg.isDoubleType())) {
         pos++;
       }
     }
@@ -418,9 +423,9 @@ public abstract class JNICompiler implements BaselineConstants {
             if (dataOnStack) throw new Error("Unsupported native method parameter list");
             asm.emitMOVSD_Reg_RegInd((XMM)NATIVE_PARAMETER_FPRS[fpRegistersInUse], SP);
             asm.emitPOP_Reg(T0);
-            asm.emitPOP_Reg(T0);
+            if(VM.BuildFor32Addr) asm.emitPOP_Reg(T0);
             fpRegistersInUse++;
-            argsPassedInRegister+=2;
+            argsPassedInRegister+= VM.BuildFor32Addr ? 2 : 1;
           } else {
             // no register available so we have data on the stack
             dataOnStack = true;
@@ -447,6 +452,11 @@ public abstract class JNICompiler implements BaselineConstants {
     } else {
       asm.emitMOV_Reg_Imm_Quad(T0, nativeIP.toLong());
     }
+    // Trap if stack alignment fails
+    //   asm.emitBT_Reg_Imm(ESP, 3);
+    //   ForwardReference fr = asm.forwardJcc(AssemblerConstants.LGE);
+    //   asm.emitINT_Imm(3);
+    //   fr.resolve(asm);
     // make the call to native code
     asm.emitCALL_Reg(T0);
 
@@ -458,11 +468,19 @@ public abstract class JNICompiler implements BaselineConstants {
         // throw away args, class/this ptr and env
         int argsToThrowAway = method.getParameterWords()+2-argsPassedInRegister;
         if (argsToThrowAway != 0) {
-          asm.emitLEA_Reg_RegDisp(SP, EBP, BP_ON_ENTRY_OFFSET);
+          if(VM.BuildFor32Addr) {
+            asm.emitLEA_Reg_RegDisp(SP, EBP, BP_ON_ENTRY_OFFSET);
+          } else {
+            asm.emitLEA_Reg_RegDisp_Quad(SP, EBP, BP_ON_ENTRY_OFFSET);
+          }
         }
       } else {
         // throw away args, class/this ptr and env (and padding)
-        asm.emitLEA_Reg_RegDisp(SP, EBP,  BP_ON_ENTRY_OFFSET);
+        if(VM.BuildFor32Addr) {
+          asm.emitLEA_Reg_RegDisp(SP, EBP,  BP_ON_ENTRY_OFFSET);
+        } else {
+          asm.emitLEA_Reg_RegDisp_Quad(SP, EBP,  BP_ON_ENTRY_OFFSET);
+        }
       }
     }
 
@@ -525,7 +543,11 @@ public abstract class JNICompiler implements BaselineConstants {
 
     // (10) Transition back from "in native" to "in Java", convert a reference
     // result (currently a JNI ref) into a true reference, release JNI refs
-    asm.emitMOV_Reg_Reg(PARAMETER_GPRS[0], S0); // 1st arg is JNI Env
+    if(VM.BuildFor32Addr) {
+      asm.emitMOV_Reg_Reg(PARAMETER_GPRS[0], S0); // 1st arg is JNI Env
+    } else {
+      asm.emitMOV_Reg_Reg_Quad(PARAMETER_GPRS[0], S0); // 1st arg is JNI Env
+    }
     if (returnType.isReferenceType()) {
       asm.emitPOP_Reg(PARAMETER_GPRS[1]);       // 2nd arg is ref result
     } else {
@@ -780,6 +802,11 @@ public abstract class JNICompiler implements BaselineConstants {
       }
     }
 
+    // Restore JTOC register
+    if(JTOC_REGISTER != null) {
+      asm.emitMOV_Reg_Imm_Quad(JTOC_REGISTER, BootRecord.the_boot_record.tocRegister.toLong());
+    }
+
     // START of code sequence to atomically change thread status from
     // IN_JNI to IN_JAVA, looping in a call to
     // RVMThread.leaveJNIBlockedFromJNIFunctionCallMethod if
@@ -811,9 +838,7 @@ public abstract class JNICompiler implements BaselineConstants {
     ForwardReference doneLeaveJNIRef = asm.forwardJcc(AssemblerConstants.EQ);
 
     // make the slow call
-    asm.emitCALL_Abs(
-      Magic.getTocPointer().plus(
-        Entrypoints.leaveJNIBlockedFromJNIFunctionCallMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.leaveJNIBlockedFromJNIFunctionCallMethod.getOffset());
 
     // arrive here when we've switched to IN_JAVA
     doneLeaveJNIRef.resolve(asm);
@@ -948,9 +973,7 @@ public abstract class JNICompiler implements BaselineConstants {
     ForwardReference doneEnterJNIRef = asm.forwardJcc(AssemblerConstants.EQ);
 
     // fast path failed, make the call
-    asm.emitCALL_Abs(
-      Magic.getTocPointer().plus(
-        Entrypoints.enterJNIBlockedFromJNIFunctionCallMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.enterJNIBlockedFromJNIFunctionCallMethod.getOffset());
 
     // OK - we reach here when we have set the state to IN_JNI
     doneEnterJNIRef.resolve(asm);

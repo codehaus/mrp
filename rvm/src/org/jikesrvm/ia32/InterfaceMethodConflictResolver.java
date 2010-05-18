@@ -18,7 +18,6 @@ import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
 import org.jikesrvm.compilers.common.assembler.ia32.AssemblerConstants;
 import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.runtime.ArchEntrypoints;
-import org.jikesrvm.runtime.Magic;
 import org.vmmagic.unboxed.Offset;
 
 /**
@@ -96,7 +95,7 @@ public abstract class InterfaceMethodConflictResolver implements RegisterConstan
       // a leaf case; can simply invoke the method directly.
       RVMMethod target = targets[middle];
       if (target.isStatic()) { // an error case...
-        asm.emitJMP_Abs(Magic.getTocPointer().plus(target.getOffset()));
+        asm.generateJTOCjmp(target.getOffset());
       } else {
         asm.emitJMP_RegDisp(ECX, target.getOffset());
       }
@@ -112,7 +111,7 @@ public abstract class InterfaceMethodConflictResolver implements RegisterConstan
       // invoke the method for middle.
       RVMMethod target = targets[middle];
       if (target.isStatic()) { // an error case...
-        asm.emitJMP_Abs(Magic.getTocPointer().plus(target.getOffset()));
+        asm.generateJTOCjmp(target.getOffset());
       } else {
         asm.emitJMP_RegDisp(ECX, target.getOffset());
       }
