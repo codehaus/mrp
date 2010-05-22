@@ -22,11 +22,11 @@ import org.jikesrvm.compilers.opt.ir.operand.*;
 import org.jikesrvm.compilers.opt.ir.operand.@_ARCH_@.*;
 import org.jikesrvm.compilers.opt.lir2mir.BURS;
 import org.jikesrvm.compilers.opt.OptimizingCompilerException;
-import org.jikesrvm.compilers.opt.util.Bits; //NOPMD
 import org.jikesrvm.compilers.opt.lir2mir.@_ARCH_@.BURS_Helpers;
 import org.jikesrvm.compilers.opt.lir2mir.@_ARCH_ADDRESS_@.BURS_TreeNode;
 import org.jikesrvm.compilers.opt.lir2mir.AbstractBURS_TreeNode;
 import org.jikesrvm.compilers.opt.lir2mir.BURS_StateCoder;
+import org.jikesrvm.util.Bits; //NOPMD
 
 import org.vmmagic.unboxed.*;
 import org.vmmagic.pragma.Inline;

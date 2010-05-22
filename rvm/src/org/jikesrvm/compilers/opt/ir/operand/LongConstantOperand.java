@@ -13,7 +13,7 @@
 package org.jikesrvm.compilers.opt.ir.operand;
 
 import org.jikesrvm.classloader.TypeReference;
-import org.jikesrvm.compilers.opt.util.Bits;
+import org.jikesrvm.util.Bits;
 import org.jikesrvm.runtime.Statics;
 import org.vmmagic.unboxed.Offset;
 

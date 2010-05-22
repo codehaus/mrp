@@ -16,19 +16,22 @@ import org.jikesrvm.VM;
 import org.jikesrvm.architecture.MachineRegister;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.compilers.baseline.ia32.BaselineCompilerImpl;
-import org.jikesrvm.ia32.OutOfLineMachineCode;
-import org.jikesrvm.ia32.RegisterConstants;
-import org.jikesrvm.ia32.RegisterConstants.IntelMachineRegister;
 import org.jikesrvm.compilers.common.CodeArray;
 import org.jikesrvm.compilers.common.assembler.ia32.Lister;
 import org.jikesrvm.compilers.common.assembler.ForwardReference;
 import org.jikesrvm.compilers.common.assembler.AbstractAssembler;
+import org.jikesrvm.ia32.OutOfLineMachineCode;
+import org.jikesrvm.ia32.RegisterConstants;
+import org.jikesrvm.ia32.RegisterConstants.IntelMachineRegister;
+
+import org.vmmagic.pragma.*;
+import org.vmmagic.unboxed.*;
+
 import org.jikesrvm.objectmodel.JavaHeader;
 import static org.jikesrvm.compilers.common.assembler.ia32.AssemblerConstants.*;
 import static org.jikesrvm.ia32.RegisterConstants.*;
+import static org.jikesrvm.util.Bits.*;
 import static org.jikesrvm.VM.Production;
-import org.vmmagic.pragma.*;
-import org.vmmagic.unboxed.*;
 
 /**
  *  <P> This class is the low-level assembler for Intel; it contains
@@ -360,74 +363,6 @@ public class Assembler extends AbstractAssembler {
         VM.sysWrite(Lister.hex((byte)0x0));
       }
     }
-  }
-
-  /**
-   * Find out whether a given signed value can be represented in a
-   * given number of bits.
-   *
-   * @param val the value to be represented
-   * @param bits the number of bits to use.
-   * @return true if val can be encoded in bits.
-   */
-  @Inline
-  protected static boolean fits (Offset val, int bits) {
-    return fits(val.toWord(), bits);
-  }
-
-  /**
-   * Find out whether a given signed value can be represented in a
-   * given number of bits.
-   *
-   * @param val the value to be represented
-   * @param bits the number of bits to use.
-   * @return true if val can be encoded in bits.
-   */
-  @Inline
-  protected static boolean fits (Address val, int bits) {
-    return fits(val.toWord(), bits);
-  }
-
-  /**
-   * Find out whether a given signed value can be represented in a
-   * given number of bits.
-   *
-   * @param val the value to be represented
-   * @param bits the number of bits to use.
-   * @return true if val can be encoded in bits.
-   */
-  @Inline
-  protected static boolean fits (Word val, int bits) {
-    Word o = val.rsha(bits-1);
-    return (o.isZero() || o.isMax());
-  }
-
-  /**
-   * Find out whether a given signed value can be represented in a
-   * given number of bits.
-   *
-   * @param val the value to be represented
-   * @param bits the number of bits to use.
-   * @return true if val can be encoded in bits.
-   */
-  @Inline
-  protected static boolean fits (int val, int bits) {
-    val = val >> bits-1;
-    return (val == 0 || val == -1);
-  }
-
-  /**
-   * Find out whether a given signed value can be represented in a
-   * given number of bits.
-   *
-   * @param val the value to be represented
-   * @param bits the number of bits to use.
-   * @return true if val can be encoded in bits.
-   */
-  @Inline
-  protected static boolean fits (long val, int bits) {
-    val = val >> bits-1;
-    return (val == 0 || val == -1);
   }
 
   /**
@@ -1208,6 +1143,186 @@ public class Assembler extends AbstractAssembler {
     if (VM.VerifyAssertions) VM._assert(fits(relOffset, 8), "offset too large: "+relOffset);
     sourceIndex++; // skip the op code
     emitImm8((byte)relOffset, sourceIndex);
+  }
+
+  /////////////////////////////////////
+  // JTOC utilities ///////////////////
+  /////////////////////////////////////
+
+  /**
+   * Utility to push a value from the JTOC
+   */
+  public final void generateJTOCpush(Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitPUSH_Abs(Magic.getTocPointer().plus(off));
+    } else {
+      emitPUSH_RegDisp(JTOC_REGISTER, off);
+    }
+  }
+
+  /**
+   * Utility to push a value from the JTOC
+   */
+  public final void generateJTOCpush(GPR off) {
+    if(JTOC_REGISTER == null) {
+      emitPUSH_RegDisp(off, Magic.getTocPointer().toWord().toOffset());
+    } else {
+      emitPUSH_RegIdx(JTOC_REGISTER, off, AssemblerConstants.BYTE, Offset.zero());
+    }
+  }
+
+  /**
+   * Utility to pop a value to the JTOC
+   */
+  public final void generateJTOCpop(Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitPOP_Abs(Magic.getTocPointer().plus(off));
+    } else {
+      emitPOP_RegDisp(JTOC_REGISTER, off);
+    }
+  }
+
+  /**
+   * Utility to pop a value to the JTOC
+   */
+  public final void generateJTOCpop(GPR off) {
+    if(JTOC_REGISTER == null) {
+      emitPOP_RegDisp(off,Magic.getTocPointer().toWord().toOffset());
+    } else {
+      emitPOP_RegIdx(JTOC_REGISTER, off, AssemblerConstants.BYTE, Offset.zero());
+    }
+  }
+
+  /**
+   * Utility to call through a JTOC address
+   */
+  public final void generateJTOCcall(Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitCALL_Abs(Magic.getTocPointer().plus(off));
+    } else {
+      emitCALL_RegDisp(JTOC_REGISTER, off);
+    }    
+  }
+
+  /**
+   * Utility to call through a JTOC address with a displacement in a register
+   */
+  public final void generateJTOCcall(GPR off) {
+    if(JTOC_REGISTER == null) {
+      emitCALL_RegDisp(off, Magic.getTocPointer().toWord().toOffset());
+    } else {
+      emitCALL_RegIdx(JTOC_REGISTER, off, AssemblerConstants.BYTE, Offset.zero());
+    } 
+  }
+
+  /**
+   * Utility to call through a JTOC address
+   */
+  public final void generateJTOCjmp(Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitJMP_Abs(Magic.getTocPointer().plus(off));
+    } else {
+      emitJMP_RegDisp(JTOC_REGISTER, off);
+    }    
+  }
+
+  /**
+   * Load an int from the JTOC
+   */
+  public final void generateJTOCloadInt(GPR dst, Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitMOV_Reg_Abs(dst, Magic.getTocPointer().plus(off));
+    } else {
+      emitMOV_Reg_RegDisp(dst, JTOC_REGISTER, off);
+    }
+  }
+
+  /**
+   * Load an int from the JTOC
+   */
+  public final void generateJTOCloadInt(GPR dst, GPR off) {
+    if(JTOC_REGISTER == null) {
+      emitMOV_Reg_RegDisp(dst, off, Magic.getTocPointer().toWord().toOffset());
+    } else {
+      emitMOV_Reg_RegIdx(dst, JTOC_REGISTER, off, AssemblerConstants.BYTE, Offset.zero());
+    }
+  }
+
+  /**
+   * Load a long from the JTOC
+   */
+  public final void generateJTOCloadLong(GPR dst, Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitMOV_Reg_Abs_Quad(dst, Magic.getTocPointer().plus(off));
+    } else {
+      emitMOV_Reg_RegDisp_Quad(dst, JTOC_REGISTER, off);
+    }
+  }
+
+  /**
+   * Store an int to the JTOC
+   */
+  public final void generateJTOCstoreInt(Offset off, GPR src) {
+    if(JTOC_REGISTER == null) {
+      emitMOV_Abs_Reg(Magic.getTocPointer().plus(off), src);
+    } else {
+      emitMOV_RegDisp_Reg(JTOC_REGISTER, off, src);
+    }
+  }
+
+  /**
+   * Store an int to the JTOC
+   */
+  public final void generateJTOCstoreInt(GPR off, GPR src) {
+    if(JTOC_REGISTER == null) {
+      emitMOV_RegDisp_Reg(off, Magic.getTocPointer().toWord().toOffset(), src);
+    } else {
+      emitMOV_RegIdx_Reg(JTOC_REGISTER, off, AssemblerConstants.BYTE, Offset.zero(), src);
+    }
+  }
+
+  /**
+   * Store a long to the JTOC
+   */
+  public final void generateJTOCstoreLong(Offset off, GPR src) {
+    if(JTOC_REGISTER == null) {
+      emitMOV_Abs_Reg_Quad(Magic.getTocPointer().plus(off), src);
+    } else {
+      emitMOV_RegDisp_Reg_Quad(JTOC_REGISTER, off, src);
+    }
+  }
+
+  /**
+   * Compare a word in the JTOC with the given register
+   */
+  public final void generateJTOCcmpWord(GPR dst, Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitCMP_Reg_Abs(dst, Magic.getTocPointer().plus(off));
+    } else {
+      emitCMP_Reg_RegDisp_Quad(dst, JTOC_REGISTER, off);
+    }
+  }
+
+  /**
+   * Compare a float in the JTOC with the given register
+   */
+  public final void generateJTOCcmpFloat(XMM dst, Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitUCOMISS_Reg_Abs(dst, Magic.getTocPointer().plus(off));
+    } else {
+      emitUCOMISS_Reg_RegDisp(dst, JTOC_REGISTER, off);
+    }
+  }
+
+  /**
+   * Compare a double in the JTOC with the given register
+   */
+  public final void generateJTOCcmpDouble(XMM dst, Offset off) {
+    if(JTOC_REGISTER == null) {
+      emitUCOMISD_Reg_Abs(dst, Magic.getTocPointer().plus(off));
+    } else {
+      emitUCOMISD_Reg_RegDisp(dst, JTOC_REGISTER, off);
+    }
   }
 
   /////////////////////////////////////

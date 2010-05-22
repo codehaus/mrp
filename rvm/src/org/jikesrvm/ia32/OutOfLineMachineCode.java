@@ -376,7 +376,7 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
       asm.emitMOV_Reg_RegDisp(S0, THREAD_REGISTER, fpOffset);
       asm.emitMOV_Reg_RegDisp(S0, S0, FPRS_FP_OFFSET);   // S0 <- FPRs
       asm.emitMOV_Reg_RegDisp(T1, S0, ObjectModel.getArrayLengthOffset());    // T1 <- FPRs.length()
-      asm.emitSHL_Reg_Imm(T1, LG_WORDSIZE + 1);         // length in bytes
+      asm.emitSHL_Reg_Imm(T1, LG_WORDSIZE + 1);          // length in bytes
       asm.emitADD_Reg_Reg(S0, T1);                       // S0 <- last FPR + 8
       asm.emitCMP_Reg_Imm(T1, 0);                        // length == 0 ?
 
@@ -410,11 +410,13 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
     ForwardReference fr3 = asm.forwardJcc(AssemblerConstants.EQ);   // result 0 --> branch to end
     if (VM.BuildFor32Addr) {
       asm.emitMOV_Reg_RegInd(T0, S0);                    // T0 <- GPRs[0]
+      asm.emitADD_Reg_Imm(S0, WORDSIZE);                 // S0 += WORDSIZE
+      asm.emitADD_Reg_Imm(T1, -1);                       // T1--
     } else {
-      asm.emitMOV_Reg_RegInd_Quad(T0, S0);                    // T0 <- GPRs[0]
+      asm.emitMOV_Reg_RegInd_Quad(T0, S0);               // T0 <- GPRs[0]
+      asm.emitADD_Reg_Imm_Quad(S0, WORDSIZE);            // S0 += WORDSIZE
+      asm.emitADD_Reg_Imm_Quad(T1, -1);                  // T1--
     }
-    asm.emitADD_Reg_Imm(S0, WORDSIZE);                 // S0 += WORDSIZE
-    asm.emitADD_Reg_Imm(T1, -1);                       // T1--
     ForwardReference fr4 = asm.forwardJcc(AssemblerConstants.EQ);   // result 0 --> branch to end
     if (VM.BuildFor32Addr) {
       asm.emitMOV_Reg_RegInd(T1, S0);                    // T1 <- GPRs[1]
@@ -479,7 +481,11 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
       asm.emitMOV_RegDisp_Reg_Quad(T0, fpOffset, S0); // registers.fp := pr.framePointer
     }
     asm.emitPOP_Reg(T1);                              // T1 := return address (target of final jmp)
-    asm.emitMOV_RegDisp_Reg(T0, ipOffset, T1);        // registers.ip := return address
+    if (VM.BuildFor32Addr) {
+      asm.emitMOV_RegDisp_Reg(T0, ipOffset, T1);      // registers.ip := return address
+    } else {
+      asm.emitMOV_RegDisp_Reg_Quad(T0, ipOffset, T1); // registers.ip := return address
+    }
     asm.emitPOP_Reg(S0);                              // throw away space for registers parameter (in T0)
     if (VM.BuildFor32Addr) {
       asm.emitMOV_Reg_RegDisp(S0, T0, gprsOffset);    // S0 := registers.gprs[]
@@ -539,8 +545,8 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
     asm.emitPOP_RegDisp(S0, ipOffset);                  // T0.contextRegisters.ip = returnAddress
     asm.emitPUSH_RegDisp(TR, ArchEntrypoints.framePointerField.getOffset()); // push TR.framePointer
     asm.emitPOP_RegDisp(S0, fpOffset);                  // T0.contextRegisters.fp = pushed framepointer
-    asm.emitADD_Reg_Imm(SP, 2*WORDSIZE);                // discard 2 words of parameters (T0, T1)
     if (VM.BuildFor32Addr) {
+      asm.emitADD_Reg_Imm(SP, 2*WORDSIZE);                // discard 2 words of parameters (T0, T1)
       asm.emitMOV_Reg_RegDisp(S0, S0, gprsOffset);       // S0 = T0.contextRegisters.gprs;
       asm.emitMOV_RegDisp_Reg(S0, Offset.fromIntZeroExtend(SP.value() << LG_WORDSIZE), SP); // T0.contextRegisters.gprs[#SP] := SP
       for (int i = 0; i < NUM_NONVOLATILE_GPRS; i++) {
@@ -550,6 +556,7 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
                                 NONVOLATILE_GPRS[i]);
       }
     } else {
+      asm.emitADD_Reg_Imm_Quad(SP, 2*WORDSIZE);                // discard 2 words of parameters (T0, T1)
       asm.emitMOV_Reg_RegDisp_Quad(S0, S0, gprsOffset);  // S0 = T0.contextRegisters.gprs;
       asm.emitMOV_RegDisp_Reg_Quad(S0, Offset.fromIntZeroExtend(SP.value() << LG_WORDSIZE), SP); // T0.contextRegisters.gprs[#SP] := SP
       for (int i = 0; i < NUM_NONVOLATILE_GPRS; i++) {
@@ -636,11 +643,12 @@ public abstract class OutOfLineMachineCode implements BaselineConstants {
     // Push registers.ip to stack (now that SP has been restored)
     asm.emitPUSH_RegDisp(T0, ArchEntrypoints.registersIPField.getOffset());
 
-    // Restore the GPRs except for S0, TR, and SP
+    // Restore the GPRs except for S0, TR, SP and JTOC
     // (restored above and then modified by pushing registers.ip!)
     Offset off = Offset.zero();
     for (byte i = 0; i < NUM_GPRS; i++, off = off.plus(WORDSIZE)) {
-      if (i != S0.value() && i != ESI.value() && i != SP.value()) {
+      if (i != S0.value() && i != ESI.value() && i != SP.value() &&
+          (JTOC_REGISTER == null || i != JTOC_REGISTER.value())) {
         if (VM.BuildFor32Addr) {
           asm.emitMOV_Reg_RegDisp(GPR.lookup(i), S0, off);
         } else {

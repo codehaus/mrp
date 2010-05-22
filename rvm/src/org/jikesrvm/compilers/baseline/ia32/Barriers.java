@@ -17,7 +17,6 @@ import org.jikesrvm.classloader.MethodReference;
 import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.compilers.common.assembler.ia32.Assembler;
 import org.jikesrvm.runtime.Entrypoints;
-import org.jikesrvm.runtime.Magic;
 import org.vmmagic.unboxed.Offset;
 import org.vmmagic.pragma.Inline;
 
@@ -38,7 +37,7 @@ class Barriers {
    */
   static void compileArrayStoreBarrier(Assembler asm) {
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 3);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.aastoreMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.aastoreMethod.getOffset());
   }
 
   /**
@@ -55,7 +54,7 @@ class Barriers {
     MethodReference method = barrier.getMemberRef().asMethodReference();
     compiler.genParameterRegisterLoad(method, false);
     // call the actual write barrier
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(barrier.getOffset()));
+    asm.generateJTOCcall(barrier.getOffset());
   }
 
   /**
@@ -149,7 +148,7 @@ class Barriers {
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 4);
     BaselineCompilerImpl.genNullCheck(asm, T0);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectFieldWriteBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectFieldWriteBarrierMethod.getOffset());
   }
 
   /**
@@ -166,7 +165,7 @@ class Barriers {
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 4);
     BaselineCompilerImpl.genNullCheck(asm, T0);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectFieldWriteBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectFieldWriteBarrierMethod.getOffset());
   }
 
   /**
@@ -189,7 +188,7 @@ class Barriers {
     MethodReference method = barrier.getMemberRef().asMethodReference();
     compiler.genParameterRegisterLoad(method, false);
     BaselineCompilerImpl.genNullCheck(asm, T0);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(barrier.getOffset()));
+    asm.generateJTOCcall(barrier.getOffset());
   }
 
   /**
@@ -212,7 +211,7 @@ class Barriers {
     MethodReference method = barrier.getMemberRef().asMethodReference();
     compiler.genParameterRegisterLoad(method, false);
     BaselineCompilerImpl.genNullCheck(asm, T0);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(barrier.getOffset()));
+    asm.generateJTOCcall(barrier.getOffset());
   }
 
   /**
@@ -533,7 +532,7 @@ class Barriers {
     asm.emitPUSH_Reg(reg); // offset
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 3);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectStaticWriteBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectStaticWriteBarrierMethod.getOffset());
  }
 
   static void compilePutstaticBarrierImm(Assembler asm, Offset fieldOffset, int locationMetadata) {
@@ -541,14 +540,14 @@ class Barriers {
     asm.emitPUSH_Imm(fieldOffset.toInt());
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 3);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectStaticWriteBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectStaticWriteBarrierMethod.getOffset());
   }
 
   static void compileArrayLoadBarrier(Assembler asm, boolean pushResult) {
     // on entry java stack contains ...|target_array_ref|array_index|
     // SP -> index, SP+4 -> target_ref
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 2);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectArrayReadBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectArrayReadBarrierMethod.getOffset());
     if (pushResult) asm.emitPUSH_Reg(T0);
   }
 
@@ -559,7 +558,7 @@ class Barriers {
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 3);
     BaselineCompilerImpl.genNullCheck(asm, T0);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectFieldReadBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectFieldReadBarrierMethod.getOffset());
     asm.emitPUSH_Reg(T0);
   }
 
@@ -568,7 +567,7 @@ class Barriers {
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 3);
     BaselineCompilerImpl.genNullCheck(asm, T0);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectFieldReadBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectFieldReadBarrierMethod.getOffset());
     asm.emitPUSH_Reg(T0);
   }
 
@@ -576,7 +575,7 @@ class Barriers {
     asm.emitPUSH_Reg(reg);
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 2);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectStaticReadBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectStaticReadBarrierMethod.getOffset());
     asm.emitPUSH_Reg(T0);
   }
 
@@ -584,7 +583,7 @@ class Barriers {
     asm.emitPUSH_Imm(fieldOffset.toInt());
     asm.emitPUSH_Imm(locationMetadata);
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 2);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.objectStaticReadBarrierMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.objectStaticReadBarrierMethod.getOffset());
     asm.emitPUSH_Reg(T0);
   }
 
@@ -594,6 +593,6 @@ class Barriers {
     // on exit: stack is the same
     asm.emitPUSH_RegDisp(SP, Offset.fromIntSignExtend(offset));   // dup
     BaselineCompilerImpl.genParameterRegisterLoad(asm, 1);
-    asm.emitCALL_Abs(Magic.getTocPointer().plus(Entrypoints.modifyCheckMethod.getOffset()));
+    asm.generateJTOCcall(Entrypoints.modifyCheckMethod.getOffset());
   }
 }
