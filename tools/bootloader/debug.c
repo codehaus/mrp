@@ -16,26 +16,25 @@
 #include "sys.h"
 
 void dumpThread(void *thread) {
+  void (*debugFn)();
   *((Address*)bootRecord->debugArgs)   = (Address)thread;
   *((int*)    bootRecord->debugMethod) = DEBUG_DUMP_THREAD;
-  void (*debugFn)();
   debugFn = (void(*)())bootRecord->debugEntry;
   debugFn();
 }
 
 void dumpStack(void *thread) {
+  void (*debugFn)();
   *((Address*)bootRecord->debugArgs)   = (Address)thread;
   *((int*)    bootRecord->debugMethod) = DEBUG_DUMP_STACK;
-  void (*debugFn)();
   debugFn = (void(*)())bootRecord->debugEntry;
   debugFn();
 }
 
 void dumpMethod(Address cmid_or_eip) {
+  void (*debugFn)();
   *((Address*)bootRecord->debugArgs)   = cmid_or_eip;
   *((int*)    bootRecord->debugMethod) = DEBUG_DUMP_METHOD;
-  void (*debugFn)();
   debugFn = (void(*)())bootRecord->debugEntry;
   debugFn();
 }
-

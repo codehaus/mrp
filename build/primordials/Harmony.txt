@@ -343,6 +343,7 @@ Ljava/nio/charset/CoderResult;
 Ljava/nio/charset/spi/CharsetProvider;
 
 Ljava/nio/BaseByteBuffer;
+Ljava/nio/Buffer;
 Ljava/nio/BufferFactory;
 Ljava/nio/ByteOrder;
 Ljava/nio/ByteBuffer;
