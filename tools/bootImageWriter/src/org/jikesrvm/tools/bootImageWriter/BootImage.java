@@ -120,7 +120,7 @@ public class BootImage extends BootImageWriterMessages
    * before writing it to disk. This operation is supported on UNIX but
    * not Windows.
    */
-  private static final boolean mapByteBuffers = true;
+  private static final boolean mapByteBuffers = !VM.BuildForWindows;
 
   /**
    * @param ltlEndian write words low-byte first?

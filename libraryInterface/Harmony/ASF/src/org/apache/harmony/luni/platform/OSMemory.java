@@ -18,7 +18,7 @@
 package org.apache.harmony.luni.platform;
 
 import org.jikesrvm.Configuration;
-import static org.jikesrvm.SizeConstants.BYTES_IN_ADDRESS;
+import static org.jikesrvm.architecture.SizeConstants.BYTES_IN_ADDRESS;
 import org.jikesrvm.runtime.Memory;
 import org.jikesrvm.runtime.SysCall;
 import org.vmmagic.unboxed.Address;
