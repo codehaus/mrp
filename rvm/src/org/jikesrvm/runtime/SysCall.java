@@ -119,16 +119,18 @@ public abstract class SysCall {
   public abstract void sysOProfileFinishCompileMap(Address compileMap);
 
   /*
-   * Interface to performance counters
+   * Interface to performance events
    */
   @SysCallTemplate
-  public abstract void sysPerfCtrInit(int metric);
+  public abstract int sysPerfEventInit(int events);
   @SysCallTemplate
-  public abstract void sysPerfCtrRead(byte[] name);
+  public abstract int sysPerfEventCreate(int id, byte[] name);
   @SysCallTemplate
-  public abstract long sysPerfCtrReadMetric();
+  public abstract void sysPerfEventEnable();
   @SysCallTemplate
-  public abstract long sysPerfCtrReadCycles();
+  public abstract void sysPerfEventDisable();
+  @SysCallTemplate
+  public abstract int sysPerfEventRead(int id, long[] values);
 
   // files
   @SysCallTemplate

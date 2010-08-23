@@ -12,7 +12,7 @@
  -->
 <project name="JikesRVM" default="main" basedir=".">
 
-  <property name="rvm.version" value="3.1.0+svn"/>
+  <property name="rvm.version" value="3.1.1+svn"/>
   <!-- <property name="svn.revision" value="XXX"/> -->
 
   <property name="jikesrvm.dir" location="${basedir}"/>
@@ -416,8 +416,8 @@ Check to make sure all required properties are specified. This includes properti
     </condition>
     <property name="addr.filter" value="-DRVM_FOR_${target.address.size}_ADDR=1"/>
 
-    <condition property="perfctr.filter" value="-DRVM_WITH_PERFCTR=1" else="">
-      <equals arg1="${config.include.perfctr}" arg2="true"/>
+    <condition property="perfevent.filter" value="-DRVM_WITH_PERFEVENT=1" else="">
+      <equals arg1="${config.include.perfevent}" arg2="true"/>
     </condition>
 
     <condition property="oprofile.filter" value="-DRVM_WITH_OPROFILE=1" else="">
@@ -428,7 +428,7 @@ Check to make sure all required properties are specified. This includes properti
       <equals arg1="${classlib.provider}" arg2="Harmony"/>
     </condition>
 
-    <property name="filter" value="${arch.filter} ${os.filter} ${addr.filter} ${gctrace.filter} ${gcspy.filter} ${alignment-checking.filter} ${oprofile.filter} ${perfctr.filter} ${classlib.filter}"/>
+    <property name="filter" value="${arch.filter} ${os.filter} ${addr.filter} ${gctrace.filter} ${gcspy.filter} ${alignment-checking.filter} ${oprofile.filter} ${perfevent.filter} ${classlib.filter}"/>
   </target>
 
   <!-- **************************************************************************** -->
@@ -1610,6 +1610,10 @@ const char *rvm_target_configuration = "${target.file}";
       <equals arg1="${config.oprofile}" arg2="true"/>
     </condition>
 
+    <condition property="perfevent.libraries" value="${lib.specifier}pfm${target.lib-ext}" else="">
+      <equals arg1="${config.include.perfevent}" arg2="true"/>
+    </condition>
+
     <condition property="arch.includes" value="-I${bl.dir}/ia32">
       <equals arg1="${target.arch}" arg2="ia32"/>
     </condition>
@@ -1816,7 +1820,7 @@ const char *rvm_target_configuration = "${target.file}";
           <arg value="-L@{outdir}"/>
           <ObjectFiles/>
           <arg line="@{lib} -lm -lc"/>
-          <arg line="${classlib.libraries} ${oprofile.libraries} ${bootloader.libraries}"/>
+          <arg line="${classlib.libraries} ${oprofile.libraries} ${perfevent.libraries} ${bootloader.libraries}"/>
         </exec>
       </sequential>
     </if>
@@ -2054,7 +2058,7 @@ config.runtime.compiler=${config.runtime.compiler}
 config.bootimage.compiler=${config.bootimage.compiler}
 config.mmtk.plan=${config.mmtk.plan}
 config.include.aos=${config.include.aos}
-config.include.perfctr=${config.include.perfctr}
+config.include.perfevent=${config.include.perfevent}
 config.include.gcspy=${config.include.gcspy}
 config.include.gcspy-client=${config.include.gcspy-client}
 config.assertions=${config.assertions}
@@ -2113,7 +2117,7 @@ config.runtime.compiler=${config.runtime.compiler}
 config.bootimage.compiler=${config.bootimage.compiler}
 config.mmtk.plan=${config.mmtk.plan}
 config.include.aos=${config.include.aos}
-config.include.perfctr=${config.include.perfctr}
+config.include.perfevent=${config.include.perfevent}
 config.include.gcspy=${config.include.gcspy}
 config.include.gcspy-client=${config.include.gcspy-client}
 config.assertions=${config.assertions}

@@ -339,12 +339,13 @@ EXTERNAL void sysOProfileAddToCompileMap(Address compileMap,
   Address offset, char const *fileName, int lineNumber);
 EXTERNAL void sysOProfileFinishCompileMap(Address compileMap);
 
-/* PerfCtr declarations */
+/* PerfEvent declarations */
 
-EXTERNAL int sysPerfCtrInit(int metric);
-EXTERNAL long long sysPerfCtrReadCycles();
-EXTERNAL long long sysPerfCtrReadMetric();
-EXTERNAL int sysPerfCtrRead(char *str);
+EXTERNAL void sysPerfEventInit(int numEvents);
+EXTERNAL void sysPerfEventCreate(int id, const char *eventName);
+EXTERNAL void sysPerfEventEnable();
+EXTERNAL void sysPerfEventDisable();
+EXTERNAL void sysPerfEventRead(int id, int64_t *values);
 
 /* Alignment check declarations */
 
