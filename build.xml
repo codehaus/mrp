@@ -1628,23 +1628,13 @@ const char *rvm_target_configuration = "${target.file}";
 
     <property name="rvm.c.args" value="${c.args} ${rvm.includes} ${rvm.defines}"/>
 
-    <condition property="rvm.arch.src"
-               value="${bl.dir}/sysThread_Intel.c ${bl.dir}/sysSignal_Intel.c">
+    <condition property="rvm.bootloader.arch" value="Intel">
       <equals arg1="${target.arch}" arg2="ia32"/>
     </condition>
 
-    <condition property="rvm.arch.src"
-               value="${bl.dir}/sysThread_PowerPC.c ${bl.dir}/sysSignal_PowerPC.c">
+    <condition property="rvm.bootloader.arch" value="PowerPC">
       <equals arg1="${target.arch}" arg2="ppc"/>
     </condition>
-
-    <condition property="rvm.syscall.src"
-               value="${bl.dir}/sysGCSpy.c ${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${bl.dir}/sysVarArgs.c ${rvm.arch.src}"
-               else="${bl.dir}/sysAlignmentCheck.c ${bl.dir}/sysConsole.c ${bl.dir}/sysIO.c ${bl.dir}/sysLibrary.c ${bl.dir}/sysMath.c ${bl.dir}/sysMemory.c ${bl.dir}/sysMisc.c ${bl.dir}/sysPerfCtr.c ${bl.dir}/sysSignal.c ${bl.dir}/sysThread.c ${bl.dir}/sysTime.c ${bl.dir}/sysVarArgs.c ${rvm.arch.src}">
-      <equals arg1="include.gcspy" arg2="true"/>
-    </condition>
-
-    <property name="rvm.src"  value="${bl.dir}/main.c"/>
   </target>
 
   <!-- Macro to compile a C file to a object file -->
@@ -1880,14 +1870,14 @@ const char *rvm_target_configuration = "${target.file}";
     <CompileCtoObj cfile="${bl.dir}/sysSignal.c"
                    objfile="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"
                    cargs="${rvm.c.args}" />
-    <CompileCtoObj cfile="${bl.dir}/sysSignal_Intel.c"
-                   objfile="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"
+    <CompileCtoObj cfile="${bl.dir}/sysSignal_${rvm.bootloader.arch}.c"
+                   objfile="${build.base}/${target.obj-prefix}sysSignal_${rvm.bootloader.arch}${target.obj-ext}"
                    cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysThread.c"
                    objfile="${build.base}/${target.obj-prefix}sysThread${target.obj-ext}"
                    cargs="${rvm.c.args}" />
-    <CompileCtoObj cfile="${bl.dir}/sysThread_Intel.c"
-                   objfile="${build.base}/${target.obj-prefix}sysThread_Intel${target.obj-ext}"
+    <CompileCtoObj cfile="${bl.dir}/sysThread_${rvm.bootloader.arch}.c"
+                   objfile="${build.base}/${target.obj-prefix}sysThread_${rvm.bootloader.arch}${target.obj-ext}"
                    cargs="${rvm.c.args}" />
     <CompileCtoObj cfile="${bl.dir}/sysTime.c"
                    objfile="${build.base}/${target.obj-prefix}sysTime${target.obj-ext}"
@@ -1907,9 +1897,9 @@ const char *rvm_target_configuration = "${target.file}";
         <arg value="${build.base}/${target.obj-prefix}sysOProfile${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
-        <arg value="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysSignal_${rvm.bootloader.arch}${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysThread${target.obj-ext}"/>
-        <arg value="${build.base}/${target.obj-prefix}sysThread_Intel${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysThread_${rvm.bootloader.arch}${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysTime${target.obj-ext}"/>
       </ObjectFiles>
     </CreateLibrary>
@@ -1962,9 +1952,9 @@ const char *rvm_target_configuration = "${target.file}";
         <arg value="${build.base}/${target.obj-prefix}sysOProfile${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysPerfCtr${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysSignal${target.obj-ext}"/>
-        <arg value="${build.base}/${target.obj-prefix}sysSignal_Intel${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysSignal_${rvm.bootloader.arch}${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysThread${target.obj-ext}"/>
-        <arg value="${build.base}/${target.obj-prefix}sysThread_Intel${target.obj-ext}"/>
+        <arg value="${build.base}/${target.obj-prefix}sysThread_${rvm.bootloader.arch}${target.obj-ext}"/>
         <arg value="${build.base}/${target.obj-prefix}sysTime${target.obj-ext}"/>
       </ObjectFiles>
     </CreateDLL>

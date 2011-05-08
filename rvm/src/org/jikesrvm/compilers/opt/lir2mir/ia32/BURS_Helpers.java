@@ -433,7 +433,7 @@ public abstract class BURS_Helpers extends BURS_MemOp_Helpers {
    * @param trueCost the cost if this is a valid constant
    * @return trueCost or INFINITE depending on the given constant
    */
-  protected final int is387_FPC(Instruction s, int trueCost) {
+  protected static int is387_FPC(Instruction s, int trueCost) {
     if(VM.BuildForSSE2) {
       UNREACHABLE();
       return INFINITE;

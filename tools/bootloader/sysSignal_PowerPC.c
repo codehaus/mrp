@@ -23,7 +23,7 @@
 /* Macros to modify signal context */
 #ifdef RVM_FOR_OSX
 #define MAKE_INFO(info, context)                                        \
-  struct mcontext* info = ((struct ucontext *)context)->uc_mcontext
+  struct mcontext *info = ((struct ucontext *)context)->uc_mcontext
 #define MAKE_SAVE(save, info)                                           \
    ppc_thread_state_t *save = &info->ss;
 #define GET_GPR(save, r)        ((unsigned int *)&save->r0)[(r)]
@@ -32,6 +32,10 @@
 #define PPC_LR(save)            save->lr
 #define PPC_FP(save)            save->r1
 #else
+#define MAKE_INFO(info, context)                                        \
+  struct ucontext *info = ((struct ucontext *)context)
+#define MAKE_SAVE(save, info)                                           \
+  struct pt_regs *save = info->uc_mcontext.regs
 #define GET_GPR(save, r)             ((save)->gpr[(r)])
 #define SET_GPR(save, r, value)     (((save)->gpr[(r)]) = (value))
 #define PPC_IAR(save)                  save->nip

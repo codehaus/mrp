@@ -16,6 +16,8 @@ import org.jikesrvm.VM;
 import org.jikesrvm.architecture.SizeConstants;
 import org.jikesrvm.architecture.MachineRegister;
 import org.vmmagic.pragma.Pure;
+import org.vmmagic.pragma.Uninterruptible;
+import org.vmmagic.pragma.UninterruptibleNoWarn;
 
 /**
  * Register Usage Conventions for PowerPC.
@@ -45,23 +47,35 @@ public interface RegisterConstants extends SizeConstants {
       }
     }
     /** @return encoded value of this register */
+    @UninterruptibleNoWarn("Interruptible code only called during boot image creation")
     @Pure
     public byte value() {
-      return (byte)ordinal();
+      byte result;
+      if (!org.jikesrvm.VM.runningVM) {
+        result = (byte)ordinal();
+      } else {
+        result = (byte)java.lang.JikesRVMSupport.getEnumOrdinal(this);
+      }
+      if (VM.VerifyAssertions) {
+        VM._assert(result >=0 && result <= 31);
+      }
+      return result;
     }
     /**
      * Convert encoded value into the GPR it represents
      * @param num encoded value
      * @return represented GPR
      */
+    @Uninterruptible
     @Pure
     public static GPR lookup(int num) {
       return vals[num];
     }
     /** @return register next register to this one (e.g. R1 for R0) */
+    @Uninterruptible
     @Pure
     public GPR nextGPR() {
-      return lookup(ordinal()+1);
+      return lookup(value()+1);
     }
   }
 
@@ -90,9 +104,19 @@ public interface RegisterConstants extends SizeConstants {
       }
     }
     /** @return encoded value of this register */
+    @UninterruptibleNoWarn("Interruptible code only called during boot image creation")
     @Pure
     public byte value() {
-      return (byte)ordinal();
+      byte result;
+      if (!org.jikesrvm.VM.runningVM) {
+        result = (byte)ordinal();
+      } else {
+        result = (byte)java.lang.JikesRVMSupport.getEnumOrdinal(this);
+      }
+      if (VM.VerifyAssertions) {
+        VM._assert(result >=0 && result <= 31);
+      }
+      return result;
     }
     /**
      * Convert encoded value into the FPR it represents

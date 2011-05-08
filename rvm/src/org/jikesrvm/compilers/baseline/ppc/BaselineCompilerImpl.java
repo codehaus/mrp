@@ -1471,9 +1471,11 @@ public final class BaselineCompilerImpl extends BaselineCompiler
     } else {
       asm.emitOR(T0, T3, T2); // or two halves of denominator together
       asm.emitTWEQ0(T0);         // trap if 0.
+      Offset methodOffset = Entrypoints.ldivMethod.getOffset();
+      asm.emitLAddrToc(T0, methodOffset);
+      asm.emitMTCTR(T0);
       popLong(T0, T1);
-      throw new Error("TODO"); // this is now a Java routine
-      // generateSysCall(16, Entrypoints.sysLongDivideIPField);
+      asm.emitBCCTRL();
     }
     pushLong(T0, T1);
   }
@@ -1493,9 +1495,11 @@ public final class BaselineCompilerImpl extends BaselineCompiler
     } else {
       asm.emitOR(T0, T3, T2); // or two halves of denominator together
       asm.emitTWEQ0(T0);         // trap if 0.
+      Offset methodOffset = Entrypoints.lremMethod.getOffset();
+      asm.emitLAddrToc(T0, methodOffset);
+      asm.emitMTCTR(T0);
       popLong(T0, T1);
-      throw new Error("TODO"); // this is now a Java routine
-      //generateSysCall(16, Entrypoints.sysLongRemainderIPField);
+      asm.emitBCCTRL();
     }
     pushLong(T0, T1);
   }

@@ -16,15 +16,18 @@ import org.jikesrvm.VM;
 import org.jikesrvm.architecture.AbstractRegisters;
 import org.jikesrvm.runtime.Magic;
 import org.jikesrvm.runtime.Memory;
+import org.vmmagic.pragma.NonMoving;
 import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.unboxed.Address;
 import org.vmmagic.unboxed.Offset;
+import org.vmmagic.unboxed.Word;
 import static org.jikesrvm.ppc.RegisterConstants.FRAME_POINTER;
 
 /**
  * The machine state comprising a thread's execution context.
  */
 @Uninterruptible
+@NonMoving
 public final class Registers extends AbstractRegisters {
   // The following are used by exception delivery.
   // They are set by either Runtime.athrow or the C hardware exception
@@ -110,9 +113,22 @@ public final class Registers extends AbstractRegisters {
     this.ip = ip;
   }
 
+  /**
+   * A thread's stack has been moved or resized.
+   * Adjust the FRAME_POINTER register to reflect new position.
+   *
+   * @param registers The registers for this thread
+   * @param delta The displacement to be applied
+   * @param traceAdjustments Log all adjustments to stderr if true
+   */
+  @Uninterruptible
   @Override
   public void adjustESP(Offset delta, boolean traceAdjustments) {
-    // TODO Auto-generated method stub
-    throw new Error("TODO");
+    Word old = getGPRs().get(FRAME_POINTER.value());
+    getGPRs().set(FRAME_POINTER.value(), old.plus(delta));
+    if (traceAdjustments) {
+      VM.sysWrite(" esp =");
+      VM.sysWrite(getGPRs().get(FRAME_POINTER.value()));
+    }
   }
 }
