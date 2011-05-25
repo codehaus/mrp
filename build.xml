@@ -1706,7 +1706,7 @@ const char *rvm_target_configuration = "${target.file}";
       </conditions>
       <sequential>
         <exec executable="${ld.exe}" failonerror="true">
-          <arg line="/DLL /DEBUG /NODEFAULTLIB:libcmt /NODEFAULTLIB:libc /entry:_DllMainCRTStartup@12"/>
+          <arg line="/DLL /NODEFAULTLIB:libcmt /NODEFAULTLIB:libc /entry:_DllMainCRTStartup@12"/>
           <arg value="/DEF:@{srcdir}\@{dllname}.def"/>
           <arg value="/OUT:@{outdir}\@{dllname}${target.dll-ext}"/>
           <arg value="msvcrt.lib"/>
@@ -1778,7 +1778,7 @@ const char *rvm_target_configuration = "${target.file}";
       </conditions>
       <sequential>
         <exec executable="${ld.exe}" failonerror="true">
-          <arg line="/DEBUG /NOLOGO"/>
+          <arg line="/NOLOGO"/>
           <arg value="/OUT:@{outdir}/@{exename}.exe"/>
           <arg value="/LIBPATH:@{outdir}"/>
           <arg line="@{lib}"/>

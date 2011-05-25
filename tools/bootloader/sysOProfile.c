@@ -84,7 +84,7 @@ struct compileMap {
 
 EXTERNAL Address sysOProfileStartCompileMap(Address opHandle, Address codeAddress)
 {
-  Address result;
+  Address result = 0;
   SYS_START();
   TRACE_PRINTF("%s: sysOProfileStartCompileMap(%p,%p)\n", Me, (void*)opHandle, (void*)codeAddress);
 #ifdef RVM_WITH_OPROFILE
