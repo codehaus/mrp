@@ -38,8 +38,8 @@
   <classpathentry kind="lib" path="eclipse/beans.jar"/>
   <classpathentry kind="lib" path="eclipse/concurrent.jar"/>
   <classpathentry kind="lib" path="eclipse/crypto.jar"/>
-  <classpathentry kind="lib" path="eclipse/icu4j-4_0.jar"/>
-  <classpathentry kind="lib" path="eclipse/icu4j-charsets-4_0.jar"/>
+  <classpathentry kind="lib" path="eclipse/icu4j-4_2_1.jar"/>
+  <classpathentry kind="lib" path="eclipse/icu4j-charsets-4_2_1.jar"/>
   <classpathentry kind="lib" path="eclipse/imageio.jar"/>
   <classpathentry kind="lib" path="eclipse/instrument.jar"/>
   <classpathentry kind="lib" path="eclipse/jndi.jar"/>

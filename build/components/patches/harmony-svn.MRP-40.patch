@@ -1,0 +1,60 @@
+Index: modules/xml/make/depends.properties
+===================================================================
+--- modules/xml/make/depends.properties (revision 991881)
++++ modules/xml/make/depends.properties (working copy)
+@@ -28,4 +28,4 @@
+ xerces.dir=${depends.jars}/${xerces.base}
+ xerces.zip=${xerces.dir}/xerces.zip
+ xerces.url=http://www.apache.org/dist/xerces/j/Xerces-J-bin.${xerces.version}.zip
+-xerces.md5=8da14a7b2848eff131b7cc10668887e8
++xerces.md5=408500aaaf1ff9f1e03e79defe90facc
+Index: depends/files/bootclasspath.properties
+===================================================================
+--- depends/files/bootclasspath.properties	(revision 991881)
++++ depends/files/bootclasspath.properties	(working copy)
+@@ -205,7 +205,7 @@
+ 
+ bootclasspath.50=asm-3.1/asm-3.1.jar
+ 
+-bootclasspath.51=bsf-3.0/bsf-api.jar
++bootclasspath.51=bsf-3.1/bsf-api.jar
+ 
+ bootclasspath.52=axis2-1.3/axis2-saaj-api-1.3.jar
+ 
+
+Index: modules/xmlsec/make/depends.properties
+===================================================================
+--- modules/xmlsec/make/depends.properties	(revision 991881)
++++ modules/xmlsec/make/depends.properties	(working copy)
+@@ -14,10 +14,10 @@
+ # limitations under the License.
+ 
+ depends.jars=${depends.dir}/jars
+-xmlsec.version=1.4.3
+-xmlsec.zipname=xml-security-bin-1_4_3.zip
++xmlsec.version=1.4.5
++xmlsec.zipname=xml-security-bin-1_4_5.zip
+ xmlsec.basename=xmlsec-${xmlsec.version}
+ xmlsec.dir=${depends.jars}/${xmlsec.basename}
+ xmlsec.zip=${xmlsec.dir}/${xmlsec.zipname}
+-xmlsec.url=http://santuario.apache.org/dist/java-library/${xmlsec.zipname}
+-xmlsec.md5=d7fa5a2233584c6e3d73b58f1dbb5cd0
++xmlsec.url=http://www.trieuvan.com/apache//santuario/java-library/${xmlsec.zipname}
++xmlsec.md5=b22d6321542a57d55a96bd6ac42df081
+Index: modules/script/make/depends.properties
+===================================================================
+--- modules/script/make/depends.properties	(revision 991881)
++++ modules/script/make/depends.properties	(working copy)
+@@ -17,9 +17,9 @@
+ apache.base=http://www.apache.org/dist
+ bsf.base=${apache.base}/jakarta/bsf/binaries
+ 
+-bsf.version=3.0
++bsf.version=3.1
+ bsf.dir=${depends.jars}/bsf-${bsf.version}
+ bsf.zip=${bsf.dir}/bsf.zip
+ bsf.jar=${bsf.dir}/bsf-api.jar
+-bsf.url=${bsf.base}/bsf-3.0-bin.zip
+-bsf.md5=36f62316a2f94aad32b80769b13ae164
++bsf.url=${bsf.base}/bsf-${bsf.version}-bin.zip
++bsf.md5=64cec9df782ce70aa6ca9b39ca977dbf

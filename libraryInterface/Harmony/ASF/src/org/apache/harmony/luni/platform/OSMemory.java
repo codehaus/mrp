@@ -135,7 +135,7 @@ final class OSMemory implements IMemorySystem {
 	 */
 	public long malloc(long length) throws OutOfMemoryError
     {
-        OSResourcesMonitor.ensurePhysicalMemoryCapacity();
+        //OSResourcesMonitor.ensurePhysicalMemoryCapacity();
         return mallocNative(length);  
     }
 
