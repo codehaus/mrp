@@ -1152,24 +1152,22 @@ public class BootImageWriter extends BootImageWriterMessages
   /**
    * Compare sizes of types allocated to boot image
    */
-  private static class TypeComparator<T> implements Comparator<T> {
+  private static class SizeOfTypeComparator implements Comparator<RVMType> {
 
-    public int compare(T a, T b) {
-      if (a == null) return 1;
-      if (b == null) return -1;
-      if ((a instanceof RVMType) && (b instanceof RVMType)) {
-        RVMType typeA = (RVMType) a;
-        RVMType typeB = (RVMType) b;
-        DemographicInformation infoA = demographicData.get(typeA);
-        if (infoA == null) return 1;
-        DemographicInformation infoB = demographicData.get(typeB);
-        if (infoB == null) return -1;
-
-        if (infoA.size > infoB.size) return -1;
-        if (infoA.size < infoB.size) return 1;
-        return 0;
+    public int compare(RVMType a, RVMType b) {
+      if (a == b) return 0;
+      else if (a == null) return 1;
+      else if (b == null) return -1;
+      else {
+        final DemographicInformation infoA = demographicData.get(a);
+        final DemographicInformation infoB = demographicData.get(b);
+        if (infoA == infoB) return 0;
+        else if (infoA == null) return 1;
+        else if (infoB == null) return -1;
+        else if (infoA.size > infoB.size) return -1;
+        else if (infoA.size < infoB.size) return 1;
+        else return 0;
       }
-      return 0;
     }
   }
 
@@ -1186,15 +1184,17 @@ public class BootImageWriter extends BootImageWriterMessages
    */
   public static void logAllocation(RVMType type, int size) {
     if(demographics) {
-      DemographicInformation info = demographicData.get(type);
-      if(info != null) {
-        info.count++;
-        info.size += size;
-      } else {
-        info = new DemographicInformation();
-        info.count++;
-        info.size += size;
-        demographicData.put(type, info);
+      synchronized(demographicData) {
+        DemographicInformation info = demographicData.get(type);
+        if(info != null) {
+          info.count++;
+          info.size += size;
+        } else {
+          info = new DemographicInformation();
+          info.count++;
+          info.size += size;
+          demographicData.put(type, info);
+        }
       }
     }
   }
@@ -1206,7 +1206,7 @@ public class BootImageWriter extends BootImageWriterMessages
     RVMType[] tempTypes = new RVMType[RVMType.numTypes() - FIRST_TYPE_DICTIONARY_INDEX];
     for (int i = FIRST_TYPE_DICTIONARY_INDEX; i < RVMType.numTypes(); ++i)
       tempTypes[i - FIRST_TYPE_DICTIONARY_INDEX] = RVMType.getType(i);
-    Arrays.sort(tempTypes, new TypeComparator<RVMType>());
+    Arrays.sort(tempTypes, new SizeOfTypeComparator());
     int totalCount = 0, totalBytes = 0;
     for (RVMType type : tempTypes) {
       if (type == null) continue;
