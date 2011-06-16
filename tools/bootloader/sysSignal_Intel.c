@@ -383,7 +383,7 @@ EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
   vmr_gprs[Constants_EBP] = IA32_EBP(context);
 #ifdef __x86_64__
   vmr_gprs[Constants_R8]  = IA32_R8(context);
-  vmr_gprs[Constants_R8]  = IA32_R9(context);
+  vmr_gprs[Constants_R9]  = IA32_R9(context);
   vmr_gprs[Constants_R10] = IA32_R10(context);
   vmr_gprs[Constants_R11] = IA32_R11(context);
   vmr_gprs[Constants_R12] = IA32_R12(context);
