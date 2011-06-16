@@ -519,6 +519,13 @@ public abstract class CompiledMethod implements SizeConstants {
   public int size() { return 0; }
 
   /**
+   * @return the number of bytes of bytecode that were compiled into this method.
+   * The count may be conservative if debug information didn't record a method as
+   * being inlined.
+   */
+  public abstract int getLengthOfCompiledBytecodes();
+
+  /**
    * Name for use in debuggers
    */
   public final String symbolName() {

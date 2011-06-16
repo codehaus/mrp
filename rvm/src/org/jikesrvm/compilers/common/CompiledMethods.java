@@ -17,6 +17,7 @@ import java.util.TreeMap;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.architecture.SizeConstants;
+import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.RVMType;
@@ -116,6 +117,7 @@ public class CompiledMethods implements SizeConstants {
   /**
    * Create a CompiledMethod appropriate for the given compilerType
    */
+  @SuppressWarnings("unused")
   public static synchronized CompiledMethod createCompiledMethod(RVMMethod m, int compilerType) {
     int id = currentCompiledMethodId + 1;
     ensureCapacity(id);
@@ -258,6 +260,7 @@ public class CompiledMethods implements SizeConstants {
     int[] codeCount = new int[CompiledMethod.NUM_COMPILER_TYPES + 1];
     int[] codeBytes = new int[CompiledMethod.NUM_COMPILER_TYPES + 1];
     int[] mapBytes = new int[CompiledMethod.NUM_COMPILER_TYPES + 1];
+    int[] bytecodeBytes = new int[CompiledMethod.NUM_COMPILER_TYPES + 1];
 
     RVMArray codeArray = RVMType.CodeArrayType.asArray();
     for (int i = 0; i < numCompiledMethods(); i++) {
@@ -268,6 +271,7 @@ public class CompiledMethods implements SizeConstants {
       int size = codeArray.getInstanceSize(cm.numberOfInstructions());
       codeBytes[ct] += Memory.alignUp(size, BYTES_IN_ADDRESS);
       mapBytes[ct] += cm.size();
+      bytecodeBytes[ct] += cm.getLengthOfCompiledBytecodes();
     }
     VM.sysWriteln("Compiled code space report\n");
 
@@ -275,12 +279,16 @@ public class CompiledMethods implements SizeConstants {
     VM.sysWriteln("    Number of compiled methods =         " + codeCount[CompiledMethod.BASELINE]);
     VM.sysWriteln("    Total size of code (bytes) =         " + codeBytes[CompiledMethod.BASELINE]);
     VM.sysWriteln("    Total size of mapping data (bytes) = " + mapBytes[CompiledMethod.BASELINE]);
+    double blRatio = ((double)codeBytes[CompiledMethod.BASELINE]) / ((double)bytecodeBytes[CompiledMethod.BASELINE]);
+    VM.sysWriteln("    Bytes of code per byte of bytecode = " + blRatio);
 
     if (codeCount[CompiledMethod.OPT] > 0) {
       VM.sysWriteln("  Optimizing Compiler");
       VM.sysWriteln("    Number of compiled methods =         " + codeCount[CompiledMethod.OPT]);
       VM.sysWriteln("    Total size of code (bytes) =         " + codeBytes[CompiledMethod.OPT]);
       VM.sysWriteln("    Total size of mapping data (bytes) = " + mapBytes[CompiledMethod.OPT]);
+      double optRatio = ((double)codeBytes[CompiledMethod.OPT]) / ((double)bytecodeBytes[CompiledMethod.OPT]);
+      VM.sysWriteln("    Bytes of code per byte of bytecode = " + optRatio);
     }
 
     if (codeCount[CompiledMethod.JNI] > 0) {

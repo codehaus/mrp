@@ -172,12 +172,14 @@ public final class BaselineCompiledMethod extends CompiledMethod {
   }
 
   /** @return BASELINE */
+  @Override
   @Uninterruptible
   public int getCompilerType() {
     return BASELINE;
   }
 
   /** @return "baseline compiler" */
+  @Override
   public String getCompilerName() {
     return "baseline compiler";
   }
@@ -185,6 +187,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
   /**
    * Get the exception deliverer for this kind of compiled method
    */
+  @Override
   @Uninterruptible
   public ExceptionDeliverer getExceptionDeliverer() {
     return exceptionDeliverer;
@@ -196,6 +199,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
    * @param exceptionType the type of the thrown exception
    * @return the machine code offset of the catch block.
    */
+  @Override
   @Unpreemptible
   public int findCatchBlockForInstruction(Offset instructionOffset, RVMType exceptionType) {
     if (eTable == null) {
@@ -230,6 +234,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
    * gc disabled when called by GCMapIterator.
    * <ul>
    */
+  @Override
   @Uninterruptible
   public void getDynamicLink(DynamicLink dynamicLink, Offset instructionOffset) {
     int bytecodeIndex = findBytecodeIndexForInstruction(instructionOffset);
@@ -239,6 +244,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
   /**
    * @return The line number, a positive integer.  Zero means unable to find.
    */
+  @Override
   @Uninterruptible
   public int findLineNumberForInstruction(Offset instructionOffset) {
     int bci = findBytecodeIndexForInstruction(instructionOffset);
@@ -252,6 +258,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
    * @param instructionOffset of addr from start of instructions in bytes
    * @return true if the IP is within an Uninterruptible method, false otherwise.
    */
+  @Override
   public boolean isWithinUninterruptibleCode(Offset instructionOffset) {
     return method.isUninterruptible();
   }
@@ -303,6 +310,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
   /**
    * Set the stack browser to the innermost logical stack frame of this method
    */
+  @Override
   public void set(StackBrowser browser, Offset instr) {
     browser.setMethod(method);
     browser.setCompiledMethod(this);
@@ -319,6 +327,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
   /**
    * Advance the StackBrowser up one internal stack frame, if possible
    */
+  @Override
   public boolean up(StackBrowser browser) {
     return false;
   }
@@ -328,6 +337,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
    * @param instructionOffset of machine instruction from start of method
    * @param out the PrintLN to print the stack trace to.
    */
+  @Override
   public void printStackTrace(Offset instructionOffset, PrintLN out) {
     out.print("\tat ");
     out.print(method.getDeclaringClass()); // RVMClass
@@ -441,6 +451,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
    * information for this compiled method.
    * Used to gather stats on the space costs of mapping schemes.
    */
+  @Override
   public int size() {
     TypeReference TYPE = TypeReference.findOrCreate(BaselineCompiledMethod.class);
     int size = TYPE.peekType().asClass().getInstanceSize();
@@ -454,6 +465,7 @@ public final class BaselineCompiledMethod extends CompiledMethod {
    * Walk and create debug information
    * @param v visitor to add debug information to
    */
+  @Override
   public void walkDebugInformation(DebugInformationVisitor v) {
     int bcIndex = 0;
     Offset instrIndex = Offset.zero();
@@ -479,5 +491,13 @@ public final class BaselineCompiledMethod extends CompiledMethod {
       instrIndex = instrIndex.plus(deltaIns);
       v.visit(instrIndex, sourceFile, nm.getLineNumberForBCIndex(bcIndex));
     }
+  }
+
+  /**
+   * @see org.jikesrvm.compilers.common.CompiledMethod#getLengthOfCompiledBytecodes()
+   */
+  @Override
+  public int getLengthOfCompiledBytecodes() {
+    return ((NormalMethod)getMethod()).getBytecodeLength();
   }
 }
