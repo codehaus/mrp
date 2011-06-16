@@ -61,6 +61,7 @@ public class Object {
     return getClass().getName() + "@" + Integer.toHexString(hashCode());
   }
 
+  @SuppressWarnings("unused")
   public final void wait() throws InterruptedException,
                                    IllegalMonitorStateException {
     RVMThread.wait(this);
@@ -72,6 +73,7 @@ public class Object {
     wait(time, 0);
   }
 
+  @SuppressWarnings("unused")
   public final void wait(long time, int frac)  throws InterruptedException,
                                                       IllegalMonitorStateException,
                                                       IllegalArgumentException {

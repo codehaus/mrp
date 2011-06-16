@@ -149,6 +149,7 @@ final class VMCommonLibrarySupport {
    * @param libname name of library without any prefix or suffix
    * @return complete name of library
    */
+  @SuppressWarnings("unused")
   static String mapLibraryName(String libname) {
     String libSuffix;
     String libPrefix;

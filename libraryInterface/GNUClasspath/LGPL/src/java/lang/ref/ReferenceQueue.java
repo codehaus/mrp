@@ -42,8 +42,6 @@ import org.vmmagic.pragma.Uninterruptible;
 import org.vmmagic.pragma.Unpreemptible;
 import static org.jikesrvm.runtime.SysCall.sysCall;
 import org.jikesrvm.scheduler.LightMonitor;
-import org.jikesrvm.runtime.Magic;
-import org.jikesrvm.VM;
 
 /**
  * This is the queue, where references can enqueue themselve on.  Each
@@ -89,16 +87,12 @@ public class ReferenceQueue<T>
    * @return a reference on the queue, if there is one,
    * <code>null</code> otherwise.  
    */
-  public Reference<? extends T> poll()
-  { 
-    if (false) VM.sysWriteln("in poll");
+  public Reference<? extends T> poll() { 
     return dequeue();
   }
   
   @Uninterruptible
   private boolean enqueueImpl(Reference<? extends T> ref) {
-    if (false) VM.sysWriteln("enqueueing");
-    
     if (ref.queue != this)
       return false;
     
@@ -140,9 +134,9 @@ public class ReferenceQueue<T>
     return result;
   }
   
+  @SuppressWarnings("unchecked")
   @Uninterruptible
   private Reference<? extends T> dequeueImpl() {
-    if (false) VM.sysWriteln("dequeueImpl");
     if (first == null)
       return null;
     
@@ -158,9 +152,7 @@ public class ReferenceQueue<T>
    */
   private Reference<? extends T> dequeue()
   {
-    if (false) VM.sysWriteln("in dequeue, this = ",Magic.objectAsAddress(this));
     lock.lockWithHandshake();
-    if (false) VM.sysWriteln("locked.");
     Reference<? extends T> result=dequeueImpl();
     lock.unlock();
     return result;
