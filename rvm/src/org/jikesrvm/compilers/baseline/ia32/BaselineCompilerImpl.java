@@ -2771,6 +2771,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * Emit code to implement a dynamically linked getfield
    * @param fieldRef the referenced field
    */
+  @SuppressWarnings("unused")
   @Override
   protected void emit_unresolved_getfield(FieldReference fieldRef) {
     TypeReference fieldType = fieldRef.getFieldContentsType();
@@ -2831,6 +2832,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * Emit code to implement a getfield
    * @param fieldRef the referenced field
    */
+  @SuppressWarnings("unused")
   @Override
   protected void emit_resolved_getfield(FieldReference fieldRef) {
     TypeReference fieldType = fieldRef.getFieldContentsType();
@@ -2893,6 +2895,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * @param index the local index to load
    * @param fieldRef the referenced field
    */
+  @SuppressWarnings("unused")
   @Override
   protected void emit_aload_resolved_getfield(int index, FieldReference fieldRef) {
     try {
@@ -2960,6 +2963,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * Emit code to implement a dynamically linked putfield
    * @param fieldRef the referenced field
    */
+  @SuppressWarnings("unused")
   @Override
   protected void emit_unresolved_putfield(FieldReference fieldRef) {
     Barriers.compileModifyCheck(asm, fieldRef.getNumberOfStackSlots() * WORDSIZE);
@@ -3254,6 +3258,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * Emit code to implement the invokeinterface bytecode
    * @param methodRef the referenced method
    */
+  @SuppressWarnings("unused")
   @Override
   protected void emit_invokeinterface(MethodReference methodRef) {
     final int count = methodRef.getParameterWords() + 1; // +1 for "this" parameter
@@ -3503,6 +3508,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
   /**
    * Emit code to implement the arraylength bytecode
    */
+  @SuppressWarnings("unused")
   @Override
   protected void emit_arraylength() {
     asm.emitPOP_Reg(T0);                // T0 is array reference
@@ -3543,6 +3549,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * Emit code to implement the checkcast bytecode
    * @param type the LHS type
    */
+  @SuppressWarnings("unused")
   @Override
   protected void emit_checkcast_resolvedInterface(RVMClass type) {
     int interfaceIndex = type.getDoesImplementIndex();
@@ -3669,6 +3676,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * Emit code to implement the instanceof bytecode
    * @param type the LHS type
    */
+  @SuppressWarnings("unused")
   @Override
   protected void emit_instanceof_resolvedInterface(RVMClass type) {
     int interfaceIndex = type.getDoesImplementIndex();
@@ -4102,6 +4110,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * @param indexReg the register containing the index
    * @param arrayRefReg the register containing the array reference
    */
+  @SuppressWarnings("unused")
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1,2})
   static void genBoundsCheck(Assembler asm, GPR indexReg, GPR arrayRefReg) {
     // compare index to array length
@@ -4212,6 +4221,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * @param method is the method to be called.
    * @param hasThisParam is the method virtual?
    */
+  @SuppressWarnings("unused")
   protected void genParameterRegisterLoad(MethodReference method, boolean hasThisParam) {
     int max = NUM_PARAMETER_GPRS + NUM_PARAMETER_FPRS;
     if (max == 0) return; // quit looking when all registers are full
@@ -4471,6 +4481,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
   /**
    * @param whereFrom is this thread switch from a PROLOGUE, BACKEDGE, or EPILOGUE?
    */
+  @SuppressWarnings("unused")
   private void genThreadSwitchTest(int whereFrom) {
     if (!isInterruptible) {
       return;
@@ -4755,6 +4766,7 @@ public final class BaselineCompilerImpl extends BaselineCompiler {
    * @param ref method reference to be resolved
    * @param couldBeZero could the value in the offsets table require resolving
    */
+  @SuppressWarnings("unused")
   static void emitDynamicLinkingSequence(Assembler asm, GPR reg, MemberReference ref, boolean couldBeZero) {
     int memberId = ref.getId();
     Offset memberOffset = Offset.fromIntZeroExtend(memberId << 2);

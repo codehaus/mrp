@@ -17,7 +17,6 @@ import java.util.TreeMap;
 
 import org.jikesrvm.VM;
 import org.jikesrvm.architecture.SizeConstants;
-import org.jikesrvm.classloader.NormalMethod;
 import org.jikesrvm.classloader.RVMArray;
 import org.jikesrvm.classloader.RVMMethod;
 import org.jikesrvm.classloader.RVMType;

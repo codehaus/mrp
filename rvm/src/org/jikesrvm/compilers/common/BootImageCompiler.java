@@ -48,6 +48,7 @@ public abstract class BootImageCompiler {
    * Initialize boot image compiler.
    * @param args command line arguments to the bootimage compiler
    */
+  @SuppressWarnings("unused")
   public static void init(String[] args) {
     try {
       compiler.initCompiler(args);
@@ -65,6 +66,7 @@ public abstract class BootImageCompiler {
     }
   }
 
+  @SuppressWarnings("unused")
   public static CompiledMethod compile(NormalMethod method, TypeReference[] params) {
     try {
       if (VM.BuildForAdaptiveSystem && VM.BuildWithBaseBootImageCompiler && method.getDeclaringClass().hasSaveVolatileAnnotation()) {

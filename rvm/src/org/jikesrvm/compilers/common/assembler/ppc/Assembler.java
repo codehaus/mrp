@@ -96,7 +96,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
 
   public static int maskUpper16(int val) {
     short s = (short) (val & 0xFFFF);
-    return ((val - (int) s) >>> 16);
+    return ((val - s) >>> 16);
   }
 
   public static boolean fits(Offset val, int bits) {
@@ -114,6 +114,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     return (val == 0 || val == -1);
   }
 
+  @Override
   public void noteBytecode(int i, String bcode) {
     String s1 = Services.getHexString(mIP << LG_INSTRUCTION_WIDTH, true);
     VM.sysWrite(s1 + ": [" + i + "] " + bcode + "\n");
@@ -125,6 +126,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
    * Return a copy of the generated code as a CodeArray.
    * @return a copy of the generated code as a CodeArray.
    */
+  @Override
   public CodeArray getMachineCodes() {
     int len = getMachineCodeIndex();
     CodeArray trimmed = CodeArray.Factory.create(len, isHot);
@@ -134,6 +136,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     return trimmed;
   }
 
+  @Override
   public int getMachineCodeIndex() {
     return mIP;
   }
@@ -185,11 +188,13 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
   }
 
   /* call before emiting code for the target */
+  @Override
   public void resolveForwardReferences(int label) {
     if (forwardRefs == null) return;
     forwardRefs = ForwardReference.resolveMatching(this, forwardRefs, label);
   }
 
+  @Override
   public void patchUnconditionalBranch(int sourceMachinecodeIndex) {
     int delta = mIP - sourceMachinecodeIndex;
     int instr = machineCodes[sourceMachinecodeIndex];
@@ -198,6 +203,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     machineCodes[sourceMachinecodeIndex] = instr;
   }
 
+  @Override
   public void patchConditionalBranch(int sourceMachinecodeIndex) {
     final int Btemplate = 18 << 26;
     int delta = mIP - sourceMachinecodeIndex;
@@ -213,6 +219,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
     }
   }
 
+  @Override
   public void patchShortBranch(int sourceMachinecodeIndex) {
     int delta = mIP - sourceMachinecodeIndex;
     int instr = machineCodes[sourceMachinecodeIndex];
@@ -240,6 +247,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
   * The third instruction should be patched with accurate relative address.
   * It is computed by (mIP - sourceIndex + 1)*4;
   */
+  @Override
   public void patchLoadReturnAddress(int sourceIndex) {
     int offset = (mIP - sourceIndex + 1) * 4;
     int mi = ADDI(T1, offset, T1);
@@ -257,10 +265,11 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
 
   /************ OSR Support */
 
+  @Override
   public void patchSwitchCase(int sourceMachinecodeIndex) {
     int delta = (mIP - sourceMachinecodeIndex) << 2;
     // correction is number of bytes of source off switch base
-    int correction = (int) machineCodes[sourceMachinecodeIndex];
+    int correction = machineCodes[sourceMachinecodeIndex];
     int offset = delta + correction;
     machineCodes[sourceMachinecodeIndex] = offset;
   }
@@ -2339,6 +2348,7 @@ public final class Assembler extends AbstractAssembler implements BaselineConsta
    * @param dest the number of the destination register
    * @param object the number of the register holding the object reference
    */
+  @Override
   public void baselineEmitLoadTIB(MachineRegister dest, MachineRegister object) {
     Offset tibOffset = JavaHeader.getTibOffset();
     emitLAddrOffset((GPR)dest, (GPR)object, tibOffset);

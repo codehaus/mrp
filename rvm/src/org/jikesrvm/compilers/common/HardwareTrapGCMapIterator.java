@@ -33,10 +33,12 @@ public final class HardwareTrapGCMapIterator extends GCMapIterator implements Si
     super(registerLocations);
   }
 
+  @Override
   public void setupIterator(CompiledMethod compiledMethod, Offset instructionOffset, Address framePtr) {
     this.framePtr = framePtr;
   }
 
+  @Override
   public Address getNextReferenceAddress() {
     // update register locations, noting that the trap handler represented by this stackframe
     // saved all registers into the thread's "exceptionRegisters" object
@@ -50,14 +52,18 @@ public final class HardwareTrapGCMapIterator extends GCMapIterator implements Si
     return Address.zero();
   }
 
+  @Override
   public Address getNextReturnAddressAddress() {
     return Address.zero();
   }
 
+  @Override
   public void reset() {}
 
+  @Override
   public void cleanupPointers() {}
 
+  @Override
   public int getType() {
     return CompiledMethod.TRAP;
   }

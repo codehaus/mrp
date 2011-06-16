@@ -30,7 +30,7 @@ public final class Lister implements RegisterConstants {
 
   private final Assembler asm;
 
-  private enum Prefix {LOCK, LIKELY, UNLIKELY};
+  private enum Prefix {LOCK, LIKELY, UNLIKELY}
 
   private Prefix prefix;
 

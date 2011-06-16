@@ -68,6 +68,7 @@ public final class EdgeCounts {
       registered = true;
       Callbacks.vmExitCallbacks.addCallback(
         new Callback(){
+          @Override
           public void notify(Object... args) {
             dumpCounts();
           }
@@ -127,6 +128,7 @@ public final class EdgeCounts {
     }
   }
 
+  @SuppressWarnings("unused")
   public static void readCounts(String fn) {
     LineNumberReader in = null;
     try {
@@ -175,6 +177,7 @@ public final class EdgeCounts {
     if (false) {
       Callbacks.vmExitCallbacks.addCallback(
         new Callback(){
+          @Override
           public void notify(Object... args) {
             dumpCounts();
           }

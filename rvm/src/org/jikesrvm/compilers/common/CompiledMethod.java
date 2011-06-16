@@ -356,9 +356,13 @@ public abstract class CompiledMethod implements SizeConstants {
     return (flags & ACTIVE_ON_STACK) != 0;
   }
 
-  public final double getCompilationTime() { return (double) compilationTime; }
+  public final float getCompilationTime() {
+    return compilationTime;
+  }
 
-  public final void setCompilationTime(double ct) { compilationTime = (float) ct; }
+  public final void setCompilationTime(double ct) {
+    compilationTime = (float) ct;
+  }
 
   /**
    * Identify the compiler that produced this compiled method.

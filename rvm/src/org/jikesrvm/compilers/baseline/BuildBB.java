@@ -31,7 +31,7 @@ final class BuildBB implements BBConstants {
   /** Types of Instructions */
   private static enum InstructionType {
     NONBRANCH, CONDITIONAL_BRANCH, BRANCH
-  };
+  }
 
   //***************************************************************************//
   //                                                                           //
@@ -364,6 +364,7 @@ final class BuildBB implements BBConstants {
             break;
           }
         }
+          //$FALL-THROUGH$
         case JBC_aaload:
         case JBC_iaload:
         case JBC_faload:
@@ -585,7 +586,7 @@ final class BuildBB implements BBConstants {
     for (int i = 0; i < callLength; i++) {
       int callsite = callsites[i];
       int blockend = basicBlocks[callsite].getEnd();
-      for (newBB = blockend + 1; byteToBlockMap[newBB] == BasicBlock.NOTBLOCK; newBB++) ;
+      for (newBB = blockend + 1; byteToBlockMap[newBB] == BasicBlock.NOTBLOCK; newBB++) {}
       int nextBlock = byteToBlockMap[newBB];
       basicBlocks[nextBlock].addPredecessor(retBB);
     }
