@@ -101,6 +101,7 @@ import org.vmmagic.unboxed.Word;
  *
  * </pre>
  */
+@SuppressWarnings("unused")
 public class BootImageWriter extends BootImageWriterMessages
  implements BootImageWriterConstants {
 
@@ -239,6 +240,7 @@ public class BootImageWriter extends BootImageWriterMessages
    * comparator defers to another comparator.
    */
   private static final class IdenticalComparator implements Comparator<BootImageMap.Entry> {
+    @Override
     public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
       return 0;
     }
@@ -249,6 +251,7 @@ public class BootImageWriter extends BootImageWriterMessages
    * reference ID.
    */
   private static final class TypeReferenceComparator implements Comparator<BootImageMap.Entry> {
+    @Override
     public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
       TypeReference aRef = TypeReference.findOrCreate(a.jdkObject.getClass());
       TypeReference bRef = TypeReference.findOrCreate(b.jdkObject.getClass());
@@ -261,6 +264,7 @@ public class BootImageWriter extends BootImageWriterMessages
    * classes.
    */
   private static final class ClassNameComparator implements Comparator<BootImageMap.Entry> {
+    @Override
     public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
       return -a.jdkObject.getClass().toString().compareTo(b.jdkObject.getClass().toString());
     }
@@ -275,6 +279,7 @@ public class BootImageWriter extends BootImageWriterMessages
     ObjectSizeComparator(Comparator<BootImageMap.Entry> identicalSizeComparator) {
       this.identicalSizeComparator = identicalSizeComparator;
     }
+    @Override
     public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
       TypeReference aRef = TypeReference.findOrCreate(a.jdkObject.getClass());
       TypeReference bRef = TypeReference.findOrCreate(b.jdkObject.getClass());
@@ -305,6 +310,7 @@ public class BootImageWriter extends BootImageWriterMessages
     NumberOfReferencesComparator(Comparator<BootImageMap.Entry> identicalSizeComparator) {
       this.identicalSizeComparator = identicalSizeComparator;
     }
+    @Override
     public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
       TypeReference aRef = TypeReference.findOrCreate(a.jdkObject.getClass());
       TypeReference bRef = TypeReference.findOrCreate(b.jdkObject.getClass());
@@ -335,6 +341,7 @@ public class BootImageWriter extends BootImageWriterMessages
     NumberOfNonFinalReferencesComparator(Comparator<BootImageMap.Entry> identicalSizeComparator) {
       this.identicalSizeComparator = identicalSizeComparator;
     }
+    @Override
     public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
       TypeReference aRef = TypeReference.findOrCreate(a.jdkObject.getClass());
       TypeReference bRef = TypeReference.findOrCreate(b.jdkObject.getClass());
@@ -365,6 +372,7 @@ public class BootImageWriter extends BootImageWriterMessages
     NonFinalReferenceDensityComparator(Comparator<BootImageMap.Entry> identicalSizeComparator) {
       this.identicalSizeComparator = identicalSizeComparator;
     }
+    @Override
     public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
       TypeReference aRef = TypeReference.findOrCreate(a.jdkObject.getClass());
       TypeReference bRef = TypeReference.findOrCreate(b.jdkObject.getClass());
@@ -396,6 +404,7 @@ public class BootImageWriter extends BootImageWriterMessages
     ReferenceDensityComparator(Comparator<BootImageMap.Entry> identicalSizeComparator) {
       this.identicalSizeComparator = identicalSizeComparator;
     }
+    @Override
     public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
       TypeReference aRef = TypeReference.findOrCreate(a.jdkObject.getClass());
       TypeReference bRef = TypeReference.findOrCreate(b.jdkObject.getClass());
@@ -1154,6 +1163,7 @@ public class BootImageWriter extends BootImageWriterMessages
    */
   private static class SizeOfTypeComparator implements Comparator<RVMType> {
 
+    @Override
     public int compare(RVMType a, RVMType b) {
       if (a == b) return 0;
       else if (a == null) return 1;
@@ -2055,9 +2065,9 @@ public class BootImageWriter extends BootImageWriterMessages
    * @param rvmScalarType RVM class loader version of type
    * @param allocOnly allocate the object only?
    * @param overwriteAddress
-   * @param parentObject
-   * @param untraced
-   * @return
+   * @param parentObject object that this object was reachable from
+   * @param untraced should the fields of the object be traced by the garbage collector
+   * @return address in boot image (scalarImageAddress)
    * @throws IllegalAccessException
    */
   private static Address copyClassToBootImage(Address scalarImageAddress, Object jdkObject, Class<?> jdkType,
@@ -2192,7 +2202,7 @@ public class BootImageWriter extends BootImageWriterMessages
    * @param overwriteAddress
    * @param parentObject
    * @param untraced
-   * @return
+   * @return address in boot image (arrayImageAddress)
    * @throws IllegalAccessException
    */
   private static Address copyArrayToBootImage(int arrayCount, Address arrayImageAddress, Object jdkObject, Class<?> jdkType, RVMArray rvmArrayType,
@@ -2710,7 +2720,7 @@ public class BootImageWriter extends BootImageWriterMessages
         return true;
       } else if ((jdkObject instanceof java.util.WeakHashMap) &&
                  (rvmFieldName.equals("referenceQueue"))){
-        Object value = new java.lang.ref.ReferenceQueue();
+        Object value = new java.lang.ref.ReferenceQueue<java.lang.ref.Reference<?>>();
         if (verbose >= 2) traceContext.push(value.getClass().getName(),
                                             "java.util.WeakHashMap",
                                             "referenceQueue");
@@ -3177,7 +3187,7 @@ public class BootImageWriter extends BootImageWriterMessages
    * Figure out name of static rvm field whose value lives in specified jtoc
    * slot.
    *
-   * @param jtocSlot jtoc slot number
+   * @param jtocOff offset into JTOC
    * @return field name
    */
   private static RVMField getRvmStaticField(Offset jtocOff) {
@@ -3210,7 +3220,7 @@ public class BootImageWriter extends BootImageWriterMessages
   /**
    * Write method address map for use with dbx debugger.
    *
-   * @param fileName name of file to write the map to
+   * @param mapFileName name of file to write the map to
    */
   private static void writeAddressMap(String mapFileName) throws IOException {
     if (verbose >= 1) say("writing ", mapFileName);
@@ -3362,7 +3372,7 @@ public class BootImageWriter extends BootImageWriterMessages
         } else if (obj instanceof String) {
           details = "\""+ obj + "\"";
         } else if (obj instanceof Class) {
-          details = obj.toString();;
+          details = obj.toString();
         } else if (obj instanceof TIB) {
           category = "literal tib  ";
           RVMType type = ((TIB)obj).getType();
@@ -3433,6 +3443,7 @@ public class BootImageWriter extends BootImageWriterMessages
       out.println();
 
       SortedSet<BootImageMap.Entry> set = new TreeSet<BootImageMap.Entry>(new Comparator<BootImageMap.Entry>() {
+        @Override
         public int compare(BootImageMap.Entry a, BootImageMap.Entry b) {
           return Integer.valueOf(a.imageAddress.toInt()).compareTo(b.imageAddress.toInt());
         }

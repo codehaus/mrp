@@ -92,7 +92,7 @@ public class BootImageMap extends BootImageWriterMessages
 
     /**
      * Indicates whether some other key is "equal to" this one.
-     * @param that the object with which to compare
+     * @param obj the object with which to compare
      * @return true if this key is the same as the that argument;
      *         false otherwise
      */
@@ -170,7 +170,6 @@ public class BootImageMap extends BootImageWriterMessages
      * Constructor.
      * @param objectId unique id
      * @param jdkObject the JDK object
-     * @param imageAddress the address of the object in the bootimage
      */
     public Entry(Address objectId, Object jdkObject) {
       this.objectId     = objectId;

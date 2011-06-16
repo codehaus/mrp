@@ -288,6 +288,7 @@ public class BootImage extends BootImageWriterMessages
    * @param align the alignment requested; must be a power of 2.
    * @param offset the offset at which the alignment is desired.
    */
+  @Override
   public Address allocateDataStorage(int size, int align, int offset) {
     size = roundAllocationSize(size);
     Offset unalignedOffset = freeDataOffset;
@@ -321,6 +322,7 @@ public class BootImage extends BootImageWriterMessages
    * @param align the alignment requested; must be a power of 2.
    * @param offset the offset at which the alignment is desired.
    */
+  @Override
   public Address allocateCodeStorage(int size, int align, int offset) {
     size = roundAllocationSize(size);
     Offset unalignedOffset = freeCodeOffset;
@@ -357,6 +359,7 @@ public class BootImage extends BootImageWriterMessages
    * @param address address of target
    * @param value value to write
    */
+  @Override
   public void setByte(Address address, int value) {
     int idx;
     ByteBuffer data;
@@ -394,6 +397,7 @@ public class BootImage extends BootImageWriterMessages
    * @param address address of target
    * @param value value to write
    */
+  @Override
   public void setHalfWord(Address address, int value) {
     int idx = address.diff(BOOT_IMAGE_DATA_START).toInt();
     bootImageData.putChar(idx, (char)value);
@@ -405,6 +409,7 @@ public class BootImage extends BootImageWriterMessages
    * @param address address of target
    * @param value value to write
    */
+  @Override
   public void setFullWord(Address address, int value) {
     int idx;
     ByteBuffer data;
@@ -427,6 +432,7 @@ public class BootImage extends BootImageWriterMessages
    * @param root Does this slot contain a possible reference into the heap?
    * (objField must also be true)
    */
+  @Override
   public void setAddressWord(Address address, Word value, boolean objField, boolean root) {
     if (VM.VerifyAssertions) VM._assert(!root || objField);
     if (objField) value = MemoryManager.bootTimeWriteBarrier(value);
@@ -461,6 +467,7 @@ public class BootImage extends BootImageWriterMessages
    * to a static, or tib, or some other metadata)
    * @param root Does this slot contain a possible reference into the heap? (objField must also be true)
    */
+  @Override
   public void setNullAddressWord(Address address, boolean objField, boolean root) {
     setNullAddressWord(address, objField, root, true);
   }
@@ -471,6 +478,7 @@ public class BootImage extends BootImageWriterMessages
    * @param address address of target
    * @param value value to write
    */
+  @Override
   public void setDoubleWord(Address address, long value) {
     int idx;
     ByteBuffer data;
