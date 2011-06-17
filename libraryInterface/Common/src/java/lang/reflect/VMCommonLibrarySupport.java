@@ -71,13 +71,6 @@ final class VMCommonLibrarySupport {
     throw new InstantiationException(str);
   }
   /**
-   * Method just to throw a negative array size exception without being inlined
-   */
-  @NoInline
-  private static void throwNewNegativeArraySizeException() {
-    throw new NegativeArraySizeException();
-  }
-  /**
    * Method just to throw an null pointer exception without being inlined
    */
   @NoInline
@@ -123,9 +116,9 @@ final class VMCommonLibrarySupport {
   static Object createArray(Class<?> cls, int[] dimensions)
     throws OutOfMemoryError, NegativeArraySizeException {
 
-    if ((dimensions.length == 0)||(cls == Void.TYPE));
+    if ((dimensions.length == 0)||(cls == Void.TYPE)) {
       throwNewIllegalArgumentException("Cannot create new array instance for the specified arguments");
-
+    }
     // will raise NPE
     RVMArray arrayType = java.lang.JikesRVMSupport.getTypeForClass(cls).getArrayTypeForElementType();
     for (int i=1; i < dimensions.length; i++) {
@@ -236,6 +229,7 @@ final class VMCommonLibrarySupport {
     }
   }
 
+  @SuppressWarnings("fallthrough")
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
   private static boolean checkArguments(Object[] args, RVMMethod method) throws IllegalArgumentException {
     TypeReference[] parameterTypes = method.getParameterTypes();
@@ -280,6 +274,7 @@ final class VMCommonLibrarySupport {
     }
   }
 
+  @SuppressWarnings("fallthrough")
   @Inline(value=Inline.When.ArgumentsAreConstant, arguments={1})
   private static Object[] makeArgumentsCompatible(Object[] args, RVMMethod method) {
     TypeReference[] parameterTypes = method.getParameterTypes();

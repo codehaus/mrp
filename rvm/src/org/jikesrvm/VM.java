@@ -123,7 +123,6 @@ public class VM extends Properties implements Constants, ExitStatus {
    *    JTOC_POINTER        - required for accessing globals
    *    FRAME_POINTER       - required for accessing locals
    *    THREAD_ID_REGISTER  - required for method prolog (stack overflow check)
-   * @exception Exception
    */
   @UnpreemptibleNoWarn("No point threading until threading is booted")
   public static void boot() {
@@ -701,7 +700,6 @@ public class VM extends Properties implements Constants, ExitStatus {
   private static void swLock() {
     if (sysWriteLockOffset.isMax()) return;
     while (!Synchronization.testAndSet(Magic.getJTOC(), sysWriteLockOffset, 1)) {
-      ;
     }
   }
 
@@ -2473,7 +2471,6 @@ public class VM extends Properties implements Constants, ExitStatus {
        and misleading error messages.   (To the best of my knowledge, we have
        never yet reached this point.)  */
     while (true) {
-      ;
     }
   }
 

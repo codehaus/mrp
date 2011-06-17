@@ -328,6 +328,7 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
    *  @param irMap  the irmap to translate from
    *  @param DUMP_MAPS dump while we work
    */
+  @SuppressWarnings("unused")
   private static OptMachineCodeMap generateMCInformation(GCIRMap irMap, boolean DUMP_MAPS) {
     CallSiteTree inliningMap = new CallSiteTree();
     int numEntries = 0;
@@ -634,11 +635,38 @@ public final class OptMachineCodeMap implements Constants, OptConstants {
       int bci = getBytecodeIndex(entry);
       Offset offs = Offset.fromIntSignExtend(this.getMCOffset(entry));
       int iei = getInlineEncodingIndex(entry);
+      if (iei == -1) continue; // don't process invalid entries
       int mid = OptEncodedCallSiteTree.getMethodID(iei, inlineEncoding);
       RVMMethod meth = MemberReference.getMemberRef(mid).asMethodReference().getResolvedMember();
       Atom sourceFile = meth.getDeclaringClass().getSourceName();
       v.visit(offs, sourceFile, ((NormalMethod)meth).getLineNumberForBCIndex(bci));
     }
+  }
+
+  /**
+   * Visitor pattern
+   */
+  public static abstract class MethodVisitor {
+    /**
+     * Abstract method called when visit a method for a particular scenario
+     * @param m
+     */
+    public abstract void visit(RVMMethod m);
+  }
+
+  /**
+   * Walk methods that are compiled into this machine code map
+   * @param v visitor to add debug information to
+   */
+  public void walkMethods(MethodVisitor v) {
+    if (MCInformation == null) return;
+    for (int entry = 0; entry < MCInformation.length; entry = nextEntry(entry)) {
+      int iei = getInlineEncodingIndex(entry);
+      if (iei == -1) continue; // don't process invalid entries
+      int mid = OptEncodedCallSiteTree.getMethodID(iei, inlineEncoding);
+      RVMMethod meth = MemberReference.getMemberRef(mid).asMethodReference().getResolvedMember();
+      v.visit(meth);
+    }    
   }
 
   public void dumpMCInformation(boolean DUMP_MAPS) {

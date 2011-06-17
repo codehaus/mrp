@@ -61,7 +61,7 @@ final class BuildReferenceMaps implements ClassLoaderConstants, BBConstants {
 
   private static enum PrimitiveSize {
     ONEWORD, DOUBLEWORD
-  };
+  }
 
   // These two variables are used and updated by more than one method in this class,
   // therefore they need to be instance variables;

@@ -172,6 +172,7 @@ public final class VMChannel
    */
   private static class LocalByteArray extends ThreadLocal<byte[]> {
     private static final int INITIAL_BUFFER_SIZE = 8192;
+    @Override
     @NonMovingAllocation
     protected byte[] initialValue() {
       return new byte[INITIAL_BUFFER_SIZE];
@@ -581,7 +582,7 @@ public final class VMChannel
    * @return True if the connection succeeded; false if the file descriptor
    *  is in non-blocking mode and the connection did not immediately
    *  succeed.
-   * @throws IOException If an error occurs while connecting.
+   * @throws SocketException If an error occurs while connecting.
    */
   public boolean connect(InetSocketAddress saddr, int timeout)
   throws SocketException
@@ -911,6 +912,7 @@ public final class VMChannel
       }
     }
 
+    @Override
     public String toString()
     {
       if (closed)
@@ -920,6 +922,7 @@ public final class VMChannel
       return String.valueOf(native_fd);
     }
 
+    @Override
     protected void finalize() throws Throwable
     {
       try

@@ -59,7 +59,7 @@ public final class ReferenceMaps {
   final short[] byteToBlockMap;
 
   /**
-   * size of individul maps
+   * size of individual maps
    */
   private int bytesPerMap() {
     return ((bitsPerMap + 7) / 8) + 1;
@@ -197,7 +197,7 @@ public final class ReferenceMaps {
    * @param index offset in the reference stack frame,
    * @param siteindex index that indicates the callsite (siteindex),
    * @return return the offset where the next reference can be found.
-   * @return NOMORE when no more pointers can be found
+   *         NOMORE when no more pointers can be found
    */
   public int getNextRefIndex(int index, int siteindex) {
     if (VM.TraceStkMaps) {
@@ -251,7 +251,7 @@ public final class ReferenceMaps {
   /**
    * @param index offset in the JSR reference map,
    * @return The offset where the next reference can be found.
-   * @return <code>NOMORE</code> when no more pointers can be found
+   *         <code>NOMORE</code> when no more pointers can be found
    * <p>
    * NOTE: There is only one JSR map for the entire method because it has to
    *       be constructed at GC time and would normally require additional

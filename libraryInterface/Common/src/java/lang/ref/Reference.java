@@ -41,6 +41,7 @@ public abstract class Reference<T> {
    * classpath release.
    * @see java.lang.ref.ReferenceQueue
  */
+  @SuppressWarnings("rawtypes")
   Reference nextOnQueue;
 
 
@@ -73,7 +74,6 @@ public abstract class Reference<T> {
    * Takes the passed address and (atomically) performs any read barrier actions
    * before returning it as an object.
    *
-   * @param tmp The non-zero referent address
    * @return The referent object.
    */
   @Uninterruptible

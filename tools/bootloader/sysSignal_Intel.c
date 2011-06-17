@@ -216,33 +216,53 @@ static Address getInstructionFollowing(Address faultingInstructionAddress) {
   unsigned char opcode;
   unsigned char modrm;
   int size = 0;
+  int prefixes_done;
   if (!inRVMAddressSpace(faultingInstructionAddress)) {
     return -1;
   }
-  opcode = *((char*)faultingInstructionAddress);
+  opcode = ((unsigned char*)faultingInstructionAddress)[0];
   size++;
+  /* Process prefix bytes */
+  prefixes_done = 0;
+  while (!prefixes_done) {
+    switch (opcode) {
+      case 0x2E: case 0x3E: // CS or DS segment override, or branch likely hints
+      case 0x26: case 0x36: // ES or SS segment override
+      case 0x64: case 0x65: // FS or GS segment override
+      case 0x66:            // operand size override or compulsory SSE prefix
+      case 0x67:            // address size prefix
+      case 0xF0:            // lock prefix
+      case 0xF2: case 0xF3: // rep prefixes or compulsory SSE prefix
+        size++;
+        opcode = ((unsigned char*)faultingInstructionAddress)[size];
+        break;
+      default:
+        prefixes_done = 1;
+        break;
+    }
+  }
 #ifdef __x86_64__
+  /* handle any REX prefix */
   if (opcode >= 0x40 && opcode <= 0x4F) {
-    /* rex prefix */
+    opcode = ((unsigned char*)faultingInstructionAddress)[size];
     size++;
-    faultingInstructionAddress++;
-    opcode = *((char*)faultingInstructionAddress);
   }
 #endif __x86_64__
+  /* account for modrm and any immediate bytes */
   switch (opcode) {
   case 0xCD: // int imm8
-    size++;
+    size++;  // account for immediate byte
     break;
   case 0x39: // cmp r/m,r
   case 0x8B: // mov r,r/m
   case 0xF7: // idiv r/m
   case 0xFF: // push r/m
-    modrm = *((unsigned char*)faultingInstructionAddress+1);
-    size += decodeModRMLength(modrm);
+    modrm = ((unsigned char*)faultingInstructionAddress)[size];
+    size += decodeModRMLength(modrm); // account for the size of the modrm
     break;
   default:
     ERROR_PRINTF(Me, "%s: Unexpected opcode 0x%x treating as opcode followed by modrm\n", Me, opcode);
-    modrm = *((unsigned char*)faultingInstructionAddress+1);
+    modrm = ((unsigned char*)faultingInstructionAddress)[size];
     size += decodeModRMLength(modrm);
   }
   return faultingInstructionAddress+size;
@@ -363,7 +383,7 @@ EXTERNAL void setupDeliverHardwareException(void *context, Address vmRegisters,
   vmr_gprs[Constants_EBP] = IA32_EBP(context);
 #ifdef __x86_64__
   vmr_gprs[Constants_R8]  = IA32_R8(context);
-  vmr_gprs[Constants_R8]  = IA32_R9(context);
+  vmr_gprs[Constants_R9]  = IA32_R9(context);
   vmr_gprs[Constants_R10] = IA32_R10(context);
   vmr_gprs[Constants_R11] = IA32_R11(context);
   vmr_gprs[Constants_R12] = IA32_R12(context);
